@@ -1,0 +1,27 @@
+This directory contains self-tests based on NIST's Public Key
+Interoperability Test Suites, downloaded (2007-02-13) from:
+
+http://csrc.nist.gov/pki/testing/x509paths.html
+
+ada0f267e0ff4eb16a0e19964cf518a833f00093  PKITS_data.zip
+bb1dea2e3a1ef163c94c19d07de506228eac41ad  PKITS.pdf
+eeeeb55657c433b57730288cd5c20daaf27f13fb  pkits_test_list_generator.tgz
+
+The PKCS#12 password is "password".
+
+Because of unclear license, they are not distributed with GnuTLS
+currently.
+
+See the PDF for information regarding the self tests.
+
+The script "pkits" will invoke the simple scripts "pkits_crt",
+"pkits_crl", "pkits_pkcs12", "pkits_smime" which will make sure that
+certtool can parse those structures.
+
+The script "pkits_test" will build NIST's tool to generate HTML for
+tests.  It will start a Glade interface, and you should type
+e.g. 'foo.html' and then 'Generate tables'.  Since GnuTLS supports
+DSA, you should typically click on 'DSA signature verification' too.
+The interface invokes "gnutls_test_entry" which verifies certificates
+chains, after building them using "build-chain".  A sample output is
+stored in the file "gnutls-nist-tests.html".
