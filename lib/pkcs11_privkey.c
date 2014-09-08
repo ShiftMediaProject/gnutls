@@ -386,9 +386,9 @@ gnutls_pkcs11_privkey_import_url(gnutls_pkcs11_privkey_t pkey,
 	}
 
 	attr = p11_kit_uri_get_attribute(pkey->info, CKA_ID);
-	if (!attr || !attr->value_len) {
+	if (!attr) {
 		attr = p11_kit_uri_get_attribute(pkey->info, CKA_LABEL);
-		if (!attr || !attr->value_len) {
+		if (!attr) {
 			gnutls_assert();
 			return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 		}
@@ -585,6 +585,10 @@ gnutls_pkcs11_privkey_generate(const char *url, gnutls_pk_algorithm_t pk,
  * store the DER-encoded public key in the SubjectPublicKeyInfo format 
  * in @pubkey. The @pubkey should be deinitialized using gnutls_free().
  *
+ * Note that when generating an elliptic curve key, the curve
+ * can be substituted in the place of the bits parameter using the
+ * GNUTLS_CURVE_TO_BITS() macro.
+ *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
  *
@@ -610,6 +614,9 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 	struct ck_mechanism mech;
 	gnutls_pubkey_t pkey = NULL;
 	gnutls_pkcs11_obj_t obj = NULL;
+	gnutls_datum_t der = {NULL, 0};
+	ck_key_type_t key_type;
+	char pubEx[3] = { 1,0,1 }; // 65537 = 0x10001
 
 	memset(&sinfo, 0, sizeof(sinfo));
 
@@ -635,7 +642,7 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 	a_val = p_val = 0;
 	mech.parameter = NULL;
 	mech.parameter_len = 0;
-	mech.mechanism = pk_to_genmech(pk);
+	mech.mechanism = pk_to_genmech(pk, &key_type);
 
 	switch (pk) {
 	case GNUTLS_PK_RSA:
@@ -663,6 +670,12 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 		a[a_val].value = &_bits;
 		a[a_val].value_len = sizeof(_bits);
 		a_val++;
+
+		a[a_val].type = CKA_PUBLIC_EXPONENT;
+		a[a_val].value = pubEx;
+		a[a_val].value_len = sizeof(pubEx);
+		a_val++;
+
 		break;
 	case GNUTLS_PK_DSA:
 		p[p_val].type = CKA_SIGN;
@@ -691,9 +704,21 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 		a[a_val].value_len = sizeof(tval);
 		a_val++;
 
-		a[a_val].type = CKA_MODULUS_BITS;
-		a[a_val].value = &_bits;
-		a[a_val].value_len = sizeof(_bits);
+		if (GNUTLS_BITS_ARE_CURVE(bits)) {
+			bits = GNUTLS_BITS_TO_CURVE(bits);
+		} else {
+			bits = _gnutls_ecc_bits_to_curve(bits);
+		}
+
+		ret = _gnutls_x509_write_ecc_params(bits, &der);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+
+		a[a_val].type = CKA_EC_PARAMS;
+		a[a_val].value = der.data;
+		a[a_val].value_len = der.size;
 		a_val++;
 		break;
 	default:
@@ -772,7 +797,7 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 		obj->type = GNUTLS_PKCS11_OBJ_PUBKEY;
 		ret =
 		    pkcs11_read_pubkey(sinfo.module, sinfo.pks, pub,
-				       mech.mechanism, obj->pubkey);
+				       key_type, obj->pubkey);
 		if (ret < 0) {
 			gnutls_assert();
 			goto cleanup;
@@ -799,6 +824,7 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 		gnutls_pubkey_deinit(pkey);
 	if (sinfo.pks != 0)
 		pkcs11_close_session(&sinfo);
+	gnutls_free(der.data);
 
 	return ret;
 }

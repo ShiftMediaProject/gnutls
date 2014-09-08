@@ -31,12 +31,16 @@
 #include <gnutls_errors.h>
 #include <extras/randomart.h>
 
+#ifdef HAVE_INET_NTOP
+# include <arpa/inet.h>
+#endif
+
 #define addf _gnutls_buffer_append_printf
 #define adds _gnutls_buffer_append_str
 
 #define ERROR_STR (char*) "(error)"
 
-static char *ip_to_string(void *_ip, int ip_size, char *string,
+static const char *ip_to_string(void *_ip, int ip_size, char *string,
 			  int string_size)
 {
 	uint8_t *ip;
@@ -56,6 +60,12 @@ static char *ip_to_string(void *_ip, int ip_size, char *string,
 		return NULL;
 	}
 
+#ifdef HAVE_INET_NTOP
+	if (ip_size == 4)
+		return inet_ntop(AF_INET, _ip, string, string_size);
+	else
+		return inet_ntop(AF_INET6, _ip, string, string_size);
+#else
 	ip = _ip;
 	switch (ip_size) {
 	case 4:
@@ -70,8 +80,8 @@ static char *ip_to_string(void *_ip, int ip_size, char *string,
 			 (ip[12] << 8) | ip[13], (ip[14] << 8) | ip[15]);
 		break;
 	}
-
 	return string;
+#endif
 }
 
 static void
@@ -79,7 +89,7 @@ add_altname(gnutls_buffer_st * str, const char *prefix,
 	    unsigned int alt_type, char *name, size_t name_size)
 {
 	char str_ip[64];
-	char *p;
+	const char *p;
 
 	if ((alt_type == GNUTLS_SAN_DNSNAME
 	     || alt_type == GNUTLS_SAN_RFC822NAME
@@ -528,7 +538,7 @@ static void print_crldist(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
 	char *buffer = NULL;
 	size_t size;
 	char str_ip[64];
-	char *p;
+	const char *p;
 	int err;
 	int indx;
 
@@ -1246,7 +1256,7 @@ print_extensions(gnutls_buffer_st * str, const char *prefix, int type,
 				return;
 			}
 
-			if (err < 0) {
+			if (err < 0 && err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
 				addf(str,
 				     "error: get_extension_data: %s\n",
 				     gnutls_strerror(err));
@@ -1270,7 +1280,7 @@ print_extensions(gnutls_buffer_st * str, const char *prefix, int type,
 				    gnutls_x509_crq_get_extension_data
 				    (cert.crq, i, buffer, &extlen);
 
-			if (err < 0) {
+			if (err < 0 && err) {
 				gnutls_free(buffer);
 				addf(str,
 				     "error: get_extension_data2: %s\n",
@@ -2218,7 +2228,7 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 								       i,
 								       NULL,
 								       &extlen);
-				if (err < 0) {
+				if (err < 0 && err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
 					addf(str,
 					     "error: get_extension_data: %s\n",
 					     gnutls_strerror(err));

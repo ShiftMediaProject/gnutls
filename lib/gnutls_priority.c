@@ -196,7 +196,8 @@ int gnutls_protocol_set_priority(gnutls_session_t session, const int *list)
 		/* set the current version to the first in the chain.
 		 * This will be overridden later.
 		 */
-		_gnutls_set_current_version(session, list[0]);
+		if (_gnutls_set_current_version(session, list[0]) < 0)
+			return gnutls_assert_val(GNUTLS_E_UNSUPPORTED_VERSION_PACKET);
 	}
 
 	return 0;
@@ -573,10 +574,13 @@ gnutls_priority_set(gnutls_session_t session, gnutls_priority_t priority)
 	/* set the current version to the first in the chain.
 	 * This will be overridden later.
 	 */
-	if (session->internals.priorities.protocol.algorithms > 0)
-		_gnutls_set_current_version(session,
+	if (session->internals.priorities.protocol.algorithms > 0) {
+		if (_gnutls_set_current_version(session,
 					    session->internals.priorities.
-					    protocol.priority[0]);
+					    protocol.priority[0]) < 0) {
+			return gnutls_assert_val(GNUTLS_E_UNSUPPORTED_VERSION_PACKET);
+		}
+	}
 
 	if (session->internals.priorities.protocol.algorithms == 0 ||
 	    session->internals.priorities.cipher.algorithms == 0 ||
@@ -1107,6 +1111,8 @@ void gnutls_priority_deinit(gnutls_priority_t priority_cache)
  * priority cache and is used to directly set string priorities to a
  * TLS session.  For documentation check the gnutls_priority_init().
  *
+ * To simply use a reasonable default, consider using gnutls_set_default_priority().
+ *
  * Returns: On syntax error %GNUTLS_E_INVALID_REQUEST is returned,
  * %GNUTLS_E_SUCCESS on success, or an error code.
  **/
@@ -1173,9 +1179,8 @@ break_comma_list(char *etag,
  * Sets some default priority on the ciphers, key exchange methods,
  * macs and compression methods.
  *
- * This is the same as calling:
- *
- * gnutls_priority_set_direct (session, "NORMAL", NULL);
+ * This typically sets a default priority that is considered
+ * sufficiently secure to establish encrypted sessions.
  *
  * This function is kept around for backwards compatibility, but
  * because of its wide use it is still fully supported.  If you wish

@@ -253,7 +253,7 @@ int _gnutls_x509_read_pubkey_params(gnutls_pk_algorithm_t, uint8_t * der,
 int _gnutls_x509_read_pubkey(gnutls_pk_algorithm_t, uint8_t * der,
 			     int dersize, gnutls_pk_params_st * params);
 
-int _gnutls_x509_write_ecc_params(gnutls_pk_params_st * params,
+int _gnutls_x509_write_ecc_params(gnutls_ecc_curve_t curve,
 				  gnutls_datum_t * der);
 int _gnutls_x509_write_ecc_pubkey(gnutls_pk_params_st * params,
 				  gnutls_datum_t * der);
@@ -320,7 +320,8 @@ typedef struct gnutls_pkcs12_bag_int {
 #define KEY_ID_OID "1.2.840.113549.1.9.21"
 
 int
-_gnutls_pkcs12_string_to_key(unsigned int id, const uint8_t * salt,
+_gnutls_pkcs12_string_to_key(const mac_entry_st * me,
+			     unsigned int id, const uint8_t * salt,
 			     unsigned int salt_size, unsigned int iter,
 			     const char *pw, unsigned int req_keylen,
 			     uint8_t * keybuf);

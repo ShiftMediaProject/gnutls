@@ -434,6 +434,7 @@ _gnutls_x509_dn_to_string(const char *oid, void *value,
 
 	oentry = get_oid_entry(oid);
 	if (oentry == NULL) {	/* unknown OID -> hex */
+ unknown_oid:
 		str->size = value_size * 2 + 2;
 		str->data = gnutls_malloc(str->size);
 		if (str->data == NULL)
@@ -453,14 +454,18 @@ _gnutls_x509_dn_to_string(const char *oid, void *value,
 	if (oentry->asn_desc != NULL) {	/* complex */
 		ret =
 		    decode_complex_string(oentry, value, value_size, &tmp);
-		if (ret < 0)
-			return gnutls_assert_val(ret);
+		if (ret < 0) {
+			/* we failed decoding -> handle it as unknown OID */
+			goto unknown_oid;
+		}
 	} else {
 		ret =
 		    _gnutls_x509_decode_string(oentry->etype, value,
 					       value_size, &tmp);
-		if (ret < 0)
-			return gnutls_assert_val(ret);
+		if (ret < 0) {
+			/* we failed decoding -> handle it as unknown OID */
+			goto unknown_oid;
+		}
 	}
 
 	ret = str_escape(&tmp, str);
@@ -1003,6 +1008,11 @@ _gnutls_x509_read_value(ASN1_TYPE c, const char *root,
 	unsigned int etype;
 
 	result = asn1_read_value_type(c, root, NULL, &len, &etype);
+	if (result == 0 && len == 0) {
+		/* don't allow null strings */
+		return gnutls_assert_val(GNUTLS_E_ASN1_DER_ERROR);
+	}
+
 	if (result != ASN1_MEM_ERROR) {
 		gnutls_assert();
 		result = _gnutls_asn2err(result);
@@ -1565,7 +1575,7 @@ _gnutls_x509_get_signature(ASN1_TYPE src, const char *src_name,
 			   gnutls_datum_t * signature)
 {
 	int result, len;
-	unsigned int bits;
+	int bits;
 
 	signature->data = NULL;
 	signature->size = 0;
@@ -1582,7 +1592,7 @@ _gnutls_x509_get_signature(ASN1_TYPE src, const char *src_name,
 	}
 
 	bits = len;
-	if (bits % 8 != 0) {
+	if (bits % 8 != 0 || bits < 8) {
 		gnutls_assert();
 		result = GNUTLS_E_CERTIFICATE_ERROR;
 		goto cleanup;

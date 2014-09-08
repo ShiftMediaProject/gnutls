@@ -575,7 +575,7 @@ gnutls_x509_crt_get_signature(gnutls_x509_crt_t cert,
 			      char *sig, size_t * sizeof_sig)
 {
 	int result;
-	unsigned int bits;
+	int bits;
 	int len;
 
 	if (cert == NULL) {
@@ -591,7 +591,7 @@ gnutls_x509_crt_get_signature(gnutls_x509_crt_t cert,
 	}
 
 	bits = len;
-	if (bits % 8 != 0) {
+	if (bits % 8 != 0 || bits < 8) {
 		gnutls_assert();
 		return GNUTLS_E_CERTIFICATE_ERROR;
 	}
@@ -608,6 +608,7 @@ gnutls_x509_crt_get_signature(gnutls_x509_crt_t cert,
 		gnutls_assert();
 		return _gnutls_asn2err(result);
 	}
+	*sizeof_sig = (unsigned)(len/8);
 
 	return 0;
 }
@@ -1832,7 +1833,7 @@ static int decode_user_notice(const void *data, size_t size,
 	}
 
 	if (strcmp(choice_type, "utf8String") != 0
-	    && strcmp(choice_type, "IA5String") != 0
+	    && strcmp(choice_type, "ia5String") != 0
 	    && strcmp(choice_type, "bmpString") != 0
 	    && strcmp(choice_type, "visibleString") != 0) {
 		gnutls_assert();
@@ -2216,7 +2217,7 @@ gnutls_x509_crt_get_extension_info(gnutls_x509_crt_t cert, int indx,
  * @cert: should contain a #gnutls_x509_crt_t structure
  * @indx: Specifies which extension OID to send. Use (0) to get the first one.
  * @data: a pointer to a structure to hold the data (may be null)
- * @sizeof_data: initially holds the size of @oid
+ * @sizeof_data: initially holds the size of @data
  *
  * This function will return the requested extension data in the
  * certificate.  The extension data will be stored as a string in the
@@ -2251,9 +2252,14 @@ gnutls_x509_crt_get_extension_data(gnutls_x509_crt_t cert, int indx,
 	result = asn1_read_value(cert->cert, name, data, &len);
 	*sizeof_data = len;
 
-	if (result == ASN1_ELEMENT_NOT_FOUND)
+	if (result == ASN1_ELEMENT_NOT_FOUND) {
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	else if (result < 0) {
+	} else if (result == ASN1_MEM_ERROR && data == NULL) {
+		/* normally we should return GNUTLS_E_SHORT_MEMORY_BUFFER,
+		 * but we haven't done that for long time, so use
+		 * backwards compatible behavior */
+		return 0;
+	} else if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		return _gnutls_asn2err(result);
 	}

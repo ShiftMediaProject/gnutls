@@ -3,6 +3,81 @@ Copyright (C) 2000-2014 Free Software Foundation, Inc.
 Copyright (C) 2013, 2014 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.2.17 (released 2014-08-24)
+
+** libgnutls: initialize parameters variable on PKCS #8 decryption.
+
+** libgnutls: Explicitly set the exponent in PKCS #11 key generation.
+That improves compatibility with certain PKCS #11 modules. Contributed by
+Wolfgang Meyer zu Bergsten.
+
+** libgnutls: gnutls_pkcs12_verify_mac() will not fail in other than SHA1
+algorithms.
+
+** libgnutls: when checking the hostname of a certificate with multiple CNs
+ensure that the "most specific" CN is being used.
+
+** libgnutls: In DTLS ignore only errors that relate to unexpected packets
+and decryption failures.
+
+** API and ABI modifications:
+No changes since last version.
+
+
+* Version 3.2.16 (released 2014-07-23)
+
+** libgnutls: Do not call the post client hello callback twice when resuming
+using session tickets.
+
+** libgnutls: When the decoding of a printable DN element fails, then treat
+it as unknown and print its hex value rather than failing. That works around
+an issue in a TURKTRST root certificate which improperly encodes the
+X520countryName element.
+
+** libgnutls: IP addresses are printed using inet_ntop() when available.
+
+** libgnutls: gnutls_x509_crt_check_hostname will also check IP addresses
+and match documented behavior. Reported by David Woodhouse.
+
+** libgnutls: Fixed PKCS #11 ECDSA key generation.
+
+** p11tool: use GNUTLS_SO_PIN to read the security officer's PIN if set.
+
+** p11tool: will not implicitly enable so-login for certain types of
+objects. That avoids issues with tokens that require different login
+types.
+
+** API and ABI modifications:
+No changes since last version.
+
+
+* Version 3.2.15 (released 2014-05-30)
+
+** libgnutls: Eliminated memory corruption issue in Server Hello parsing.
+Issue reported by Joonas Kuorilehto of Codenomicon.
+
+** libgnutls: Several memory leaks caused by error conditions were
+fixed. The leaks were identified using valgrind and the Codenomicon
+TLS test suite.
+
+** libgnutls: Increased the maximum certificate size buffer
+in the PKCS #11 subsystem.
+
+** libgnutls: Check the return code of getpwuid_r() instead of relying
+on the result value. That avoids issue in certain systems, when using
+tofu authentication and the home path cannot be determined. Issue reported
+by Viktor Dukhovni.
+
+** gnutls-cli: if dane is requested but not PKIX verification, then
+only do verify the end certificate.
+
+** ocsptool: Include path in ocsp request. This resolves #108582
+(https://savannah.gnu.org/support/?108582), reported by Matt McCutchen.
+
+** API and ABI modifications:
+No changes since last version.
+
+
 * Version 3.2.14 (released 2014-05-06)
 
 ** libgnutls: Fixed issue with the check of incoming data when two

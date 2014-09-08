@@ -39,7 +39,7 @@
 #define MAX_PROVIDERS 16
 
 /* XXX: try to eliminate this */
-#define MAX_CERT_SIZE 8*1024
+#define MAX_CERT_SIZE 32*1024
 #define MAX_SLOTS 48
 
 struct gnutls_pkcs11_provider_s {
@@ -391,7 +391,7 @@ pkcs11_get_info(struct p11_kit_uri *info,
 			*output_size = length * 3;
 			return GNUTLS_E_SHORT_MEMORY_BUFFER;
 		}
-		if (output)
+		if (output && length > 0)
 			_gnutls_bin2hex(data, length, output, *output_size,
 					":");
 		*output_size = length * 3;
@@ -565,7 +565,7 @@ int gnutls_pkcs11_reinit(void)
 		if (providers[i].module != NULL) {
 			rv = p11_kit_initialize_module(providers[i].
 						       module);
-			if (rv != CKR_OK)
+			if (rv != CKR_OK && rv != CKR_CRYPTOKI_ALREADY_INITIALIZED)
 				_gnutls_debug_log
 				    ("Cannot initialize registered module '%s': %s\n",
 				     providers[i].info.library_description,
@@ -1199,6 +1199,7 @@ int pkcs11_read_pubkey(struct ck_function_list *module,
 	uint8_t tmp1[2048];
 	uint8_t tmp2[2048];
 	int ret;
+	ck_rv_t rv;
 
 	switch (key_type) {
 	case CKK_RSA:
@@ -1241,7 +1242,7 @@ int pkcs11_read_pubkey(struct ck_function_list *module,
 		a[1].value = tmp2;
 		a[1].value_len = sizeof(tmp2);
 
-		if (pkcs11_get_attribute_value(module, pks, obj, a, 2) ==
+		if ((rv = pkcs11_get_attribute_value(module, pks, obj, a, 2)) ==
 		    CKR_OK) {
 			ret =
 			    _gnutls_set_datum(&pubkey[0], a[0].value,
@@ -1261,7 +1262,7 @@ int pkcs11_read_pubkey(struct ck_function_list *module,
 			}
 		} else {
 			gnutls_assert();
-			return GNUTLS_E_PKCS11_ERROR;
+			return pkcs11_rv_to_err(rv);
 		}
 
 		a[0].type = CKA_BASE;
@@ -1271,7 +1272,7 @@ int pkcs11_read_pubkey(struct ck_function_list *module,
 		a[1].value = tmp2;
 		a[1].value_len = sizeof(tmp2);
 
-		if (pkcs11_get_attribute_value(module, pks, obj, a, 2) ==
+		if ((rv = pkcs11_get_attribute_value(module, pks, obj, a, 2)) ==
 		    CKR_OK) {
 			ret =
 			    _gnutls_set_datum(&pubkey[2], a[0].value,
@@ -1293,18 +1294,19 @@ int pkcs11_read_pubkey(struct ck_function_list *module,
 			}
 		} else {
 			gnutls_assert();
-			return GNUTLS_E_PKCS11_ERROR;
+			return pkcs11_rv_to_err(rv);
 		}
 		break;
 	case CKK_ECDSA:
 		a[0].type = CKA_EC_PARAMS;
 		a[0].value = tmp1;
 		a[0].value_len = sizeof(tmp1);
+
 		a[1].type = CKA_EC_POINT;
 		a[1].value = tmp2;
 		a[1].value_len = sizeof(tmp2);
 
-		if (pkcs11_get_attribute_value(module, pks, obj, a, 2) ==
+		if ((rv = pkcs11_get_attribute_value(module, pks, obj, a, 2)) ==
 		    CKR_OK) {
 			ret =
 			    _gnutls_set_datum(&pubkey[0], a[0].value,
@@ -1324,11 +1326,12 @@ int pkcs11_read_pubkey(struct ck_function_list *module,
 			}
 		} else {
 			gnutls_assert();
-			return GNUTLS_E_PKCS11_ERROR;
+			return pkcs11_rv_to_err(rv);
 		}
 
 		break;
 	default:
+		_gnutls_debug_log("requested reading public key of unsupported type %u\n", (unsigned)key_type);
 		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
 	}
 
