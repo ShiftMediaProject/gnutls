@@ -39,8 +39,10 @@ int dn_attr_crt_set(set_dn_func f, void *crt, const gnutls_datum_t * name,
 		    const gnutls_datum_t * val)
 {
 	char _oid[MAX_OID_SIZE];
+	gnutls_datum_t tmp;
 	const char *oid;
 	int ret;
+	unsigned i,j;
 
 	if (name->size == 0 || val->size == 0)
 		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
@@ -73,7 +75,26 @@ int dn_attr_crt_set(set_dn_func f, void *crt, const gnutls_datum_t * name,
 	if (val->data[0] == '#')
 		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
 
-	ret = f(crt, oid, 0, val->data, val->size);
+	tmp.size = val->size;
+	tmp.data = gnutls_malloc(tmp.size+1);
+	if (tmp.data == NULL) {
+		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
+	}
+
+	for (j=i=0;i<tmp.size;i++) {
+		if (1+j!=val->size && val->data[j] == '\\' && val->data[j+1] == ',') {
+			tmp.data[i] = ',';
+			j+=2;
+			tmp.size--;
+		} else {
+			tmp.data[i] = val->data[j++];
+		}
+	}
+	tmp.data[tmp.size] = 0;
+
+	ret = f(crt, oid, 0, tmp.data, tmp.size);
+	gnutls_free(tmp.data);
+
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
@@ -109,11 +130,16 @@ static int read_attr_and_val(const char **ptr,
 
 	/* Read value */
 	val->data = (void *) p;
-	while (*p != 0 && !c_isspace(*p)
-	       && (*p != ',' || (*p == ',' && *(p - 1) == '\\'))
-	       && *p != '\n')
+	while (*p != 0 && (*p != ',' || (*p == ',' && *(p - 1) == '\\'))
+	       && *p != '\n') {
 		p++;
+	}
 	val->size = p - (val->data);
+
+	/* remove spaces from the end */
+	while(val->size > 0 && c_isspace(val->data[val->size-1])) {
+		val->size--;
+	}
 
 	if (val->size == 0 || name->size == 0)
 		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
