@@ -1740,7 +1740,11 @@ gnutls_certificate_set_x509_trust(gnutls_certificate_credentials_t res,
 				  int ca_list_size)
 {
 	int ret, i, j;
+#if defined(_MSC_VER) && (_MSC_VER <= 1800)
+    gnutls_x509_crt_t * new_list = (gnutls_x509_crt_t *)_alloca( ca_list_size*sizeof( gnutls_x509_crt_t ) );
+#else
 	gnutls_x509_crt_t new_list[ca_list_size];
+#endif
 
 	for (i = 0; i < ca_list_size; i++) {
 		ret = gnutls_x509_crt_init(&new_list[i]);
@@ -1995,8 +1999,12 @@ gnutls_certificate_set_x509_crl(gnutls_certificate_credentials_t res,
 				gnutls_x509_crl_t * crl_list,
 				int crl_list_size)
 {
-	int ret, i, j;
-	gnutls_x509_crl_t new_crl[crl_list_size];
+    int ret, i, j;
+#if defined(_MSC_VER) && (_MSC_VER <= 1800)
+    gnutls_x509_crl_t * new_crl = (gnutls_x509_crl_t *)_alloca( crl_list_size*sizeof( gnutls_x509_crl_t ) );
+#else
+    gnutls_x509_crl_t new_crl[crl_list_size];
+#endif
 
 	for (i = 0; i < crl_list_size; i++) {
 		ret = gnutls_x509_crl_init(&new_crl[i]);
