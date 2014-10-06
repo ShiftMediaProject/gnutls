@@ -1837,6 +1837,7 @@ del ..\gl\wchar.h
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzd.lib;libiconvd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1934,6 +1935,7 @@ del ..\gl\wchar.h
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzd.lib;libiconvd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -2670,6 +2672,7 @@ del ..\gl\wchar.h
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libz.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -2778,6 +2781,7 @@ del ..\gl\wchar.h
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libz.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
