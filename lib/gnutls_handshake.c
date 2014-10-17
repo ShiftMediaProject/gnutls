@@ -2481,11 +2481,17 @@ static int _gnutls_recv_supplemental(gnutls_session_t session)
  * has asked to resume a session, but the server couldn't, then a
  * full handshake will be performed.
  *
- * The non-fatal errors such as %GNUTLS_E_AGAIN and
- * %GNUTLS_E_INTERRUPTED interrupt the handshake procedure, which
- * should be resumed later.  Call this function again, until it
+ * The non-fatal errors expected by this function are:
+ * %GNUTLS_E_INTERRUPTED, %GNUTLS_E_AGAIN, 
+ * and %GNUTLS_E_WARNING_ALERT_RECEIVED.
+ * The former two interrupt the handshake procedure due to the lower
+ * layer being interrupted, and the latter because of an alert that
+ * may be sent by a server (it is always a good idea to check any
+ * received alerts). On these errors call this function again, until it
  * returns 0; cf.  gnutls_record_get_direction() and
- * gnutls_error_is_fatal().
+ * gnutls_error_is_fatal(). In DTLS sessions the non-fatal error
+ * %GNUTLS_E_LARGE_PACKET is also possible, and indicates that
+ * the MTU should be adjusted.
  *
  * If this function is called by a server after a rehandshake request
  * then %GNUTLS_E_GOT_APPLICATION_DATA or
@@ -2591,10 +2597,16 @@ gnutls_handshake_set_timeout(gnutls_session_t session, unsigned int ms)
 		/* EAGAIN and INTERRUPTED are always non-fatal */ \
 		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) \
 			return ret; \
+		if (ret == GNUTLS_E_LARGE_PACKET && session->internals.handshake_large_loops < 16) { \
+			session->internals.handshake_large_loops++; \
+			return ret; \
+		} \
                 /* a warning alert might interrupt handshake */ \
 		if (allow_alert != 0 && ret==GNUTLS_E_WARNING_ALERT_RECEIVED) return ret; \
 		gnutls_assert(); \
 		ERR( str, ret); \
+		if (gnutls_error_is_fatal(ret) == 0) ret = gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR); \
+		session_invalidate(session); \
 		_gnutls_handshake_hash_buffers_clear(session); \
 		return ret; \
 	} } while (0)

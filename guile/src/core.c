@@ -1,5 +1,5 @@
 /* GnuTLS --- Guile bindings for GnuTLS.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2014 Free Software Foundation, Inc.
 
    GnuTLS is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -553,11 +553,12 @@ SCM_DEFINE (scm_gnutls_set_session_priorities_x,
 	    (SCM session, SCM priorities),
 	    "Have @var{session} use the given @var{priorities} for "
 	    "the ciphers, key exchange methods, MACs and compression "
-	    "methods.  @var{priorities} must be a string (see "
-	    "Priority Strings).  When @var{priorities} cannot be "
-	    "parsed, an @code{error/invalid-request} error is raised, "
-	    "with an extra argument indication the position of the "
-	    "error.\n")
+	    "methods.  @var{priorities} must be a string (@pxref{"
+	    "Priority Strings,,, gnutls, GnuTLS@comma{} Transport Layer "
+	    "Security Library for the GNU system}).  When @var{priorities} "
+	    "cannot be parsed, an @code{error/invalid-request} error "
+	    "is raised, with an extra argument indication the position "
+	    "of the error.\n")
 #define FUNC_NAME s_scm_gnutls_set_session_priorities_x
 {
   int err;
@@ -694,6 +695,38 @@ SCM_DEFINE (scm_gnutls_set_session_credentials_x, "set-session-credentials!",
   return SCM_UNSPECIFIED;
 }
 
+#undef FUNC_NAME
+
+SCM_DEFINE (scm_gnutls_set_session_server_name_x, "set-session-server-name!",
+	    3, 0, 0,
+	    (SCM session, SCM type, SCM name),
+	    "For a client, this procedure provides a way to inform "
+	    "the server that it is known under @var{name}, @i{via} the "
+	    "@code{SERVER NAME} TLS extension.  @var{type} must be "
+	    "a @code{server-name-type} value, @var{server-name-type/dns} "
+	    "for DNS names.")
+#define FUNC_NAME s_scm_gnutls_set_session_server_name_x
+{
+  int err;
+  gnutls_session_t c_session;
+  gnutls_server_name_type_t c_type;
+  char *c_name;
+
+  c_session = scm_to_gnutls_session (session, 1, FUNC_NAME);
+  c_type = scm_to_gnutls_server_name_type (type, 2, FUNC_NAME);
+  SCM_VALIDATE_STRING (3, name);
+
+  c_name = scm_to_locale_string (name);
+
+  err = gnutls_server_name_set (c_session, c_type, c_name,
+				strlen (c_name) + 1);
+  free (c_name);
+
+  if (EXPECT_FALSE (err != GNUTLS_E_SUCCESS))
+    scm_gnutls_error (err, FUNC_NAME);
+
+  return SCM_UNSPECIFIED;
+}
 #undef FUNC_NAME
 
 
