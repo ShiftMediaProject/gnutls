@@ -694,14 +694,3 @@ doc/invoke-p11tool.texi
 doc/invoke-psktool.texi
 doc/invoke-srptool.texi
 doc/invoke-tpmtool.texi
-
-*.exe
-*.obj
-*.log
-*.tlog
-*.pdb
-*.ildb
-*.suo
-*.sdf
-[Oo]bj/
-!SMC/*.h
