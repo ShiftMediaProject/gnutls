@@ -1,5 +1,3 @@
-/* Define if building universal (internal helper macro) */
-/* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* Define to the number of bits in type 'ptrdiff_t'. */
 /* #undef BITSIZEOF_PTRDIFF_T */
@@ -1760,10 +1758,6 @@
    slash. */
 /* #undef LSTAT_FOLLOWS_SLASHED_SYMLINK */
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#define LT_OBJDIR ".libs/"
-
 /* If malloc(0) is != NULL, define this to 1. Otherwise define this to 0. */
 #define MALLOC_0_IS_NONNULL 1
 
@@ -1781,21 +1775,6 @@
 
 /* Name of package */
 #define PACKAGE "gnutls"
-
-/* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "bugs@gnutls.org"
-
-/* Define to the full name of this package. */
-#define PACKAGE_NAME "GnuTLS"
-
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "gnutls"
-
-/* Define to the home page for this package. */
-#define PACKAGE_URL ""
-
-/* define to a working POSIX compliant shell */
-#define POSIX_SHELL "/usr/bin/bash"
 
 /* Define if <inttypes.h> exists and defines unusable PRI* macros. */
 /* #undef PRI_MACROS_BROKEN */
@@ -1905,9 +1884,6 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */
 
-/* The DNSSEC root key file */
-#define UNBOUND_ROOT_KEY_FILE "C:\Program Files\Unbound\root.key"
-
 /* Define if the POSIX multithreading library can be used. */
 /* #undef USE_POSIX_THREADS */
 
@@ -1928,37 +1904,6 @@
 /* Define if references to the old Solaris multithreading library should be
    made weak. */
 /* #undef USE_SOLARIS_THREADS_WEAK */
-
-/* Enable extensions on AIX 3, Interix.  */
-#ifndef _ALL_SOURCE
-# define _ALL_SOURCE 1
-#endif
-/* Enable general extensions on OS X.  */
-#ifndef _DARWIN_C_SOURCE
-# define _DARWIN_C_SOURCE 1
-#endif
-/* Enable GNU extensions on systems that have them.  */
-#ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
-#endif
-/* Enable threading extensions on Solaris.  */
-#ifndef _POSIX_PTHREAD_SEMANTICS
-# define _POSIX_PTHREAD_SEMANTICS 1
-#endif
-/* Enable extensions on HP NonStop.  */
-#ifndef _TANDEM_SOURCE
-# define _TANDEM_SOURCE 1
-#endif
-/* Enable X/Open extensions if necessary.  HP-UX 11.11 defines
-   mbstate_t only if _XOPEN_SOURCE is defined to 500, regardless of
-   whether compiling with -Ae or -D_HPUX_SOURCE=1.  */
-#ifndef _XOPEN_SOURCE
-/* # undef _XOPEN_SOURCE */
-#endif
-/* Enable general extensions on Solaris.  */
-#ifndef __EXTENSIONS__
-# define __EXTENSIONS__ 1
-#endif
 
 
 /* Define if the Win32 multithreading API can be used. */
@@ -1983,39 +1928,9 @@
 /* Define this if a working libregex can be found */
 /* #undef WITH_LIBREGEX */
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
-/* #  undef WORDS_BIGENDIAN */
-# endif
-#endif
-
-/* Enable large inode numbers on Mac OS X 10.5. */
-#define _DARWIN_USE_64_BIT_INODE 1
-
-/* Number of bits in a file offset, on hosts where this is settable. */
-#define _FILE_OFFSET_BITS 64
-
 /* Define to 1 if Gnulib overrides 'struct stat' on Windows so that struct
    stat.st_size becomes 64-bit. */
 #define _GL_WINDOWS_64_BIT_ST_SIZE 1
-
-/* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
-/* #undef _LARGEFILE_SOURCE */
-
-/* Define for large files, on AIX-style hosts. */
-/* #undef _LARGE_FILES */
-
-/* Define to 1 if on MINIX. */
-/* #undef _MINIX */
-
-/* Define to 1 to make NetBSD features available. MINIX 3 needs this. */
-/* #undef _NETBSD_SOURCE */
 
 /* The _Noreturn keyword of C11.  */
 #if ! (defined _Noreturn \
@@ -2029,18 +1944,6 @@
 #  define _Noreturn
 # endif
 #endif
-
-
-/* Define to 2 if the system does not provide POSIX.1 features except with
-   this defined. */
-/* #undef _POSIX_1_SOURCE */
-
-/* Define to 1 in order to get the POSIX compatible declarations of socket
-   functions. */
-/* #undef _POSIX_PII_SOCKET */
-
-/* Define to 1 if you need to in order for 'stat' and other things to work. */
-/* #undef _POSIX_SOURCE */
 
 /* Define as a replacement for the ISO C99 __func__ variable. */
 /* #undef __func__ */
@@ -2125,37 +2028,8 @@
 /* Define to `int' if <sys/types.h> doesn't define. */
 #define gid_t int
 
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
-/* #undef inline */
-#endif
-
-/* Define to long or long long if <stdint.h> and <inttypes.h> don't define. */
-/* #undef intmax_t */
-
-/* Work around a bug in Apple GCC 4.0.1 build 5465: In C99 mode, it supports
-   the ISO C 99 semantics of 'extern inline' (unlike the GNU C semantics of
-   earlier versions), but does not display it by setting __GNUC_STDC_INLINE__.
-   __APPLE__ && __MACH__ test for Mac OS X.
-   __APPLE_CC__ tests for the Apple compiler and its version.
-   __STDC_VERSION__ tests for the C99 mode.  */
-#if defined __APPLE__ && defined __MACH__ && __APPLE_CC__ >= 5465 && !defined __cplusplus && __STDC_VERSION__ >= 199901L && !defined __GNUC_STDC_INLINE__
-# define __GNUC_STDC_INLINE__ 1
-#endif
-
-/* Define to `int' if <sys/types.h> does not define. */
-/* #undef mode_t */
-
 /* Define to the type of st_nlink in struct stat, or a supertype. */
 #define nlink_t int
-
-/* Define to `int' if <sys/types.h> does not define. */
-/* #undef pid_t */
-
-/* Define as the type of the result of subtracting two pointers, if the system
-   doesn't define it. */
-/* #undef ptrdiff_t */
 
 /* static lib rename */
 #define read_binary_file _gnutls_read_binary_file
@@ -2167,24 +2041,6 @@
    nothing if this is not supported.  Do not define if restrict is
    supported directly.  */
 #define restrict //__restrict
-/* Work around a bug in Sun C++: it does not support _Restrict or
-   __restrict__, even though the corresponding Sun C compiler ends up with
-   "#define restrict _Restrict" or "#define restrict __restrict__" in the
-   previous line.  Perhaps some future version of Sun C++ will work with
-   restrict; if so, hopefully it defines __RESTRICT like Sun C does.  */
-#if defined __SUNPRO_CC && !defined __RESTRICT
-# define _Restrict
-# define __restrict__
-#endif
-
-/* Define to `unsigned int' if <sys/types.h> does not define. */
-/* #undef size_t */
-
-/* type to use in place of socklen_t if not defined */
-/* #undef socklen_t */
-
-/* Define as a signed type of the same size as size_t. */
-/* #undef ssize_t */
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #define uid_t int
