@@ -82,6 +82,12 @@
     <Filter Include="Source Files\gl">
       <UniqueIdentifier>{f35f5731-aedc-4518-a473-6d2cb214104d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\lib\nettle\int">
+      <UniqueIdentifier>{b255bc80-88bb-41e0-bdef-dfec060c0a87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\nettle\int">
+      <UniqueIdentifier>{5d10befb-ac39-43dd-a011-e8710001dee9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -103,9 +109,6 @@
       <Filter>Header Files\lib\includes\gnutls</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\includes\gnutls\x509.h">
-      <Filter>Header Files\lib\includes\gnutls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\includes\gnutls\xssl.h">
       <Filter>Header Files\lib\includes\gnutls</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\includes\gnutls\abstract.h">
@@ -183,9 +186,6 @@
     <ClInclude Include="..\lib\ext\max_record.h">
       <Filter>Header Files\lib\ext</Filter>
     </ClInclude>
-    <ClInclude Include="..\lib\ext\new_record_padding.h">
-      <Filter>Header Files\lib\ext</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib\ext\safe_renegotiation.h">
       <Filter>Header Files\lib\ext</Filter>
     </ClInclude>
@@ -259,9 +259,6 @@
       <Filter>Header Files\lib\openpgp</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\nettle\egd.h">
-      <Filter>Header Files\lib\nettle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\nettle\gcm-camellia.h">
       <Filter>Header Files\lib\nettle</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\nettle\gnettle.h">
@@ -405,6 +402,24 @@
     <ClInclude Include="version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\includes\gnutls\self-test.h">
+      <Filter>Header Files\lib\includes\gnutls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\includes\gnutls\x509-ext.h">
+      <Filter>Header Files\lib\includes\gnutls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\fips.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\priority_options.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\rnd-common.h">
+      <Filter>Header Files\lib\nettle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\gcm-camellia.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -546,9 +561,6 @@
       <Filter>Source Files\lib\auth</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\ext\max_record.c">
-      <Filter>Source Files\lib\ext</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\ext\new_record_padding.c">
       <Filter>Source Files\lib\ext</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\ext\safe_renegotiation.c">
@@ -710,16 +722,10 @@
     <ClCompile Include="..\lib\nettle\pk.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\nettle\rnd.c">
-      <Filter>Source Files\lib\nettle</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\nettle\cipher.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\nettle\egd.c">
-      <Filter>Source Files\lib\nettle</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\nettle\gcm-camellia.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\nettle\init.c">
@@ -851,9 +857,6 @@
     <ClCompile Include="..\lib\gnutls_dh.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_dh_primes.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\gnutls_dtls.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
@@ -905,9 +908,6 @@
     <ClCompile Include="..\lib\gnutls_privkey.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\gl\sockets.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
     <ClCompile Include="..\gl\c-ctype.c">
       <Filter>Source Files\gl</Filter>
     </ClCompile>
@@ -915,9 +915,6 @@
       <Filter>Source Files\gl</Filter>
     </ClCompile>
     <ClCompile Include="..\gl\base64.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\fd-hook.c">
       <Filter>Source Files\gl</Filter>
     </ClCompile>
     <ClCompile Include="..\gl\hash-pjw-bare.c">
@@ -928,6 +925,30 @@
     </ClCompile>
     <ClCompile Include="..\gl\msvc-inval.c">
       <Filter>Source Files\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_privkey_raw.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\fips.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\safe-memset.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\rnd-common.c">
+      <Filter>Source Files\lib\nettle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\rnd.c">
+      <Filter>Source Files\lib\nettle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\gcm-camellia.c">
+      <Filter>Source Files\lib\nettle\int</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\name_constraints.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\x509_ext.c">
+      <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1921,6 +1921,8 @@
 /* Define if WSAStartup is needed. */
 #define WINDOWS_SOCKETS 1
 
+#define  SYSTEM_PRIORITY_FILE "gnutls/default-priorities"
+
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wint_t'. */
 /* #undef WINT_T_SUFFIX */

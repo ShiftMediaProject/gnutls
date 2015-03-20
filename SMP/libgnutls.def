@@ -494,7 +494,6 @@ EXPORTS
     gnutls_safe_renegotiation_status
     gnutls_sec_param_get_name
     gnutls_sec_param_to_pk_bits
-    gnutls_secure_calloc
     gnutls_secure_malloc
     gnutls_server_name_get
     gnutls_server_name_set
@@ -514,9 +513,6 @@ EXPORTS
     gnutls_session_set_id
     gnutls_session_set_premaster
     gnutls_session_set_ptr
-    gnutls_session_ticket_enable_client
-    gnutls_session_ticket_enable_server
-    gnutls_session_ticket_key_generate
     gnutls_set_default_export_priority
     gnutls_set_default_priority
     gnutls_sign_algorithm_get
@@ -827,4 +823,3 @@ EXPORTS
     gnutls_x509_trust_list_remove_trust_mem
     gnutls_x509_trust_list_verify_crt
     gnutls_x509_trust_list_verify_named_crt
-    mac_to_entry
