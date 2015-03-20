@@ -83,6 +83,13 @@ flag = {
 };
 
 flag = {
+    name      = verify-client-cert;
+    disabled;
+    descrip   = "If a client certificate is sent then verify it.";
+    doc      = "Do not require, but if a client certificate is sent then verify it and close the connection if invalid.";
+};
+
+flag = {
     name      = heartbeat;
     value     = b;
     descrip   = "Activate heartbeat support";
@@ -255,6 +262,14 @@ flag = {
     value     = l;
     descrip   = "Print a list of the supported algorithms and modes";
     doc      = "Print a list of the supported algorithms and modes. If a priority string is given then only the enabled ciphersuites are shown.";
+};
+
+flag = {
+    name      = provider;
+    arg-type  = file;
+    file-exists = yes;
+    descrip   = "Specify the PKCS #11 provider library";
+    doc      = "This will override the default options in /etc/gnutls/pkcs11.conf";
 };
 
 doc-section = {

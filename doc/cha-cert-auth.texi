@@ -81,9 +81,11 @@ acceptable.  The framework is illustrated on @ref{fig-x509}.
 * X.509 certificate structure::
 * Importing an X.509 certificate::
 * X.509 distinguished names::
+* X.509 extensions::
 * X.509 public and private keys::
 * Verifying X.509 certificate paths::
 * Verifying a certificate in the context of TLS session::
+* Verification using PKCS11::
 @end menu
 
 @node X.509 certificate structure
@@ -138,53 +140,6 @@ The @emph{validity} dates are there to indicate the date that the
 specific certificate was activated and the date the certificate's key
 would be considered invalid.
 
-Certificate @emph{extensions} are there to include information about
-the certificate's subject that did not fit in the typical certificate
-fields. Those may be e-mail addresses, flags that indicate whether the
-belongs to a CA etc.  All the supported @acronym{X.509} version 3
-extensions are shown in @ref{tab:x509-ext}.
-
-@float Table,tab:x509-ext
-@multitable @columnfractions .3 .2 .4
-
-@headitem Extension @tab OID @tab Description
-
-@item Subject key id @tab 2.5.29.14 @tab
-An identifier of the key of the subject.
-
-@item Authority key id @tab 2.5.29.35 @tab
-An identifier of the authority's key used to sign the certificate.
-
-@item Subject alternative name @tab 2.5.29.17 @tab
-Alternative names to subject's distinguished name.
-
-@item Key usage @tab 2.5.29.15 @tab
-Constraints the key's usage of the certificate.
-
-@item Extended key usage @tab 2.5.29.37 @tab
-Constraints the purpose of the certificate.
-
-@item Basic constraints @tab 2.5.29.19 @tab
-Indicates whether this is a CA certificate or not, and specify the
-maximum path lengths of certificate chains.
-
-@item CRL distribution points @tab 2.5.29.31 @tab
-This extension is set by the CA, in order to inform about the issued
-CRLs.
-
-@item Certificate policy @tab 2.5.29.32 @tab
-This extension is set to indicate the certificate policy as object
-identifier and may contain a descriptive string or URL.
-
-@item Proxy Certification Information @tab 1.3.6.1.5.5.7.1.14 @tab
-Proxy Certificates includes this extension that contains the OID of
-the proxy policy language used, and can specify limits on the maximum
-lengths of proxy chains.  Proxy Certificates are specified in
-@xcite{RFC3820}.
-
-@end multitable
-@caption{X.509 certificate extensions.}
-@end float
 
 In @acronym{GnuTLS} the @acronym{X.509} certificate structures are
 handled using the @code{gnutls_x509_crt_t} type and the corresponding
@@ -238,6 +193,105 @@ to the contents of the distinguished name structure.
 @showfuncB{gnutls_x509_crt_get_subject,gnutls_x509_crt_get_issuer}
 @showfuncdesc{gnutls_x509_dn_get_rdn_ava}
 
+@node X.509 extensions
+@subsubsection X.509 extensions
+@cindex X.509 extensions
+
+X.509 version 3 certificates include a list of extensions that can
+be used to obtain additional information on the subject or the issuer
+of the certificate. Those may be e-mail addresses, flags that indicate whether the
+belongs to a CA etc.  All the supported @acronym{X.509} version 3
+extensions are shown in @ref{tab:x509-ext}.
+
+The certificate extensions access is split into two parts. The first
+requires to retrieve the extension, and the second is the parsing part.
+
+To enumerate and retrieve the DER-encoded extension data available in a certificate the following
+two functions are available.
+@showfuncC{gnutls_x509_crt_get_extension_info,gnutls_x509_crt_get_extension_data2,gnutls_x509_crt_get_extension_by_oid2}
+
+After a supported DER-encoded extension is retrieved it can be parsed using the APIs in @code{x509-ext.h}.
+Complex extensions may require initializing an intermediate structure that holds the
+parsed extension data. Examples of simple parsing functions are shown below.
+@showfuncD{gnutls_x509_ext_import_basic_constraints,gnutls_x509_ext_export_basic_constraints,gnutls_x509_ext_import_key_usage,gnutls_x509_ext_export_key_usage}
+
+More complex extensions, such as Name Constraints, require an intermediate structure, in that
+case @code{gnutls_x509_name_constraints_t} to be initialized in order to store the parsed
+extension data. 
+@showfuncB{gnutls_x509_ext_import_name_constraints,gnutls_x509_ext_export_name_constraints}
+
+After the name constraints are extracted in the structure, the following functions
+can be used to access them.
+
+@showfuncD{gnutls_x509_name_constraints_get_permitted,gnutls_x509_name_constraints_get_excluded,gnutls_x509_name_constraints_add_permitted,gnutls_x509_name_constraints_add_excluded}
+@showfuncB{gnutls_x509_name_constraints_check,gnutls_x509_name_constraints_check_crt}
+
+Other utility functions are listed below.
+@showfuncB{gnutls_x509_name_constraints_init,gnutls_x509_name_constraints_deinit}
+
+Similar functions exist for all of the other supported extensions, listed in @ref{tab:x509-ext}.
+
+@float Table,tab:x509-ext
+@multitable @columnfractions .3 .2 .4
+
+@headitem Extension @tab OID @tab Description
+
+@item Subject key id @tab 2.5.29.14 @tab
+An identifier of the key of the subject.
+
+@item Key usage @tab 2.5.29.15 @tab
+Constraints the key's usage of the certificate.
+
+@item Private key usage period @tab 2.5.29.16 @tab
+Constraints the validity time of the private key.
+
+@item Subject alternative name @tab 2.5.29.17 @tab
+Alternative names to subject's distinguished name.
+
+@item Issuer alternative name @tab 2.5.29.18 @tab
+Alternative names to the issuer's distinguished name.
+
+@item Basic constraints @tab 2.5.29.19 @tab
+Indicates whether this is a CA certificate or not, and specify the
+maximum path lengths of certificate chains.
+
+@item Name constraints @tab 2.5.29.30 @tab
+A field in CA certificates that restricts the scope of the name of
+issued certificates.
+
+@item CRL distribution points @tab 2.5.29.31 @tab
+This extension is set by the CA, in order to inform about the issued
+CRLs.
+
+@item Certificate policy @tab 2.5.29.32 @tab
+This extension is set to indicate the certificate policy as object
+identifier and may contain a descriptive string or URL.
+
+@item Authority key identifier @tab 2.5.29.35 @tab
+An identifier of the key of the issuer of the certificate. That is
+used to distinguish between different keys of the same issuer.
+
+@item Extended key usage @tab 2.5.29.37 @tab
+Constraints the purpose of the certificate.
+
+@item Authority information access @tab 1.3.6.1.5.5.7.1.1 @tab
+Information on services by the issuer of the certificate.
+
+@item Proxy Certification Information @tab 1.3.6.1.5.5.7.1.14 @tab
+Proxy Certificates includes this extension that contains the OID of
+the proxy policy language used, and can specify limits on the maximum
+lengths of proxy chains.  Proxy Certificates are specified in
+@xcite{RFC3820}.
+
+@end multitable
+@caption{Supported X.509 certificate extensions.}
+@end float
+
+Note, that there are also direct APIs to access extensions that may
+be simpler to use for non-complex extensions. They are available
+in @code{x509.h} and some examples are listed below.
+@showfuncD{gnutls_x509_crt_get_basic_constraints,gnutls_x509_crt_set_basic_constraints,gnutls_x509_crt_get_key_usage,gnutls_x509_crt_set_key_usage}
+
 
 @node X.509 public and private keys
 @subsubsection Accessing public and private keys
@@ -266,6 +320,7 @@ provided.
 @showfuncdesc{gnutls_x509_trust_list_add_named_crt}
 @showfuncdesc{gnutls_x509_trust_list_add_crls}
 @showfuncdesc{gnutls_x509_trust_list_verify_crt}
+@showfuncdesc{gnutls_x509_trust_list_verify_crt2}
 @showfuncdesc{gnutls_x509_trust_list_verify_named_crt}
 
 @showfuncdesc{gnutls_x509_trust_list_add_trust_file}
@@ -292,23 +347,94 @@ This purpose is served by the functions @funcref{gnutls_x509_trust_list_add_name
 
 When operating in the context of a TLS session, the trusted certificate
 authority list may also be set using:
-@showfuncC{gnutls_certificate_set_x509_trust_file,gnutls_certificate_set_x509_crl_file,gnutls_certificate_set_x509_system_trust}
+@showfuncD{gnutls_certificate_set_x509_trust_file,gnutls_certificate_set_x509_trust_dir,gnutls_certificate_set_x509_crl_file,gnutls_certificate_set_x509_system_trust}
 
-Then it is not required to setup a trusted list as above.
-The function @funcref{gnutls_certificate_verify_peers3} 
-may then be used to verify the peer's certificate chain and identity. The flags
-are set similarly to the verification functions in the previous section.
+These functions allow the specification of the trusted certificate authorities, either
+via a file, a directory or use the system-specified certificate authories. 
+Unless the authorities are application specific, it is generally recommended
+to use the system trust storage (see @funcref{gnutls_certificate_set_x509_system_trust}).
+
+Unlike the previous section it is not required to setup a trusted list, and 
+the function @funcref{gnutls_certificate_verify_peers3} 
+is used to verify the peer's certificate chain and identity. The reported
+verification status is identical to the verification functions described 
+in the previous section.
+Note that in certain cases it is required to check the marked purpose of
+the end certificate (e.g. @code{GNUTLS_KP_TLS_WWW_SERVER}); in these cases
+the more advanced @funcref{gnutls_certificate_verify_peers} should be used instead.
 
 There is also the possibility to pass some input to the verification
-functions in the form of flags. For @funcref{gnutls_x509_trust_list_verify_crt} the
-flags are passed straightforward, but
-@funcref{gnutls_certificate_verify_peers3} depends on the flags set by
-calling @funcref{gnutls_certificate_set_verify_flags}.  All the available
+functions in the form of flags. For @funcref{gnutls_x509_trust_list_verify_crt2} the
+flags are passed directly, but for
+@funcref{gnutls_certificate_verify_peers3}, the flags are set using
+@funcref{gnutls_certificate_set_verify_flags}.  All the available
 flags are part of the enumeration
 @code{gnutls_@-certificate_@-verify_@-flags} shown in @ref{gnutls_certificate_verify_flags}.
 
 @showenumdesc{gnutls_certificate_verify_flags,The @code{gnutls_@-certificate_@-verify_@-flags} enumeration.}
 
+@node Verification using PKCS11
+@subsubsection Verifying a certificate using PKCS #11
+@cindex verifying certificate with pkcs11
+
+Some systems provide a system wide trusted certificate storage accessible using
+the PKCS #11 API. That is, the trusted certificates are queried and accessed using the
+PKCS #11 API, and trusted certificate properties, such as purpose, are marked using
+attached extensions. One example is the p11-kit trust module@footnote{see @url{http://p11-glue.freedesktop.org/trust-module.html}.}.
+
+These special PKCS #11 modules can be used for GnuTLS certificate verification if marked as trust 
+policy modules, i.e., with @code{trust-policy: yes} in the p11-kit module file.
+The way to use them is by specifying to the file verification function (e.g., @funcref{gnutls_certificate_set_x509_trust_file}),
+a pkcs11 URL, or simply @code{pkcs11:} to use all the marked with trust policy modules.
+
+The trust modules of p11-kit assign a purpose to trusted authorities using the extended
+key usage object identifiers. The common purposes are shown in @ref{tab:purposes}. Note
+that typically according to @xcite{RFC5280} the extended key usage object identifiers apply to end certificates. Their
+application to CA certificates is an extension used by the trust modules.
+
+@float Table,tab:purposes
+@multitable @columnfractions .2 .2 .6
+
+@headitem Purpose @tab OID @tab Description
+
+@item GNUTLS_KP_TLS_WWW_SERVER @tab
+1.3.6.1.5.5.7.3.1 @tab
+The certificate is to be used for TLS WWW authentication. When in a CA certificate, it
+indicates that the CA is allowed to sign certificates for TLS WWW authentication.
+
+@item GNUTLS_KP_TLS_WWW_CLIENT @tab
+1.3.6.1.5.5.7.3.2 @tab
+The certificate is to be used for TLS WWW client authentication. When in a CA certificate, it
+indicates that the CA is allowed to sign certificates for TLS WWW client authentication.
+
+@item GNUTLS_KP_CODE_SIGNING @tab
+1.3.6.1.5.5.7.3.3 @tab
+The certificate is to be used for code signing. When in a CA certificate, it
+indicates that the CA is allowed to sign certificates for code signing.
+
+@item GNUTLS_KP_EMAIL_PROTECTION @tab
+1.3.6.1.5.5.7.3.4 @tab
+The certificate is to be used for email protection. When in a CA certificate, it
+indicates that the CA is allowed to sign certificates for email users.
+
+@item GNUTLS_KP_OCSP_SIGNING @tab
+1.3.6.1.5.5.7.3.9 @tab
+The certificate is to be used for signing OCSP responses. When in a CA certificate, it
+indicates that the CA is allowed to sign certificates which sign OCSP reponses.
+
+@item GNUTLS_KP_ANY @tab
+2.5.29.37.0 @tab
+The certificate is to be used for any purpose. When in a CA certificate, it
+indicates that the CA is allowed to sign any kind of certificates.
+
+@end multitable
+@caption{Key purpose object identifiers.}
+@end float
+
+With such modules, it is recommended to use the verification functions @funcref{gnutls_x509_trust_list_verify_crt2},
+or @funcref{gnutls_certificate_verify_peers}, which allow to explicitly specify the key purpose. The
+other verification functions which do not allow setting a purpose, would operate as if
+@code{GNUTLS_KP_TLS_WWW_SERVER} was requested from the trusted authorities.
 
 @node OpenPGP certificates
 @subsection @acronym{OpenPGP} certificates
@@ -528,7 +654,7 @@ used to preprocess the input to the signature algorithm. This works as
 long as it is difficult enough to generate two different messages with
 the same hash algorithm output. In that case the same signature could
 be used as a proof for both messages. Nobody wants to sign an innocent
-message of donating 1 euro to Greenpeace and find out that he
+message of donating 1 euro to Greenpeace and find out that they
 donated 1.000.000 euros to Bad Inc.
 
 For a hash algorithm to be called cryptographic the following three

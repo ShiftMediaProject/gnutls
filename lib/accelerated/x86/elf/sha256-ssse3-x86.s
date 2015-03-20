@@ -64,20 +64,6 @@ sha256_block_data_order:
 	movl	%edi,4(%esp)
 	movl	%eax,8(%esp)
 	movl	%ebx,12(%esp)
-	leal	_gnutls_x86_cpuid_s-.L001K256(%ebp),%edx
-	movl	(%edx),%ecx
-	movl	4(%edx),%ebx
-	testl	$1048576,%ecx
-	jnz	.L002loop
-	andl	$1073741824,%ecx
-	andl	$268435968,%ebx
-	orl	%ebx,%ecx
-	andl	$1342177280,%ecx
-	cmpl	$1342177280,%ecx
-	je	.L003loop_shrd
-	subl	%edi,%eax
-	cmpl	$256,%eax
-	jae	.L004unrolled
 	jmp	.L002loop
 .align	16
 .L002loop:
@@ -149,7 +135,7 @@ sha256_block_data_order:
 	movl	%ecx,28(%esp)
 	movl	%edi,32(%esp)
 .align	16
-.L00500_15:
+.L00300_15:
 	movl	%edx,%ecx
 	movl	24(%esp),%esi
 	rorl	$14,%ecx
@@ -187,11 +173,11 @@ sha256_block_data_order:
 	addl	$4,%ebp
 	addl	%ebx,%eax
 	cmpl	$3248222580,%esi
-	jne	.L00500_15
+	jne	.L00300_15
 	movl	156(%esp),%ecx
-	jmp	.L00616_63
+	jmp	.L00416_63
 .align	16
-.L00616_63:
+.L00416_63:
 	movl	%ecx,%ebx
 	movl	104(%esp),%esi
 	rorl	$11,%ecx
@@ -246,7 +232,7 @@ sha256_block_data_order:
 	addl	$4,%ebp
 	addl	%ebx,%eax
 	cmpl	$3329325298,%esi
-	jne	.L00616_63
+	jne	.L00416_63
 	movl	356(%esp),%esi
 	movl	8(%esp),%ebx
 	movl	16(%esp),%ecx
@@ -281,7 +267,7 @@ sha256_block_data_order:
 	popl	%ebp
 	ret
 .align	32
-.L003loop_shrd:
+.L005loop_shrd:
 	movl	(%edi),%eax
 	movl	4(%edi),%ebx
 	movl	8(%edi),%ecx
@@ -350,7 +336,7 @@ sha256_block_data_order:
 	movl	%ecx,28(%esp)
 	movl	%edi,32(%esp)
 .align	16
-.L00700_15_shrd:
+.L00600_15_shrd:
 	movl	%edx,%ecx
 	movl	24(%esp),%esi
 	shrdl	$14,%ecx,%ecx
@@ -388,11 +374,11 @@ sha256_block_data_order:
 	addl	$4,%ebp
 	addl	%ebx,%eax
 	cmpl	$3248222580,%esi
-	jne	.L00700_15_shrd
+	jne	.L00600_15_shrd
 	movl	156(%esp),%ecx
-	jmp	.L00816_63_shrd
+	jmp	.L00716_63_shrd
 .align	16
-.L00816_63_shrd:
+.L00716_63_shrd:
 	movl	%ecx,%ebx
 	movl	104(%esp),%esi
 	shrdl	$11,%ecx,%ecx
@@ -447,7 +433,7 @@ sha256_block_data_order:
 	addl	$4,%ebp
 	addl	%ebx,%eax
 	cmpl	$3329325298,%esi
-	jne	.L00816_63_shrd
+	jne	.L00716_63_shrd
 	movl	356(%esp),%esi
 	movl	8(%esp),%ebx
 	movl	16(%esp),%ecx
@@ -474,7 +460,7 @@ sha256_block_data_order:
 	leal	356(%esp),%esp
 	subl	$256,%ebp
 	cmpl	8(%esp),%edi
-	jb	.L003loop_shrd
+	jb	.L005loop_shrd
 	movl	12(%esp),%esp
 	popl	%edi
 	popl	%esi
@@ -491,7 +477,7 @@ sha256_block_data_order:
 .byte	112,112,114,111,64,111,112,101,110,115,115,108,46,111,114,103
 .byte	62,0
 .align	16
-.L004unrolled:
+.L008unrolled:
 	leal	-96(%esp),%esp
 	movl	(%esi),%eax
 	movl	4(%esi),%ebp
@@ -3398,6 +3384,7 @@ sha256_block_data_order:
 	popl	%ebp
 	ret
 .size	sha256_block_data_order,.-.L_sha256_block_data_order_begin
-.comm	_gnutls_x86_cpuid_s,16,4
+
 
 .section .note.GNU-stack,"",%progbits
+

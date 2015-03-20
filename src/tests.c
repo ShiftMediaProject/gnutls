@@ -35,12 +35,23 @@
 #include <common.h>
 #include <tests.h>
 
+void _gnutls_record_set_default_version(gnutls_session_t session,
+					unsigned char major,
+					unsigned char minor);
+
+void _gnutls_hello_set_default_version(gnutls_session_t session,
+					unsigned char major,
+					unsigned char minor);
+
+
 extern gnutls_srp_client_credentials_t srp_cred;
 extern gnutls_anon_client_credentials_t anon_cred;
 extern gnutls_certificate_credentials_t xcred;
 
 extern unsigned int verbose;
 
+const char *ext_text = "";
+int tls_ext_ok = 1;
 int tls1_ok = 0;
 int ssl3_ok = 0;
 int tls1_1_ok = 0;
@@ -128,12 +139,9 @@ _gnutls_priority_set_direct(gnutls_session_t session, const char *str)
 test_code_t test_server(gnutls_session_t session)
 {
 	int ret, i = 0;
-	char buf[5 * 1024];
+	static char buf[5 * 1024];
 	char *p;
-	const char snd_buf[] = "GET / HTTP/1.0\n\n";
-
-	if (verbose == 0)
-		return TEST_UNSURE;
+	const char snd_buf[] = "GET / HTTP/1.0\r\n\r\n";
 
 	buf[sizeof(buf) - 1] = 0;
 
@@ -153,18 +161,19 @@ test_code_t test_server(gnutls_session_t session)
 	if (ret < 0)
 		return TEST_FAILED;
 
+	ext_text = "unknown";
 	p = strstr(buf, "Server:");
-	if (p != NULL)
-		p = strchr(p, ':');
 	if (p != NULL) {
-		p++;
+		p+=7;
+		if (*p == ' ') p++;
+		ext_text = p;
 		while (*p != 0 && *p != '\r' && *p != '\n') {
-			putc(*p, stdout);
 			p++;
 			i++;
 			if (i > 128)
 				break;
 		}
+		*p = 0;
 	}
 
 	return TEST_SUCCEED;
@@ -196,6 +205,9 @@ test_code_t test_ecdhe(gnutls_session_t session)
 {
 	int ret;
 
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
 	sprintf(prio_str, INIT_STR
 		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:" ALL_MACS
 		":+ECDHE-RSA:+ECDHE-ECDSA:+CURVE-ALL:%s", protocol_all_str,
@@ -205,6 +217,9 @@ test_code_t test_ecdhe(gnutls_session_t session)
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
 
 	ret = do_handshake(session);
+
+	if (ret < 0)
+		return TEST_FAILED;
 
 	curve = gnutls_ecc_curve_get(session);
 
@@ -216,9 +231,12 @@ test_code_t test_safe_renegotiation(gnutls_session_t session)
 {
 	int ret;
 
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
 	sprintf(prio_str, INIT_STR
 		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:" ALL_MACS
-		":" ALL_KX ":%%SAFE_RENEGOTIATION", protocol_str);
+		":" ALL_KX ":%s:%%SAFE_RENEGOTIATION", rest, protocol_str);
 	_gnutls_priority_set_direct(session, prio_str);
 
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
@@ -228,9 +246,44 @@ test_code_t test_safe_renegotiation(gnutls_session_t session)
 	return ret;
 }
 
+#ifdef ENABLE_OCSP
+test_code_t test_ocsp_status(gnutls_session_t session)
+{
+	int ret;
+	gnutls_datum_t resp;
+
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
+	sprintf(prio_str, INIT_STR
+		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:" ALL_MACS
+		":" ALL_KX":%s", protocol_str, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_ocsp_status_request_enable_client(session, NULL, 0, NULL);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+
+	if (ret < 0)
+		return TEST_FAILED;
+
+	ret = gnutls_ocsp_status_request_get(session, &resp);
+	if (ret == 0)
+		return TEST_SUCCEED;
+
+
+	return TEST_FAILED;
+}
+#endif
+
 test_code_t test_safe_renegotiation_scsv(gnutls_session_t session)
 {
 	int ret;
+
+	if (ssl3_ok == 0)
+		return TEST_IGNORE;
 
 	sprintf(prio_str, INIT_STR
 		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":+VERS-SSL3.0:"
@@ -249,6 +302,9 @@ test_code_t test_dhe_group(gnutls_session_t session)
 	int ret, ret2;
 	gnutls_datum_t gen, prime, pubkey2;
 	const char *print;
+	FILE *fp;
+
+	remove("debug-dh.out");
 
 	if (verbose == 0 || pubkey.data == NULL)
 		return TEST_IGNORE;
@@ -264,29 +320,60 @@ test_code_t test_dhe_group(gnutls_session_t session)
 
 	ret2 = gnutls_dh_get_group(session, &gen, &prime);
 	if (ret2 >= 0) {
-		printf("\n");
+
+		fp = fopen("debug-dh.out", "w");
+		if (fp == NULL)
+			return TEST_FAILED;
+
+		ext_text = "saved in debug-dh.out";
 
 		print = raw_to_string(gen.data, gen.size);
-		if (print)
-			printf(" Generator [%d bits]: %s\n", gen.size * 8,
-			       print);
+		if (print) {
+			fprintf(fp, " Generator [%d bits]: %s\n", gen.size * 8,
+				print);
+		}
 
 		print = raw_to_string(prime.data, prime.size);
-		if (print)
-			printf(" Prime [%d bits]: %s\n", prime.size * 8,
-			       print);
+		if (print) {
+			fprintf(fp, " Prime [%d bits]: %s\n", prime.size * 8,
+		        	print);
+		}
 
 		gnutls_dh_get_pubkey(session, &pubkey2);
 		print = raw_to_string(pubkey2.data, pubkey2.size);
-		if (print)
-			printf(" Pubkey [%d bits]: %s\n", pubkey2.size * 8,
-			       print);
+		if (print) {
+			fprintf(fp, " Pubkey [%d bits]: %s\n", pubkey2.size * 8,
+				print);
+		}
 
 		if (pubkey2.data && pubkey2.size == pubkey.size &&
 		    memcmp(pubkey.data, pubkey2.data, pubkey.size) == 0) {
-			printf
-			    (" (public key seems to be static among sessions)\n");
+			fprintf
+			    (fp, " (public key seems to be static among sessions)\n");
 		}
+
+		{
+			/* save the PKCS #3 params */
+			gnutls_dh_params_t dhp;
+			gnutls_datum p3;
+			
+			ret2 = gnutls_dh_params_init(&dhp);
+			if (ret2 < 0)
+				return TEST_FAILED;
+
+			ret2 = gnutls_dh_params_import_raw(dhp, &prime, &gen);
+			if (ret2 < 0)
+				return TEST_FAILED;
+
+			ret2 = gnutls_dh_params_export2_pkcs3(dhp, GNUTLS_X509_FMT_PEM, &p3);
+			if (ret2 < 0)
+				return TEST_FAILED;
+
+			fprintf(fp, "\n%s\n", p3.data);
+			gnutls_free(p3.data);
+		}
+
+		fclose(fp);
 	}
 	return ret;
 }
@@ -296,8 +383,7 @@ test_code_t test_ecdhe_curve(gnutls_session_t session)
 	if (curve == GNUTLS_ECC_CURVE_INVALID)
 		return TEST_IGNORE;
 
-	printf("\n Curve %s", gnutls_ecc_curve_get_name(curve));
-
+	ext_text = gnutls_ecc_curve_get_name(curve);
 	return TEST_SUCCEED;
 }
 
@@ -576,7 +662,7 @@ test_code_t test_tls1(gnutls_session_t session)
 
 	sprintf(prio_str,
 		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES
-		":+VERS-TLS1.0:" ALL_MACS ":" ALL_KX ":%s", rest);
+		":+VERS-TLS1.0:%%SSL3_RECORD_VERSION:" ALL_MACS ":" ALL_KX ":%s", rest);
 	_gnutls_priority_set_direct(session, prio_str);
 
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
@@ -589,13 +675,37 @@ test_code_t test_tls1(gnutls_session_t session)
 
 }
 
+test_code_t test_tls1_nossl3(gnutls_session_t session)
+{
+	int ret;
+
+	if (tls1_ok != 0)
+		return TEST_IGNORE;
+
+	sprintf(prio_str,
+		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES
+		":+VERS-TLS1.0:%%LATEST_RECORD_VERSION:" ALL_MACS ":" ALL_KX ":%s", rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+	if (ret == TEST_SUCCEED) {
+		strcat(rest, ":%LATEST_RECORD_VERSION");
+		tls1_ok = 1;
+	}
+
+	return ret;
+
+}
+
 test_code_t test_record_padding(gnutls_session_t session)
 {
 	int ret;
 
 	sprintf(prio_str,
 		INIT_STR BLOCK_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES
-		":+VERS-TLS1.0:" ALL_MACS ":" ALL_KX ":%s", rest);
+		":+VERS-TLS-ALL:-VERS-SSL3.0:" ALL_MACS ":" ALL_KX ":%s", rest);
 	_gnutls_priority_set_direct(session, prio_str);
 
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
@@ -604,6 +714,28 @@ test_code_t test_record_padding(gnutls_session_t session)
 		tls1_ok = 1;
 	} else {
 		strcat(rest, ":%COMPAT");
+	}
+
+	return ret;
+}
+
+test_code_t test_no_extensions(gnutls_session_t session)
+{
+	int ret;
+
+	sprintf(prio_str,
+		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:"
+		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+	gnutls_record_set_max_size(session, 4096);
+
+	ret = do_handshake(session);
+	if (ret == TEST_SUCCEED) {
+		tls_ext_ok = 1;
+	} else {
+		tls_ext_ok = 0;
+		strcat(rest, ":%NO_EXTENSIONS");
 	}
 
 	return ret;
@@ -797,6 +929,10 @@ test_code_t test_rsa_pms(gnutls_session_t session)
 test_code_t test_max_record_size(gnutls_session_t session)
 {
 	int ret;
+
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
 	sprintf(prio_str,
 		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:"
 		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
@@ -815,42 +951,25 @@ test_code_t test_max_record_size(gnutls_session_t session)
 	return TEST_FAILED;
 }
 
-test_code_t test_hello_extension(gnutls_session_t session)
-{
-	int ret;
-
-	sprintf(prio_str,
-		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:"
-		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
-	_gnutls_priority_set_direct(session, prio_str);
-	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
-	gnutls_record_set_max_size(session, 4096);
-
-	ret = do_handshake(session);
-
-
-	return ret;
-}
-
 test_code_t test_heartbeat_extension(gnutls_session_t session)
 {
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
 	sprintf(prio_str,
 		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:"
 		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
-	gnutls_record_set_max_size(session, 4096);
 
 	gnutls_heartbeat_enable(session, GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 	do_handshake(session);
 
-	switch (gnutls_heartbeat_allowed(session, 1)) {
-	case 1:
-		return TEST_SUCCEED;
+	switch (gnutls_heartbeat_allowed(session, GNUTLS_HB_LOCAL_ALLOWED_TO_SEND)) {
 	case 0:
 		return TEST_FAILED;
 	default:
-		return TEST_UNSURE;
+		return TEST_SUCCEED;
 	}
 }
 
@@ -868,10 +987,6 @@ test_code_t test_small_records(gnutls_session_t session)
 	ret = do_handshake(session);
 	return ret;
 }
-
-void _gnutls_record_set_default_version(gnutls_session_t session,
-					unsigned char major,
-					unsigned char minor);
 
 test_code_t test_version_rollback(gnutls_session_t session)
 {
@@ -1018,6 +1133,9 @@ extern char *hostname;
 test_code_t test_certificate(gnutls_session_t session)
 {
 	int ret;
+	FILE *fp;
+
+	remove("debug-certs.out");
 
 	if (verbose == 0)
 		return TEST_IGNORE;
@@ -1033,8 +1151,82 @@ test_code_t test_certificate(gnutls_session_t session)
 	if (ret == TEST_FAILED)
 		return ret;
 
-	printf("\n");
-	print_cert_info(session, GNUTLS_CRT_PRINT_FULL, verbose);
+	fp = fopen("debug-certs.out", "w");
+	if (fp != NULL) {
+		fprintf(fp, "\n");
+		print_cert_info2(session, GNUTLS_CRT_PRINT_FULL, fp, verbose);
+		fclose(fp);
+		ext_text = "saved in debug-certs.out";
+		return TEST_SUCCEED;
+	}
+	return TEST_FAILED;
+}
+
+test_code_t test_chain_order(gnutls_session_t session)
+{
+	int ret;
+	const gnutls_datum_t *cert_list;
+	unsigned int cert_list_size = 0;
+	unsigned int i;
+	unsigned p_size;
+	gnutls_datum_t t;
+	gnutls_x509_crt_t *certs;
+	char *p, *pos;
+
+	sprintf(prio_str,
+		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:"
+		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+	if (ret == TEST_FAILED)
+		return ret;
+
+	if (gnutls_certificate_type_get(session) != GNUTLS_CRT_X509)
+		return TEST_IGNORE;
+
+	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
+	if (cert_list_size == 0) {
+		ext_text = "No certificates found!";
+		return TEST_IGNORE;
+	}
+
+	p = 0;
+	p_size = 0;
+	pos = NULL;
+	for (i=0;i<cert_list_size;i++) {
+		t.data = NULL;
+		ret = gnutls_pem_base64_encode_alloc("CERTIFICATE", &cert_list[i], &t);
+		if (ret < 0) {
+			return TEST_FAILED;
+		}
+
+		p = realloc(p, p_size+t.size+1);
+		pos = p + p_size;
+
+		memcpy(pos, t.data, t.size);
+		p_size += t.size;
+
+		gnutls_free(t.data);
+	}
+	*pos = 0;
+
+	t.size = p_size;
+	t.data = (void*)p;
+
+	p_size = 0;
+	ret = gnutls_x509_crt_list_import2(&certs, &p_size, &t, GNUTLS_X509_FMT_PEM, GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED);
+	if (ret < 0) {
+		return TEST_FAILED;
+	}
+
+	for (i=0;i<p_size;i++) {
+		gnutls_x509_crt_deinit(certs[i]);
+	}
+	gnutls_free(certs);
+	free(p);
 
 	return TEST_SUCCEED;
 }
@@ -1050,28 +1242,34 @@ cert_callback(gnutls_session_t session,
 	char issuer_dn[256];
 	int i, ret;
 	size_t len;
+	FILE *fp;
 
 	if (verbose == 0)
+		return -1;
+
+	fp = fopen("debug-cas.out", "w");
+	if (fp == NULL)
 		return -1;
 
 	/* Print the server's trusted CAs
 	 */
 	printf("\n");
 	if (nreqs > 0)
-		printf("- Server's trusted authorities:\n");
+		fprintf(fp, "- Server's trusted authorities:\n");
 	else
-		printf
-		    ("- Server did not send us any trusted authorities names.\n");
+		fprintf
+		    (fp, "- Server did not send us any trusted authorities names.\n");
 
 	/* print the names (if any) */
 	for (i = 0; i < nreqs; i++) {
 		len = sizeof(issuer_dn);
 		ret = gnutls_x509_rdn_get(&req_ca_rdn[i], issuer_dn, &len);
 		if (ret >= 0) {
-			printf("   [%d]: ", i);
-			printf("%s\n", issuer_dn);
+			fprintf(fp, "   [%d]: ", i);
+			fprintf(fp, "%s\n", issuer_dn);
 		}
 	}
+	fclose(fp);
 
 	return -1;
 
@@ -1084,6 +1282,7 @@ test_code_t test_server_cas(gnutls_session_t session)
 {
 	int ret;
 
+	remove("debug-cas.out");
 	if (verbose == 0)
 		return TEST_IGNORE;
 
@@ -1100,5 +1299,10 @@ test_code_t test_server_cas(gnutls_session_t session)
 
 	if (ret == TEST_FAILED)
 		return ret;
+
+	if (access("debug-cas.out", R_OK) == 0)
+		ext_text = "saved in debug-cas.out";
+	else
+		ext_text = "none";
 	return TEST_SUCCEED;
 }

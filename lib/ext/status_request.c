@@ -34,6 +34,8 @@
 #include <auth/cert.h>
 #include <gnutls_handshake.h>
 
+#ifdef ENABLE_OCSP
+
 typedef struct {
 	gnutls_datum_t *responder_id;
 	size_t responder_id_size;
@@ -208,7 +210,7 @@ server_send(gnutls_session_t session,
 	gnutls_certificate_credentials_t cred;
 
 	cred = (gnutls_certificate_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE);
 	if (cred == NULL)	/* no certificate authentication */
 		return gnutls_assert_val(0);
 
@@ -437,7 +439,7 @@ static int file_ocsp_func(gnutls_session_t session, void *ptr,
 
 /**
  * gnutls_certificate_set_ocsp_status_request_file:
- * @session: is a #gnutls_session_t structure.
+ * @sc: is a credentials structure.
  * @response_file: a filename of the OCSP response
  * @flags: should be zero
  *
@@ -553,7 +555,7 @@ _gnutls_send_server_certificate_status(gnutls_session_t session, int again)
 
 		data_size = priv->response.size + 4;
 		bufel =
-		    _gnutls_handshake_alloc(session, data_size, data_size);
+		    _gnutls_handshake_alloc(session, data_size);
 		if (!bufel)
 			return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
@@ -641,3 +643,5 @@ int _gnutls_recv_server_certificate_status(gnutls_session_t session)
 
 	return ret;
 }
+
+#endif

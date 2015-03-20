@@ -48,4 +48,16 @@ inline static void _gnutls_rnd_refresh(void)
 void _gnutls_rnd_deinit(void);
 int _gnutls_rnd_init(void);
 
+inline static int _gnutls_rnd_check(void)
+{
+	if (_gnutls_rnd_ops.check)
+		return _gnutls_rnd_ops.check(gnutls_rnd_ctx);
+	else
+		return 0;
+}
+
+#ifndef _WIN32
+extern int _gnutls_urandom_fd;
+#endif
+
 #endif

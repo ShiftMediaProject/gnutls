@@ -57,10 +57,10 @@ const mod_auth_st srp_auth_struct = {
 #define B session->key.B
 #define _a session->key.a
 #define A session->key.A
-#define N session->key.client_p
-#define G session->key.client_g
+#define N session->key.srp_p
+#define G session->key.srp_g
 #define V session->key.x
-#define S session->key.KEY
+#define S session->key.srp_key
 
 /* Checks if a%n==0,+1,-1%n which is a fatal srp error.
  * Returns a proper error code in that case, and 0 when
@@ -71,10 +71,14 @@ inline static int check_param_mod_n(bigint_t a, bigint_t n, int is_a)
 	int ret, err = 0;
 	bigint_t r;
 
-	r = _gnutls_mpi_mod(a, n);
-	if (r == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_MEMORY_ERROR;
+	ret = _gnutls_mpi_init(&r);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = _gnutls_mpi_modm(r, a, n);
+	if (ret < 0) {
+		_gnutls_mpi_release(&r);
+		return gnutls_assert_val(ret);
 	}
 
 	ret = _gnutls_mpi_cmp_ui(r, 0);
@@ -86,7 +90,12 @@ inline static int check_param_mod_n(bigint_t a, bigint_t n, int is_a)
 		if (ret == 0)
 			err = 1;
 
-		_gnutls_mpi_add_ui(r, r, 1);
+		ret = _gnutls_mpi_add_ui(r, r, 1);
+		if (ret < 0) {
+			_gnutls_mpi_release(&r);
+			return gnutls_assert_val(ret);
+		}
+		
 		ret = _gnutls_mpi_cmp(r, n);
 		if (ret == 0)
 			err = 1;
@@ -135,7 +144,10 @@ _gnutls_gen_srp_server_kx(gnutls_session_t session,
 		return ret;
 	}
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_SRP);
+	if (info == NULL)
+		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
+
 	username = info->username;
 
 	_gnutls_str_cpy(username, MAX_USERNAME_SIZE, priv->username);
@@ -149,21 +161,21 @@ _gnutls_gen_srp_server_kx(gnutls_session_t session,
 
 	/* copy from pwd_entry to local variables (actually in session) */
 	tmp_size = pwd_entry->g.size;
-	if (_gnutls_mpi_scan_nz(&G, pwd_entry->g.data, tmp_size) < 0) {
+	if (_gnutls_mpi_init_scan_nz(&G, pwd_entry->g.data, tmp_size) < 0) {
 		gnutls_assert();
 		ret = GNUTLS_E_MPI_SCAN_FAILED;
 		goto cleanup;
 	}
 
 	tmp_size = pwd_entry->n.size;
-	if (_gnutls_mpi_scan_nz(&N, pwd_entry->n.data, tmp_size) < 0) {
+	if (_gnutls_mpi_init_scan_nz(&N, pwd_entry->n.data, tmp_size) < 0) {
 		gnutls_assert();
 		ret = GNUTLS_E_MPI_SCAN_FAILED;
 		goto cleanup;
 	}
 
 	tmp_size = pwd_entry->v.size;
-	if (_gnutls_mpi_scan_nz(&V, pwd_entry->v.data, tmp_size) < 0) {
+	if (_gnutls_mpi_init_scan_nz(&V, pwd_entry->v.data, tmp_size) < 0) {
 		gnutls_assert();
 		ret = GNUTLS_E_MPI_SCAN_FAILED;
 		goto cleanup;
@@ -248,7 +260,7 @@ _gnutls_gen_srp_client_kx(gnutls_session_t session,
 	priv = epriv.ptr;
 
 	cred = (gnutls_srp_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_SRP, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_SRP);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -304,13 +316,13 @@ _gnutls_gen_srp_client_kx(gnutls_session_t session,
 
 	_gnutls_mpi_log("SRP B: ", B);
 
-	_gnutls_mpi_release(&_b);
-	_gnutls_mpi_release(&V);
-	_gnutls_mpi_release(&session->key.u);
-	_gnutls_mpi_release(&B);
+	zrelease_temp_mpi_key(&_b);
+	zrelease_temp_mpi_key(&V);
+	zrelease_temp_mpi_key(&session->key.u);
+	zrelease_temp_mpi_key(&B);
 
-	ret = _gnutls_mpi_dprint(session->key.KEY, &session->key.key);
-	_gnutls_mpi_release(&S);
+	ret = _gnutls_mpi_dprint(session->key.srp_key, &session->key.key);
+	zrelease_temp_mpi_key(&S);
 
 	if (ret < 0) {
 		gnutls_assert();
@@ -342,7 +354,7 @@ _gnutls_proc_srp_client_kx(gnutls_session_t session, uint8_t * data,
 	_n_A = _gnutls_read_uint16(&data[0]);
 
 	DECR_LEN(data_size, _n_A);
-	if (_gnutls_mpi_scan_nz(&A, &data[2], _n_A) || A == NULL) {
+	if (_gnutls_mpi_init_scan_nz(&A, &data[2], _n_A) || A == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
@@ -379,13 +391,13 @@ _gnutls_proc_srp_client_kx(gnutls_session_t session, uint8_t * data,
 	_gnutls_mpi_log("SRP S: ", S);
 
 	_gnutls_mpi_release(&A);
-	_gnutls_mpi_release(&_b);
-	_gnutls_mpi_release(&V);
-	_gnutls_mpi_release(&session->key.u);
-	_gnutls_mpi_release(&B);
+	zrelease_temp_mpi_key(&_b);
+	zrelease_temp_mpi_key(&V);
+	zrelease_temp_mpi_key(&session->key.u);
+	zrelease_temp_mpi_key(&B);
 
-	ret = _gnutls_mpi_dprint(session->key.KEY, &session->key.key);
-	_gnutls_mpi_release(&S);
+	ret = _gnutls_mpi_dprint(session->key.srp_key, &session->key.key);
+	zrelease_temp_mpi_key(&S);
 
 	if (ret < 0) {
 		gnutls_assert();
@@ -722,34 +734,41 @@ group_check_g_n(gnutls_session_t session, bigint_t g, bigint_t n)
 		return GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER;
 	}
 
-	two = _gnutls_mpi_new(4);
-	if (two == NULL) {
+	ret = _gnutls_mpi_init_multi(&two, &q, &w, NULL);
+	if (ret < 0) {
 		gnutls_assert();
-		return GNUTLS_E_MEMORY_ERROR;
-	}
-
-	q = _gnutls_mpi_alloc_like(n);
-	if (q == NULL) {
-		gnutls_assert();
-		ret = GNUTLS_E_MEMORY_ERROR;
-		goto error;
+		return ret;
 	}
 
 	/* q = n-1 
 	 */
-	_gnutls_mpi_sub_ui(q, n, 1);
+	ret = _gnutls_mpi_sub_ui(q, n, 1);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
 	/* q = q/2, remember that q is divisible by 2 (prime - 1)
 	 */
-	_gnutls_mpi_set_ui(two, 2);
-	_gnutls_mpi_div(q, q, two);
+	ret = _gnutls_mpi_set_ui(two, 2);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	ret = _gnutls_mpi_div(q, q, two);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
 	if (_gnutls_prime_check(q) != 0) {
 		/* N was not on the form N=2q+1, where q = prime
 		 */
 		_gnutls_mpi_log("no prime Q: ", q);
 		gnutls_assert();
-		return GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER;
+		ret = GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER;
+		goto error;
 	}
 
 	/* We also check whether g is a generator,
@@ -763,21 +782,22 @@ group_check_g_n(gnutls_session_t session, bigint_t g, bigint_t n)
 		goto error;
 	}
 
-	w = _gnutls_mpi_alloc_like(q);
-	if (w == NULL) {
-		gnutls_assert();
-		ret = GNUTLS_E_MEMORY_ERROR;
-		goto error;
-	}
-
 	/* check if g^q mod N == N-1
 	 * w = g^q mod N
 	 */
-	_gnutls_mpi_powm(w, g, q, n);
+	ret = _gnutls_mpi_powm(w, g, q, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
 	/* w++
 	 */
-	_gnutls_mpi_add_ui(w, w, 1);
+	ret = _gnutls_mpi_add_ui(w, w, 1);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
 	if (_gnutls_mpi_cmp(w, n) != 0) {
 		gnutls_assert();
@@ -827,7 +847,7 @@ _gnutls_proc_srp_server_kx(gnutls_session_t session, uint8_t * data,
 	priv = epriv.ptr;
 
 	cred = (gnutls_srp_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_SRP, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_SRP);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -893,17 +913,17 @@ _gnutls_proc_srp_server_kx(gnutls_session_t session, uint8_t * data,
 	_n_n = n_n;
 	_n_b = n_b;
 
-	if (_gnutls_mpi_scan_nz(&N, data_n, _n_n) != 0) {
+	if (_gnutls_mpi_init_scan_nz(&N, data_n, _n_n) != 0) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
 
-	if (_gnutls_mpi_scan_nz(&G, data_g, _n_g) != 0) {
+	if (_gnutls_mpi_init_scan_nz(&G, data_g, _n_g) != 0) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
 
-	if (_gnutls_mpi_scan_nz(&B, data_b, _n_b) != 0) {
+	if (_gnutls_mpi_init_scan_nz(&B, data_b, _n_b) != 0) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
@@ -940,7 +960,7 @@ _gnutls_proc_srp_server_kx(gnutls_session_t session, uint8_t * data,
 		return ret;
 	}
 
-	if (_gnutls_mpi_scan_nz(&session->key.x, hd, _n_g) != 0) {
+	if (_gnutls_mpi_init_scan_nz(&session->key.x, hd, _n_g) != 0) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}

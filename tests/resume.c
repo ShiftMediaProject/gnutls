@@ -143,7 +143,10 @@ static void client(int sds[], struct params_res *params)
 
 		/* Perform the TLS handshake
 		 */
-		ret = gnutls_handshake(session);
+		gnutls_handshake_set_timeout(session, 20 * 1000);
+		do {
+			ret = gnutls_handshake(session);
+		} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 
 		if (ret < 0) {
 			fail("client: Handshake failed\n");
@@ -323,10 +326,14 @@ static void server(int sds[], struct params_res *params)
 		session = initialize_tls_session(params);
 
 		gnutls_transport_set_int(session, sd);
-		ret = gnutls_handshake(session);
+		gnutls_handshake_set_timeout(session, 20 * 1000);
+		do {
+			ret = gnutls_handshake(session);
+		} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 		if (ret < 0) {
 			close(sd);
 			gnutls_deinit(session);
+			kill(child, SIGTERM);
 			fail("server: Handshake has failed (%s)\n\n",
 			     gnutls_strerror(ret));
 			return;
@@ -347,6 +354,7 @@ static void server(int sds[], struct params_res *params)
 					    ("server: Peer has closed the GnuTLS connection\n");
 				break;
 			} else if (ret < 0) {
+				kill(child, SIGTERM);
 				fail("server: Received corrupted data(%d). Closing...\n", ret);
 				break;
 			} else if (ret > 0) {
@@ -461,6 +469,8 @@ static void wrap_db_deinit(void)
 static int
 wrap_db_store(void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 {
+	time_t t, now = time(0);
+
 	if (debug) {
 		unsigned int i;
 		fprintf(stderr, "resume db storing (%d-%d): ", key.size,
@@ -474,6 +484,13 @@ wrap_db_store(void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 			fprintf(stderr, "%02x", data.data[i] & 0xFF);
 		}
 		fprintf(stderr, "\n");
+	}
+
+	/* check the correctness of gnutls_db_check_entry_time() */
+	t = gnutls_db_check_entry_time(&data);
+	if (t < now - 10 || t > now + 10) {
+		fail("Time returned by gnutls_db_check_entry_time is bogus\n");
+		exit(1);
 	}
 
 	if (cache_db == NULL)

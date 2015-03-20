@@ -85,7 +85,6 @@ int _gnutls_pubkey_compatible_with_sig(gnutls_session_t,
 				       gnutls_pubkey_t pubkey,
 				       const version_entry_st * ver,
 				       gnutls_sign_algorithm_t sign);
-int _gnutls_pubkey_is_over_rsa_512(gnutls_pubkey_t pubkey);
 int
 _gnutls_pubkey_get_mpis(gnutls_pubkey_t key, gnutls_pk_params_st * params);
 
@@ -107,5 +106,8 @@ int pubkey_verify_data(gnutls_pk_algorithm_t pk,
 const mac_entry_st *_gnutls_dsa_q_to_hash(gnutls_pk_algorithm_t algo,
 					  const gnutls_pk_params_st *
 					  params, unsigned int *hash_len);
+
+int
+_gnutls_privkey_get_mpis(gnutls_privkey_t key, gnutls_pk_params_st * params);
 
 #endif

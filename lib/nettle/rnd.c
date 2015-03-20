@@ -32,36 +32,50 @@
 #include <locks.h>
 #include <gnutls_num.h>
 #include <nettle/yarrow.h>
+#include <nettle/salsa20.h>
 #ifdef HAVE_GETPID
 #include <unistd.h>		/* getpid */
 #endif
-#ifdef HAVE_GETRUSAGE
-#include <sys/resource.h>
-#endif
+#include <rnd-common.h>
 #include <errno.h>
 
 #define SOURCES 2
 
-#define RND_LOCK if (gnutls_mutex_lock(&rnd_mutex)!=0) abort()
-#define RND_UNLOCK if (gnutls_mutex_unlock(&rnd_mutex)!=0) abort()
+#define RND_LOCK(ctx) if (gnutls_mutex_lock(&((ctx)->mutex))!=0) abort()
+#define RND_UNLOCK(ctx) if (gnutls_mutex_unlock(&((ctx)->mutex))!=0) abort()
 
 enum {
 	RANDOM_SOURCE_TRIVIA = 0,
 	RANDOM_SOURCE_DEVICE,
 };
 
-static struct yarrow256_ctx yctx;
-static struct yarrow_source ysources[SOURCES];
 
-static struct timespec device_last_read = { 0, 0 };
-
-static time_t trivia_previous_time = 0;
-static time_t trivia_time_count = 0;
+struct nonce_ctx_st {
+	struct salsa20_ctx ctx;
+	unsigned int counter;
+	void *mutex;
 #ifdef HAVE_GETPID
-static pid_t pid;		/* detect fork() */
+	pid_t pid;		/* detect fork() */
 #endif
+};
 
-static void *rnd_mutex;
+struct rnd_ctx_st {
+	struct yarrow256_ctx yctx;
+	struct yarrow_source ysources[SOURCES];
+	struct timespec device_last_read;
+	time_t trivia_previous_time;
+	time_t trivia_time_count;
+	void *mutex;
+#ifdef HAVE_GETPID
+	pid_t pid;		/* detect fork() */
+#endif
+};
+
+static struct rnd_ctx_st rnd_ctx;
+
+/* after this number of bytes salsa20 will rekey */
+#define NONCE_RESEED_BYTES (1048576)
+static struct nonce_ctx_st nonce_ctx;
 
 inline static unsigned int
 timespec_sub_sec(struct timespec *a, struct timespec *b)
@@ -69,219 +83,68 @@ timespec_sub_sec(struct timespec *a, struct timespec *b)
 	return (a->tv_sec - b->tv_sec);
 }
 
-struct event_st {
-	struct timespec now;
-	unsigned count;
-	int err;
-#ifdef HAVE_GETPID
-	pid_t pid;
-#endif
-#ifdef HAVE_GETRUSAGE
-	struct rusage rusage;
-#endif
-}
-#ifdef __GNUC__
-__attribute__((packed))
-#endif
-;
-
-#ifdef HAVE_GETRUSAGE
-# ifdef RUSAGE_THREAD
-#  define ARG_RUSAGE RUSAGE_THREAD
-# else
-#  define ARG_RUSAGE RUSAGE_SELF
-# endif
-#endif
-
-static void _rnd_get_event(struct event_st *e)
-{
-	static unsigned count = 0;
-
-	gettime(&e->now);
-
-#ifdef HAVE_GETRUSAGE
-	if (getrusage(ARG_RUSAGE, &e->rusage) < 0) {
-		_gnutls_debug_log("getrusage failed: %s\n",
-			  strerror(errno));
-	}
-#endif
-
-#ifdef HAVE_GETPID
-	e->pid = getpid();
-#endif
-	e->count = count++;
-	e->err = errno;
-
-	return;
-}
-
-#define DEVICE_READ_INTERVAL (1200)
+#define DEVICE_READ_INTERVAL (10800)
 /* universal functions */
 
-static int do_trivia_source(int init, struct event_st* event)
+static int do_trivia_source(struct rnd_ctx_st *ctx, int init, struct event_st *event)
 {
 	unsigned entropy = 0;
 
 	if (init) {
-		trivia_time_count = 0;
+		ctx->trivia_time_count = 0;
 	} else {
-		trivia_time_count++;
+		ctx->trivia_time_count++;
 
-		if (event->now.tv_sec != trivia_previous_time) {
+		if (event->now.tv_sec != ctx->trivia_previous_time) {
 			/* Count one bit of entropy if we either have more than two
 			 * invocations in one second, or more than two seconds
 			 * between invocations. */
-			if ((trivia_time_count > 2)
-			    || ((event->now.tv_sec - trivia_previous_time) >
-				2))
+			if ((ctx->trivia_time_count > 2)
+			    || ((event->now.tv_sec - ctx->trivia_previous_time) > 2))
 				entropy++;
 
-			trivia_time_count = 0;
+			ctx->trivia_time_count = 0;
 		}
 	}
-	trivia_previous_time = event->now.tv_sec;
+	ctx->trivia_previous_time = event->now.tv_sec;
 
-	return yarrow256_update(&yctx, RANDOM_SOURCE_TRIVIA, entropy,
+	return yarrow256_update(&ctx->yctx, RANDOM_SOURCE_TRIVIA, entropy,
 				sizeof(*event), (void *) event);
 }
 
-
-
-/* System specific functions */
-#ifdef _WIN32
-
-#include <windows.h>
-#include <wincrypt.h>
-
 #define DEVICE_READ_SIZE 16
 #define DEVICE_READ_SIZE_MAX 32
 
-static HCRYPTPROV device_fd = 0;
-
-static int do_device_source(int init, struct event_st *event)
-{
-	int read_size = DEVICE_READ_SIZE;
-
-	if (init) {
-		int old;
-
-		if (!CryptAcquireContext
-		    (&device_fd, NULL, NULL, PROV_RSA_FULL,
-		     CRYPT_SILENT | CRYPT_VERIFYCONTEXT)) {
-			_gnutls_debug_log
-			    ("error in CryptAcquireContext!\n");
-			return GNUTLS_E_RANDOM_DEVICE_ERROR;
-		}
-		gettime(&device_last_read);
-		read_size = DEVICE_READ_SIZE_MAX;	/* initially read more data */
-	}
-
-	if ((device_fd != 0)
-	    && (init
-		|| timespec_sub_sec(&event->now,
-				    &device_last_read) >
-		DEVICE_READ_INTERVAL)) {
-
-		/* More than 20 minutes since we last read the device */
-		uint8_t buf[DEVICE_READ_SIZE_MAX];
-
-		if (!CryptGenRandom(device_fd, (DWORD) read_size, buf)) {
-			_gnutls_debug_log("Error in CryptGenRandom: %s\n",
-					  GetLastError());
-			return GNUTLS_E_RANDOM_DEVICE_ERROR;
-		}
-
-		memcpy(&device_last_read, &event->now,
-		       sizeof(device_last_read));
-		return yarrow256_update(&yctx, RANDOM_SOURCE_DEVICE,
-					read_size * 8 /
-					2 /* we trust the system RNG */ ,
-					read_size, buf);
-	}
-	return 0;
-}
-
-static void wrap_nettle_rnd_deinit(void *ctx)
-{
-	RND_LOCK;
-	CryptReleaseContext(device_fd, 0);
-	RND_UNLOCK;
-
-	gnutls_mutex_deinit(&rnd_mutex);
-	rnd_mutex = NULL;
-}
-
-#else				/* POSIX */
-
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <fcntl.h>
-#include <locks.h>
-#include "egd.h"
-
-#define DEVICE_READ_SIZE 16
-#define DEVICE_READ_SIZE_MAX 32
-
-static int device_fd;
-
-static int do_device_source_urandom(int init, struct event_st *event)
+static int do_device_source(struct rnd_ctx_st *ctx, int init, struct event_st *event)
 {
 	unsigned int read_size = DEVICE_READ_SIZE;
+	int ret;
 
 	if (init) {
-		int old;
+#ifdef HAVE_GETPID
+		ctx->pid = event->pid;
+#endif
 
-		device_fd = open("/dev/urandom", O_RDONLY);
-		if (device_fd < 0) {
-			_gnutls_debug_log("Cannot open urandom!\n");
-			return GNUTLS_E_FILE_ERROR;
-		}
-
-		old = fcntl(device_fd, F_GETFD);
-		if (old != -1)
-			fcntl(device_fd, F_SETFD, old | FD_CLOEXEC);
-		memcpy(&device_last_read, &event->now,
-		       sizeof(device_last_read));
+		memcpy(&ctx->device_last_read, &event->now,
+		       sizeof(ctx->device_last_read));
 
 		read_size = DEVICE_READ_SIZE_MAX;	/* initially read more data */
 	}
 
 	if ((init
-	     || (timespec_sub_sec(&event->now, &device_last_read) >
-		 DEVICE_READ_INTERVAL)) && (device_fd > 0)) {
+	     || (timespec_sub_sec(&event->now, &ctx->device_last_read) >
+		 DEVICE_READ_INTERVAL))) {
 		/* More than 20 minutes since we last read the device */
 		uint8_t buf[DEVICE_READ_SIZE_MAX];
-		uint32_t done;
 
-		for (done = 0; done < read_size;) {
-			int res;
-			do
-				res =
-				    read(device_fd, buf + done,
-					 sizeof(buf) - done);
-			while (res < 0 && errno == EINTR);
+		ret = _rnd_get_system_entropy(buf, read_size);
+		if (ret < 0)
+			return gnutls_assert_val(ret);
 
-			if (res <= 0) {
-				if (res < 0) {
-					_gnutls_debug_log
-					    ("Failed to read /dev/urandom: %s\n",
-					     strerror(errno));
-				} else {
-					_gnutls_debug_log
-					    ("Failed to read /dev/urandom: end of file\n");
-				}
+		memcpy(&ctx->device_last_read, &event->now,
+		       sizeof(ctx->device_last_read));
 
-				return GNUTLS_E_RANDOM_DEVICE_ERROR;
-			}
-
-			done += res;
-		}
-
-		memcpy(&device_last_read, &event->now,
-		       sizeof(device_last_read));
-		return yarrow256_update(&yctx, RANDOM_SOURCE_DEVICE,
+		return yarrow256_update(&ctx->yctx, RANDOM_SOURCE_DEVICE,
 					read_size * 8 /
 					2 /* we trust the RNG */ ,
 					read_size, buf);
@@ -289,108 +152,59 @@ static int do_device_source_urandom(int init, struct event_st *event)
 	return 0;
 }
 
-static int do_device_source_egd(int init, struct event_st *event)
-{
-	unsigned int read_size = DEVICE_READ_SIZE;
-
-	if (init) {
-		device_fd = _rndegd_connect_socket();
-		if (device_fd < 0) {
-			_gnutls_debug_log("Cannot open egd socket!\n");
-			return
-			    gnutls_assert_val
-			    (GNUTLS_E_RANDOM_DEVICE_ERROR);
-		}
-
-		memcpy(&device_last_read, &event->now,
-		       sizeof(device_last_read));
-
-		read_size = DEVICE_READ_SIZE_MAX;	/* initially read more data */
-	}
-
-	if ((device_fd > 0)
-	    && (init
-		|| (timespec_sub_sec(&event->now, &device_last_read) >
-		    DEVICE_READ_INTERVAL))) {
-
-		/* More than 20 minutes since we last read the device */
-		uint8_t buf[DEVICE_READ_SIZE_MAX];
-		uint32_t done;
-
-		for (done = 0; done < read_size;) {
-			int res;
-			res =
-			    _rndegd_read(&device_fd, buf + done,
-					 sizeof(buf) - done);
-			if (res <= 0) {
-				if (res < 0) {
-					_gnutls_debug_log
-					    ("Failed to read egd.\n");
-				} else {
-					_gnutls_debug_log
-					    ("Failed to read egd: end of file\n");
-				}
-
-				return
-				    gnutls_assert_val
-				    (GNUTLS_E_RANDOM_DEVICE_ERROR);
-			}
-			done += res;
-		}
-
-		memcpy(&device_last_read, &event->now,
-		       sizeof(device_last_read));
-		return yarrow256_update(&yctx, RANDOM_SOURCE_DEVICE,
-					read_size * 8 / 2, read_size, buf);
-	}
-	return 0;
-}
-
-static int do_device_source(int init, struct event_st *event)
-{
-	int ret;
-	static int (*do_source) (int init, struct event_st*) = NULL;
-/* using static var here is ok since we are
- * always called with mutexes down 
- */
-	if (init == 1) {
-#ifdef HAVE_GETPID
-		pid = event->pid;
-#endif
-
-		do_source = do_device_source_urandom;
-		ret = do_source(init, event);
-		if (ret < 0) {
-			do_source = do_device_source_egd;
-			ret = do_source(init, event);
-		}
-
-		if (ret < 0) {
-			gnutls_assert();
-			return ret;
-		}
-
-		return ret;
-	} else {
-		ret = do_source(init, event);
-
-		return ret;
-	}
-}
-
-
 static void wrap_nettle_rnd_deinit(void *ctx)
 {
-	RND_LOCK;
-	close(device_fd);
-	RND_UNLOCK;
+	_rnd_system_entropy_deinit();
 
-	gnutls_mutex_deinit(&rnd_mutex);
-	rnd_mutex = NULL;
+	gnutls_mutex_deinit(&nonce_ctx.mutex);
+	nonce_ctx.mutex = NULL;
+	gnutls_mutex_deinit(&rnd_ctx.mutex);
+	rnd_ctx.mutex = NULL;
 }
 
+/* Initializes the nonce level random generator.
+ *
+ * @init must be non zero on first initialization, and
+ * zero on any subsequent reinitializations.
+ */
+static int nonce_rng_init(struct nonce_ctx_st *ctx, unsigned init)
+{
+	uint8_t buffer[SALSA20_KEY_SIZE];
+	uint8_t iv[8];
+	int ret;
+
+	/* Get a key from the system randomness source.  */
+	ret = _rnd_get_system_entropy(buffer, sizeof(buffer));
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	if (init == 0) {
+		/* use the previous key to generate IV as well */
+		memset(iv, 0, sizeof(iv)); /* to prevent valgrind from whinning */
+		salsa20r12_crypt(&ctx->ctx, sizeof(iv), iv, iv);
+
+		/* Add key continuity by XORing the new key with data generated
+		 * from the old key */
+		salsa20r12_crypt(&ctx->ctx, sizeof(buffer), buffer, buffer);
+	} else {
+		/* when initializing read the IV from the system randomness source */
+		ret = _rnd_get_system_entropy(iv, sizeof(iv));
+		if (ret < 0)
+			return gnutls_assert_val(ret);
+	}
+
+	salsa20_set_key(&ctx->ctx, sizeof(buffer), buffer);
+	salsa20_set_iv(&ctx->ctx, iv);
+
+	zeroize_key(buffer, sizeof(buffer));
+
+	ctx->counter = 0;
+#ifdef HAVE_GETPID
+	ctx->pid = getpid();
 #endif
 
+	return 0;
+}
 
 /* API functions */
 
@@ -399,32 +213,101 @@ static int wrap_nettle_rnd_init(void **ctx)
 	int ret;
 	struct event_st event;
 
-	ret = gnutls_mutex_init(&rnd_mutex);
+	memset(&rnd_ctx, 0, sizeof(rnd_ctx));
+
+	ret = gnutls_mutex_init(&nonce_ctx.mutex);
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
 	}
 
-	yarrow256_init(&yctx, SOURCES, ysources);
+	ret = gnutls_mutex_init(&rnd_ctx.mutex);
+	if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	ret = _rnd_system_entropy_init();
+	if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	/* initialize the main RNG */
+	yarrow256_init(&rnd_ctx.yctx, SOURCES, rnd_ctx.ysources);
 
 	_rnd_get_event(&event);
 
-	ret = do_device_source(1, &event);
+	ret = do_device_source(&rnd_ctx, 1, &event);
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
 	}
 
-	ret = do_trivia_source(1, &event);
+	ret = do_trivia_source(&rnd_ctx, 1, &event);
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
 	}
 
-	yarrow256_slow_reseed(&yctx);
+	yarrow256_slow_reseed(&rnd_ctx.yctx);
+
+	/* initialize the nonce RNG */
+	ret = nonce_rng_init(&nonce_ctx, 1);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
 
 	return 0;
 }
+
+/* This is called when gnutls_global_init() is called for second time.
+ * It must check whether any resources are still available.
+ * The particular problem it solves is to verify that the urandom fd is still
+ * open (for applications that for some reason closed all fds */
+static int wrap_nettle_rnd_check(void **ctx)
+{
+	return _rnd_system_entropy_check();
+}
+
+static int
+wrap_nettle_rnd_nonce(void *_ctx, void *data, size_t datasize)
+{
+	int ret, reseed = 0;
+#ifdef HAVE_GETPID
+	pid_t tpid = getpid();
+#endif
+
+	/* we don't really need memset here, but otherwise we
+	 * get filled with valgrind warnings */
+	memset(data, 0, datasize);
+
+	RND_LOCK(&nonce_ctx);
+
+#ifdef HAVE_GETPID
+	if (tpid != nonce_ctx.pid) {	/* fork() detected */
+		reseed = 1;
+	}
+#endif
+
+	if (reseed != 0 || nonce_ctx.counter > NONCE_RESEED_BYTES) {
+		/* reseed nonce */
+		ret = nonce_rng_init(&nonce_ctx, 0);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+	}
+
+	salsa20r12_crypt(&nonce_ctx.ctx, datasize, data, data);
+	nonce_ctx.counter += datasize;
+
+	ret = 0;
+
+cleanup:
+	RND_UNLOCK(&nonce_ctx);
+	return ret;
+}
+
 
 
 static int
@@ -433,55 +316,43 @@ wrap_nettle_rnd(void *_ctx, int level, void *data, size_t datasize)
 	int ret, reseed = 0;
 	struct event_st event;
 
-	if (level != GNUTLS_RND_NONCE) {
-		_rnd_get_event(&event);
-	}
-#ifdef HAVE_GETPID
-	else
-		event.pid = getpid();
-#endif
+	if (level == GNUTLS_RND_NONCE)
+		return wrap_nettle_rnd_nonce(_ctx, data, datasize);
 
-	RND_LOCK;
+	_rnd_get_event(&event);
+
+	RND_LOCK(&rnd_ctx);
 
 #ifdef HAVE_GETPID
-	if (event.pid != pid) {	/* fork() detected */
-		memset(&device_last_read, 0, sizeof(device_last_read));
-		pid = event.pid;
+	if (event.pid != rnd_ctx.pid) {	/* fork() detected */
+		memset(&rnd_ctx.device_last_read, 0, sizeof(rnd_ctx.device_last_read));
+		rnd_ctx.pid = event.pid;
 		reseed = 1;
-
-		/* now we need that as it was not executed before */
-		if (level == GNUTLS_RND_NONCE)
-			_rnd_get_event(&event);
 	}
 #endif
 
-	/* update state only when having a non-nonce or if nonce
-	 * and nsecs%4096 == 0, i.e., one out of 4096 times called .
-	 *
-	 * The reason we do that is to avoid any delays when generating nonces.
-	 */
-	if (level != GNUTLS_RND_NONCE || reseed != 0) {
-		ret = do_trivia_source(0, &event);
-		if (ret < 0) {
-			RND_UNLOCK;
-			gnutls_assert();
-			return ret;
-		}
-
-		ret = do_device_source(0, &event);
-		if (ret < 0) {
-			RND_UNLOCK;
-			gnutls_assert();
-			return ret;
-		}
-
-		if (reseed)
-			yarrow256_slow_reseed(&yctx);
+	/* reseed main */
+	ret = do_trivia_source(&rnd_ctx, 0, &event);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
 	}
 
-	yarrow256_random(&yctx, datasize, data);
-	RND_UNLOCK;
-	return 0;
+	ret = do_device_source(&rnd_ctx, 0, &event);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	if (reseed != 0)
+		yarrow256_slow_reseed(&rnd_ctx.yctx);
+
+	yarrow256_random(&rnd_ctx.yctx, datasize, data);
+	ret = 0;
+
+cleanup:
+	RND_UNLOCK(&rnd_ctx);
+	return ret;
 }
 
 static void wrap_nettle_rnd_refresh(void *_ctx)
@@ -490,11 +361,15 @@ static void wrap_nettle_rnd_refresh(void *_ctx)
 
 	_rnd_get_event(&event);
 
-	RND_LOCK;
-	do_trivia_source(0, &event);
-	do_device_source(0, &event);
+	RND_LOCK(&rnd_ctx);
+	do_trivia_source(&rnd_ctx, 0, &event);
+	do_device_source(&rnd_ctx, 0, &event);
+	RND_UNLOCK(&rnd_ctx);
 
-	RND_UNLOCK;
+	RND_LOCK(&nonce_ctx);
+	nonce_rng_init(&nonce_ctx, 0);
+	RND_UNLOCK(&nonce_ctx);
+
 	return;
 }
 
@@ -502,7 +377,9 @@ int crypto_rnd_prio = INT_MAX;
 
 gnutls_crypto_rnd_st _gnutls_rnd_ops = {
 	.init = wrap_nettle_rnd_init,
+	.check = wrap_nettle_rnd_check,
 	.deinit = wrap_nettle_rnd_deinit,
 	.rnd = wrap_nettle_rnd,
 	.rnd_refresh = wrap_nettle_rnd_refresh,
+	.self_test = NULL,
 };

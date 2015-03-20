@@ -34,15 +34,30 @@
 #include <stdint.h>
 #include <common.h>
 
-#define FIX(url) \
+#ifdef _WIN32
+# define sleep(x) Sleep(x*1000)
+#endif
+
+static
+char *get_single_token_url(common_info_st * info);
+
+#define FIX(url, out, det, info) \
 	if (url == NULL) { \
-		fprintf(stderr, "warning: no token URL was provided; use --list-tokens for the available ones.\n" \
-			"warning: assuming 'pkcs11:'\n"); \
-		url = "pkcs11:"; \
+		url = get_single_token_url(info); \
+		if (url == NULL) { \
+			fprintf(stderr, "warning: no token URL was provided for this operation; the available tokens are:\n"); \
+			pkcs11_token_list(out, det, info, 1); \
+			exit(1); \
+		} \
 	}
 
+#define CHECK_LOGIN_FLAG(flag) \
+	if (flag == 0) \
+		fprintf(stderr, \
+			"warning: --login was not specified and it may be required for this operation.\n")
+
 void
-pkcs11_delete(FILE * outfile, const char *url, int batch,
+pkcs11_delete(FILE * outfile, const char *url,
 	      unsigned int login_flags, common_info_st * info)
 {
 	int ret;
@@ -50,7 +65,7 @@ pkcs11_delete(FILE * outfile, const char *url, int batch,
 
 	if (login_flags) obj_flags = login_flags;
 
-	if (!batch) {
+	if (info->batch == 0) {
 		pkcs11_list(outfile, url, PKCS11_TYPE_ALL, login_flags,
 			    GNUTLS_PKCS11_URL_LIB, info);
 		ret =
@@ -77,21 +92,25 @@ pkcs11_delete(FILE * outfile, const char *url, int batch,
 /* lists certificates from a token
  */
 void
-pkcs11_list(FILE * outfile, const char *url, int type, unsigned int login_flags,
+pkcs11_list(FILE * outfile, const char *url, int type, unsigned int flags,
 	    unsigned int detailed, common_info_st * info)
 {
 	gnutls_pkcs11_obj_t *crt_list;
-	unsigned int crt_list_size = 0, i;
+	unsigned int crt_list_size = 0, i, j;
 	int ret, otype;
-	char *output;
-	int attrs;
-	unsigned int obj_flags = 0;
+	char *output, *str;
+	int attrs, print_exts = 0;
+	gnutls_x509_ext_st *exts;
+	unsigned exts_size;
+	unsigned int obj_flags = flags;
 
-	if (login_flags) obj_flags = login_flags;
+	pkcs11_common(info);
 
-	pkcs11_common();
+	FIX(url, outfile, detailed, info);
 
-	FIX(url);
+	gnutls_pkcs11_token_get_flags(url, &flags);
+	if (flags & GNUTLS_PKCS11_TOKEN_TRUSTED)
+		print_exts = 1;
 
 	if (type == PKCS11_TYPE_TRUSTED) {
 		attrs = GNUTLS_PKCS11_OBJ_ATTR_CRT_TRUSTED;
@@ -99,8 +118,11 @@ pkcs11_list(FILE * outfile, const char *url, int type, unsigned int login_flags,
 		attrs = GNUTLS_PKCS11_OBJ_ATTR_CRT_WITH_PRIVKEY;
 	} else if (type == PKCS11_TYPE_CRT_ALL) {
 		attrs = GNUTLS_PKCS11_OBJ_ATTR_CRT_ALL;
+		if (print_exts != 0) print_exts++;
 	} else if (type == PKCS11_TYPE_PRIVKEY) {
 		attrs = GNUTLS_PKCS11_OBJ_ATTR_PRIVKEY;
+	} else if (type == PKCS11_TYPE_INFO) {
+		attrs = GNUTLS_PKCS11_OBJ_ATTR_MATCH;
 	} else {
 		attrs = GNUTLS_PKCS11_OBJ_ATTR_ALL;
 	}
@@ -124,6 +146,7 @@ pkcs11_list(FILE * outfile, const char *url, int type, unsigned int login_flags,
 	for (i = 0; i < crt_list_size; i++) {
 		char buf[128];
 		size_t size;
+		unsigned int oflags;
 
 		ret =
 		    gnutls_pkcs11_obj_export_url(crt_list[i], detailed,
@@ -152,6 +175,19 @@ pkcs11_list(FILE * outfile, const char *url, int type, unsigned int login_flags,
 		}
 		fprintf(outfile, "\tLabel: %s\n", buf);
 
+		oflags = 0;
+		ret = gnutls_pkcs11_obj_get_flags(crt_list[i], &oflags);
+		if (ret < 0) {
+			fprintf(stderr, "Error in %s:%d: %s\n", __func__,
+				__LINE__, gnutls_strerror(ret));
+			exit(1);
+		}
+		str = gnutls_pkcs11_obj_flags_get_str(oflags);
+		if (str != NULL) {
+			fprintf(outfile, "\tFlags: %s\n", str);
+			gnutls_free(str);
+		}
+
 		size = sizeof(buf);
 		ret =
 		    gnutls_pkcs11_obj_get_info(crt_list[i],
@@ -162,26 +198,52 @@ pkcs11_list(FILE * outfile, const char *url, int type, unsigned int login_flags,
 				__LINE__, gnutls_strerror(ret));
 			exit(1);
 		}
-		fprintf(outfile, "\tID: %s\n\n", buf);
+		fprintf(outfile, "\tID: %s\n", buf);
+
+		if (otype == GNUTLS_PKCS11_OBJ_X509_CRT && print_exts > 0) {
+			ret = gnutls_pkcs11_obj_get_exts(crt_list[i], &exts, &exts_size, 0);
+			if (ret >= 0 && exts_size > 0) {
+				gnutls_datum_t txt;
+
+				if (print_exts > 1) {
+					fprintf(outfile, "\tAttached extensions:\n");
+					ret = gnutls_x509_ext_print(exts, exts_size, 0, &txt);
+					if (ret >= 0) {
+						fprintf(outfile, "%s", (char*)txt.data);
+						gnutls_free(txt.data);
+					}
+				} else {
+					fprintf(outfile, "\tAttached extensions:");
+					for (j=0;j<exts_size;j++) {
+						fprintf(outfile, "%s%s", exts[j].oid, (j!=exts_size-1)?",":" ");
+					}
+				}
+				for (j=0;j<exts_size;j++) {
+					gnutls_x509_ext_deinit(&exts[j]);
+				}
+				gnutls_free(exts);
+				fprintf(outfile, "\n");
+			}
+		}
+
+		fprintf(outfile, "\n");
 	}
 
 	return;
 }
 
 void
-pkcs11_export(FILE * outfile, const char *url, unsigned int login_flags,
+pkcs11_export(FILE * outfile, const char *url, unsigned int flags,
 	      common_info_st * info)
 {
 	gnutls_pkcs11_obj_t obj;
 	gnutls_datum_t t;
 	int ret;
-	unsigned int obj_flags = 0;
+	unsigned int obj_flags = flags;
 
-	if (login_flags) obj_flags = login_flags;
+	pkcs11_common(info);
 
-	pkcs11_common();
-
-	FIX(url);
+	FIX(url, outfile, 0, info);
 
 	ret = gnutls_pkcs11_obj_init(&obj);
 	if (ret < 0) {
@@ -196,7 +258,7 @@ pkcs11_export(FILE * outfile, const char *url, unsigned int login_flags,
 			gnutls_strerror(ret));
 		exit(1);
 	}
-	
+
 	ret = gnutls_pkcs11_obj_export3(obj, info->outcert_format, &t);
 	if (ret < 0) {
         	fprintf(stderr, "Error in %s:%d: %s\n", __func__,
@@ -216,20 +278,18 @@ pkcs11_export(FILE * outfile, const char *url, unsigned int login_flags,
 }
 
 void
-pkcs11_export_chain(FILE * outfile, const char *url, unsigned int login_flags,
+pkcs11_export_chain(FILE * outfile, const char *url, unsigned int flags,
 	      common_info_st * info)
 {
 	gnutls_pkcs11_obj_t obj;
 	gnutls_x509_crt_t xcrt;
 	gnutls_datum_t t;
 	int ret;
-	unsigned int obj_flags = 0;
+	unsigned int obj_flags = flags;
 
-	if (login_flags) obj_flags = login_flags;
+	pkcs11_common(info);
 
-	pkcs11_common();
-
-	FIX(url);
+	FIX(url, outfile, 0, info);
 
 	ret = gnutls_pkcs11_obj_init(&obj);
 	if (ret < 0) {
@@ -252,7 +312,7 @@ pkcs11_export_chain(FILE * outfile, const char *url, unsigned int login_flags,
 			gnutls_strerror(ret));
 		exit(1);
 	}
-	
+
 	ret = gnutls_x509_crt_import_pkcs11(xcrt, obj);
 	if (ret < 0) {
         	fprintf(stderr, "Error in %s:%d: %s\n", __func__,
@@ -284,9 +344,9 @@ pkcs11_export_chain(FILE * outfile, const char *url, unsigned int login_flags,
                 
         	fwrite(t.data, 1, t.size, outfile);
                	fputs("\n\n", outfile);
-               	
+
                	gnutls_x509_crt_deinit(xcrt);
-               	
+
                	ret = gnutls_x509_crt_init(&xcrt);
         	if (ret < 0) {
                 	fprintf(stderr, "Error in %s:%d: %s\n", __func__,
@@ -314,17 +374,65 @@ pkcs11_export_chain(FILE * outfile, const char *url, unsigned int login_flags,
 	return;
 }
 
+/* If there is a single token only present, return its URL.
+ */
+static
+char *get_single_token_url(common_info_st * info)
+{
+	int ret;
+	char *url = NULL, *t = NULL;
+
+	pkcs11_common(info);
+
+	ret = gnutls_pkcs11_token_get_url(0, 0, &url);
+	if (ret < 0)
+		return NULL;
+
+	ret = gnutls_pkcs11_token_get_url(1, 0, &t);
+	if (ret != GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+		gnutls_free(url);
+		gnutls_free(t);
+		return NULL;
+	}
+
+	return url;
+}
+
+static
+void print_type(FILE *outfile, unsigned flags)
+{
+	unsigned print = 0;
+
+	fputs("\tType: ", outfile);
+	if (flags & GNUTLS_PKCS11_TOKEN_HW) {
+		fputs("Hardware token", outfile);
+		print++;
+	}
+
+	if (flags & GNUTLS_PKCS11_TOKEN_TRUSTED) {
+		if (print != 0)
+			fputs(", ", outfile);
+		fputs("Trust module", outfile);
+		print++;
+	}
+
+	if (print == 0)
+		fputs("Generic token", outfile);
+	fputc('\n', outfile);
+}
+
 void
 pkcs11_token_list(FILE * outfile, unsigned int detailed,
-		  common_info_st * info)
+		  common_info_st * info, unsigned brief)
 {
 	int ret;
 	int i;
 	char *url;
 	char buf[128];
 	size_t size;
+	unsigned flags;
 
-	pkcs11_common();
+	pkcs11_common(info);
 
 	for (i = 0;; i++) {
 		ret = gnutls_pkcs11_token_get_url(i, detailed, &url);
@@ -337,7 +445,12 @@ pkcs11_token_list(FILE * outfile, unsigned int detailed,
 			exit(1);
 		}
 
-		fprintf(outfile, "Token %d:\n\tURL: %s\n", i, url);
+		if (brief != 0) {
+			fprintf(outfile, "Token %d: %s\n", i, url);
+			goto cont;
+		} else {
+			fprintf(outfile, "Token %d:\n\tURL: %s\n", i, url);
+		}
 
 		size = sizeof(buf);
 		ret =
@@ -351,6 +464,14 @@ pkcs11_token_list(FILE * outfile, unsigned int detailed,
 		}
 
 		fprintf(outfile, "\tLabel: %s\n", buf);
+
+		ret = gnutls_pkcs11_token_get_flags(url, &flags);
+		if (ret < 0) {
+			fprintf(stderr, "Error in %s:%d: %s\n", __func__,
+				__LINE__, gnutls_strerror(ret));
+		} else {
+			print_type(outfile, flags);
+		}
 
 		size = sizeof(buf);
 		ret =
@@ -391,7 +512,7 @@ pkcs11_token_list(FILE * outfile, unsigned int detailed,
 
 		fprintf(outfile, "\tSerial: %s\n", buf);
 		fprintf(outfile, "\n\n");
-
+ cont:
 		gnutls_free(url);
 
 	}
@@ -401,21 +522,22 @@ pkcs11_token_list(FILE * outfile, unsigned int detailed,
 
 void
 pkcs11_write(FILE * outfile, const char *url, const char *label,
-	     int trusted, int private,
-	     unsigned int login_flags, common_info_st * info)
+	     unsigned flags, common_info_st * info)
 {
 	gnutls_x509_crt_t xcrt;
 	gnutls_x509_privkey_t xkey;
 	int ret;
-	unsigned int flags = 0;
 	unsigned int key_usage = 0;
 	gnutls_datum_t *secret_key;
 
-	if (login_flags) flags = login_flags;
+	pkcs11_common(info);
 
-	pkcs11_common();
+	FIX(url, outfile, 0, info);
+	CHECK_LOGIN_FLAG(flags);
 
-	FIX(url);
+	if (label == NULL && info->batch == 0) {
+		label = read_str("warning: The object's label was not specified.\nLabel: ");
+	}
 
 	secret_key = load_secret_key(0, info);
 	if (secret_key != NULL) {
@@ -431,22 +553,14 @@ pkcs11_write(FILE * outfile, const char *url, const char *label,
 		}
 	}
 
-	if (private == 1)
-		flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_PRIVATE;
-	else if (private == 0)
-		flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_NOT_PRIVATE;
-
 	xcrt = load_cert(0, info);
 	if (xcrt != NULL) {
-		if (trusted)
-			flags |=
-			    GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED;
-
 		ret = gnutls_pkcs11_copy_x509_crt(url, xcrt, label, flags);
 		if (ret < 0) {
-			fprintf(stderr, "Error in %s:%d: %s\n", __func__,
-				__LINE__, gnutls_strerror(ret));
-			if (trusted && (flags & GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO) == 0)
+			fprintf(stderr, "Error writing certificate: %s\n", gnutls_strerror(ret));
+			if (((flags & GNUTLS_PKCS11_OBJ_FLAG_MARK_CA) ||
+			     (flags & GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED)) && 
+			    (flags & GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO) == 0)
 				fprintf(stderr, "note: some tokens may require security officer login for this operation\n");
 			exit(1);
 		}
@@ -480,23 +594,26 @@ pkcs11_write(FILE * outfile, const char *url, const char *label,
 void
 pkcs11_generate(FILE * outfile, const char *url, gnutls_pk_algorithm_t pk,
 		unsigned int bits,
-		const char *label, int private, int detailed,
-		unsigned int login_flags, common_info_st * info)
+		const char *label, int detailed,
+		unsigned int flags, common_info_st * info)
 {
 	int ret;
-	unsigned int flags = 0;
 	gnutls_datum_t pubkey;
 
-	if (login_flags) flags = login_flags;
+	pkcs11_common(info);
 
-	pkcs11_common();
+	FIX(url, outfile, detailed, info);
+	CHECK_LOGIN_FLAG(flags);
 
-	FIX(url);
+	if (outfile == stderr || outfile == stdout) {
+		fprintf(stderr, "warning: no --outfile was specified and the generated public key will be printed on screen.\n");
+		fprintf(stderr, "note: in some tokens it is impossible to obtain the public key in any other way after generation.\n");
+		sleep(3);
+	}
 
-	if (private == 1)
-		flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_PRIVATE;
-	else if (private == 0)
-		flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_NOT_PRIVATE;
+	if (label == NULL && info->batch == 0) {
+		label = read_str("warning: Label was not specified.\nLabel: ");
+	}
 
 	ret =
 	    gnutls_pkcs11_privkey_generate2(url, pk, bits, label,
@@ -505,10 +622,7 @@ pkcs11_generate(FILE * outfile, const char *url, gnutls_pk_algorithm_t pk,
 	if (ret < 0) {
 		fprintf(stderr, "Error in %s:%d: %s\n", __func__, __LINE__,
 			gnutls_strerror(ret));
-		if (login_flags == 0)
-			fprintf(stderr,
-				"note: --login was not specified and it may be required for generation.\n");
-		else if (bits != 1024)
+		if (bits != 1024 && pk == GNUTLS_PK_RSA)
 			fprintf(stderr,
 				"note: several smart cards do not support arbitrary size keys; try --bits 1024 or 2048.\n");
 		exit(1);
@@ -521,31 +635,94 @@ pkcs11_generate(FILE * outfile, const char *url, gnutls_pk_algorithm_t pk,
 }
 
 void
+pkcs11_export_pubkey(FILE * outfile, const char *url, int detailed, unsigned int flags, common_info_st * info)
+{
+	int ret;
+	gnutls_datum_t pubkey;
+	gnutls_pkcs11_privkey_t pkey;
+
+	pkcs11_common(info);
+
+	FIX(url, outfile, detailed, info);
+	CHECK_LOGIN_FLAG(flags);
+
+	if (outfile == stderr || outfile == stdout) {
+		fprintf(stderr, "warning: no --outfile was specified and the public key will be printed on screen.\n");
+		sleep(3);
+	}
+
+	ret = gnutls_pkcs11_privkey_init(&pkey);
+	if (ret < 0) {
+		fprintf(stderr, "Error in %s:%d: %s\n", __func__, __LINE__,
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	ret = gnutls_pkcs11_privkey_import_url(pkey, url, 0);
+	if (ret < 0) {
+		fprintf(stderr, "Error in %s:%d: %s\n", __func__, __LINE__,
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	ret =
+	    gnutls_pkcs11_privkey_export_pubkey(pkey,
+					        GNUTLS_X509_FMT_PEM, &pubkey,
+					        flags);
+	if (ret < 0) {
+		fprintf(stderr, "Error in %s:%d: %s\n", __func__, __LINE__,
+			gnutls_strerror(ret));
+		exit(1);
+	}
+	gnutls_pkcs11_privkey_deinit(pkey);
+
+	fwrite(pubkey.data, 1, pubkey.size, outfile);
+	gnutls_free(pubkey.data);
+
+	return;
+}
+
+void
 pkcs11_init(FILE * outfile, const char *url, const char *label,
 	    common_info_st * info)
 {
 	int ret;
-	char *pin;
+	const char *pin;
 	char so_pin[32];
 
-	pkcs11_common();
+	pkcs11_common(info);
 
 	if (url == NULL) {
 		fprintf(stderr, "error: no token URL given to initialize!\n");
 		exit(1);
 	}
 
-	pin = getpass("Enter Security Officer's PIN: ");
-	if (pin == NULL)
-		exit(1);
+	if (info->so_pin != NULL)
+		pin = info->so_pin;
+	else {
+		pin = getenv("GNUTLS_SO_PIN");
+		if (pin == NULL && info->batch == 0)
+			pin = getpass("Enter Security Officer's PIN: ");
+		if (pin == NULL)
+			exit(1);
+	}
 
-	if (strlen(pin) >= sizeof(so_pin))
+	if (strlen(pin) >= sizeof(so_pin) || pin[0] == '\n')
 		exit(1);
 
 	strcpy(so_pin, pin);
 
-	pin = getpass("Enter new User's PIN: ");
-	if (pin == NULL)
+	if (info->so_pin != NULL) {
+		pin = info->pin;
+	} else {
+		pin = getenv("GNUTLS_PIN");
+		if (pin == NULL && info->batch == 0)
+			pin = getpass("Enter new User's PIN: ");
+		if (pin == NULL)
+			exit(1);
+	}
+
+	if (pin[0] == '\n')
 		exit(1);
 
 	ret = gnutls_pkcs11_token_init(url, so_pin, label);
@@ -779,7 +956,7 @@ const char *mech_list[] = {
 };
 
 void
-pkcs11_mechanism_list(FILE * outfile, const char *url, unsigned int login_flags,
+pkcs11_mechanism_list(FILE * outfile, const char *url, unsigned int flags,
 		      common_info_st * info)
 {
 	int ret;
@@ -787,9 +964,9 @@ pkcs11_mechanism_list(FILE * outfile, const char *url, unsigned int login_flags,
 	unsigned long mechanism;
 	const char *str;
 
-	pkcs11_common();
+	pkcs11_common(info);
 
-	FIX(url);
+	FIX(url, outfile, 0, info);
 
 	idx = 0;
 	do {
@@ -820,9 +997,9 @@ pkcs11_get_random(FILE * outfile, const char *url, unsigned bytes,
 	int ret;
 	uint8_t *output;
 
-	pkcs11_common();
+	pkcs11_common(info);
 
-	FIX(url);
+	FIX(url, outfile, 0, info);
 
 	output = malloc(bytes);
 	if (output == NULL) {

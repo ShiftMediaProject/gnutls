@@ -41,6 +41,23 @@ launch_server() {
        fi
 }
 
+launch_pkcs11_server() {
+       PARENT=$1;
+       shift;
+       PROVIDER=$1;
+       shift;
+       $VALGRIND $SERV $PROVIDER $DEBUG -p $PORT $* &
+       LOCALPID="$!";
+       trap "[ ! -z \"${LOCALPID}\" ] && kill ${LOCALPID};" 15
+       wait "${LOCALPID}"
+       LOCALRET="$?"
+       if [ "${LOCALRET}" != "0" ] && [ "${LOCALRET}" != "143" ] ; then
+               # Houston, we'v got a problem...
+               echo "Failed to launch a gnutls-serv server !"
+               kill -10 ${PARENT}
+       fi
+}
+
 launch_bare_server() {
        PARENT=$1;
        shift;
@@ -58,7 +75,7 @@ launch_bare_server() {
 
 wait_server() {
 	trap "kill $1" 1 15 2
-	sleep 2
+	sleep 4
 }
 
 trap "fail \"Failed to launch a gnutls-serv server, aborting test... \"" 10 

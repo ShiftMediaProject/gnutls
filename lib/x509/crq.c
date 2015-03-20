@@ -33,6 +33,7 @@
 #include <common.h>
 #include <gnutls_x509.h>
 #include <x509_b64.h>
+#include <gnutls/x509-ext.h>
 #include "x509_int.h"
 #include <libtasn1.h>
 
@@ -49,6 +50,8 @@
 int gnutls_x509_crq_init(gnutls_x509_crq_t * crq)
 {
 	int result;
+	
+	FAIL_IF_LIB_ERROR;
 
 	*crq = gnutls_calloc(1, sizeof(gnutls_x509_crq_int));
 	if (!*crq)
@@ -158,7 +161,7 @@ gnutls_x509_crq_import(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_private_key_usage_period:
- * @cert: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t structure
  * @activation: The activation time
  * @expiration: The expiration time
  * @critical: the extension status
@@ -963,14 +966,14 @@ gnutls_x509_crq_set_key_rsa_raw(gnutls_x509_crq_t crq,
 	memset(&temp_params, 0, sizeof(temp_params));
 
 	siz = m->size;
-	if (_gnutls_mpi_scan_nz(&temp_params.params[0], m->data, siz)) {
+	if (_gnutls_mpi_init_scan_nz(&temp_params.params[0], m->data, siz)) {
 		gnutls_assert();
 		ret = GNUTLS_E_MPI_SCAN_FAILED;
 		goto error;
 	}
 
 	siz = e->size;
-	if (_gnutls_mpi_scan_nz(&temp_params.params[1], e->data, siz)) {
+	if (_gnutls_mpi_init_scan_nz(&temp_params.params[1], e->data, siz)) {
 		gnutls_assert();
 		ret = GNUTLS_E_MPI_SCAN_FAILED;
 		goto error;
@@ -1480,11 +1483,49 @@ int
 gnutls_x509_crq_get_extension_data(gnutls_x509_crq_t crq, int indx,
 				   void *data, size_t * sizeof_data)
 {
-	int result, len;
+	int ret;
+	gnutls_datum_t raw;
+
+	ret = gnutls_x509_crq_get_extension_data2(crq, indx, &raw);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = _gnutls_copy_data(&raw, data, sizeof_data);
+	if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER && data == NULL)
+		ret = 0;
+	gnutls_free(raw.data);
+	return ret;
+}
+
+/**
+ * gnutls_x509_crq_get_extension_data2:
+ * @crq: should contain a #gnutls_x509_crq_t structure
+ * @extension_id: An X.509 extension OID.
+ * @indx: Specifies which extension OID to read. Use (0) to get the first one.
+ * @data: will contain the extension DER-encoded data
+ *
+ * This function will return the requested extension data in the
+ * certificate request.  The extension data will be allocated using
+ * gnutls_malloc().
+ *
+ * Use gnutls_x509_crq_get_extension_info() to extract the OID.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned,
+ *   otherwise a negative error code is returned.  If you have reached the
+ *   last extension available %GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE
+ *   will be returned.
+ *
+ * Since: 3.3.0
+ **/
+int
+gnutls_x509_crq_get_extension_data2(gnutls_x509_crq_t crq,
+			       unsigned indx, gnutls_datum_t * data)
+{
+	int ret, result;
 	char name[ASN1_MAX_NAME_SIZE];
-	unsigned char *extensions;
+	unsigned char *extensions = NULL;
 	size_t extensions_size = 0;
-	ASN1_TYPE c2;
+	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
 
 	if (!crq) {
 		gnutls_assert();
@@ -1492,16 +1533,16 @@ gnutls_x509_crq_get_extension_data(gnutls_x509_crq_t crq, int indx,
 	}
 
 	/* read extensionRequest */
-	result =
+	ret =
 	    gnutls_x509_crq_get_attribute_by_oid(crq,
 						 "1.2.840.113549.1.9.14",
 						 0, NULL,
 						 &extensions_size);
-	if (result != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+	if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
 		gnutls_assert();
-		if (result == 0)
+		if (ret == 0)
 			return GNUTLS_E_INTERNAL_ERROR;
-		return result;
+		return ret;
 	}
 
 	extensions = gnutls_malloc(extensions_size);
@@ -1510,14 +1551,14 @@ gnutls_x509_crq_get_extension_data(gnutls_x509_crq_t crq, int indx,
 		return GNUTLS_E_MEMORY_ERROR;
 	}
 
-	result =
+	ret =
 	    gnutls_x509_crq_get_attribute_by_oid(crq,
 						 "1.2.840.113549.1.9.14",
 						 0, extensions,
 						 &extensions_size);
-	if (result < 0) {
+	if (ret < 0) {
 		gnutls_assert();
-		return result;
+		goto cleanup;
 	}
 
 	result =
@@ -1525,34 +1566,33 @@ gnutls_x509_crq_get_extension_data(gnutls_x509_crq_t crq, int indx,
 				&c2);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
-		gnutls_free(extensions);
-		return _gnutls_asn2err(result);
+		ret = _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
 	result = asn1_der_decoding(&c2, extensions, extensions_size, NULL);
-	gnutls_free(extensions);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
-		asn1_delete_structure(&c2);
-		return _gnutls_asn2err(result);
+		ret = _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
 	snprintf(name, sizeof(name), "?%u.extnValue", indx + 1);
 
-	len = *sizeof_data;
-	result = asn1_read_value(c2, name, data, &len);
-	*sizeof_data = len;
-
-	asn1_delete_structure(&c2);
-
-	if (result == ASN1_ELEMENT_NOT_FOUND)
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	else if (result < 0) {
+	ret = _gnutls_x509_read_value(c2, name, data);
+	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND) {
+		ret = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		goto cleanup;
+	} else if (ret < 0) {
 		gnutls_assert();
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	return 0;
+	ret = 0;
+ cleanup:
+	asn1_delete_structure(&c2);
+ 	gnutls_free(extensions);
+	return ret;
 }
 
 /**
@@ -1582,9 +1622,9 @@ gnutls_x509_crq_get_key_usage(gnutls_x509_crq_t crq,
 			      unsigned int *critical)
 {
 	int result;
-	uint16_t _usage;
 	uint8_t buf[128];
 	size_t buf_size = sizeof(buf);
+	gnutls_datum_t bd;
 
 	if (crq == NULL) {
 		gnutls_assert();
@@ -1599,10 +1639,9 @@ gnutls_x509_crq_get_key_usage(gnutls_x509_crq_t crq,
 		return result;
 	}
 
-	result = _gnutls_x509_ext_extract_keyUsage(&_usage, buf, buf_size);
-
-	*key_usage = _usage;
-
+	bd.data = buf;
+	bd.size = buf_size;
+	result = gnutls_x509_ext_import_key_usage(&bd, key_usage);
 	if (result < 0) {
 		gnutls_assert();
 		return result;
@@ -1642,6 +1681,7 @@ gnutls_x509_crq_get_basic_constraints(gnutls_x509_crq_t crq,
 	unsigned int tmp_ca;
 	uint8_t buf[256];
 	size_t buf_size = sizeof(buf);
+	gnutls_datum_t bd;
 
 	if (crq == NULL) {
 		gnutls_assert();
@@ -1656,10 +1696,9 @@ gnutls_x509_crq_get_basic_constraints(gnutls_x509_crq_t crq,
 		return result;
 	}
 
-	result =
-	    _gnutls_x509_ext_extract_basicConstraints(&tmp_ca,
-						      pathlen, buf,
-						      buf_size);
+	bd.data = buf;
+	bd.size = buf_size;
+	result = gnutls_x509_ext_import_basic_constraints(&bd, &tmp_ca, pathlen);
 	if (ca)
 		*ca = tmp_ca;
 
@@ -1884,6 +1923,63 @@ gnutls_x509_crq_get_extension_by_oid(gnutls_x509_crq_t crq,
 }
 
 /**
+ * gnutls_x509_crq_get_extension_by_oid2:
+ * @crq: should contain a #gnutls_x509_crq_t structure
+ * @oid: holds an Object Identifier in a null terminated string
+ * @indx: In case multiple same OIDs exist in the extensions, this
+ *   specifies which to get. Use (0) to get the first one.
+ * @output: will hold the allocated extension data
+ * @critical: will be non-zero if the extension is marked as critical
+ *
+ * This function will return the extension specified by the OID in
+ * the certificate.  The extensions will be returned as binary data
+ * DER encoded, in the provided buffer.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error code in case of an error.  If the certificate does not
+ *   contain the specified extension
+ *   %GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE will be returned.
+ *
+ * Since: 3.3.8
+ **/
+int
+gnutls_x509_crq_get_extension_by_oid2(gnutls_x509_crq_t crq,
+				     const char *oid, int indx,
+				     gnutls_datum_t *output,
+				     unsigned int *critical)
+{
+	int result;
+	unsigned int i;
+	char _oid[MAX_OID_SIZE];
+	size_t oid_size;
+
+	for (i = 0;; i++) {
+		oid_size = sizeof(_oid);
+		result =
+		    gnutls_x509_crq_get_extension_info(crq, i, _oid,
+						       &oid_size,
+						       critical);
+		if (result < 0) {
+			gnutls_assert();
+			return result;
+		}
+
+		if (strcmp(oid, _oid) == 0) {	/* found */
+			if (indx == 0)
+				return
+				    gnutls_x509_crq_get_extension_data2(crq,
+								       i,
+								       output);
+			else
+				indx--;
+		}
+	}
+
+	return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+
+}
+
+/**
  * gnutls_x509_crq_set_subject_alt_name:
  * @crq: a certificate request of type #gnutls_x509_crq_t
  * @nt: is one of the #gnutls_x509_subject_alt_name_t enumerations
@@ -2030,9 +2126,7 @@ gnutls_x509_crq_set_basic_constraints(gnutls_x509_crq_t crq,
 
 	/* generate the extension.
 	 */
-	result =
-	    _gnutls_x509_ext_gen_basicConstraints(ca, pathLenConstraint,
-						  &der_data);
+	result = gnutls_x509_ext_export_basic_constraints(ca, pathLenConstraint, &der_data);
 	if (result < 0) {
 		gnutls_assert();
 		return result;
@@ -2077,7 +2171,7 @@ gnutls_x509_crq_set_key_usage(gnutls_x509_crq_t crq, unsigned int usage)
 	/* generate the extension.
 	 */
 	result =
-	    _gnutls_x509_ext_gen_keyUsage((uint16_t) usage, &der_data);
+	    gnutls_x509_ext_export_key_usage(usage, &der_data);
 	if (result < 0) {
 		gnutls_assert();
 		return result;
@@ -2528,7 +2622,7 @@ int gnutls_x509_crq_verify(gnutls_x509_crq_t crq, unsigned int flags)
 
 	ret =
 	    pubkey_verify_data(gnutls_x509_crq_get_pk_algorithm(crq, NULL),
-			       mac_to_entry(algo), &data, &signature,
+			       hash_to_entry(algo), &data, &signature,
 			       &params);
 	if (ret < 0) {
 		gnutls_assert();

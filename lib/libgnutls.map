@@ -303,7 +303,6 @@ GNUTLS_1_4
     gnutls_rsa_params_import_pkcs1;
     gnutls_rsa_params_import_raw;
     gnutls_rsa_params_init;
-    gnutls_secure_calloc;
     gnutls_secure_malloc;
     gnutls_server_name_get;
     gnutls_server_name_set;
@@ -913,17 +912,142 @@ GNUTLS_3_1_0 {
 	gnutls_pkcs11_get_raw_issuer;
 	gnutls_est_record_overhead_size;
 	gnutls_pubkey_set_key_usage;
-        gnutls_x509_privkey_import_rsa_raw2;
-        gnutls_pkcs11_token_get_flags;
-        gnutls_pubkey_get_pk_ecc_x962;
-        gnutls_pubkey_import_ecc_x962;
-        gnutls_rnd_refresh;
-        gnutls_mac_get_nonce_size;
-        gnutls_x509_crl_get_raw_issuer_dn;
-        gnutls_certificate_get_crt_raw;
+	gnutls_x509_privkey_import_rsa_raw2;
+	gnutls_pkcs11_token_get_flags;
+	gnutls_pubkey_get_pk_ecc_x962;
+	gnutls_pubkey_import_ecc_x962;
+	gnutls_rnd_refresh;
+	gnutls_mac_get_nonce_size;
+	gnutls_x509_crl_get_raw_issuer_dn;
+	gnutls_certificate_get_crt_raw;
+	gnutls_privkey_generate;
+	gnutls_fips140_mode_enabled;
 	gnutls_record_check_corked;
+	gnutls_pkcs11_crt_is_known;
+	gnutls_sec_param_to_symmetric_bits;
+	gnutls_privkey_export_ecc_raw;
+	gnutls_privkey_export_dsa_raw;
+	gnutls_privkey_export_rsa_raw;
+	gnutls_privkey_import_rsa_raw;
+	gnutls_privkey_import_dsa_raw;
+	gnutls_privkey_import_ecc_raw;
+	gnutls_pubkey_export_ecc_x962;
+	gnutls_pubkey_export_ecc_raw;
+	gnutls_pubkey_export_dsa_raw;
+	gnutls_pubkey_export_rsa_raw;
+	gnutls_privkey_verify_params;
+	gnutls_pubkey_verify_params;
 	gnutls_db_get_default_cache_expiration;
+	gnutls_x509_name_constraints_init;
+	gnutls_x509_name_constraints_deinit;
+	gnutls_x509_crt_get_name_constraints;
+	gnutls_x509_name_constraints_add_permitted;
+	gnutls_x509_name_constraints_add_excluded;
+	gnutls_x509_crt_set_name_constraints;
+	gnutls_x509_name_constraints_get_permitted;
+	gnutls_x509_name_constraints_get_excluded;
+	gnutls_x509_name_constraints_check;
+	gnutls_x509_name_constraints_check_crt;
+	gnutls_srp_set_server_fake_salt_seed;
+	gnutls_x509_crt_get_extension_data2;
+	gnutls_x509_crq_get_extension_data2;
+	gnutls_x509_crl_get_extension_data2;
+	gnutls_subject_alt_names_init;
+	gnutls_subject_alt_names_deinit;
+	gnutls_subject_alt_names_get;
+	gnutls_subject_alt_names_set;
+	gnutls_x509_ext_import_subject_alt_names;
+	gnutls_x509_ext_export_subject_alt_names;
+	gnutls_x509_crl_dist_points_init;
+	gnutls_x509_crl_dist_points_deinit;
+	gnutls_x509_crl_dist_points_get;
+	gnutls_x509_crl_dist_points_set;
+	gnutls_x509_ext_import_crl_dist_points;
+	gnutls_x509_ext_export_crl_dist_points;
+	gnutls_x509_ext_import_name_constraints;
+	gnutls_x509_ext_export_name_constraints;
+	gnutls_x509_aia_init;
+	gnutls_x509_aia_deinit;
+	gnutls_x509_aia_get;
+	gnutls_x509_aia_set;
+	gnutls_x509_ext_import_aia;
+	gnutls_x509_ext_export_aia;
+	gnutls_x509_ext_import_subject_key_id;
+	gnutls_x509_ext_export_subject_key_id;
+	gnutls_x509_ext_export_authority_key_id;
+	gnutls_x509_ext_import_authority_key_id;
+	gnutls_x509_aki_init;
+	gnutls_x509_aki_get_id;
+	gnutls_x509_aki_get_cert_issuer;
+	gnutls_x509_aki_set_id;
+	gnutls_x509_aki_set_cert_issuer;
+	gnutls_x509_aki_deinit;
+	gnutls_x509_ext_import_private_key_usage_period;
+	gnutls_x509_ext_export_private_key_usage_period;
+	gnutls_x509_ext_import_basic_constraints;
+	gnutls_x509_ext_export_basic_constraints;
+	gnutls_x509_ext_import_key_usage;
+	gnutls_x509_ext_export_key_usage;
+	gnutls_x509_ext_import_proxy;
+	gnutls_x509_ext_export_proxy;
+	gnutls_x509_policies_init;
+	gnutls_x509_policies_deinit;
+	gnutls_x509_policies_get;
+	gnutls_x509_policies_set;
+	gnutls_x509_ext_import_policies;
+	gnutls_x509_ext_export_policies;
+	gnutls_x509_crt_set_issuer_alt_name;
+	gnutls_x509_key_purpose_init;
+	gnutls_x509_key_purpose_deinit;
+	gnutls_x509_key_purpose_set;
+	gnutls_x509_key_purpose_get;
+	gnutls_x509_ext_import_key_purposes;
+	gnutls_x509_ext_export_key_purposes;
+	gnutls_x509_crt_check_hostname2;
+	gnutls_openpgp_crt_check_hostname2;
+	gnutls_certificate_verify_peers;
+	gnutls_credentials_get;
+	gnutls_x509_crl_iter_crt_serial;
+	gnutls_x509_crl_iter_deinit;
+	gnutls_packet_deinit;
+	gnutls_record_recv_packet;
+	gnutls_packet_get;
+	gnutls_x509_trust_list_add_trust_dir;
+	gnutls_certificate_set_x509_trust_dir;
+	gnutls_pkcs11_privkey_export_pubkey;
+	gnutls_pkcs11_obj_flags_get_str;
+	gnutls_pkcs11_obj_get_flags;
+	gnutls_x509_trust_list_verify_crt2;
+	gnutls_x509_crt_get_extension_by_oid2;
+	gnutls_x509_crq_get_extension_by_oid2;
+	gnutls_pkcs11_obj_get_exts;
+	gnutls_x509_ext_deinit;
+	gnutls_x509_ext_print;
+	gnutls_x509_othername_to_virtual;
 } GNUTLS_3_0_0;
+
+GNUTLS_FIPS140 {
+	gnutls_cipher_self_test;
+	gnutls_pk_self_test;
+	gnutls_mac_self_test;
+	gnutls_digest_self_test;
+	#for FIPS140-2 validation
+	drbg_aes_reseed;
+	drbg_aes_init;
+	drbg_aes_generate;
+	_dsa_generate_dss_pq;
+	_dsa_generate_dss_g;
+	_dsa_validate_dss_g;
+	_dsa_validate_dss_pq;
+	dsa_generate_dss_keypair;
+	_gnutls_prf_raw;
+	_gnutls_encode_ber_rs_raw;
+	_rsa_generate_fips186_4_keypair;
+	_gnutls_dh_compute_key;
+	_gnutls_dh_generate_key;
+	_gnutls_ecdh_generate_key;
+	_gnutls_ecdh_compute_key;
+};
 
 GNUTLS_PRIVATE {
   global:
@@ -953,9 +1077,10 @@ GNUTLS_PRIVATE {
     _gnutls_buffer_append_str;
     _gnutls_buffer_to_datum;
 
+    # Internal symbols used by fips-test
+    _gnutls_lib_simulate_error;
     # Internal symbols needed by xssl:
     gnutls_realloc_fast;
-    _gnutls_vasprintf;
 
     # Internal symbols needed by gnutls-cli-debug:
     _gnutls_rsa_pms_set_version;
@@ -964,12 +1089,11 @@ GNUTLS_PRIVATE {
     _gnutls_pbkdf2_sha1;
     # Internal symbols needed by tests/mpi:
     _gnutls_mpi_ops;
-    _gnutls_mpi_randomize;
     _gnutls_mpi_log;
     _gnutls_mpi_release;
     # Internal symbols needed by tests/pkcs12_s2k:
     _gnutls_pkcs12_string_to_key;
-    mac_to_entry;
+    _gnutls_mac_to_entry;
     _gnutls_bin2hex;
   local:
     *;

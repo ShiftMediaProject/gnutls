@@ -4,7 +4,11 @@ prog-title    = "GnuTLS certificate tool";
 prog-desc     = "Manipulate certificates and private keys.";
 detail    = "Tool to parse and generate X.509 certificates, requests and private keys.
 It can be used interactively or non interactively by
-specifying the template command line option.";
+specifying the template command line option.
+
+The tool accepts files or URLs supported by GnuTLS. In case PIN is required for the URL
+access you can provide it using the environment variables GNUTLS_PIN and GNUTLS_SO_PIN.
+";
 short-usage   = "certtool [options]\ncerttool --help for usage instructions.\n";
 explain       = "";
 
@@ -151,18 +155,6 @@ flag = {
 };
 
 flag = {
-    name      = hex-numbers;
-    descrip   = "Print big number in an easier format to parse";
-    doc   = "";
-};
-
-flag = {
-    name      = cprint;
-    descrip   = "In certain operations it prints the information in C-friendly format";
-    doc   = "In certain operations it prints the information in C-friendly format, suitable for including into C programs.";
-};
-
-flag = {
     name      = null-password;
     descrip   = "Enforce a NULL password";
     doc   = "This option enforces a NULL password. This is different than the empty or no password in schemas like PKCS #8.";
@@ -172,6 +164,19 @@ flag = {
     name      = empty-password;
     descrip   = "Enforce an empty password";
     doc   = "This option enforces an empty password. This is different than the NULL or no password in schemas like PKCS #8.";
+};
+
+
+flag = {
+    name      = hex-numbers;
+    descrip   = "Print big number in an easier format to parse";
+    doc   = "";
+};
+
+flag = {
+    name      = cprint;
+    descrip   = "In certain operations it prints the information in C-friendly format";
+    doc   = "In certain operations it prints the information in C-friendly format, suitable for including into C programs.";
 };
 
 flag = {
@@ -223,6 +228,13 @@ flag = {
     name      = p12-info;
     descrip   = "Print information on a PKCS #12 structure";
     doc       = "";
+};
+
+flag = {
+    name      = p12-name;
+    arg-type  = string;
+    descrip   = "The PKCS #12 friendly name to use";
+    doc = "The name to be used for the primary certificate and private key in a PKCS #12 file.";
 };
 
 flag = {
@@ -348,10 +360,17 @@ flag = {
 };
 
 flag = {
+    name      = curve;
+    arg-type  = string;
+    descrip   = "Specify the curve used for EC key generation";
+    doc      = "Supported values are secp192r1, secp224r1, secp256r1, secp384r1 and secp521r1.";
+};
+
+flag = {
     name      = sec-param;
     arg-type  = string;
     arg-name  = "Security parameter";
-    descrip   = "Specify the security level [low, legacy, normal, high, ultra]";
+    descrip   = "Specify the security level [low, legacy, medium, high, ultra]";
     doc      = "This is alternative to the bits option.";
 };
 
@@ -369,6 +388,12 @@ flag = {
 };
 
 flag = {
+    name      = stdout-info;
+    descrip   = "Print information to stdout instead of stderr";
+    doc = "";
+};
+
+flag = {
     name      = ask-pass;
     disabled;
     descrip   = "Enable interaction for entering password when in batch mode.";
@@ -381,6 +406,13 @@ flag = {
     arg-name  = "Cipher";
     descrip   = "Cipher to use for PKCS #8 and #12 operations";
     doc   = "Cipher may be one of 3des, 3des-pkcs12, aes-128, aes-192, aes-256, rc2-40, arcfour.";
+};
+
+flag = {
+    name      = provider;
+    arg-type  = string;
+    descrip   = "Specify the PKCS #11 provider library";
+    doc      = "This will override the default options in /etc/gnutls/pkcs11.conf";
 };
 
 doc-section = {
@@ -474,7 +506,7 @@ $ certtool --load-ca-certificate ca.pem \
 @subheading Diffie-Hellman parameter generation
 To generate parameters for Diffie-Hellman key exchange, use the command:
 @example
-$ certtool --generate-dh-params --outfile dh.pem --sec-param normal
+$ certtool --generate-dh-params --outfile dh.pem --sec-param medium
 @end example
 
 @subheading Proxy certificate generation
@@ -687,25 +719,42 @@ encryption_key
 # ca_issuers_uri = http://my.ca.issuer
 
 # Certificate policies
-# policy1 = 1.3.6.1.4.1.5484.1.10.99.1.0
-# policy1_txt = "This is a long policy to summarize"
-# policy1_url = http://www.example.com/a-policy-to-read
+#policy1 = 1.3.6.1.4.1.5484.1.10.99.1.0
+#policy1_txt = "This is a long policy to summarize"
+#policy1_url = http://www.example.com/a-policy-to-read
 
-# policy2 = 1.3.6.1.4.1.5484.1.10.99.1.1
-# policy2_txt = "This is a short policy"
-# policy2_url = http://www.example.com/another-policy-to-read
+#policy2 = 1.3.6.1.4.1.5484.1.10.99.1.1
+#policy2_txt = "This is a short policy"
+#policy2_url = http://www.example.com/another-policy-to-read
+
+# Name constraints
+
+# DNS
+#nc_permit_dns = example.com
+#nc_exclude_dns = test.example.com
+
+# EMAIL
+#nc_permit_email = "nmav@@ex.net"
+
+# Exclude subdomains of example.com
+#nc_exclude_email = .example.com
+
+# Exclude all e-mail addresses of example.com
+#nc_exclude_email = example.com
 
 
 # Options for proxy certificates
-# proxy_policy_language = 1.3.6.1.5.5.7.21.1
+#proxy_policy_language = 1.3.6.1.5.5.7.21.1
 
 
 # Options for generating a CRL
 
-# next CRL update will be in 43 days (wow)
+# The number of days the next CRL update will be due.
+# next CRL update will be in 43 days
 #crl_next_update = 43
 
 # this is the 5th CRL by this CA
+# Comment the field for a time-based number.
 #crl_number = 5
 
 @end example

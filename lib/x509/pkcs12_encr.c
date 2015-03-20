@@ -98,7 +98,7 @@ _gnutls_pkcs12_string_to_key(const mac_entry_st * me,
 		return rc;
 	}
 
-	rc = _gnutls_mpi_scan(&mpi512, buf_512, sizeof(buf_512));
+	rc = _gnutls_mpi_init_scan(&mpi512, buf_512, sizeof(buf_512));
 	if (rc < 0) {
 		gnutls_assert();
 		return rc;
@@ -137,7 +137,8 @@ _gnutls_pkcs12_string_to_key(const mac_entry_st * me,
 		_gnutls_hash(&md, buf_i, pw ? i_size : 64);
 		_gnutls_hash_deinit(&md, hash);
 		for (i = 1; i < iter; i++) {
-			rc = _gnutls_hash_fast(me->id, hash, mac_len, hash);
+			rc = _gnutls_hash_fast(me->id, hash, mac_len,
+					       hash);
 			if (rc < 0) {
 				gnutls_assert();
 				goto cleanup;
@@ -154,20 +155,32 @@ _gnutls_pkcs12_string_to_key(const mac_entry_st * me,
 		for (i = 0; i < 64; i++)
 			buf_b[i] = hash[i % mac_len];
 		n = 64;
-		rc = _gnutls_mpi_scan(&num_b1, buf_b, n);
+		rc = _gnutls_mpi_init_scan(&num_b1, buf_b, n);
 		if (rc < 0) {
 			gnutls_assert();
 			goto cleanup;
 		}
-		_gnutls_mpi_add_ui(num_b1, num_b1, 1);
+
+		rc = _gnutls_mpi_add_ui(num_b1, num_b1, 1);
+		if (rc < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+		
 		for (i = 0; i < 128; i += 64) {
 			n = 64;
-			rc = _gnutls_mpi_scan(&num_ij, buf_i + i, n);
+			rc = _gnutls_mpi_init_scan(&num_ij, buf_i + i, n);
 			if (rc < 0) {
 				gnutls_assert();
 				goto cleanup;
 			}
-			_gnutls_mpi_addm(num_ij, num_ij, num_b1, mpi512);
+
+			rc = _gnutls_mpi_addm(num_ij, num_ij, num_b1, mpi512);
+			if (rc < 0) {
+				gnutls_assert();
+				goto cleanup;
+			}
+
 			n = 64;
 #ifndef PKCS12_BROKEN_KEYGEN
 			m = (_gnutls_mpi_get_nbits(num_ij) + 7) / 8;

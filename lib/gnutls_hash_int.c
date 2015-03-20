@@ -28,11 +28,14 @@
 #include <gnutls_hash_int.h>
 #include <gnutls_errors.h>
 #include <algorithms.h>
+#include <fips.h>
 
 int _gnutls_hash_init(digest_hd_st * dig, const mac_entry_st * e)
 {
 	int result;
 	const gnutls_crypto_digest_st *cc = NULL;
+
+	FAIL_IF_LIB_ERROR;
 
 	if (unlikely(e == NULL || e->id == GNUTLS_MAC_NULL))
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
@@ -68,6 +71,20 @@ int _gnutls_hash_init(digest_hd_st * dig, const mac_entry_st * e)
 	return 0;
 }
 
+/* Returns true(non-zero) or false(0) if the 
+ * provided hash exists
+ */
+int _gnutls_digest_exists(gnutls_digest_algorithm_t algo)
+{
+	const gnutls_crypto_digest_st *cc = NULL;
+
+	cc = _gnutls_get_crypto_digest(algo);
+	if (cc != NULL)
+		return 1;
+
+	return _gnutls_digest_ops.exists(algo);
+}
+
 void _gnutls_hash_deinit(digest_hd_st * handle, void *digest)
 {
 	if (handle->handle == NULL) {
@@ -87,6 +104,8 @@ _gnutls_hash_fast(gnutls_digest_algorithm_t algorithm,
 {
 	int ret;
 	const gnutls_crypto_digest_st *cc = NULL;
+	
+	FAIL_IF_LIB_ERROR;
 
 	/* check if a digest has been registered 
 	 */
@@ -119,6 +138,8 @@ _gnutls_mac_fast(gnutls_mac_algorithm_t algorithm, const void *key,
 {
 	int ret;
 	const gnutls_crypto_mac_st *cc = NULL;
+
+	FAIL_IF_LIB_ERROR;
 
 	/* check if a digest has been registered 
 	 */
@@ -166,6 +187,8 @@ _gnutls_mac_init(mac_hd_st * mac, const mac_entry_st * e,
 {
 	int result;
 	const gnutls_crypto_mac_st *cc = NULL;
+
+	FAIL_IF_LIB_ERROR;
 
 	if (unlikely(e == NULL || e->id == GNUTLS_MAC_NULL))
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
@@ -251,7 +274,9 @@ _gnutls_mac_init_ssl3(digest_hd_st * ret, const mac_entry_st * e,
 	uint8_t ipad[48];
 	int padsize, result;
 
-	padsize = get_padsize((gnutls_digest_algorithm_t) e->id);
+	FAIL_IF_LIB_ERROR;
+
+	padsize = get_padsize(e->id);
 	if (padsize == 0) {
 		gnutls_assert();
 		return GNUTLS_E_HASH_FAILED;

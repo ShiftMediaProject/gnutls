@@ -23,8 +23,8 @@ AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/lib/includes -I$(top_builddir)/lib/includes	\
 	-I$(top_srcdir)/extra/includes \
-	-I$(top_srcdir)/gl \
-	-I$(top_builddir)/gl
+	-I$(top_srcdir)/src/gl \
+	-I$(top_builddir)/src/gl
 
 # Gnulib warns and suggests use of fseeko instead of fseek, which is
 # used in ex-cert-select.c, but certificate files will not be > 4 GB,
@@ -35,6 +35,7 @@ AM_LDFLAGS = -no-install
 LDADD = libexamples.la				\
 	../../lib/libgnutls.la			\
 	../../gl/libgnu.la			\
+	../../src/gl/libgnu_gpl.la		\
 	$(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB)
 
 CXX_LDADD = ../../lib/libgnutlsxx.la \
@@ -42,11 +43,11 @@ CXX_LDADD = ../../lib/libgnutlsxx.la \
 
 noinst_PROGRAMS = ex-client-resume ex-client-dtls
 noinst_PROGRAMS += ex-cert-select ex-client-x509
-noinst_PROGRAMS += ex-serv-dtls ex-client-xssl1 ex-client-xssl2
-noinst_PROGRAMS += print-ciphersuites ex-serv-x509
-
-ex_client_xssl1_LDADD = $(LDADD) ../../lib/libgnutls-xssl.la
-ex_client_xssl2_LDADD = $(LDADD) ../../lib/libgnutls-xssl.la
+noinst_PROGRAMS += ex-serv-dtls
+noinst_PROGRAMS += print-ciphersuites
+if ENABLE_OCSP
+noinst_PROGRAMS += ex-serv-x509
+endif
 
 if ENABLE_CXX
 ex_cxx_SOURCES = ex-cxx.cpp

@@ -1846,7 +1846,7 @@ L$loop_ssse3:
 
 .p2align	4
 L$ssse3_00_47:
-	subq	$-32*4,%rbp
+	subq	$-128,%rbp
 	rorl	$14,%r13d
 	movdqa	%xmm1,%xmm4
 	movl	%r14d,%eax

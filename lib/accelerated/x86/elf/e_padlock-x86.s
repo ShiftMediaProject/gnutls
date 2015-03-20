@@ -1069,4 +1069,6 @@ padlock_sha512_blocks:
 .Lpadlock_saved_context:
 .long	0
 
+
 .section .note.GNU-stack,"",%progbits
+

@@ -292,6 +292,7 @@ print_key_info(gnutls_buffer_st * str, gnutls_openpgp_crt_t cert, int idx)
 					     _
 					     ("\t\tPublic key (bits %d):\n"),
 					     bits);
+					adds(str, _("\t\tY:\n"));
 					_gnutls_buffer_hexdump(str, y.data,
 							       y.size,
 							       "\t\t\t");
@@ -312,6 +313,7 @@ print_key_info(gnutls_buffer_st * str, gnutls_openpgp_crt_t cert, int idx)
 					gnutls_free(q.data);
 					gnutls_free(g.data);
 					gnutls_free(y.data);
+					adds(str, "\n");
 				}
 			}
 			break;
@@ -351,6 +353,9 @@ static void print_cert(gnutls_buffer_st * str, gnutls_openpgp_crt_t cert)
 		size_t dn_size = 0;
 
 		err = gnutls_openpgp_crt_get_name(cert, i, NULL, &dn_size);
+		if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			break;
+
 		if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
 			addf(str, "error: get_name: %s\n",
 			     gnutls_strerror(err));
@@ -421,6 +426,9 @@ print_oneline(gnutls_buffer_st * str, gnutls_openpgp_crt_t cert)
 		size_t dn_size = 0;
 
 		err = gnutls_openpgp_crt_get_name(cert, i, NULL, &dn_size);
+		if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			break;
+
 		if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
 			addf(str, "unknown name (%s), ",
 			     gnutls_strerror(err));
@@ -561,9 +569,9 @@ gnutls_openpgp_crt_print(gnutls_openpgp_crt_t cert,
 
 	_gnutls_buffer_init(&str);
 
-	if (format == GNUTLS_CRT_PRINT_ONELINE)
+	if (format == GNUTLS_CRT_PRINT_ONELINE) {
 		print_oneline(&str, cert);
-	else if (format == GNUTLS_CRT_PRINT_COMPACT) {
+	} else if (format == GNUTLS_CRT_PRINT_COMPACT) {
 		print_oneline(&str, cert);
 
 		_gnutls_buffer_append_data(&str, "\n", 1);

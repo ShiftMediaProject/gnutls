@@ -33,6 +33,12 @@ int main(void)
         const char *err;
         gnutls_certificate_credentials_t xcred;
 
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
+
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
 
         /* X509 stuff */
@@ -48,7 +54,8 @@ int main(void)
         gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_DATAGRAM);
 
         /* Use default priorities */
-        ret = gnutls_priority_set_direct(session, "NORMAL", &err);
+        ret = gnutls_priority_set_direct(session, 
+                                         "NORMAL", &err);
         if (ret < 0) {
                 if (ret == GNUTLS_E_INVALID_REQUEST) {
                         fprintf(stderr, "Syntax error at: %s\n", err);

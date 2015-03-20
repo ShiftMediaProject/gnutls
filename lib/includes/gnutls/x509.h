@@ -87,6 +87,20 @@ extern "C" {
 #define GNUTLS_FSAN_SET 0
 #define GNUTLS_FSAN_APPEND 1
 
+#define GNUTLS_X509EXT_OID_SUBJECT_KEY_ID "2.5.29.14"
+#define GNUTLS_X509EXT_OID_KEY_USAGE "2.5.29.15"
+#define GNUTLS_X509EXT_OID_PRIVATE_KEY_USAGE_PERIOD "2.5.29.16"
+#define GNUTLS_X509EXT_OID_SAN "2.5.29.17"
+#define GNUTLS_X509EXT_OID_IAN "2.5.29.18"
+#define GNUTLS_X509EXT_OID_BASIC_CONSTRAINTS "2.5.29.19"
+#define GNUTLS_X509EXT_OID_NAME_CONSTRAINTS "2.5.29.30"
+#define GNUTLS_X509EXT_OID_CRL_DIST_POINTS "2.5.29.31"
+#define GNUTLS_X509EXT_OID_CRT_POLICY "2.5.29.32"
+#define GNUTLS_X509EXT_OID_AUTHORITY_KEY_ID "2.5.29.35"
+#define GNUTLS_X509EXT_OID_EXTENDED_KEY_USAGE "2.5.29.37"
+#define GNUTLS_X509EXT_OID_AUTHORITY_INFO_ACCESS "1.3.6.1.5.5.7.1.1"
+#define GNUTLS_X509EXT_OID_PROXY_CRT_INFO "1.3.6.1.5.5.7.1.14"
+
 /* Certificate handling functions.
  */
 
@@ -157,6 +171,8 @@ int gnutls_x509_crt_get_dn_by_oid(gnutls_x509_crt_t cert,
 				  size_t * buf_size);
 int gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
 				   const char *hostname);
+int gnutls_x509_crt_check_hostname2(gnutls_x509_crt_t cert,
+	 			    const char *hostname, unsigned int flags);
 
 int gnutls_x509_crt_get_signature_algorithm(gnutls_x509_crt_t cert);
 int gnutls_x509_crt_get_signature(gnutls_x509_crt_t cert,
@@ -221,6 +237,7 @@ typedef enum gnutls_info_access_what_t {
 	/* use 100-108 for the generalName types, populate as needed */
 	GNUTLS_IA_URI = 106,
 	/* quick-access variants that match both OID and name type. */
+	GNUTLS_IA_UNKNOWN = 10000,
 	GNUTLS_IA_OCSP_URI = 10006,
 	GNUTLS_IA_CAISSUERS_URI = 10106
 } gnutls_info_access_what_t;
@@ -232,6 +249,40 @@ int gnutls_x509_crt_get_authority_info_access(gnutls_x509_crt_t
 					      gnutls_datum_t *
 					      data, unsigned int
 					      *critical);
+
+typedef struct gnutls_name_constraints_st *gnutls_x509_name_constraints_t;
+
+unsigned gnutls_x509_name_constraints_check(gnutls_x509_name_constraints_t nc,
+				       gnutls_x509_subject_alt_name_t type,
+				       const gnutls_datum_t * name);
+unsigned gnutls_x509_name_constraints_check_crt(gnutls_x509_name_constraints_t nc,
+				       gnutls_x509_subject_alt_name_t type,
+				       gnutls_x509_crt_t crt);
+
+int gnutls_x509_name_constraints_init(gnutls_x509_name_constraints_t *nc);
+void gnutls_x509_name_constraints_deinit(gnutls_x509_name_constraints_t nc);
+
+#define GNUTLS_NAME_CONSTRAINTS_FLAG_APPEND 1
+int gnutls_x509_crt_get_name_constraints(gnutls_x509_crt_t crt,
+					 gnutls_x509_name_constraints_t nc,
+					 unsigned int flags,
+					 unsigned int *critical);
+int gnutls_x509_name_constraints_add_permitted(gnutls_x509_name_constraints_t nc,
+					       gnutls_x509_subject_alt_name_t type,
+					       const gnutls_datum_t * name);
+int gnutls_x509_name_constraints_add_excluded(gnutls_x509_name_constraints_t nc,
+					      gnutls_x509_subject_alt_name_t type,
+					      const gnutls_datum_t * name);
+int gnutls_x509_crt_set_name_constraints(gnutls_x509_crt_t crt, 
+					 gnutls_x509_name_constraints_t nc,
+					 unsigned int critical);
+int gnutls_x509_name_constraints_get_permitted(gnutls_x509_name_constraints_t nc,
+				     unsigned idx,
+				     unsigned *type, gnutls_datum_t * name);
+int gnutls_x509_name_constraints_get_excluded(gnutls_x509_name_constraints_t nc,
+				     unsigned idx,
+				     unsigned *type, gnutls_datum_t * name);
+
 
 #define GNUTLS_CRL_REASON_SUPERSEEDED GNUTLS_CRL_REASON_SUPERSEDED,
   /**
@@ -392,7 +443,7 @@ void gnutls_x509_policy_release(struct gnutls_x509_policy_st
 				*policy);
 int gnutls_x509_crt_get_policy(gnutls_x509_crt_t crt, int indx, struct gnutls_x509_policy_st
 			       *policy, unsigned int *critical);
-int gnutls_x509_crt_set_policy(gnutls_x509_crt_t crt, struct gnutls_x509_policy_st
+int gnutls_x509_crt_set_policy(gnutls_x509_crt_t crt, const struct gnutls_x509_policy_st
 			       *policy, unsigned int critical);
 
 int gnutls_x509_dn_oid_known(const char *oid);
@@ -409,6 +460,11 @@ int gnutls_x509_crt_get_extension_by_oid(gnutls_x509_crt_t cert,
 					 void *buf,
 					 size_t * buf_size,
 					 unsigned int *critical);
+int
+gnutls_x509_crq_get_extension_by_oid2(gnutls_x509_crq_t crq,
+				     const char *oid, int indx,
+				     gnutls_datum_t *output,
+				     unsigned int *critical);
 
 	/* Read extensions by sequence number. */
 int gnutls_x509_crt_get_extension_info(gnutls_x509_crt_t cert,
@@ -418,6 +474,10 @@ int gnutls_x509_crt_get_extension_info(gnutls_x509_crt_t cert,
 int gnutls_x509_crt_get_extension_data(gnutls_x509_crt_t cert,
 				       int indx, void *data,
 				       size_t * sizeof_data);
+int
+gnutls_x509_crt_get_extension_data2(gnutls_x509_crt_t cert,
+			       unsigned indx, gnutls_datum_t * data);
+
 
 int gnutls_x509_crt_set_extension_by_oid(gnutls_x509_crt_t crt,
 					 const char *oid,
@@ -461,6 +521,13 @@ int gnutls_x509_crt_set_subject_alt_name(gnutls_x509_crt_t crt,
 					 type, const void *data,
 					 unsigned int data_size,
 					 unsigned int flags);
+
+int gnutls_x509_crt_set_issuer_alt_name(gnutls_x509_crt_t crt,
+					 gnutls_x509_subject_alt_name_t
+					 type, const void *data,
+					 unsigned int data_size,
+					 unsigned int flags);
+
 int gnutls_x509_crt_sign(gnutls_x509_crt_t crt,
 			 gnutls_x509_crt_t issuer,
 			 gnutls_x509_privkey_t issuer_key);
@@ -587,6 +654,16 @@ int gnutls_x509_crl_get_crt_count(gnutls_x509_crl_t crl);
 int gnutls_x509_crl_get_crt_serial(gnutls_x509_crl_t crl, int indx,
 				   unsigned char *serial,
 				   size_t * serial_size, time_t * t);
+
+typedef struct gnutls_x509_crl_iter * gnutls_x509_crl_iter_t;
+
+int gnutls_x509_crl_iter_crt_serial(gnutls_x509_crl_t crl,
+				    gnutls_x509_crl_iter_t *,
+				    unsigned char *serial,
+				    size_t * serial_size, time_t * t);
+
+void gnutls_x509_crl_iter_deinit(gnutls_x509_crl_iter_t);
+
 #define gnutls_x509_crl_get_certificate_count gnutls_x509_crl_get_crt_count
 #define gnutls_x509_crl_get_certificate gnutls_x509_crl_get_crt_serial
 
@@ -650,6 +727,9 @@ int gnutls_x509_crl_get_extension_info(gnutls_x509_crl_t crl,
 int gnutls_x509_crl_get_extension_data(gnutls_x509_crl_t crl,
 				       int indx, void *data,
 				       size_t * sizeof_data);
+int
+gnutls_x509_crl_get_extension_data2(gnutls_x509_crl_t crl,
+			       unsigned indx, gnutls_datum_t * data);
 
 int gnutls_x509_crl_set_authority_key_id(gnutls_x509_crl_t crl,
 					 const void *id, size_t id_size);
@@ -703,10 +783,6 @@ int gnutls_pkcs7_delete_crl(gnutls_pkcs7_t pkcs7, int indx);
  *   unless you know what this means.
  * @GNUTLS_VERIFY_DISABLE_TRUSTED_TIME_CHECKS: If set a signer in the trusted
  *   list is never checked for expiration or activation.
- * @GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT: Allow trusted CA certificates
- *   with version 1. This is safer than %GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT,
- *   and should be used instead. That way only signers in your trusted list
- *   will be allowed to have certificates of version 1. This is the default.
  * @GNUTLS_VERIFY_DO_NOT_ALLOW_X509_V1_CA_CRT: Do not allow trusted CA
  *   certificates that have version 1.  This option is to be used
  *   to deprecate all certificates of version 1.
@@ -721,8 +797,7 @@ int gnutls_pkcs7_delete_crl(gnutls_pkcs7_t pkcs7, int indx);
  * @GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT: Allow CA certificates that
  *   have version 1 (both root and intermediate). This might be
  *   dangerous since those haven't the basicConstraints
- *   extension. Must be used in combination with
- *   %GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT.
+ *   extension. 
  * @GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2: Allow certificates to be signed
  *   using the broken MD2 algorithm.
  * @GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5: Allow certificates to be signed
@@ -732,12 +807,15 @@ int gnutls_pkcs7_delete_crl(gnutls_pkcs7_t pkcs7, int indx);
  *   this unless you understand the security implications.
  * @GNUTLS_VERIFY_DISABLE_CRL_CHECKS: Disable checking for validity
  *   using certificate revocation lists or the available OCSP data.
+ * @GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS: When including a hostname
+ *   check in the verification, do not consider any wildcards.
  *
- * Enumeration of different certificate verify flags.
+ * Enumeration of different certificate verify flags. Additional
+ * verification profiles can be set using GNUTLS_PROFILE_TO_VFLAGS()
+ * and %gnutls_certificate_verification_profiles_t.
  */
 typedef enum gnutls_certificate_verify_flags {
 	GNUTLS_VERIFY_DISABLE_CA_SIGN = 1 << 0,
-	GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT = 1 << 1,
 	GNUTLS_VERIFY_DO_NOT_ALLOW_SAME = 1 << 2,
 	GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT = 1 << 3,
 	GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2 = 1 << 4,
@@ -748,7 +826,51 @@ typedef enum gnutls_certificate_verify_flags {
 	GNUTLS_VERIFY_DISABLE_CRL_CHECKS = 1 << 9,
 	GNUTLS_VERIFY_ALLOW_UNSORTED_CHAIN = 1 << 10,
 	GNUTLS_VERIFY_DO_NOT_ALLOW_UNSORTED_CHAIN = 1 << 11,
+	GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS = 1 << 12
 } gnutls_certificate_verify_flags;
+
+/**
+ * gnutls_certificate_verification_profiles_t:
+ * @GNUTLS_PROFILE_VERY_WEAK: A verification profile that
+ *  corresponds to @GNUTLS_SEC_PARAM_VERY_WEAK (64 bits)
+ * @GNUTLS_PROFILE_LOW: A verification profile that
+ *  corresponds to @GNUTLS_SEC_PARAM_LOW (80 bits)
+ * @GNUTLS_PROFILE_LEGACY: A verification profile that
+ *  corresponds to @GNUTLS_SEC_PARAM_LEGACY (96 bits)
+ * @GNUTLS_PROFILE_MEDIUM: A verification profile that
+ *  corresponds to @GNUTLS_SEC_PARAM_MEDIUM (112 bits)
+ * @GNUTLS_PROFILE_HIGH: A verification profile that
+ *  corresponds to @GNUTLS_SEC_PARAM_HIGH (128 bits)
+ * @GNUTLS_PROFILE_ULTRA: A verification profile that
+ *  corresponds to @GNUTLS_SEC_PARAM_ULTRA (256 bits)
+% * @GNUTLS_PROFILE_SUITEB128: A verification profile that
+ *  applies the SUITEB128 rules
+ * @GNUTLS_PROFILE_SUITEB192: A verification profile that
+ *  applies the SUITEB192 rules
+ *
+ * Enumeration of different certificate verification profiles.
+ */
+typedef enum gnutls_certificate_verification_profiles_t {
+	GNUTLS_PROFILE_VERY_WEAK = 1,
+	GNUTLS_PROFILE_LOW = 2,
+	GNUTLS_PROFILE_LEGACY = 4,
+	GNUTLS_PROFILE_MEDIUM = 5,
+	GNUTLS_PROFILE_HIGH = 6,
+	GNUTLS_PROFILE_ULTRA = 7,
+	
+	GNUTLS_PROFILE_SUITEB128=32,
+	GNUTLS_PROFILE_SUITEB192=33
+	/*GNUTLS_PROFILE_MAX=255*/
+} gnutls_certificate_verification_profiles_t;
+
+#define GNUTLS_PROFILE_TO_VFLAGS(x) \
+	(((unsigned)x)<<24)
+
+#define GNUTLS_VFLAGS_PROFILE_MASK (0xff000000)
+
+#define GNUTLS_VFLAGS_TO_PROFILE(x) \
+	((((unsigned)x)>>24)&0xff)
+
 
 int gnutls_x509_crt_check_issuer(gnutls_x509_crt_t cert,
 				 gnutls_x509_crt_t issuer);
@@ -1038,6 +1160,10 @@ int gnutls_x509_crq_get_key_purpose_oid(gnutls_x509_crq_t crq,
 int gnutls_x509_crq_get_extension_data(gnutls_x509_crq_t crq,
 				       int indx, void *data,
 				       size_t * sizeof_data);
+int
+gnutls_x509_crq_get_extension_data2(gnutls_x509_crq_t crq,
+			       unsigned indx,
+			       gnutls_datum_t * data);
 int gnutls_x509_crq_get_extension_info(gnutls_x509_crq_t crq,
 				       int indx, void *oid,
 				       size_t * sizeof_oid,
@@ -1082,6 +1208,11 @@ int gnutls_x509_crq_get_extension_by_oid(gnutls_x509_crq_t crq,
 					 void *buf,
 					 size_t * sizeof_buf,
 					 unsigned int *critical);
+int
+gnutls_x509_crt_get_extension_by_oid2(gnutls_x509_crt_t cert,
+				     const char *oid, int indx,
+				     gnutls_datum_t *output,
+				     unsigned int *critical);
 
 typedef struct gnutls_x509_trust_list_st *gnutls_x509_trust_list_t;
 
@@ -1098,10 +1229,15 @@ int gnutls_x509_trust_list_get_issuer(gnutls_x509_trust_list_t
 				      gnutls_x509_crt_t * issuer,
 				      unsigned int flags);
 
+#define GNUTLS_TL_VERIFY_CRL 1
+#define GNUTLS_TL_USE_IN_TLS (1<<1)
+#define GNUTLS_TL_NO_DUPLICATES (1<<2)
+#define GNUTLS_TL_NO_DUPLICATE_KEY (1<<3)
+#define GNUTLS_TL_GET_COPY (1<<4)
 int
 gnutls_x509_trust_list_add_cas(gnutls_x509_trust_list_t list,
 			       const gnutls_x509_crt_t * clist,
-			       int clist_size, unsigned int flags);
+			       unsigned clist_size, unsigned int flags);
 int gnutls_x509_trust_list_remove_cas(gnutls_x509_trust_list_t
 				      list,
 				      const gnutls_x509_crt_t *
@@ -1114,7 +1250,6 @@ int gnutls_x509_trust_list_add_named_crt(gnutls_x509_trust_list_t
 					 size_t name_size,
 					 unsigned int flags);
 
-#define GNUTLS_TL_VERIFY_CRL 1
 int
 gnutls_x509_trust_list_add_crls(gnutls_x509_trust_list_t list,
 				const gnutls_x509_crl_t *
@@ -1135,6 +1270,16 @@ int gnutls_x509_trust_list_verify_named_crt
     (gnutls_x509_trust_list_t list, gnutls_x509_crt_t cert,
      const void *name, size_t name_size, unsigned int flags,
      unsigned int *verify, gnutls_verify_output_function func);
+
+int
+gnutls_x509_trust_list_verify_crt2(gnutls_x509_trust_list_t list,
+				  gnutls_x509_crt_t * cert_list,
+				  unsigned int cert_list_size,
+				  gnutls_typed_vdata_st * data,
+				  unsigned int elements,
+				  unsigned int flags,
+				  unsigned int *voutput,
+				  gnutls_verify_output_function func);
 
 int
 gnutls_x509_trust_list_verify_crt(gnutls_x509_trust_list_t list,
@@ -1163,6 +1308,14 @@ gnutls_x509_trust_list_add_trust_file(gnutls_x509_trust_list_t
 				      unsigned int tl_vflags);
 
 int
+gnutls_x509_trust_list_add_trust_dir(gnutls_x509_trust_list_t list,
+				      const char *ca_dir,
+				      const char *crl_dir,
+				      gnutls_x509_crt_fmt_t type,
+				      unsigned int tl_flags,
+				      unsigned int tl_vflags);
+
+int
 gnutls_x509_trust_list_remove_trust_file(gnutls_x509_trust_list_t
 					 list,
 					 const char *ca_file,
@@ -1183,6 +1336,19 @@ gnutls_x509_trust_list_add_system_trust(gnutls_x509_trust_list_t
 void gnutls_certificate_set_trust_list
     (gnutls_certificate_credentials_t res,
      gnutls_x509_trust_list_t tlist, unsigned flags);
+
+typedef struct gnutls_x509_ext_st {
+	char *oid;
+	unsigned int critical;
+	gnutls_datum_t data;
+} gnutls_x509_ext_st;
+
+void gnutls_x509_ext_deinit(gnutls_x509_ext_st *ext);
+
+int
+gnutls_x509_ext_print(gnutls_x509_ext_st *exts, unsigned int exts_size,
+		      gnutls_certificate_print_formats_t format,
+		      gnutls_datum_t * out);
 
 /* *INDENT-OFF* */
 #ifdef __cplusplus

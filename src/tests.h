@@ -22,9 +22,10 @@ typedef enum {
 	TEST_SUCCEED, TEST_FAILED, TEST_UNSURE, TEST_IGNORE
 } test_code_t;
 
+test_code_t test_chain_order(gnutls_session_t session);
 test_code_t test_server(gnutls_session_t state);
 test_code_t test_record_padding(gnutls_session_t state);
-test_code_t test_hello_extension(gnutls_session_t state);
+test_code_t test_no_extensions(gnutls_session_t state);
 test_code_t test_heartbeat_extension(gnutls_session_t state);
 test_code_t test_small_records(gnutls_session_t state);
 test_code_t test_dhe(gnutls_session_t state);
@@ -38,6 +39,7 @@ test_code_t test_sha(gnutls_session_t state);
 test_code_t test_3des(gnutls_session_t state);
 test_code_t test_arcfour(gnutls_session_t state);
 test_code_t test_tls1(gnutls_session_t state);
+test_code_t test_tls1_nossl3(gnutls_session_t session);
 test_code_t test_safe_renegotiation(gnutls_session_t state);
 test_code_t test_safe_renegotiation_scsv(gnutls_session_t state);
 test_code_t test_tls1_1(gnutls_session_t state);
@@ -46,6 +48,7 @@ test_code_t test_tls1_1_fallback(gnutls_session_t state);
 test_code_t test_tls_disable0(gnutls_session_t state);
 test_code_t test_tls_disable1(gnutls_session_t state);
 test_code_t test_tls_disable2(gnutls_session_t state);
+test_code_t test_ocsp_status(gnutls_session_t state);
 test_code_t test_rsa_pms(gnutls_session_t state);
 test_code_t test_max_record_size(gnutls_session_t state);
 test_code_t test_version_rollback(gnutls_session_t state);

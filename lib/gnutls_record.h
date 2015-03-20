@@ -25,6 +25,7 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls_buffers.h>
+#include <gnutls_constate.h>
 
 ssize_t _gnutls_send_tlen_int(gnutls_session_t session,
 			      content_type_t type,
@@ -44,7 +45,9 @@ _gnutls_send_int(gnutls_session_t session, content_type_t type,
 }
 
 ssize_t _gnutls_recv_int(gnutls_session_t session, content_type_t type,
-			 gnutls_handshake_description_t, uint8_t * data,
+			 gnutls_handshake_description_t, 
+			 gnutls_packet_t *packet,
+			 uint8_t * data,
 			 size_t sizeofdata, void *seq, unsigned int ms);
 
 inline static unsigned max_record_recv_size(gnutls_session_t session)
@@ -71,6 +74,31 @@ inline static unsigned max_decrypted_size(gnutls_session_t session)
 	size += session->security_parameters.max_record_recv_size;
 
 	return size;
+}
+
+/* Returns the headers + any IV that the ciphersuite
+ * requires */
+inline static
+unsigned int get_total_headers(gnutls_session_t session)
+{
+	int ret;
+	record_parameters_st *params;
+	unsigned total = RECORD_HEADER_SIZE(session);
+
+	ret = _gnutls_epoch_get(session, EPOCH_WRITE_CURRENT, &params);
+	if (ret < 0) {
+		return total;
+	}
+	
+	return total + _gnutls_cipher_get_explicit_iv_size(params->cipher);
+}
+
+inline static
+unsigned int get_total_headers2(gnutls_session_t session, record_parameters_st *params)
+{
+	unsigned total = RECORD_HEADER_SIZE(session);
+
+	return total + _gnutls_cipher_get_explicit_iv_size(params->cipher);
 }
 
 inline static void session_invalidate(gnutls_session_t session)

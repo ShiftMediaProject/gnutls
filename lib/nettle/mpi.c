@@ -69,34 +69,78 @@ wrap_nettle_mpi_print(const bigint_t a, void *buffer, size_t * nbytes,
 	return 0;
 }
 
-static bigint_t wrap_nettle_mpi_new(int nbits)
+static int wrap_nettle_mpi_init(bigint_t *w)
 {
-	bigint_t p;
+bigint_t r;
 
-	p = gnutls_malloc(SIZEOF_MPZT);
-	if (p == NULL) {
-		gnutls_assert();
-		return NULL;
-	}
-	if (nbits == 0)
-		mpz_init(TOMPZ(p));
-	else
-		mpz_init2(TOMPZ(p), nbits);
-
-	return p;
-}
-
-static bigint_t
-wrap_nettle_mpi_scan(const void *buffer, size_t nbytes,
-		     gnutls_bigint_format_t format)
-{
-	bigint_t r = wrap_nettle_mpi_new(nbytes * 8);
-
+	r = gnutls_malloc(SIZEOF_MPZT);
 	if (r == NULL) {
 		gnutls_assert();
-		return r;
+		return GNUTLS_E_MEMORY_ERROR;
 	}
 
+	mpz_init(TOMPZ(r));
+	*w = r;
+
+	return 0;
+}
+
+static int wrap_nettle_mpi_init_multi(bigint_t *w, ...)
+{
+	va_list args;
+	bigint_t *next;
+	int ret;
+	bigint_t* last_failed = NULL;
+
+	ret = wrap_nettle_mpi_init(w);
+	if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	va_start(args, w);
+	
+	do {
+		next = va_arg(args, bigint_t*);
+		if (next != NULL) {
+			ret = wrap_nettle_mpi_init(next);
+			if (ret < 0) {
+				gnutls_assert();
+				va_end(args);
+				last_failed = next;
+				goto fail;
+			}
+		}
+	} while(next != 0);
+	
+	va_end(args);
+
+	return 0;
+fail:
+	mpz_clear(TOMPZ(*w));
+	gnutls_free(*w);
+	*w = NULL;
+
+	va_start(args, w);
+	
+	do {
+		next = va_arg(args, bigint_t*);
+		if (next != last_failed) {
+			mpz_clear(TOMPZ(*next));
+			gnutls_free(*next);
+			*next = NULL;
+		}
+	} while(next != last_failed);
+	
+	va_end(args);
+	
+	return GNUTLS_E_MEMORY_ERROR;
+}
+
+static int
+wrap_nettle_mpi_scan(bigint_t r, const void *buffer, size_t nbytes,
+		     gnutls_bigint_format_t format)
+{
 	if (format == GNUTLS_MPI_FORMAT_USG) {
 		nettle_mpz_set_str_256_u(TOMPZ(r), nbytes, buffer);
 	} else if (format == GNUTLS_MPI_FORMAT_STD) {
@@ -123,11 +167,9 @@ wrap_nettle_mpi_scan(const void *buffer, size_t nbytes,
 		goto fail;
 	}
 
-	return r;
-      fail:
-	_gnutls_mpi_release(&r);
-	return NULL;
-
+	return 0;
+ fail:
+	return GNUTLS_E_MPI_SCAN_FAILED;
 }
 
 static int wrap_nettle_mpi_cmp(const bigint_t u, const bigint_t v)
@@ -144,31 +186,32 @@ static int wrap_nettle_mpi_cmp_ui(const bigint_t u, unsigned long v)
 	return mpz_cmp_ui(*i1, v);
 }
 
-static bigint_t wrap_nettle_mpi_set(bigint_t w, const bigint_t u)
+static int wrap_nettle_mpi_set(bigint_t w, const bigint_t u)
 {
-	mpz_t *i1, *i2 = u;
+	mpz_set(TOMPZ(w), TOMPZ(u));
 
-	if (w == NULL)
-		w = _gnutls_mpi_alloc_like(u);
-	i1 = w;
-
-	mpz_set(*i1, *i2);
-
-	return i1;
+	return 0;
 }
 
-static bigint_t wrap_nettle_mpi_set_ui(bigint_t w, unsigned long u)
+static bigint_t wrap_nettle_mpi_copy(const bigint_t u)
 {
-	mpz_t *i1;
+	int ret;
+	bigint_t w;
 
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(32);
+	ret = wrap_nettle_mpi_init(&w);
+	if (ret < 0)
+		return NULL;
 
-	i1 = w;
+	mpz_set(TOMPZ(w), u);
 
-	mpz_set_ui(*i1, u);
+	return w;
+}
 
-	return i1;
+static int wrap_nettle_mpi_set_ui(bigint_t w, unsigned long u)
+{
+	mpz_set_ui(TOMPZ(w), u);
+
+	return 0;
 }
 
 static unsigned int wrap_nettle_mpi_get_nbits(bigint_t a)
@@ -184,191 +227,118 @@ static void wrap_nettle_mpi_release(bigint_t a)
 
 static void wrap_nettle_mpi_clear(bigint_t a)
 {
-	memset(TOMPZ(a)[0]._mp_d, 0,
+	zeroize_key(TOMPZ(a)[0]._mp_d,
 	       TOMPZ(a)[0]._mp_alloc * sizeof(mp_limb_t));
 }
 
-static bigint_t wrap_nettle_mpi_mod(const bigint_t a, const bigint_t b)
+static int wrap_nettle_mpi_modm(bigint_t r, const bigint_t a, const bigint_t b)
 {
-	bigint_t r = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(b));
-
-	if (r == NULL)
-		return NULL;
-
 	mpz_mod(TOMPZ(r), TOMPZ(a), TOMPZ(b));
-
-	return r;
+	
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_powm(bigint_t w, const bigint_t b, const bigint_t e,
 		     const bigint_t m)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(m));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_powm(TOMPZ(w), TOMPZ(b), TOMPZ(e), TOMPZ(m));
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_addm(bigint_t w, const bigint_t a, const bigint_t b,
 		     const bigint_t m)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_add(TOMPZ(w), TOMPZ(b), TOMPZ(a));
 	mpz_fdiv_r(TOMPZ(w), TOMPZ(w), TOMPZ(m));
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_subm(bigint_t w, const bigint_t a, const bigint_t b,
 		     const bigint_t m)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_sub(TOMPZ(w), TOMPZ(a), TOMPZ(b));
 	mpz_fdiv_r(TOMPZ(w), TOMPZ(w), TOMPZ(m));
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_mulm(bigint_t w, const bigint_t a, const bigint_t b,
 		     const bigint_t m)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(m));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_mul(TOMPZ(w), TOMPZ(a), TOMPZ(b));
 	mpz_fdiv_r(TOMPZ(w), TOMPZ(w), TOMPZ(m));
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_add(bigint_t w, const bigint_t a, const bigint_t b)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(b));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_add(TOMPZ(w), TOMPZ(a), TOMPZ(b));
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_sub(bigint_t w, const bigint_t a, const bigint_t b)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_sub(TOMPZ(w), TOMPZ(a), TOMPZ(b));
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_mul(bigint_t w, const bigint_t a, const bigint_t b)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_mul(TOMPZ(w), TOMPZ(a), TOMPZ(b));
 
-	return w;
+	return 0;
 }
 
 /* q = a / b */
-static bigint_t
+static int
 wrap_nettle_mpi_div(bigint_t q, const bigint_t a, const bigint_t b)
 {
-	if (q == NULL)
-		q = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (q == NULL)
-		return NULL;
-
 	mpz_cdiv_q(TOMPZ(q), TOMPZ(a), TOMPZ(b));
 
-	return q;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_add_ui(bigint_t w, const bigint_t a, unsigned long b)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_add_ui(TOMPZ(w), TOMPZ(a), b);
 
-	return w;
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_sub_ui(bigint_t w, const bigint_t a, unsigned long b)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_sub_ui(TOMPZ(w), TOMPZ(a), b);
 
-	return w;
-
+	return 0;
 }
 
-static bigint_t
+static int
 wrap_nettle_mpi_mul_ui(bigint_t w, const bigint_t a, unsigned long b)
 {
-	if (w == NULL)
-		w = wrap_nettle_mpi_new(wrap_nettle_mpi_get_nbits(a));
-
-	if (w == NULL)
-		return NULL;
-
 	mpz_mul_ui(TOMPZ(w), TOMPZ(a), b);
 
-	return w;
-
+	return 0;
 }
 
 static int wrap_nettle_prime_check(bigint_t pp)
 {
 	int ret;
-	ret = mpz_probab_prime_p(TOMPZ(pp), PRIME_CHECK_PARAM);
 
+	ret = mpz_probab_prime_p(TOMPZ(pp), PRIME_CHECK_PARAM);
 	if (ret > 0) {
 		return 0;
 	}
@@ -377,211 +347,16 @@ static int wrap_nettle_prime_check(bigint_t pp)
 }
 
 
-/* generate a prime of the form p=2qw+1
- * The algorithm is simple but probably it has to be modified to gcrypt's
- * since it is slow. Nature did not want 2qw+1 to be prime.
- * The generator will be the generator of a subgroup of order q-1.
- *
- * Algorithm based on the algorithm in "A Computational Introduction to Number 
- * Theory and Algebra" by V. Shoup, sec 11.1 Finding a generator for Z^{*}_p
- *
- */
-inline static int
-gen_group(mpz_t * prime, mpz_t * generator, unsigned int nbits,
-	  unsigned int *q_bits)
-{
-	mpz_t q, w, r;
-	unsigned int p_bytes = nbits / 8;
-	uint8_t *buffer = NULL;
-	unsigned int q_bytes, w_bytes, r_bytes, w_bits;
-	int ret;
-
-	/* security level enforcement. 
-	 * Values for q are selected according to ECRYPT II recommendations.
-	 */
-	q_bytes = _gnutls_pk_bits_to_subgroup_bits(nbits);
-	q_bytes /= 8;
-
-	if (q_bytes == 0 || q_bytes >= p_bytes) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
-
-	if (nbits % 8 != 0)
-		p_bytes++;
-
-	w_bits = nbits - q_bytes * 8;
-	w_bytes = w_bits / 8;
-	if (w_bits % 8 != 0)
-		w_bytes++;
-
-	_gnutls_debug_log
-	    ("Generating group of prime of %u bits and format of 2wq+1. q_size=%u bits\n",
-	     nbits, q_bytes * 8);
-	buffer = gnutls_malloc(p_bytes);	/* p_bytes > q_bytes */
-	if (buffer == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_MEMORY_ERROR;
-	}
-
-	mpz_init(q);
-	mpz_init(w);
-	mpz_init(r);
-
-	/* search for a prime. We are not that unlucky so search
-	 * forever.
-	 */
-	for (;;) {
-		ret = _gnutls_rnd(GNUTLS_RND_RANDOM, buffer, w_bytes);
-		if (ret < 0) {
-			gnutls_assert();
-			goto fail;
-		}
-
-		nettle_mpz_set_str_256_u(w, w_bytes, buffer);
-		/* always odd */
-		mpz_setbit(w, 0);
-
-		ret = mpz_probab_prime_p(w, PRIME_CHECK_PARAM);
-		if (ret > 0) {
-			break;
-		}
-	}
-
-	/* now generate q of size p_bytes - w_bytes */
-
-	_gnutls_debug_log
-	    ("Found prime w of %u bits. Will look for q of %u bits...\n",
-	     wrap_nettle_mpi_get_nbits(&w), q_bytes * 8);
-
-	for (;;) {
-		ret = _gnutls_rnd(GNUTLS_RND_RANDOM, buffer, q_bytes);
-		if (ret < 0) {
-			gnutls_assert();
-			return ret;
-		}
-
-		nettle_mpz_set_str_256_u(q, q_bytes, buffer);
-		/* always odd */
-		mpz_setbit(q, 0);
-
-		ret = mpz_probab_prime_p(q, PRIME_CHECK_PARAM);
-		if (ret == 0) {
-			continue;
-		}
-
-		/* check if 2wq+1 is prime */
-		mpz_mul_ui(*prime, w, 2);
-		mpz_mul(*prime, *prime, q);
-		mpz_add_ui(*prime, *prime, 1);
-
-		ret = mpz_probab_prime_p(*prime, PRIME_CHECK_PARAM);
-		if (ret > 0) {
-			break;
-		}
-	}
-
-	*q_bits = wrap_nettle_mpi_get_nbits(&q);
-	_gnutls_debug_log
-	    ("Found prime q of %u bits. Looking for generator...\n",
-	     *q_bits);
-
-	/* finally a prime! Let's calculate generator
-	 */
-
-	/* c = r^((p-1)/q), r == random
-	 * c = r^(2w)
-	 * if c!=1 c is the generator for the subgroup of order q-1
-	 * 
-	 */
-	r_bytes = p_bytes;
-
-	mpz_mul_ui(w, w, 2);	/* w = w*2 */
-	mpz_fdiv_r(w, w, *prime);
-
-	for (;;) {
-		ret = _gnutls_rnd(GNUTLS_RND_NONCE, buffer, r_bytes);
-		if (ret < 0) {
-			gnutls_assert();
-			return ret;
-		}
-
-		nettle_mpz_set_str_256_u(r, r_bytes, buffer);
-		mpz_fdiv_r(r, r, *prime);
-
-		/* check if r^w mod n != 1 mod n */
-		mpz_powm(*generator, r, w, *prime);
-
-		if (mpz_cmp_ui(*generator, 1) == 0)
-			continue;
-		else
-			break;
-	}
-
-	_gnutls_debug_log("Found generator g of %u bits\n",
-			  wrap_nettle_mpi_get_nbits(generator));
-	_gnutls_debug_log("Prime n is %u bits\n",
-			  wrap_nettle_mpi_get_nbits(prime));
-
-	ret = 0;
-	goto exit;
-
-      fail:
-	mpz_clear(*prime);
-	mpz_clear(*generator);
-
-      exit:
-	mpz_clear(q);
-	mpz_clear(w);
-	mpz_clear(r);
-	gnutls_free(buffer);
-
-	return ret;
-}
-
-static int
-wrap_nettle_generate_group(gnutls_group_st * group, unsigned int bits)
-{
-	int ret;
-	bigint_t p = wrap_nettle_mpi_new(bits);
-	bigint_t g;
-	unsigned int q_bits;
-
-	if (p == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_MEMORY_ERROR;
-	}
-
-	g = wrap_nettle_mpi_new(bits);
-	if (g == NULL) {
-		gnutls_assert();
-		_gnutls_mpi_release(&p);
-		return GNUTLS_E_MEMORY_ERROR;
-	}
-
-	ret = gen_group(p, g, bits, &q_bits);
-	if (ret < 0) {
-		_gnutls_mpi_release(&g);
-		_gnutls_mpi_release(&p);
-		gnutls_assert();
-		return ret;
-	}
-
-	group->p = p;
-	group->g = g;
-	group->q_bits = q_bits;
-
-	return 0;
-}
-
 
 int crypto_bigint_prio = INT_MAX;
 
 gnutls_crypto_bigint_st _gnutls_mpi_ops = {
-	.bigint_new = wrap_nettle_mpi_new,
+	.bigint_init = wrap_nettle_mpi_init,
+	.bigint_init_multi = wrap_nettle_mpi_init_multi,
 	.bigint_cmp = wrap_nettle_mpi_cmp,
 	.bigint_cmp_ui = wrap_nettle_mpi_cmp_ui,
-	.bigint_mod = wrap_nettle_mpi_mod,
+	.bigint_modm = wrap_nettle_mpi_modm,
+	.bigint_copy = wrap_nettle_mpi_copy,
 	.bigint_set = wrap_nettle_mpi_set,
 	.bigint_set_ui = wrap_nettle_mpi_set_ui,
 	.bigint_get_nbits = wrap_nettle_mpi_get_nbits,
@@ -601,5 +376,4 @@ gnutls_crypto_bigint_st _gnutls_mpi_ops = {
 	.bigint_clear = wrap_nettle_mpi_clear,
 	.bigint_print = wrap_nettle_mpi_print,
 	.bigint_scan = wrap_nettle_mpi_scan,
-	.bigint_generate_group = wrap_nettle_generate_group
 };

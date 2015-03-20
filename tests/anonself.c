@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* This program tests anonymous authentication as well as the gnutls_record_recv_packet.
+ */
+
 #if defined(_WIN32)
 
 /* socketpair isn't supported on Win32. */
@@ -56,9 +59,6 @@ static void tls_log_func(int level, const char *str)
 {
 	fprintf(stderr, "|<%d>| %s", level, str);
 }
-
-/* A very basic TLS client, with anonymous authentication.
- */
 
 #define MAX_BUF 1024
 #define MSG "Hello TLS"
@@ -107,6 +107,16 @@ static void client(int sd)
 			success("client: Handshake was completed\n");
 	}
 
+	ret = gnutls_dh_get_prime_bits(session);
+	if (ret < 512) {
+		fail("server: too small prime size: %d\n", ret);
+	}
+
+	ret = gnutls_dh_get_secret_bits(session);
+	if (ret < 256) {
+		fail("server: too small secret key size: %d\n", ret);
+	}
+
 	if (debug)
 		success("client: TLS version is: %s\n",
 			gnutls_protocol_get_name
@@ -122,6 +132,12 @@ static void client(int sd)
 		goto end;
 	} else if (ret < 0) {
 		fail("client: Error: %s\n", gnutls_strerror(ret));
+		goto end;
+	}
+
+	if (ret != strlen(MSG) || memcmp(buffer, MSG, ret) != 0) {
+		fail("client: received data of different size! (expected: %d, have: %d)\n", 
+			(int)strlen(MSG), ret);
 		goto end;
 	}
 
@@ -198,6 +214,8 @@ int optval = 1;
 
 static void server(int sd)
 {
+	gnutls_packet_t packet;
+
 	/* this must be called once in the program
 	 */
 	global_init();
@@ -234,14 +252,24 @@ static void server(int sd)
 			gnutls_protocol_get_name
 			(gnutls_protocol_get_version(session)));
 
+	ret = gnutls_dh_get_prime_bits(session);
+	if (ret < 512) {
+		fail("server: too small prime size: %d\n", ret);
+	}
+
+	ret = gnutls_dh_get_secret_bits(session);
+	if (ret < 256) {
+		fail("server: too small secret key size: %d\n", ret);
+	}
+
 	/* see the Getting peer's information example */
 	/* print_info(session); */
 
 	for (;;) {
-		memset(buffer, 0, MAX_BUF + 1);
-		ret = gnutls_record_recv(session, buffer, MAX_BUF);
+		ret = gnutls_record_recv_packet(session, &packet);
 
 		if (ret == 0) {
+			gnutls_packet_deinit(packet);
 			if (debug)
 				success
 				    ("server: Peer has closed the GnuTLS connection\n");
@@ -250,10 +278,14 @@ static void server(int sd)
 			fail("server: Received corrupted data(%d). Closing...\n", ret);
 			break;
 		} else if (ret > 0) {
+			gnutls_datum_t pdata;
+
+			gnutls_packet_get(packet, &pdata, NULL);
 			/* echo data back to the client
 			 */
-			gnutls_record_send(session, buffer,
-					   strlen(buffer));
+			gnutls_record_send(session, pdata.data,
+					   pdata.size);
+			gnutls_packet_deinit(packet);
 		}
 	}
 	/* do not wait for the peer to close the connection.

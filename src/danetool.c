@@ -16,6 +16,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
+ *
+ * In addition, as a special exception, the copyright holders give
+ * permission to link the code of portions of this program with the
+ * OpenSSL library under certain conditions as described in each
+ * individual source file, and distribute linked combinations including
+ * the two.
+ * 
+ * You must obey the GNU General Public License in all respects for all
+ * of the code used other than OpenSSL. If you modify file(s) with this
+ * exception, you may extend this exception to your version of the
+ * file(s), but you are not obligated to do so. If you do not wish to do
+ * so, delete this exception statement from your version. If you delete
+ * this exception statement from all source files in the program, then
+ * also delete it here.
  */
 
 #include <config.h>
@@ -45,11 +59,15 @@
 
 /* Gnulib portability files. */
 #include <read-file.h>
+#include <minmax.h>
 
 #include <common.h>
 #include "danetool-args.h"
 #include "certtool-common.h"
+#include "socket.h"
 
+static const char* obtain_cert(const char *hostname, const char *proto, unsigned int port,
+				const char *app_proto, unsigned quiet);
 static void cmd_parser(int argc, char **argv);
 static void dane_info(const char *host, const char *proto,
 		      unsigned int port, unsigned int ca,
@@ -74,6 +92,7 @@ static void tls_log_func(int level, const char *str)
 
 int main(int argc, char **argv)
 {
+	fix_lbuffer(0);
 	cmd_parser(argc, argv);
 
 	return 0;
@@ -134,7 +153,7 @@ static void cmd_parser(int argc, char **argv)
 		exit(1);
 	}
 #ifdef ENABLE_PKCS11
-	pkcs11_common();
+	pkcs11_common(NULL);
 #endif
 
 	memset(&cinfo, 0, sizeof(cinfo));
@@ -174,19 +193,25 @@ static void cmd_parser(int argc, char **argv)
 	gnutls_global_deinit();
 }
 
+#define MAX_CLIST_SIZE 32
 static void dane_check(const char *host, const char *proto,
 		       unsigned int port, common_info_st * cinfo)
 {
 #ifdef HAVE_DANE
 	dane_state_t s;
 	dane_query_t q;
-	int ret, retcode = 0;
+	int ret, retcode = 1;
 	unsigned entries;
 	unsigned int flags = DANE_F_IGNORE_LOCAL_RESOLVER, i;
 	unsigned int usage, type, match;
 	gnutls_datum_t data, file;
 	size_t size;
+	unsigned del = 0;
 	unsigned vflags = DANE_VFLAG_FAIL_IF_NOT_CHECKED;
+	const char *str;
+	gnutls_x509_crt_t *clist = NULL;
+	unsigned int clist_size = 0;
+	gnutls_datum_t certs[MAX_CLIST_SIZE];
 
 	if (ENABLED_OPT(LOCAL_DNS))
 		flags = 0;
@@ -200,12 +225,23 @@ static void dane_check(const char *host, const char *proto,
 	if (HAVE_OPT(CHECK_CA))
 		vflags |= DANE_VFLAG_ONLY_CHECK_CA_USAGE;
 
-	printf("Querying %s (%s:%d)...\n", host, proto, port);
+	if (!cinfo->cert) {
+		const char *app_proto = NULL;
+		if (HAVE_OPT(APP_PROTO))
+			app_proto = OPT_ARG(APP_PROTO);
+
+		cinfo->cert = obtain_cert(host, proto, port, app_proto, HAVE_OPT(QUIET));
+		del = 1;
+	}
+
+	if (!HAVE_OPT(QUIET))
+		fprintf(stderr, "Querying DNS for %s (%s:%d)...\n", host, proto, port);
 	ret = dane_state_init(&s, flags);
 	if (ret < 0) {
 		fprintf(stderr, "dane_state_init: %s\n",
 			dane_strerror(ret));
-		exit(1);
+		retcode = 1;
+		goto error;
 	}
 
 	if (HAVE_OPT(DLV)) {
@@ -213,7 +249,8 @@ static void dane_check(const char *host, const char *proto,
 		if (ret < 0) {
 			fprintf(stderr, "dane_state_set_dlv_file: %s\n",
 				dane_strerror(ret));
-			exit(1);
+			retcode = 1;
+			goto error;
 		}
 	}
 
@@ -221,7 +258,90 @@ static void dane_check(const char *host, const char *proto,
 	if (ret < 0) {
 		fprintf(stderr, "dane_query_tlsa: %s\n",
 			dane_strerror(ret));
-		exit(1);
+		retcode = 1;
+		goto error;
+	}
+
+	if (ENABLED_OPT(PRINT_RAW)) {
+		unsigned entries;
+		gnutls_datum_t t;
+		char **dane_data;
+		int *dane_data_len;
+		int secure;
+		int bogus;
+
+		ret = dane_query_to_raw_tlsa(q, &entries, &dane_data,
+			&dane_data_len, &secure, &bogus);
+		if (ret < 0) {
+			fprintf(stderr, "dane_query_to_raw_tlsa: %s\n",
+				dane_strerror(ret));
+			retcode = 1;
+			goto error;
+		}
+
+		for (i=0;i<entries;i++) {
+			char *str;
+			size_t str_size;
+			t.data = (void*)dane_data[i];
+			t.size = dane_data_len[i];
+
+			str_size = t.size * 2 + 1;
+			str = gnutls_malloc(str_size);
+
+			ret = gnutls_hex_encode(&t, str, &str_size);
+			if (ret < 0) {
+				fprintf(stderr, "gnutls_hex_encode: %s\n",
+					dane_strerror(ret));
+				retcode = 1;
+				goto error;
+			}
+			fprintf(outfile, "[%u]: %s\n", i, str);
+			gnutls_free(str);
+		}
+		fprintf(outfile, "\n");
+	}
+
+	if (cinfo->cert) {
+		ret = gnutls_load_file(cinfo->cert, &file);
+		if (ret < 0) {
+			fprintf(stderr, "gnutls_load_file: %s\n",
+				gnutls_strerror(ret));
+			retcode = 1;
+			goto error;
+		}
+
+		ret =
+		    gnutls_x509_crt_list_import2(&clist,
+						 &clist_size,
+						 &file,
+						 cinfo->
+						 incert_format, 0);
+		if (ret < 0) {
+			fprintf(stderr,
+				"gnutls_x509_crt_list_import2: %s\n",
+				gnutls_strerror(ret));
+			retcode = 1;
+			goto error;
+		}
+
+		if (clist_size > 0) {
+			for (i = 0; i < MIN(MAX_CLIST_SIZE,clist_size); i++) {
+				ret =
+				    gnutls_x509_crt_export2(clist
+							    [i],
+							    GNUTLS_X509_FMT_DER,
+							    &certs
+							    [i]);
+				if (ret < 0) {
+					fprintf(stderr,
+						"gnutls_x509_crt_export2: %s\n",
+						gnutls_strerror
+						(ret));
+					retcode = 1;
+					goto error;
+				}
+			}
+		}
 	}
 
 	entries = dane_query_entries(q);
@@ -230,127 +350,106 @@ static void dane_check(const char *host, const char *proto,
 		if (ret < 0) {
 			fprintf(stderr, "dane_query_data: %s\n",
 				dane_strerror(ret));
-			exit(1);
+			retcode = 1;
+			goto error;
 		}
 
-
-		size = buffer_size;
-		ret = gnutls_hex_encode(&data, (void *) buffer, &size);
+		size = lbuffer_size;
+		ret = gnutls_hex_encode(&data, (void *) lbuffer, &size);
 		if (ret < 0) {
 			fprintf(stderr, "gnutls_hex_encode: %s\n",
 				dane_strerror(ret));
-			exit(1);
+			retcode = 1;
+			goto error;
 		}
 
-		if (entries > 1)
-			printf("\nEntry %d:\n", i + 1);
+		if (entries > 1 && !HAVE_OPT(QUIET))
+			fprintf(outfile, "\n==== Entry %d ====\n", i + 1);
 
 		fprintf(outfile,
 			"_%u._%s.%s. IN TLSA ( %.2x %.2x %.2x %s )\n",
-			port, proto, host, usage, type, match, buffer);
-		printf("Certificate usage: %s (%.2x)\n",
-		       dane_cert_usage_name(usage), usage);
-		printf("Certificate type:  %s (%.2x)\n",
-		       dane_cert_type_name(type), type);
-		printf("Contents:          %s (%.2x)\n",
-		       dane_match_type_name(match), match);
-		printf("Data:              %s\n", buffer);
+			port, proto, host, usage, type, match, lbuffer);
+
+		if (!HAVE_OPT(QUIET)) {
+			str = dane_cert_usage_name(usage);
+			if (str == NULL) str= "Unknown";
+			fprintf(outfile, "Certificate usage: %s (%.2x)\n", str, usage);
+
+			str = dane_cert_type_name(type);
+			if (str == NULL) str= "Unknown";
+			fprintf(outfile, "Certificate type:  %s (%.2x)\n", str, type);
+
+			str = dane_match_type_name(match);
+			if (str == NULL) str= "Unknown";
+			fprintf(outfile, "Contents:          %s (%.2x)\n", str, match);
+			fprintf(outfile, "Data:              %s\n", lbuffer);
+		}
 
 		/* Verify the DANE data */
 		if (cinfo->cert) {
-			gnutls_x509_crt_t *clist;
-			unsigned int clist_size, status;
+			unsigned int status;
+			gnutls_datum_t out;
 
-			ret = gnutls_load_file(cinfo->cert, &file);
+			ret =
+			    dane_verify_crt(s, certs, clist_size,
+					    GNUTLS_CRT_X509, host,
+					    proto, port, 0, vflags,
+					    &status);
 			if (ret < 0) {
-				fprintf(stderr, "gnutls_load_file: %s\n",
-					gnutls_strerror(ret));
-				exit(1);
+				fprintf(stderr,
+					"dane_verify_crt: %s\n",
+					dane_strerror(ret));
+				retcode = 1;
+				goto error;
 			}
 
 			ret =
-			    gnutls_x509_crt_list_import2(&clist,
-							 &clist_size,
-							 &file,
-							 cinfo->
-							 incert_format, 0);
+			    dane_verification_status_print(status,
+							   &out,
+							   0);
 			if (ret < 0) {
 				fprintf(stderr,
-					"gnutls_x509_crt_list_import2: %s\n",
-					gnutls_strerror(ret));
-				exit(1);
+					"dane_verification_status_print: %s\n",
+					dane_strerror(ret));
+				retcode = 1;
+				goto error;
 			}
 
-			if (clist_size > 0) {
-				gnutls_datum_t certs[clist_size];
-				gnutls_datum_t out;
-				unsigned int i;
+			if (!HAVE_OPT(QUIET))
+				fprintf(outfile, "\nVerification: %s\n", out.data);
+			gnutls_free(out.data);
 
-				for (i = 0; i < clist_size; i++) {
-					ret =
-					    gnutls_x509_crt_export2(clist
-								    [i],
-								    GNUTLS_X509_FMT_DER,
-								    &certs
-								    [i]);
-					if (ret < 0) {
-						fprintf(stderr,
-							"gnutls_x509_crt_export2: %s\n",
-							gnutls_strerror
-							(ret));
-						exit(1);
-					}
-				}
-
-				ret =
-				    dane_verify_crt(s, certs, clist_size,
-						    GNUTLS_CRT_X509, host,
-						    proto, port, 0, vflags,
-						    &status);
-				if (ret < 0) {
-					fprintf(stderr,
-						"dane_verify_crt: %s\n",
-						dane_strerror(ret));
-					exit(1);
-				}
-
-				ret =
-				    dane_verification_status_print(status,
-								   &out,
-								   0);
-				if (ret < 0) {
-					fprintf(stderr,
-						"dane_verification_status_print: %s\n",
-						dane_strerror(ret));
-					exit(1);
-				}
-
-				printf("\nVerification: %s\n", out.data);
-				gnutls_free(out.data);
-
-				if (status != 0)
-					retcode = 1;
-
-				for (i = 0; i < clist_size; i++) {
-					gnutls_free(certs[i].data);
-					gnutls_x509_crt_deinit(clist[i]);
-				}
-				gnutls_free(clist);
-			}
+			/* if there is at least one correct accept */
+			if (status == 0)
+				retcode = 0;
 		} else {
 			fprintf(stderr,
-				"\nCertificate was not verified. Use --load-certificate.\n");
+				"\nCertificate could not be obtained. You can explicitly load the certificate using --load-certificate.\n");
 		}
 	}
+
+	if (clist_size > 0) {
+		for (i = 0; i < clist_size; i++) {
+			gnutls_free(certs[i].data);
+			gnutls_x509_crt_deinit(clist[i]);
+		}
+		gnutls_free(clist);
+	}
+
 
 
 	dane_query_deinit(q);
 	dane_state_deinit(s);
 
+ error:
+	if (del != 0 && cinfo->cert) {
+		remove(cinfo->cert);
+	}
+
 	exit(retcode);
 #else
 	fprintf(stderr,
-		"This functionality was disabled (GnuTLS was not compiled with support for DANE).\n");
+		"This functionality is disabled (GnuTLS was not compiled with support for DANE).\n");
 	return;
 #endif
 }
@@ -376,10 +475,10 @@ static void dane_info(const char *host, const char *proto,
 	if (crt != NULL && HAVE_OPT(X509)) {
 		selector = 0;	/* X.509 */
 
-		size = buffer_size;
+		size = lbuffer_size;
 		ret =
 		    gnutls_x509_crt_export(crt, GNUTLS_X509_FMT_DER,
-					   buffer, &size);
+					   lbuffer, &size);
 		if (ret < 0) {
 			fprintf(stderr, "export error: %s\n",
 				gnutls_strerror(ret));
@@ -407,11 +506,11 @@ static void dane_info(const char *host, const char *proto,
 				exit(1);
 			}
 
-			size = buffer_size;
+			size = lbuffer_size;
 			ret =
 			    gnutls_pubkey_export(pubkey,
 						 GNUTLS_X509_FMT_DER,
-						 buffer, &size);
+						 lbuffer, &size);
 			if (ret < 0) {
 				fprintf(stderr, "pubkey_export: %s\n",
 					gnutls_strerror(ret));
@@ -422,11 +521,11 @@ static void dane_info(const char *host, const char *proto,
 		} else {
 			pubkey = load_pubkey(1, cinfo);
 
-			size = buffer_size;
+			size = lbuffer_size;
 			ret =
 			    gnutls_pubkey_export(pubkey,
 						 GNUTLS_X509_FMT_DER,
-						 buffer, &size);
+						 lbuffer, &size);
 			if (ret < 0) {
 				fprintf(stderr, "export error: %s\n",
 					gnutls_strerror(ret));
@@ -445,7 +544,7 @@ static void dane_info(const char *host, const char *proto,
 		default_dig = GNUTLS_DIG_SHA256;
 	}
 
-	ret = gnutls_hash_fast(default_dig, buffer, size, digest);
+	ret = gnutls_hash_fast(default_dig, lbuffer, size, digest);
 	if (ret < 0) {
 		fprintf(stderr, "hash error: %s\n", gnutls_strerror(ret));
 		exit(1);
@@ -472,8 +571,8 @@ static void dane_info(const char *host, const char *proto,
 	t.data = digest;
 	t.size = gnutls_hash_get_len(default_dig);
 
-	size = buffer_size;
-	ret = gnutls_hex_encode(&t, (void *) buffer, &size);
+	size = lbuffer_size;
+	ret = gnutls_hex_encode(&t, (void *) lbuffer, &size);
 	if (ret < 0) {
 		fprintf(stderr, "hex encode error: %s\n",
 			gnutls_strerror(ret));
@@ -481,6 +580,145 @@ static void dane_info(const char *host, const char *proto,
 	}
 
 	fprintf(outfile, "_%u._%s.%s. IN TLSA ( %.2x %.2x %.2x %s )\n",
-		port, proto, host, usage, selector, type, buffer);
+		port, proto, host, usage, selector, type, lbuffer);
 
 }
+
+
+struct priv_st {
+	int fd;
+	int found;
+};
+
+#ifdef HAVE_DANE
+static int cert_callback(gnutls_session_t session)
+{
+	const gnutls_datum_t *cert_list;
+	unsigned int cert_list_size = 0;
+	int ret;
+	unsigned i;
+	gnutls_datum_t t;
+	struct priv_st *priv;
+
+	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
+	if (cert_list_size == 0) {
+		fprintf(stderr, "no certificates sent by server!\n");
+		return -1;
+	}
+
+	priv = gnutls_session_get_ptr(session);
+
+	for (i=0;i<cert_list_size;i++) {
+		ret = gnutls_pem_base64_encode_alloc("CERTIFICATE", &cert_list[i], &t);
+		if (ret < 0) {
+			fprintf(stderr, "error[%d]: %s\n", __LINE__,
+				gnutls_strerror(ret));
+			exit(1);
+		}
+
+		write(priv->fd, t.data, t.size);
+		gnutls_free(t.data);
+	}
+	priv->found = 1;
+
+	return -1;
+}
+
+static int get_cert(socket_st *hd, const char *hostname, unsigned udp, int fd)
+{
+	gnutls_certificate_credentials_t xcred;
+	gnutls_session_t session;
+	int ret;
+	struct priv_st priv;
+
+	priv.found = 0;
+	priv.fd = fd;
+
+	ret = gnutls_certificate_allocate_credentials(&xcred);
+	if (ret < 0) {
+		fprintf(stderr, "error[%d]: %s\n", __LINE__,
+			gnutls_strerror(ret));
+		exit(1);
+	}
+	gnutls_certificate_set_verify_function(xcred, cert_callback);
+
+	ret = gnutls_init(&session, (udp?GNUTLS_DATAGRAM:0)|GNUTLS_CLIENT);
+	if (ret < 0) {
+		fprintf(stderr, "error[%d]: %s\n", __LINE__,
+			gnutls_strerror(ret));
+		exit(1);
+	}
+	gnutls_session_set_ptr(session, &priv);
+	gnutls_transport_set_int(session, hd->fd);
+
+	gnutls_set_default_priority(session);
+	if (hostname && is_ip(hostname)==0) {
+		gnutls_server_name_set(session, GNUTLS_NAME_DNS, hostname, strlen(hostname));
+	}
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	do {
+		ret = gnutls_handshake(session);
+	} while(ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_WARNING_ALERT_RECEIVED);
+	/* we don't care on the result */
+
+	gnutls_deinit(session);
+	gnutls_certificate_free_credentials(xcred);
+
+	if (priv.found == 0)
+		return -1;
+
+	return 0;
+}
+
+static const char *obtain_cert(const char *hostname, const char *proto, unsigned port,
+				const char *app_proto, unsigned quiet)
+{
+	socket_st hd;
+	char txt_port[16];
+	unsigned udp = 0;
+	static char tmpfile[32];
+	int fd, ret;
+	const char *str = "Obtaining certificate from";
+	const char *service;
+
+	if (strcmp(proto, "udp") == 0)
+		udp = 1;
+	else if (strcmp(proto, "tcp") != 0) {
+		/* we cannot handle this protocol */
+		return NULL;
+	}
+
+	strcpy(tmpfile, "danetool-certXXXXXX");
+
+	sockets_init();
+	snprintf(txt_port, sizeof(txt_port), "%u", port);
+
+	if (quiet)
+		str = NULL;
+	service = port_to_service(txt_port, proto);
+	socket_open(&hd, hostname, service, udp, str);
+
+	if (app_proto == NULL) app_proto = service;
+	socket_starttls(&hd, app_proto);
+
+	umask(066);
+	fd = mkstemp(tmpfile);
+	if (fd == -1) {
+		int e = errno;
+		fprintf(stderr, "error[%d]: %s\n", __LINE__,
+			strerror(e));
+		exit(1);
+	}
+
+	ret = get_cert(&hd, hostname, udp, fd);
+	close(fd);
+
+	socket_bye(&hd);
+
+	if (ret == -1)
+		return NULL;
+	else
+		return tmpfile;
+}
+#endif

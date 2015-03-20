@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.2.21], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.3.13], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -35,6 +35,7 @@ AC_MSG_RESULT([***
 ])
 
 dnl Checks for programs.
+PKG_PROG_PKG_CONFIG
 AC_PROG_CC
 gl_EARLY
 ggl_EARLY
@@ -43,6 +44,7 @@ AM_PROG_AR
 AC_PROG_CXX
 AM_PROG_CC_C_O
 AC_PROG_YACC
+AC_PROG_SED
 AC_CHECK_PROG([AUTOGEN], [autogen], [autogen], [/bin/true])
 
 if test x"$AUTOGEN" = "x/bin/true"; then
@@ -56,7 +58,7 @@ fi
 # For includes/gnutls/gnutls.h.in.
 AC_SUBST(MAJOR_VERSION, `echo $PACKAGE_VERSION | sed 's/\(.*\)\..*\..*/\1/g'`)
 AC_SUBST(MINOR_VERSION, `echo $PACKAGE_VERSION | sed 's/.*\.\(.*\)\..*/\1/g'`)
-AC_SUBST(PATCH_VERSION, `echo $PACKAGE_VERSION | sed 's/.*\..*\.\(.*\)/\1/g'`)
+AC_SUBST(PATCH_VERSION, [[`echo $PACKAGE_VERSION | sed 's/.*\..*\.\([0-9]*\).*/\1/g'`]])
 AC_SUBST(NUMBER_VERSION, `printf "0x%02x%02x%02x" $MAJOR_VERSION $MINOR_VERSION $PATCH_VERSION`)
 
 touch suppressions.valgrind
@@ -77,12 +79,21 @@ AM_CONDITIONAL(ENABLE_CXX, test "$use_cxx" != "no")
 AM_CONDITIONAL(WANT_TEST_SUITE, [test -f tests/suite/mini-eagain2.c])
 
 dnl Detect windows build
+use_accel=yes
 case "$host" in
   *mingw32* | *mingw64*)
     have_win=yes
   ;;
   *darwin*)
     have_macosx=yes
+  ;;
+  *solaris*)
+    use_accel=no
+    AC_MSG_WARN([[
+***
+*** In solaris hardware acceleration is disabled by default due to issues
+*** with the assembler. Use --enable-hardware-acceleration to enable it.
+*** ]])
   ;;
   *)
     have_elf=yes
@@ -96,7 +107,7 @@ AM_CONDITIONAL(ELF, test "$have_elf" = yes)
 dnl Hardware Acceleration
 AC_ARG_ENABLE(hardware-acceleration,
   AS_HELP_STRING([--disable-hardware-acceleration], [unconditionally disable hardware acceleration]),
-    use_accel=$enableval, use_accel=yes)
+    use_accel=$enableval)
 hw_accel=none
 
 
@@ -116,18 +127,21 @@ esac
 
 fi
 
+AC_ARG_ENABLE(padlock,
+  AS_HELP_STRING([--disable-padlock], [unconditionally disable padlock acceleration]),
+    use_padlock=$enableval, use_padlock=yes)
+
+if test "$use_padlock" != "no"; then
+    AC_DEFINE([ENABLE_PADLOCK], 1, [Enable padlock acceleration])
+    AC_SUBST([ENABLE_PADLOCK])
+fi
+AM_CONDITIONAL(ENABLE_PADLOCK, test "$use_padlock" = "yes")
 AM_CONDITIONAL(ASM_X86_64, test x"$hw_accel" = x"x86-64")
 AM_CONDITIONAL(ASM_X86_32, test x"$hw_accel" = x"x86")
 AM_CONDITIONAL(ASM_X86, test x"$hw_accel" = x"x86" || test x"$hw_accel" = x"x86-64")
 AM_CONDITIONAL(HAVE_GCC_GNU89_INLINE_OPTION, test "$gnu89_inline" = "yes"])
 AM_CONDITIONAL(HAVE_GCC, test "$GCC" = "yes")
 
-AC_ARG_ENABLE(non-suiteb-curves,
-  AS_HELP_STRING([--disable-non-suiteb-curves], [disable curves not in SuiteB]),
-    enable_non_suiteb=$enableval, enable_non_suiteb=yes)
-if [ test "$enable_non_suiteb" = "yes" ];then
-  AC_DEFINE([ENABLE_NON_SUITEB_CURVES], 1, [Enable all curves])
-fi
 
 dnl Try the hooks.m4
 LIBGNUTLS_HOOKS
@@ -193,6 +207,10 @@ if test "$ac_cv_func_nanosleep" != "yes";then
   gnutls_needs_librt=yes
 fi
 
+if test "$ac_cv_func_inet_pton" != "yes";then
+  AC_LIB_HAVE_LINKFLAGS(nsl,, [#include <arpa/inet.h>], [inet_pton(0,0,0);])
+fi
+
 if test "$ac_cv_func_clock_gettime" != "yes";then
   AC_LIB_HAVE_LINKFLAGS(rt,, [#include <time.h>], [clock_gettime (0, 0);])
   gnutls_needs_librt=yes
@@ -235,7 +253,7 @@ AC_ARG_ENABLE([gcc-warnings],
 )
 
 if test "$gl_gcc_warnings" = yes; then
-  gl_WARN_ADD([-Wframe-larger-than=5120], [WSTACK_CFLAGS])
+  gl_WARN_ADD([-Wframe-larger-than=1024], [WSTACK_CFLAGS])
 
   nw="$nw -Wsystem-headers"         # Don't let system headers trigger warnings
   nw="$nw -Wc++-compat"             # We don't care about C++ compilers
@@ -289,9 +307,48 @@ AC_SUBST([WARN_CFLAGS])
 
 dnl Programs for compilation or development
 AC_PROG_LN_S
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+LT_INIT([disable-static,win32-dll,shared])
 
+
+
+AC_ARG_ENABLE(self-checks,
+  AS_HELP_STRING([--enable-self-checks], [enable self checking functionality]),
+    enable_self_checks=$enableval, enable_self_checks=no)
+
+AC_ARG_ENABLE(fips140-mode,
+  AS_HELP_STRING([--enable-fips140-mode], [enable FIPS140-2 mode (implies self checks)]),
+    enable_fips=$enableval, enable_fips=no)
+AM_CONDITIONAL(ENABLE_FIPS140, test "$enable_fips" = "yes")
+if [ test "$enable_fips" = "yes" ];then
+  AC_LIB_HAVE_LINKFLAGS(dl,, [#include <dlfcn.h>], [dladdr (0, 0);])
+  if test "x$HAVE_LIBDL" = "xyes";then
+    enable_self_checks=yes
+
+    AC_DEFINE([ENABLE_FIPS140], 1, [Enable FIPS140-2 mode])
+
+    AC_SUBST([FIPS140_LIBS], $LIBDL)
+  else
+    enable_fips=no
+    AC_MSG_WARN([[
+*** 
+*** This system is not supported in FIPS140 mode.
+*** libdl and dladdr() are required.
+*** ]])
+  fi
+fi
+
+AC_ARG_ENABLE(non-suiteb-curves,
+  AS_HELP_STRING([--disable-non-suiteb-curves], [disable curves not in SuiteB]),
+    enable_non_suiteb=$enableval, enable_non_suiteb=yes)
+if [ test "$enable_non_suiteb" = "yes" ];then
+  AC_DEFINE([ENABLE_NON_SUITEB_CURVES], 1, [Enable all curves])
+fi
+AM_CONDITIONAL(ENABLE_NON_SUITEB_CURVES, test "$enable_non_suiteb" = "yes")
+
+AM_CONDITIONAL(ENABLE_SELF_CHECKS, test "$enable_self_checks" = "yes")
+if [ test "$enable_self_checks" = "yes" ];then
+   AC_DEFINE([ENABLE_SELF_CHECKS], 1, [Self checks are included in the library])
+fi
 
 AC_MSG_CHECKING([whether to build libdane])
 AC_ARG_ENABLE(libdane,
@@ -340,12 +397,23 @@ fi
 AC_DEFINE_UNQUOTED([UNBOUND_ROOT_KEY_FILE],
   ["$unbound_root_key_file"], [The DNSSEC root key file])
 
+AC_ARG_WITH(system-priority-file, AS_HELP_STRING([--with-system-priority-file],
+                                 [specify the system priority file]),
+            system_priority_file="$withval", 
+system_priority_file="/etc/gnutls/default-priorities"
+)
+
+AC_DEFINE_UNQUOTED([SYSTEM_PRIORITY_FILE],
+  ["$system_priority_file"], [The system priority file])
+
+
 dnl Check for p11-kit
+P11_KIT_MINIMUM=0.20.7
 AC_ARG_WITH(p11-kit,
 	AS_HELP_STRING([--without-p11-kit],
 		[Build without p11-kit and PKCS#11 support]))
 if test "$with_p11_kit" != "no"; then
-	PKG_CHECK_MODULES(P11_KIT, [p11-kit-1 >= 0.20.0], [with_p11_kit=yes], [with_p11_kit=no])
+	PKG_CHECK_MODULES(P11_KIT, [p11-kit-1 >= $P11_KIT_MINIMUM], [with_p11_kit=yes], [with_p11_kit=no])
 	if test "$with_p11_kit" != "no";then
 		AC_DEFINE([ENABLE_PKCS11], 1, [Build PKCS#11 support])
 		if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
@@ -357,7 +425,7 @@ if test "$with_p11_kit" != "no"; then
 	        with_p11_kit=no
 	        AC_MSG_WARN([[
 *** 
-*** p11-kit was not found. PKCS #11 support will be disabled.
+*** p11-kit >= $P11_KIT_MINIMUM was not found. PKCS #11 support will be disabled.
 *** You may get it from http://p11-glue.freedesktop.org/p11-kit.html
 *** ]])
 	fi
@@ -395,14 +463,19 @@ AM_CONDITIONAL(ENABLE_TROUSERS, test "$with_tpm" != "no")
 
 LIBOPTS_CHECK([src/libopts])
 if test "$NEED_LIBOPTS_DIR" = "true";then
-	dnl delete libopts-generated files
+	dnl replace libopts-generated files with distributed backups, if present
+	missing_baks=
 	for i in ${srcdir}/src/*-args.c.bak ${srcdir}/src/*-args.h.bak; do
 		nam=`echo $i|sed 's/.bak//g'`
 		if test -f $i;then
 			cp -f $i $nam
+		else
+			missing_baks=true
 		fi
 	done
-	AC_SUBST([AUTOGEN], [/bin/true])
+	if test -z "$missing_baks"; then
+		AC_SUBST([AUTOGEN], [/bin/true])
+	fi
 	enable_local_libopts=yes
 else
 	enable_local_libopts=no
@@ -468,11 +541,20 @@ if test "x$with_default_trust_store_pkcs11" != x; then
     ["$with_default_trust_store_pkcs11"], [use the given pkcs11 uri as default trust store])
 fi
 
+AC_ARG_WITH([default-trust-store-dir],
+  [AS_HELP_STRING([--with-default-trust-store-dir=DIR],
+    [use the given directory as default trust store])])
+
+if test "x$with_default_trust_store_dir" != x; then
+  AC_DEFINE_UNQUOTED([DEFAULT_TRUST_STORE_DIR],
+    ["$with_default_trust_store_dir"], [use the given directory as default trust store])
+fi
+
 dnl auto detect http://lists.gnu.org/archive/html/help-gnutls/2012-05/msg00004.html
 AC_ARG_WITH([default-trust-store-file],
   [AS_HELP_STRING([--with-default-trust-store-file=FILE],
     [use the given file default trust store])], with_default_trust_store_file="$withval",
-  [if test "$build" = "$host" && test x$with_default_trust_store_pkcs11 = x;then
+  [if test "$build" = "$host" && test x$with_default_trust_store_pkcs11 = x && test x$with_default_trust_store_dir = x;then
   for i in \
     /etc/ssl/ca-bundle.pem \
     /etc/ssl/certs/ca-certificates.crt \
@@ -721,7 +803,7 @@ AC_CONFIG_FILES([
   tests/dtls/Makefile
   tests/srp/Makefile
   tests/ecdsa/Makefile
-  tests/key-id/Makefile
+  tests/key-tests/Makefile
   tests/openpgp-certs/Makefile
   tests/pkcs1-padding/Makefile
   tests/pkcs12-decode/Makefile
@@ -757,6 +839,7 @@ AC_MSG_NOTICE([External hardware support:
 
   /dev/crypto:          $enable_cryptodev
   Hardware accel:       $hw_accel
+  Padlock accel:        $use_padlock
   PKCS#11 support:      $with_p11_kit
   TPM support:          $with_tpm
 ])
@@ -768,15 +851,19 @@ if features are disabled)
   DTLS-SRTP support:    $ac_enable_srtp
   ALPN support:         $ac_enable_alpn
   OCSP support:         $ac_enable_ocsp
+  Ses. ticket support:  $ac_enable_session_tickets
   OpenPGP support:      $ac_enable_openpgp
   SRP support:          $ac_enable_srp
   PSK support:          $ac_enable_psk
   DHE support:          $ac_enable_dhe
   ECDHE support:        $ac_enable_ecdhe
+  RSA-EXPORT support:   $ac_enable_rsa_export
   Anon auth support:    $ac_enable_anon
   Heartbeat support:    $ac_enable_heartbeat
   Unicode support:      $ac_have_unicode
+  Self checks:          $enable_self_checks
   Non-SuiteB curves:    $enable_non_suiteb
+  FIPS140 mode:         $enable_fips
 ])
 
 AC_MSG_NOTICE([Optional applications:
@@ -795,9 +882,11 @@ AC_MSG_NOTICE([Optional libraries:
 AC_MSG_NOTICE([System files:
 
   Trust store pkcs11:   $with_default_trust_store_pkcs11
+  Trust store dir:      $with_default_trust_store_dir
   Trust store file:     $with_default_trust_store_file
   Blacklist file:       $with_default_blacklist_file
   CRL file:             $with_default_crl_file
+  Priority file:        $system_priority_file
   DNSSEC root key file: $unbound_root_key_file
 ])
 

@@ -24,12 +24,14 @@
 #define X509_H
 
 #include <gnutls/x509.h>
+#include <gnutls/x509-ext.h>
 #include <gnutls/abstract.h>
 
 #include <libtasn1.h>
 
 #define MAX_CRQ_EXTENSIONS_SIZE 8*1024
 #define MAX_OID_SIZE 128
+#define MAX_KEY_ID_SIZE 128
 
 #define HASH_OID_SHA1 "1.3.14.3.2.26"
 #define HASH_OID_MD5 "1.2.840.113549.2.5"
@@ -40,8 +42,19 @@
 #define HASH_OID_SHA384 "2.16.840.1.101.3.4.2.2"
 #define HASH_OID_SHA512 "2.16.840.1.101.3.4.2.3"
 
+struct gnutls_x509_crl_iter {
+	/* This is used to optimize reads by gnutls_x509_crl_iter_crt_serial() */
+	ASN1_TYPE rcache;
+	unsigned rcache_idx;
+};
+
 typedef struct gnutls_x509_crl_int {
 	ASN1_TYPE crl;
+
+	unsigned expanded;
+	/* This is used to optimize reads by gnutls_x509_crl_get_crt_serial2() */
+	ASN1_TYPE rcache;
+	unsigned rcache_idx;
 	int use_extensions;
 
 	gnutls_datum_t der;
@@ -57,6 +70,7 @@ typedef struct gnutls_x509_crt_int {
 	 * get_raw_*_dn(). */
 	gnutls_datum_t raw_dn;
 	gnutls_datum_t raw_issuer_dn;
+	gnutls_datum_t raw_spki;
 
 	gnutls_datum_t der;
 	struct pin_info_st pin;
@@ -68,6 +82,7 @@ typedef struct gnutls_x509_crq_int {
 
 typedef struct gnutls_pkcs7_int {
 	ASN1_TYPE pkcs7;
+	unsigned expanded;
 } gnutls_pkcs7_int;
 
 typedef struct gnutls_x509_privkey_int {
@@ -77,6 +92,7 @@ typedef struct gnutls_x509_privkey_int {
 	gnutls_pk_params_st params;
 
 	gnutls_pk_algorithm_t pk_algorithm;
+	unsigned expanded;
 
 	ASN1_TYPE key;
 } gnutls_x509_privkey_int;
@@ -136,6 +152,16 @@ int _gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
 			       int seq, void *name, size_t * name_size,
 			       unsigned int *ret_type, int othername_oid);
 
+int
+_gnutls_parse_general_name2(ASN1_TYPE src, const char *src_name,
+			   int seq, gnutls_datum_t *dname, 
+			   unsigned int *ret_type, int othername_oid);
+
+int
+_gnutls_write_new_general_name(ASN1_TYPE ext, const char *ext_name,
+		       gnutls_x509_subject_alt_name_t type,
+		       const void *data, unsigned int data_size);
+
 /* dsa.c */
 
 
@@ -155,26 +181,24 @@ int _gnutls_x509_verify_data(const mac_entry_st * me,
 			     gnutls_x509_crt_t issuer);
 
 /* privkey.h */
+void _gnutls_x509_privkey_reinit(gnutls_x509_privkey_t key);
+
 ASN1_TYPE _gnutls_privkey_decode_pkcs1_rsa_key(const gnutls_datum_t *
 					       raw_key,
 					       gnutls_x509_privkey_t pkey);
-ASN1_TYPE _gnutls_privkey_decode_ecc_key(const gnutls_datum_t *
+int _gnutls_privkey_decode_ecc_key(ASN1_TYPE* pkey_asn, const gnutls_datum_t *
 					 raw_key,
-					 gnutls_x509_privkey_t pkey);
+					 gnutls_x509_privkey_t pkey,
+					 gnutls_ecc_curve_t curve);
 
 int
 _gnutls_x509_read_ecc_params(uint8_t * der, int dersize,
-			     gnutls_pk_params_st * params);
+			     unsigned int *curve);
 
 int _gnutls_asn1_encode_privkey(gnutls_pk_algorithm_t pk, ASN1_TYPE * c2,
 				gnutls_pk_params_st * params);
 
 /* extensions.c */
-int _gnutls_x509_crl_get_extension(gnutls_x509_crl_t crl,
-				   const char *extension_id, int indx,
-				   gnutls_datum_t * ret,
-				   unsigned int *_critical);
-
 int _gnutls_x509_crl_get_extension_oid(gnutls_x509_crl_t crl,
 				       int indx, void *oid,
 				       size_t * sizeof_oid);
@@ -184,20 +208,20 @@ int _gnutls_x509_crl_set_extension(gnutls_x509_crl_t crl,
 				   const gnutls_datum_t * ext_data,
 				   unsigned int critical);
 
-int _gnutls_x509_crt_get_extension(gnutls_x509_crt_t cert,
-				   const char *extension_id, int indx,
-				   gnutls_datum_t * ret,
-				   unsigned int *critical);
+int
+_gnutls_x509_crl_get_extension(gnutls_x509_crl_t crl,
+			       const char *extension_id, int indx,
+			       gnutls_datum_t * data,
+			       unsigned int *critical);
+
+int
+_gnutls_x509_crt_get_extension(gnutls_x509_crt_t cert,
+			       const char *extension_id, int indx,
+			       gnutls_datum_t * data, unsigned int *critical);
+
 int _gnutls_x509_crt_get_extension_oid(gnutls_x509_crt_t cert,
 				       int indx, void *ret,
 				       size_t * ret_size);
-int _gnutls_x509_ext_extract_keyUsage(uint16_t * keyUsage,
-				      uint8_t * extnValue,
-				      int extnValueLen);
-int _gnutls_x509_ext_extract_basicConstraints(unsigned int *CA,
-					      int *pathLenConstraint,
-					      uint8_t * extnValue,
-					      int extnValueLen);
 int _gnutls_x509_crt_set_extension(gnutls_x509_crt_t cert,
 				   const char *extension_id,
 				   const gnutls_datum_t * ext_data,
@@ -212,35 +236,18 @@ _gnutls_x509_ext_gen_number(const uint8_t * nuber, size_t nr_size,
 			    gnutls_datum_t * der_ext);
 
 
-int _gnutls_x509_ext_gen_basicConstraints(int CA, int pathLenConstraint,
-					  gnutls_datum_t * der_ext);
-int _gnutls_x509_ext_gen_keyUsage(uint16_t usage,
-				  gnutls_datum_t * der_ext);
+int
+_gnutls_write_general_name(ASN1_TYPE ext, const char *ext_name,
+		       gnutls_x509_subject_alt_name_t type,
+		       const void *data, unsigned int data_size);
+
 int _gnutls_x509_ext_gen_subject_alt_name(gnutls_x509_subject_alt_name_t
 					  type, const void *data,
 					  unsigned int data_size,
-					  gnutls_datum_t * prev_der_ext,
+					  const gnutls_datum_t * prev_der_ext,
 					  gnutls_datum_t * der_ext);
-int _gnutls_x509_ext_gen_crl_dist_points(gnutls_x509_subject_alt_name_t
-					 type, const void *data,
-					 unsigned int data_size,
-					 unsigned int reason_flags,
-					 gnutls_datum_t * der_ext);
-int _gnutls_x509_ext_gen_key_id(const void *id, size_t id_size,
-				gnutls_datum_t * der_data);
 int _gnutls_x509_ext_gen_auth_key_id(const void *id, size_t id_size,
 				     gnutls_datum_t * der_data);
-int _gnutls_x509_ext_extract_proxyCertInfo(int *pathLenConstraint,
-					   char **policyLanguage,
-					   char **policy,
-					   size_t * sizeof_policy,
-					   uint8_t * extnValue,
-					   int extnValueLen);
-int _gnutls_x509_ext_gen_proxyCertInfo(int pathLenConstraint,
-				       const char *policyLanguage,
-				       const char *policy,
-				       size_t sizeof_policy,
-				       gnutls_datum_t * der_ext);
 
 /* mpi.c */
 int _gnutls_x509_crq_get_mpis(gnutls_x509_crq_t cert,
@@ -278,6 +285,12 @@ int _gnutls_x509_read_int(ASN1_TYPE node, const char *value,
 			  bigint_t * ret_mpi);
 int _gnutls_x509_write_int(ASN1_TYPE node, const char *value, bigint_t mpi,
 			   int lz);
+
+int _gnutls_x509_read_key_int(ASN1_TYPE node, const char *value,
+			  bigint_t * ret_mpi);
+int _gnutls_x509_write_key_int(ASN1_TYPE node, const char *value, bigint_t mpi,
+			   int lz);
+
 int _gnutls_x509_write_uint32(ASN1_TYPE node, const char *value,
 			      uint32_t num);
 
@@ -290,6 +303,7 @@ int _gnutls_x509_write_sig_params(ASN1_TYPE dst, const char *dst_name,
 
 typedef struct gnutls_pkcs12_int {
 	ASN1_TYPE pkcs12;
+	unsigned expanded;
 } gnutls_pkcs12_int;
 
 #define MAX_BAG_ELEMENTS 32
@@ -368,7 +382,7 @@ int _gnutls_x509_crq_set_extension(gnutls_x509_crq_t crq,
 				   unsigned int critical);
 
 unsigned int
-_gnutls_x509_verify_certificate(const gnutls_x509_crt_t * certificate_list,
+_gnutls_verify_crt_status(const gnutls_x509_crt_t * certificate_list,
 				int clist_size,
 				const gnutls_x509_crt_t * trusted_cas,
 				int tcas_size,
@@ -377,19 +391,34 @@ _gnutls_x509_verify_certificate(const gnutls_x509_crt_t * certificate_list,
 
 #ifdef ENABLE_PKCS11
 unsigned int
-_gnutls_pkcs11_verify_certificate(const char* url,
+_gnutls_pkcs11_verify_crt_status(const char* url,
 				const gnutls_x509_crt_t * certificate_list,
 				unsigned clist_size,
+				const char *purpose,
 				unsigned int flags,
 				gnutls_verify_output_function func);
 #endif
-
-int _gnutls_is_same_dn(gnutls_x509_crt_t cert1, gnutls_x509_crt_t cert2);
 
 int
 _gnutls_x509_crt_check_revocation(gnutls_x509_crt_t cert,
 				  const gnutls_x509_crl_t * crl_list,
 				  int crl_list_length,
 				  gnutls_verify_output_function func);
+
+typedef struct gnutls_name_constraints_st {
+	struct name_constraints_node_st * permitted;
+	struct name_constraints_node_st * excluded;
+} gnutls_name_constraints_st;
+
+typedef struct name_constraints_node_st {
+	unsigned type;
+	gnutls_datum_t name;
+	struct name_constraints_node_st *next;
+} name_constraints_node_st;
+
+int _gnutls_extract_name_constraints(ASN1_TYPE c2, const char *vstr,
+				    name_constraints_node_st ** _nc);
+
+void _gnutls_x509_policies_erase(gnutls_x509_policies_t policies, unsigned int seq);
 
 #endif

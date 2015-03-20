@@ -16,15 +16,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-AM_CFLAGS = $(WERROR_CFLAGS) $(WSTACK_CFLAGS) $(WARN_CFLAGS) $(NETTLE_CFLAGS)
+AM_CFLAGS = $(WERROR_CFLAGS) $(WSTACK_CFLAGS) $(WARN_CFLAGS) $(NETTLE_CFLAGS) $(P11_KIT_CFLAGS)
 AM_CPPFLAGS = \
 	-I$(srcdir)/../../gl		\
 	-I$(builddir)/../../gl		\
 	-I$(srcdir)/../includes		\
 	-I$(builddir)/../includes	\
 	-I$(srcdir)/..			\
-	$(LIBOPENCDK_CFLAGS)		\
-	$(P11_KIT_CFLAGS)
+	$(LIBOPENCDK_CFLAGS)
 
 if ENABLE_MINITASN1
 AM_CPPFLAGS += -I$(srcdir)/../minitasn1
@@ -57,9 +56,11 @@ libgnutls_x509_la_SOURCES =	\
 	x509.c x509_dn.c	\
 	x509_int.h		\
 	x509_write.c		\
+	name_constraints.c	\
 	verify-high.c		\
 	verify-high2.c		\
-	verify-high.h
+	verify-high.h		\
+	x509_ext.c
 
 if ENABLE_OCSP
 libgnutls_x509_la_SOURCES += ocsp.c ocsp_output.c

@@ -21,6 +21,7 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <gnutls/x509.h>
 
 void cfg_init(void);
@@ -30,14 +31,15 @@ void read_crt_set(gnutls_x509_crt_t crt, const char *input_str,
 		  const char *oid);
 void read_crq_set(gnutls_x509_crq_t crq, const char *input_str,
 		  const char *oid);
-int read_int(const char *input_str);
+int64_t read_int(const char *input_str);
 const char *read_str(const char *input_str);
 int read_yesno(const char *input_str, int def);
 
 const char *get_pass(void);
 const char *get_confirmed_pass(bool empty_ok);
 const char *get_challenge_pass(void);
-const char *get_crl_dist_point_url(void);
+void get_crl_dist_point_set(gnutls_x509_crt_t crt);
+void crt_constraints_set(gnutls_x509_crt_t crt);
 void get_country_crt_set(gnutls_x509_crt_t crt);
 void get_organization_crt_set(gnutls_x509_crt_t crt);
 void get_unit_crt_set(gnutls_x509_crt_t crt);
@@ -50,17 +52,17 @@ void get_uid_crt_set(gnutls_x509_crt_t crt);
 void get_pkcs9_email_crt_set(gnutls_x509_crt_t crt);
 void get_oid_crt_set(gnutls_x509_crt_t crt);
 void get_key_purpose_set(int type, void *crt);
-int get_serial(void);
+void get_serial(unsigned char* serial, size_t* serial_size);
 time_t get_expiration_date(void);
 time_t get_activation_date(void);
 int get_ca_status(void);
-int get_crl_number(void);
+void get_crl_number(unsigned char* serial, size_t* serial_size);
 int get_path_len(void);
 int get_crq_extensions_status(void);
 const char *get_pkcs12_key_name(void);
 int get_tls_client_status(void);
 int get_tls_server_status(void);
-int get_crl_next_update(void);
+time_t get_crl_next_update(void);
 int get_time_stamp_status(void);
 int get_ocsp_sign_status(void);
 int get_code_sign_status(void);

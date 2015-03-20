@@ -43,16 +43,6 @@ void *_gnutls_calloc(size_t nmemb, size_t size)
 	return ret;
 }
 
-svoid *gnutls_secure_calloc(size_t nmemb, size_t size)
-{
-	svoid *ret;
-	size_t n = xtimes(nmemb, size);
-	ret = (size_in_bounds_p(n) ? gnutls_secure_malloc(n) : NULL);
-	if (ret != NULL)
-		memset(ret, 0, size);
-	return ret;
-}
-
 /* This realloc will free ptr in case realloc
  * fails.
  */
@@ -73,15 +63,19 @@ void *gnutls_realloc_fast(void *ptr, size_t size)
 
 char *_gnutls_strdup(const char *str)
 {
-	size_t siz = strlen(str) + 1;
+	size_t siz;
 	char *ret;
+
+	if(unlikely(!str))
+		return NULL;
+
+	siz = strlen(str) + 1;
 
 	ret = gnutls_malloc(siz);
 	if (ret != NULL)
 		memcpy(ret, str, siz);
 	return ret;
 }
-
 
 #if 0
 /* don't use them. They are included for documentation.

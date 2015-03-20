@@ -596,6 +596,28 @@ int
 gnutls_openpgp_crt_check_hostname(gnutls_openpgp_crt_t key,
 				  const char *hostname)
 {
+	return gnutls_openpgp_crt_check_hostname2(key, hostname, 0);
+}
+
+/**
+ * gnutls_openpgp_crt_check_hostname2:
+ * @key: should contain a #gnutls_openpgp_crt_t structure
+ * @hostname: A null terminated string that contains a DNS name
+ * @flags: gnutls_certificate_verify_flags
+ *
+ * This function will check if the given key's owner matches the
+ * given hostname. 
+ *
+ * Unless, the flag %GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS is specified,
+ * wildcards are only considered if the domain name consists of three
+ * components or more, and the wildcard starts at the leftmost position.
+ *
+ * Returns: non-zero for a successful match, and zero on failure.
+ **/
+int
+gnutls_openpgp_crt_check_hostname2(gnutls_openpgp_crt_t key,
+				  const char *hostname, unsigned flags)
+{
 	char dnsname[MAX_CN];
 	size_t dnsnamesize;
 	int ret = 0;
@@ -614,7 +636,7 @@ gnutls_openpgp_crt_check_hostname(gnutls_openpgp_crt_t key,
 			dnsnamesize--;
 
 			if (_gnutls_hostname_compare
-			    (dnsname, dnsnamesize, hostname, 0))
+			    (dnsname, dnsnamesize, hostname, flags))
 				return 1;
 		}
 	}
@@ -1203,7 +1225,7 @@ _gnutls_read_pgp_mpi(cdk_packet_t pkt, unsigned int priv, size_t idx,
 		return _gnutls_map_cdk_rc(err);
 	}
 
-	err = _gnutls_mpi_scan(m, buf, buf_size);
+	err = _gnutls_mpi_init_scan(m, buf, buf_size);
 	gnutls_free(buf);
 
 	if (err < 0) {

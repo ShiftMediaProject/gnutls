@@ -27,11 +27,14 @@
 #include "algorithms.h"
 #include "gnutls_errors.h"
 #include <gnutls_num.h>
+#include <gnutls/x509.h>
+#include <c-ctype.h>
+
+#define MAX_ELEMENTS 64
 
 static void
-break_comma_list(char *etag,
-		 char **broken_etag, int *elements, int max_elements,
-		 char sep);
+break_list(char *etag,
+		 char *broken_etag[MAX_ELEMENTS], int *size);
 
 /**
  * gnutls_cipher_set_priority:
@@ -232,13 +235,13 @@ gnutls_certificate_type_set_priority(gnutls_session_t session,
 }
 
 static const int supported_ecc_normal[] = {
-#ifdef ENABLE_NON_SUITEB_CURVES
-	GNUTLS_ECC_CURVE_SECP192R1,
-	GNUTLS_ECC_CURVE_SECP224R1,
-#endif
 	GNUTLS_ECC_CURVE_SECP256R1,
 	GNUTLS_ECC_CURVE_SECP384R1,
 	GNUTLS_ECC_CURVE_SECP521R1,
+#ifdef ENABLE_NON_SUITEB_CURVES
+	GNUTLS_ECC_CURVE_SECP224R1,
+	GNUTLS_ECC_CURVE_SECP192R1,
+#endif
 	0
 };
 
@@ -339,10 +342,7 @@ static const int kx_priority_secure[] = {
 	0
 };
 
-/* If GCM and AES acceleration is available then prefer
- * them over anything else.
- */
-static const int cipher_priority_performance[] = {
+static const int cipher_priority_performance_default[] = {
 	GNUTLS_CIPHER_ARCFOUR_128,
 	GNUTLS_CIPHER_AES_128_GCM,
 	GNUTLS_CIPHER_AES_256_GCM,
@@ -356,7 +356,10 @@ static const int cipher_priority_performance[] = {
 	0
 };
 
-static const int cipher_priority_normal[] = {
+/* If GCM and AES acceleration is available then prefer
+ * them over anything else.
+ */
+static const int cipher_priority_normal_default[] = {
 	GNUTLS_CIPHER_AES_128_GCM,
 	GNUTLS_CIPHER_AES_256_GCM,
 	GNUTLS_CIPHER_CAMELLIA_128_GCM,
@@ -369,6 +372,25 @@ static const int cipher_priority_normal[] = {
 	GNUTLS_CIPHER_ARCFOUR_128,
 	0
 };
+
+static const int cipher_priority_performance_fips[] = {
+	GNUTLS_CIPHER_AES_128_GCM,
+	GNUTLS_CIPHER_AES_256_GCM,
+	GNUTLS_CIPHER_AES_128_CBC,
+	GNUTLS_CIPHER_AES_256_CBC,
+	GNUTLS_CIPHER_3DES_CBC,
+	0
+};
+
+static const int cipher_priority_normal_fips[] = {
+	GNUTLS_CIPHER_AES_128_GCM,
+	GNUTLS_CIPHER_AES_256_GCM,
+	GNUTLS_CIPHER_AES_128_CBC,
+	GNUTLS_CIPHER_AES_256_CBC,
+	GNUTLS_CIPHER_3DES_CBC,
+	0
+};
+
 
 static const int cipher_priority_suiteb128[] = {
 	GNUTLS_CIPHER_AES_128_GCM,
@@ -461,7 +483,7 @@ static const int sign_priority_secure192[] = {
 	0
 };
 
-static const int mac_priority_normal[] = {
+static const int mac_priority_normal_default[] = {
 	GNUTLS_MAC_SHA1,
 	GNUTLS_MAC_SHA256,
 	GNUTLS_MAC_SHA384,
@@ -469,6 +491,26 @@ static const int mac_priority_normal[] = {
 	GNUTLS_MAC_MD5,
 	0
 };
+
+static const int mac_priority_normal_fips[] = {
+	GNUTLS_MAC_SHA1,
+	GNUTLS_MAC_SHA256,
+	GNUTLS_MAC_SHA384,
+	GNUTLS_MAC_AEAD,
+	0
+};
+
+static const int * cipher_priority_performance = cipher_priority_performance_default;
+static const int * cipher_priority_normal = cipher_priority_normal_default;
+static const int * mac_priority_normal = mac_priority_normal_default;
+
+/* if called with replace the default priorities with the FIPS140 ones */
+void _gnutls_priority_update_fips(void)
+{
+	cipher_priority_performance = cipher_priority_performance_fips;
+	cipher_priority_normal = cipher_priority_normal_fips;
+	mac_priority_normal = mac_priority_normal_fips;
+}
 
 static const int mac_priority_suiteb128[] = {
 	GNUTLS_MAC_AEAD,
@@ -593,8 +635,6 @@ gnutls_priority_set(gnutls_session_t session, gnutls_priority_t priority)
 }
 
 
-#define MAX_ELEMENTS 48
-
 #define LEVEL_NONE "NONE"
 #define LEVEL_NORMAL "NORMAL"
 #define LEVEL_PFS "PFS"
@@ -605,16 +645,25 @@ gnutls_priority_set(gnutls_session_t session, gnutls_priority_t priority)
 #define LEVEL_SUITEB128 "SUITEB128"
 #define LEVEL_SUITEB192 "SUITEB192"
 #define LEVEL_EXPORT "EXPORT"
+#define LEVEL_LEGACY "LEGACY"
+
+#define SET_PROFILE(to_set) \
+	profile = GNUTLS_VFLAGS_TO_PROFILE(priority_cache->additional_verify_flags); \
+	if (profile == 0 || profile > to_set) { \
+		priority_cache->additional_verify_flags &= ~GNUTLS_VFLAGS_PROFILE_MASK; \
+		priority_cache->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(to_set); \
+	}
 
 #define SET_LEVEL(to_set) \
-	if (priority_cache->level == 0 || priority_cache->level > to_set) \
-		priority_cache->level = to_set
+		if (priority_cache->level == 0 || priority_cache->level > to_set) \
+			priority_cache->level = to_set
 
 static
 int check_level(const char *level, gnutls_priority_t priority_cache,
 		int add)
 {
 	bulk_rmadd_func *func;
+	unsigned profile = 0;
 
 	if (add)
 		func = _add_priority;
@@ -628,7 +677,8 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 		func(&priority_cache->sign_algo, sign_priority_default);
 		func(&priority_cache->supported_ecc, supported_ecc_normal);
 
-		SET_LEVEL(GNUTLS_SEC_PARAM_VERY_WEAK);
+		SET_PROFILE(GNUTLS_PROFILE_LOW); /* set certificate level */
+		SET_LEVEL(GNUTLS_SEC_PARAM_WEAK); /* set DH params level */
 		return 1;
 	} else if (strcasecmp(level, LEVEL_NORMAL) == 0) {
 		func(&priority_cache->cipher, cipher_priority_normal);
@@ -637,16 +687,18 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 		func(&priority_cache->sign_algo, sign_priority_default);
 		func(&priority_cache->supported_ecc, supported_ecc_normal);
 
-		SET_LEVEL(GNUTLS_SEC_PARAM_VERY_WEAK);
+		SET_PROFILE(GNUTLS_PROFILE_LOW);
+		SET_LEVEL(GNUTLS_SEC_PARAM_WEAK);
 		return 1;
 	} else if (strcasecmp(level, LEVEL_PFS) == 0) {
 		func(&priority_cache->cipher, cipher_priority_normal);
 		func(&priority_cache->kx, kx_priority_pfs);
-		func(&priority_cache->mac, mac_priority_normal);
+		func(&priority_cache->mac, mac_priority_secure128);
 		func(&priority_cache->sign_algo, sign_priority_default);
 		func(&priority_cache->supported_ecc, supported_ecc_normal);
 
-		SET_LEVEL(GNUTLS_SEC_PARAM_VERY_WEAK);
+		SET_PROFILE(GNUTLS_PROFILE_LOW);
+		SET_LEVEL(GNUTLS_SEC_PARAM_WEAK);
 		return 1;
 	} else if (strcasecmp(level, LEVEL_SECURE256) == 0
 		   || strcasecmp(level, LEVEL_SECURE192) == 0) {
@@ -657,8 +709,8 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 		func(&priority_cache->supported_ecc,
 		     supported_ecc_secure192);
 
-		/* be conservative for now. Set the bits to correspond to 96-bit level */
-		SET_LEVEL(GNUTLS_SEC_PARAM_LEGACY);
+		SET_PROFILE(GNUTLS_PROFILE_HIGH);
+		SET_LEVEL(GNUTLS_SEC_PARAM_HIGH);
 		return 1;
 	} else if (strcasecmp(level, LEVEL_SECURE128) == 0
 		   || strcasecmp(level, "SECURE") == 0) {
@@ -669,8 +721,11 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 		func(&priority_cache->supported_ecc,
 		     supported_ecc_secure128);
 
-		/* be conservative for now. Set the bits to correspond to an 72-bit level */
-		SET_LEVEL(GNUTLS_SEC_PARAM_WEAK);
+		/* The profile should have been HIGH but if we don't allow
+		 * SHA-1 (80-bits) as signature algorithm we are not able
+		 * to connect anywhere with this level */
+		SET_PROFILE(GNUTLS_PROFILE_LOW);
+		SET_LEVEL(GNUTLS_SEC_PARAM_LOW);
 		return 1;
 	} else if (strcasecmp(level, LEVEL_SUITEB128) == 0) {
 		func(&priority_cache->protocol, protocol_priority_suiteb);
@@ -681,6 +736,7 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 		func(&priority_cache->supported_ecc,
 		     supported_ecc_suiteb128);
 
+		SET_PROFILE(GNUTLS_PROFILE_SUITEB128);
 		SET_LEVEL(GNUTLS_SEC_PARAM_HIGH);
 		return 1;
 	} else if (strcasecmp(level, LEVEL_SUITEB192) == 0) {
@@ -692,7 +748,17 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 		func(&priority_cache->supported_ecc,
 		     supported_ecc_suiteb192);
 
+		SET_PROFILE(GNUTLS_PROFILE_SUITEB192);
 		SET_LEVEL(GNUTLS_SEC_PARAM_ULTRA);
+		return 1;
+	} else if (strcasecmp(level, LEVEL_LEGACY) == 0) {
+		func(&priority_cache->cipher, cipher_priority_normal);
+		func(&priority_cache->kx, kx_priority_secure);
+		func(&priority_cache->mac, mac_priority_normal);
+		func(&priority_cache->sign_algo, sign_priority_default);
+		func(&priority_cache->supported_ecc, supported_ecc_normal);
+
+		SET_LEVEL(GNUTLS_SEC_PARAM_VERY_WEAK);
 		return 1;
 	} else if (strcasecmp(level, LEVEL_EXPORT) == 0) {
 		func(&priority_cache->cipher, cipher_priority_performance);
@@ -707,11 +773,252 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 	return 0;
 }
 
+static void enable_compat(gnutls_priority_t c)
+{
+	ENABLE_COMPAT(c);
+}
+static void enable_dumbfw(gnutls_priority_t c)
+{
+	c->dumbfw = 1;
+}
+static void enable_no_extensions(gnutls_priority_t c)
+{
+	c->no_extensions = 1;
+}
+static void enable_stateless_compression(gnutls_priority_t c)
+{
+	c->stateless_compression = 1;
+}
+static void disable_wildcards(gnutls_priority_t c)
+{
+	c->additional_verify_flags |= GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS;
+}
+static void enable_profile_very_weak(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_VERY_WEAK);
+	c->level = GNUTLS_SEC_PARAM_VERY_WEAK;
+}
+static void enable_profile_low(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_LOW);
+	c->level = GNUTLS_SEC_PARAM_LOW;
+}
+static void enable_profile_legacy(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_LEGACY);
+	c->level = GNUTLS_SEC_PARAM_LEGACY;
+}
+static void enable_profile_high(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_HIGH);
+	c->level = GNUTLS_SEC_PARAM_HIGH;
+}
+static void enable_profile_ultra(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_ULTRA);
+	c->level = GNUTLS_SEC_PARAM_ULTRA;
+}
+static void enable_profile_medium(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_MEDIUM);
+	c->level = GNUTLS_SEC_PARAM_MEDIUM;
+}
+static void enable_profile_suiteb128(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_SUITEB128);
+	c->level = GNUTLS_SEC_PARAM_HIGH;
+}
+static void enable_profile_suiteb192(gnutls_priority_t c)
+{
+	c->additional_verify_flags &= 0x00ffffff;
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_SUITEB192);
+	c->level = GNUTLS_SEC_PARAM_ULTRA;
+}
+static void enable_safe_renegotiation(gnutls_priority_t c)
+{
+	c->sr = SR_SAFE;
+
+}
+static void enable_unsafe_renegotiation(gnutls_priority_t c)
+{
+	c->sr = SR_UNSAFE;
+}
+static void enable_partial_safe_renegotiation(gnutls_priority_t c)
+{
+	c->sr = SR_PARTIAL;
+}
+static void disable_safe_renegotiation(gnutls_priority_t c)
+{
+	c->sr = SR_DISABLED;
+}
+static void enable_latest_record_version(gnutls_priority_t c)
+{
+	c->min_record_version = 0;
+}
+static void enable_ssl3_record_version(gnutls_priority_t c)
+{
+	c->min_record_version = 1;
+}
+static void enable_verify_allow_rsa_md5(gnutls_priority_t c)
+{
+	c->additional_verify_flags |=
+	    GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5;
+}
+static void disable_crl_checks(gnutls_priority_t c)
+{
+	c->additional_verify_flags |=
+		GNUTLS_VERIFY_DISABLE_CRL_CHECKS;
+}
+static void enable_server_precedence(gnutls_priority_t c)
+{
+	c->server_precedence = 1;
+}
+static void dummy_func(gnutls_priority_t c)
+{
+}
+
+#include <priority_options.h>
+
+static char *check_str(char *line, size_t line_size, const char *needle, size_t needle_size)
+{
+	char *p;
+	unsigned n;
+
+	while (c_isspace(*line)) {
+		line++;
+		line_size--;
+	}
+
+	if (line[0] == '#' || needle_size >= line_size)
+		return NULL;
+
+	if (memcmp(line, needle, needle_size) == 0) {
+		p = &line[needle_size];
+		while (c_isspace(*p)) {
+			p++;
+		}
+		if (*p != '=') {
+			return NULL;
+		} else
+			p++;
+
+		while (c_isspace(*p)) {
+			p++;
+		}
+
+		n = strlen(p);
+
+		if (n > 1 && p[n-1] == '\n') {
+			n--;
+			p[n] = 0;
+		}
+
+		if (n > 1 && p[n-1] == '\r') {
+			n--;
+			p[n] = 0;
+		}
+		return p;
+	}
+
+	return NULL;
+}
+
+/* Returns the new priorities if SYSTEM is specified in
+ * an allocated string, or just a copy of the provided
+ * priorities, appended with any additional present in
+ * the priorities string.
+ *
+ * The returned string must be released using free().
+ */
+static char *resolve_priorities(const char* priorities)
+{
+char *p = (char*)priorities;
+char *additional = NULL;
+char *ret = NULL;
+char *ss, *line = NULL;
+unsigned ss_len;
+int l;
+FILE* fp = NULL;
+size_t n, n2 = 0, line_size;
+
+	while (c_isspace(*p))
+		p++;
+
+	if (*p == '@') {
+		ss = p+1;
+
+		additional = strchr(p, ':');
+		if (additional != NULL) {
+			ss_len = additional - ss;
+			additional++;
+		} else {
+			ss_len = strlen(ss);
+		}
+
+		fp = fopen(SYSTEM_PRIORITY_FILE, "r");
+		if (fp == NULL) {/* fail */
+			ret = NULL;
+			goto finish;
+		}
+
+		do {
+			l = getline(&line, &line_size, fp);
+			if (l > 0) {
+				p = check_str(line, line_size, ss, ss_len);
+				if (p != NULL)
+					break;
+			}
+		} while (l>0);
+
+		if (p == NULL) {
+			ret = NULL;
+			goto finish;
+		}
+
+		n = strlen(p);
+		if (additional)
+			n2 = strlen(additional);
+
+		ret = malloc(n+n2+1+1);
+		if (ret == NULL) {
+			goto finish;
+		}
+
+		memcpy(ret, p, n);
+		if (additional != NULL) {
+			ret[n] = ':';
+			memcpy(&ret[n+1], additional, n2);
+			ret[n+n2+1] = 0;
+		} else {
+			ret[n] = 0;
+		}
+	} else {
+		return strdup(p);
+	}
+
+finish:
+	if (ret != NULL) {
+		_gnutls_debug_log("selected priority string: %s\n", ret);
+	}
+	free(line);
+	if (fp != NULL)
+		fclose(fp);
+
+	return ret;
+}
+
 /**
  * gnutls_priority_init:
  * @priority_cache: is a #gnutls_prioritity_t structure.
  * @priorities: is a string describing priorities
- * @err_pos: In case of an error this will have the position in the string the error occured
+ * @err_pos: In case of an error this will have the position in the string the error occurred
  *
  * Sets priorities for the ciphers, key exchange methods, macs and
  * compression methods.
@@ -721,12 +1028,16 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
  * Some keywords are defined to provide quick access
  * to common preferences.
  *
- * Unless there is a special need, using "NORMAL" or "NORMAL:%COMPAT" for compatibility 
- * is recommended.
+ * Unless there is a special need, use the "NORMAL" keyword to
+ * apply a reasonable security level, or "NORMAL:%COMPAT" for compatibility.
  *
  * "PERFORMANCE" means all the "secure" ciphersuites are enabled,
  * limited to 128 bit ciphers and sorted by terms of speed
  * performance.
+ *
+ * "LEGACY" the NORMAL settings for GnuTLS 3.2.x or earlier. There is
+ * no verification profile set, and the allowed DH primes are considered
+ * weak today.
  *
  * "NORMAL" means all "secure" ciphersuites. The 256-bit ciphers are
  * included as a fallback only.  The ciphers are sorted by security
@@ -753,6 +1064,13 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
  *
  * "NONE" means nothing is enabled.  This disables even protocols and
  * compression methods.
+ *
+ * "@KEYWORD" The system administrator imposed settings. The provided keywords
+ * will be expanded from a configuration-time provided file - default is:
+ * /etc/gnutls/default-priorities. Any keywords that follow it, will 
+ * be appended to the expanded string. If there is no system string,
+ * then the function will fail. The system file should be formatted
+ * as "KEYWORD=VALUE", e.g., "SYSTEM=NORMAL:-ARCFOUR-128".
  *
  * Special keywords are "!", "-" and "+".
  * "!" or "-" appended with an algorithm will remove this algorithm.
@@ -793,6 +1111,9 @@ gnutls_priority_init(gnutls_priority_t * priority_cache,
 	rmadd_func *fn;
 	bulk_rmadd_func *bulk_fn;
 
+	if (err_pos)
+		*err_pos = priorities;
+
 	*priority_cache =
 	    gnutls_calloc(1, sizeof(struct gnutls_priority_st));
 	if (*priority_cache == NULL) {
@@ -800,29 +1121,24 @@ gnutls_priority_init(gnutls_priority_t * priority_cache,
 		return GNUTLS_E_MEMORY_ERROR;
 	}
 
-	if (err_pos)
-		*err_pos = priorities;
-
 	/* for now unsafe renegotiation is default on everyone. To be removed
 	 * when we make it the default.
 	 */
 	(*priority_cache)->sr = SR_PARTIAL;
-	(*priority_cache)->ssl3_record_version = 1;
-
+	(*priority_cache)->min_record_version = 1;
 
 	(*priority_cache)->max_empty_records = DEFAULT_MAX_EMPTY_RECORDS;
 
 	if (priorities == NULL)
-		priorities = LEVEL_NORMAL;
+		priorities = "NORMAL";
 
-	darg = gnutls_strdup(priorities);
+	darg = resolve_priorities(priorities);
 	if (darg == NULL) {
 		gnutls_assert();
 		goto error;
 	}
 
-	break_comma_list(darg, broken_list, &broken_list_size,
-			 MAX_ELEMENTS, ':');
+	break_list(darg, broken_list, &broken_list_size);
 	/* This is our default set of protocol version, certificate types and
 	 * compression methods.
 	 */
@@ -995,82 +1311,19 @@ gnutls_priority_init(gnutls_priority_t * priority_cache,
 			} else
 				goto error;
 		} else if (broken_list[i][0] == '%') {
-			if (strcasecmp(&broken_list[i][1], "COMPAT") == 0) {
-				ENABLE_COMPAT((*priority_cache));
-			} else
-			  if (strcasecmp(&broken_list[i][1], "DUMBFW") == 0) {
-				(*priority_cache)->dumbfw = 1;
-			} else
-			    if (strcasecmp
-				(&broken_list[i][1],
-				 "NO_EXTENSIONS") == 0) {
-				(*priority_cache)->no_extensions = 1;
-			} else
-			    if (strcasecmp
-				(&broken_list[i][1],
-				 "STATELESS_COMPRESSION") == 0) {
-				(*priority_cache)->stateless_compression =
-				    1;
-			} else
-			    if (strcasecmp
-				(&broken_list[i][1],
-				 "VERIFY_ALLOW_SIGN_RSA_MD5") == 0) {
-				prio_add(&(*priority_cache)->sign_algo,
-					 GNUTLS_SIGN_RSA_MD5);
-				(*priority_cache)->
-				    additional_verify_flags |=
-				    GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5;
-			} else
-			    if (strcasecmp
-				(&broken_list[i][1],
-				 "VERIFY_DISABLE_CRL_CHECKS") == 0) {
-				(*priority_cache)->
-				    additional_verify_flags |=
-				    GNUTLS_VERIFY_DISABLE_CRL_CHECKS;
-			} else
-			    if (strcasecmp
-				(&broken_list[i][1],
-				 "SSL3_RECORD_VERSION") == 0)
-				(*priority_cache)->ssl3_record_version = 1;
-			else if (strcasecmp(&broken_list[i][1],
-					    "LATEST_RECORD_VERSION") == 0)
-				(*priority_cache)->ssl3_record_version = 0;
-			else if (strcasecmp(&broken_list[i][1],
-					    "VERIFY_ALLOW_X509_V1_CA_CRT")
-				 == 0)
-				(*priority_cache)->
-				    additional_verify_flags |=
-				    GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT;
-			else if (strcasecmp
-				 (&broken_list[i][1],
-				  "UNSAFE_RENEGOTIATION") == 0) {
-				(*priority_cache)->sr = SR_UNSAFE;
-			} else
-			    if (strcasecmp
-				(&broken_list[i][1],
-				 "SAFE_RENEGOTIATION") == 0) {
-				(*priority_cache)->sr = SR_SAFE;
-			} else if (strcasecmp(&broken_list[i][1],
-					      "PARTIAL_RENEGOTIATION") ==
-				   0) {
-				(*priority_cache)->sr = SR_PARTIAL;
-			} else if (strcasecmp(&broken_list[i][1],
-					      "DISABLE_SAFE_RENEGOTIATION")
-				   == 0) {
-				(*priority_cache)->sr = SR_DISABLED;
-			} else if (strcasecmp(&broken_list[i][1],
-					      "SERVER_PRECEDENCE") == 0) {
-				(*priority_cache)->server_precedence = 1;
-			} else if (strcasecmp(&broken_list[i][1],
-					      "NEW_PADDING") == 0) {
-				(*priority_cache)->new_record_padding = 1;
-			} else
+			const struct priority_options_st * o;
+			/* to add a new option modify
+			 * priority_options.gperf */
+			o = in_word_set(&broken_list[i][1], strlen(&broken_list[i][1]));
+			if (o == NULL) {
 				goto error;
+			}
+			o->func(*priority_cache);
 		} else
 			goto error;
 	}
 
-	gnutls_free(darg);
+	free(darg);
 	return 0;
 
       error:
@@ -1080,7 +1333,7 @@ gnutls_priority_init(gnutls_priority_t * priority_cache,
 			(*err_pos) += strlen(broken_list[j]) + 1;
 		}
 	}
-	gnutls_free(darg);
+	free(darg);
 	gnutls_free(*priority_cache);
 	*priority_cache = NULL;
 
@@ -1144,22 +1397,19 @@ gnutls_priority_set_direct(gnutls_session_t session,
  * MAX_COMMA_SEP_ELEMENTS size; Note that the given string is modified.
   */
 static void
-break_comma_list(char *etag,
-		 char **broken_etag, int *elements, int max_elements,
-		 char sep)
+break_list(char *list,
+		 char *broken_list[MAX_ELEMENTS], int *size)
 {
-	char *p = etag;
-	if (sep == 0)
-		sep = ',';
+	char *p = list;
 
-	*elements = 0;
+	*size = 0;
 
 	do {
-		broken_etag[*elements] = p;
+		broken_list[*size] = p;
 
-		(*elements)++;
+		(*size)++;
 
-		p = strchr(p, sep);
+		p = strchr(p, ':');
 		if (p) {
 			*p = 0;
 			p++;	/* move to next entry and skip white
@@ -1169,7 +1419,7 @@ break_comma_list(char *etag,
 				p++;
 		}
 	}
-	while (p != NULL && *elements < max_elements);
+	while (p != NULL && *size < MAX_ELEMENTS);
 }
 
 /**
@@ -1192,7 +1442,7 @@ break_comma_list(char *etag,
  **/
 int gnutls_set_default_priority(gnutls_session_t session)
 {
-	return gnutls_priority_set_direct(session, "NORMAL", NULL);
+	return gnutls_priority_set_direct(session, NULL, NULL);
 }
 
 /**

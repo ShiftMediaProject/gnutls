@@ -78,8 +78,12 @@ int main(void)
         int optval = 1;
         int kx;
 
-        /* this must be called once in the program
-         */
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
+
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
 
         gnutls_certificate_allocate_credentials(&x509_cred);
@@ -98,7 +102,8 @@ int main(void)
         generate_dh_params();
 
         gnutls_priority_init(&priority_cache,
-                             "NORMAL:+PSK:+ECDHE-PSK:+DHE-PSK", NULL);
+                             "NORMAL:+PSK:+ECDHE-PSK:+DHE-PSK",
+                             NULL);
 
         gnutls_certificate_set_dh_params(x509_cred, dh_params);
 

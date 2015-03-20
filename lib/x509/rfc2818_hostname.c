@@ -26,13 +26,34 @@
 #include <gnutls_errors.h>
 #include <system.h>
 
+/**
+ * gnutls_x509_crt_check_hostname:
+ * @cert: should contain an gnutls_x509_crt_t structure
+ * @hostname: A null terminated string that contains a DNS name
+ *
+ * This function will check if the given certificate's subject matches
+ * the given hostname.  This is a basic implementation of the matching
+ * described in RFC6125, and takes into account wildcards,
+ * and the DNSName/IPAddress subject alternative name PKIX extension.
+ *
+ * For details see also gnutls_x509_crt_check_hostname2().
+ *
+ * Returns: non-zero for a successful match, and zero on failure.
+ **/
+int
+gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
+			       const char *hostname)
+{
+	return gnutls_x509_crt_check_hostname2(cert, hostname, 0);
+}
+
 static int
-check_ip(gnutls_x509_crt_t cert, const void *ip, unsigned ip_size)
+check_ip(gnutls_x509_crt_t cert, const void *ip, unsigned ip_size, unsigned flags)
 {
 	char temp[16];
 	size_t temp_size;
 	unsigned i;
-	int ret;
+	int ret = 0;
 
 	/* try matching against:
 	 *  1) a IPaddress alternative name (subjectAltName) extension
@@ -66,10 +87,11 @@ check_ip(gnutls_x509_crt_t cert, const void *ip, unsigned ip_size)
  * gnutls_x509_crt_check_hostname:
  * @cert: should contain an gnutls_x509_crt_t structure
  * @hostname: A null terminated string that contains a DNS name
+ * @flags: gnutls_certificate_verify_flags
  *
  * This function will check if the given certificate's subject matches
  * the given hostname.  This is a basic implementation of the matching
- * described in RFC2818 (HTTPS), which takes into account wildcards,
+ * described in RFC6125, and takes into account wildcards,
  * and the DNSName/IPAddress subject alternative name PKIX extension.
  *
  * IPv4 addresses are accepted by this function in the dotted-decimal
@@ -79,16 +101,19 @@ check_ip(gnutls_x509_crt_t cert, const void *ip, unsigned ip_size)
  * The latter fallback exists due to misconfiguration of many servers
  * which place an IPAddress inside the DNSName extension.
  *
- * Wildcards are only considered if the domain name consists of three
- * components or more.
+ * The comparison of dns names may have false-negatives as it is done byte 
+ * by byte in non-ascii names.
  *
- * The IPv4/v6 address comparison is since GnuTLS 3.2.16.
+ * When the flag %GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS is specified no
+ * wildcards are considered. Otherwise they are only considered if the
+ * domain name consists of three components or more, and the wildcard
+ * starts at the leftmost position.
  *
  * Returns: non-zero for a successful match, and zero on failure.
  **/
 int
-gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
-			       const char *hostname)
+gnutls_x509_crt_check_hostname2(gnutls_x509_crt_t cert,
+			        const char *hostname, unsigned int flags)
 {
 	char dnsname[MAX_CN];
 	size_t dnsnamesize;
@@ -109,9 +134,9 @@ gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
 				gnutls_assert();
 				goto hostname_fallback;
 			}
-			ret = check_ip(cert, &ipv6, 16);
+			ret = check_ip(cert, &ipv6, 16, flags);
 		} else {
-			ret = check_ip(cert, &ipv4, 4);
+			ret = check_ip(cert, &ipv4, 4, flags);
 		}
 
 		if (ret != 0)
@@ -123,7 +148,6 @@ gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
 	}
 
  hostname_fallback:
-
 	/* try matching against:
 	 *  1) a DNS name as an alternative name (subjectAltName) extension
 	 *     in the certificate
@@ -132,7 +156,7 @@ gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
 	 *  either of these may be of the form: *.domain.tld
 	 *
 	 *  only try (2) if there is no subjectAltName extension of
-	 *  type dNSName
+	 *  type dNSName, and there is a single CN.
 	 */
 
 	/* Check through all included subjectAltName extensions, comparing
@@ -149,32 +173,34 @@ gnutls_x509_crt_check_hostname(gnutls_x509_crt_t cert,
 		if (ret == GNUTLS_SAN_DNSNAME) {
 			found_dnsname = 1;
 			if (_gnutls_hostname_compare
-			    (dnsname, dnsnamesize, hostname, 0)) {
+			    (dnsname, dnsnamesize, hostname, flags)) {
 				return 1;
 			}
 		}
 	}
 
 	if (!found_dnsname) {
-		unsigned prev_size = 0;
-		/* not got the necessary extension, use CN instead
+		/* did not get the necessary extension, use CN instead
 		 */
-		for (i=0;;i++) {
-			dnsnamesize = sizeof(dnsname);
-			ret = gnutls_x509_crt_get_dn_by_oid
-				(cert, OID_X520_COMMON_NAME, i, 0, dnsname,
-				 &dnsnamesize);
-			if (ret < 0) {
-				if (i == 0 || ret != GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
-					return 0;
-				dnsnamesize = prev_size;
-				break;
-			}
-			prev_size = dnsnamesize;
-		}
+
+		/* enforce the RFC6125 (§1.8) requirement that only
+		 * a single CN must be present */
+		dnsnamesize = sizeof(dnsname);
+		ret = gnutls_x509_crt_get_dn_by_oid
+			(cert, OID_X520_COMMON_NAME, 1, 0, dnsname,
+			 &dnsnamesize);
+		if (ret != GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			return 0;
+
+		dnsnamesize = sizeof(dnsname);
+		ret = gnutls_x509_crt_get_dn_by_oid
+			(cert, OID_X520_COMMON_NAME, 0, 0, dnsname,
+			 &dnsnamesize);
+		if (ret < 0)
+			return 0;
 
 		if (_gnutls_hostname_compare
-		    (dnsname, dnsnamesize, hostname, 0)) {
+		    (dnsname, dnsnamesize, hostname, flags)) {
 			return 1;
 		}
 	}

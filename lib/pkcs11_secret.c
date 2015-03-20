@@ -60,10 +60,12 @@ gnutls_pkcs11_copy_secret_key(const char *token_url, gnutls_datum_t * key,
 	int a_val;
 	uint8_t id[16];
 	struct pkcs11_session_info sinfo;
+	
+	PKCS11_CHECK_INIT;
 
 	memset(&sinfo, 0, sizeof(sinfo));
 
-	ret = pkcs11_url_to_info(token_url, &info);
+	ret = pkcs11_url_to_info(token_url, &info, 0);
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;

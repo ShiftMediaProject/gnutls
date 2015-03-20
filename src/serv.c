@@ -135,6 +135,7 @@ LIST_TYPE_DECLARE(listener_item, char *http_request; char *http_response;
 		  int listen_socket; int fd;
 		  gnutls_session_t tls_session;
 		  int handshake_ok;
+		  time_t start;
     );
 
 static const char *safe_strerror(int value)
@@ -170,7 +171,7 @@ static int generate_dh_primes(void)
 {
 	int prime_bits =
 	    gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH,
-					GNUTLS_SEC_PARAM_NORMAL);
+					GNUTLS_SEC_PARAM_MEDIUM);
 
 	if (gnutls_dh_params_init(&dh_params) < 0) {
 		fprintf(stderr, "Error in dh parameter initialization\n");
@@ -274,11 +275,7 @@ get_params(gnutls_session_t session, gnutls_params_type_t type,
 	   gnutls_params_st * st)
 {
 
-	if (type == GNUTLS_PARAMS_RSA_EXPORT) {
-		if (rsa_params == NULL)
-			return -1;
-		st->params.rsa_export = rsa_params;
-	} else if (type == GNUTLS_PARAMS_DH) {
+	if (type == GNUTLS_PARAMS_DH) {
 		if (dh_params == NULL)
 			return -1;
 		st->params.dh = dh_params;
@@ -291,37 +288,29 @@ get_params(gnutls_session_t session, gnutls_params_type_t type,
 	return 0;
 }
 
-#ifdef ENABLE_RSA_EXPORT
-static int generate_rsa_params(void)
-{
-	if (gnutls_rsa_params_init(&rsa_params) < 0) {
-		fprintf(stderr, "Error in rsa parameter initialization\n");
-		exit(1);
-	}
-
-	/* Generate RSA parameters - for use with RSA-export
-	 * cipher suites. These should be discarded and regenerated
-	 * once a day, once every 500 transactions etc. Depends on the
-	 * security requirements.
-	 */
-	printf("Generating temporary RSA parameters. Please wait...\n");
-	fflush(stdout);
-
-	if (gnutls_rsa_params_generate2(rsa_params, 512) < 0) {
-		fprintf(stderr, "Error in rsa parameter generation\n");
-		exit(1);
-	}
-
-	return 0;
-}
-#else
-static int generate_rsa_params(void)
-{
-	return 0;
-}
-#endif
-
 LIST_DECLARE_INIT(listener_list, listener_item, listener_free);
+
+static int cert_verify_callback(gnutls_session_t session)
+{
+listener_item * j = gnutls_session_get_ptr(session);
+unsigned int size;
+int ret;
+
+	if (gnutls_auth_get_type(session) == GNUTLS_CRD_CERTIFICATE) {
+		if (!require_cert && gnutls_certificate_get_peers(session, &size) == NULL)
+			return 0;
+
+		if ((require_cert || ENABLED_OPT(VERIFY_CLIENT_CERT)) && cert_verify(session, NULL, NULL) == 0) {
+			do {
+				ret = gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_ACCESS_DENIED);
+			} while(ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
+
+			j->http_state = HTTP_STATE_CLOSING;
+			return -1;
+		}
+	}
+	return 0;
+}
 
 gnutls_session_t initialize_session(int dtls)
 {
@@ -348,9 +337,11 @@ gnutls_session_t initialize_session(int dtls)
 		gnutls_db_set_ptr(session, NULL);
 	}
 
+#ifdef ENABLE_SESSION_TICKETS
 	if (noticket == 0)
 		gnutls_session_ticket_enable_server(session,
 						    &session_ticket_key);
+#endif
 
 	if (gnutls_priority_set_direct(session, priorities, &err) < 0) {
 		fprintf(stderr, "Syntax error at: %s\n", err);
@@ -365,9 +356,13 @@ gnutls_session_t initialize_session(int dtls)
 	if (psk_cred != NULL)
 		gnutls_credentials_set(session, GNUTLS_CRD_PSK, psk_cred);
 
-	if (cert_cred != NULL)
+	if (cert_cred != NULL) {
+		gnutls_certificate_set_verify_function(cert_cred,
+					       cert_verify_callback);
+
 		gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE,
 				       cert_cred);
+	}
 
 	if (disable_client_cert)
 		gnutls_certificate_server_set_request(session,
@@ -386,19 +381,23 @@ gnutls_session_t initialize_session(int dtls)
 					GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 
 #ifdef ENABLE_DTLS_SRTP
-	if (HAVE_OPT(SRTP_PROFILES)) {
-		ret =
-		    gnutls_srtp_set_profile_direct(session,
-						   OPT_ARG(SRTP_PROFILES),
-						   &err);
-		if (ret == GNUTLS_E_INVALID_REQUEST)
-			fprintf(stderr, "Syntax error at: %s\n", err);
-		else
-			fprintf(stderr, "Error in profiles: %s\n",
-				gnutls_strerror(ret));
-		exit(1);
-	}
+        if (HAVE_OPT(SRTP_PROFILES)) {
+                ret =
+                    gnutls_srtp_set_profile_direct(session,
+                                                   OPT_ARG(SRTP_PROFILES),
+                                                   &err);
+                if (ret == GNUTLS_E_INVALID_REQUEST)
+                        fprintf(stderr, "Syntax error at: %s\n", err);
+                else if (ret != 0)
+                        fprintf(stderr, "Error in profiles: %s\n",
+                                gnutls_strerror(ret));
+                else fprintf(stderr,"DTLS profile set to %s\n",
+                             OPT_ARG(SRTP_PROFILES));
+
+                if (ret != 0) exit(1);
+        }
 #endif
+
 
 	return session;
 }
@@ -423,7 +422,7 @@ static char *peer_print_info(gnutls_session_t session, int *ret_length,
 	char *http_buffer;
 	gnutls_kx_algorithm_t kx_alg;
 	size_t len = 20 * 1024 + strlen(header);
-	char *crtinfo = NULL;
+	char *crtinfo = NULL, *crtinfo_old = NULL;
 	size_t ncrtinfo = 0;
 
 	if (verbose == 0) {
@@ -461,13 +460,16 @@ static char *peer_print_info(gnutls_session_t session, int *ret_length,
 						     GNUTLS_CRT_PRINT_FULL,
 						     &info) == 0) {
 				const char *post = "</PRE><P><PRE>";
-
+				
+				crtinfo_old = crtinfo;
 				crtinfo =
 				    realloc(crtinfo,
 					    ncrtinfo + info.size +
 					    strlen(post) + 1);
-				if (crtinfo == NULL)
+				if (crtinfo == NULL) {
+					free(crtinfo_old);
 					return NULL;
+				}
 				memcpy(crtinfo + ncrtinfo, info.data,
 				       info.size);
 				ncrtinfo += info.size;
@@ -627,7 +629,7 @@ const char *human_addr(const struct sockaddr *sa, socklen_t salen,
 	if (!buf || !buflen)
 		return NULL;
 
-	*buf = '\0';
+	*buf = 0;
 
 	switch (sa->sa_family) {
 #if HAVE_IPV6
@@ -641,27 +643,30 @@ const char *human_addr(const struct sockaddr *sa, socklen_t salen,
 		break;
 	}
 
-	l = strlen(buf);
+	l = 5;
 	buf += l;
 	buflen -= l;
 
 	if (getnameinfo(sa, salen, buf, buflen, NULL, 0, NI_NUMERICHOST) !=
-	    0)
-		return NULL;
+	    0) {	
+		   return NULL;
+        }
 
 	l = strlen(buf);
 	buf += l;
 	buflen -= l;
 
-	strncat(buf, " port ", buflen);
+	if (buflen < 8)
+		return save_buf;
 
-	l = strlen(buf);
-	buf += l;
-	buflen -= l;
+	strcat(buf, " port ");
+	buf += 6;
+	buflen -= 6;
 
 	if (getnameinfo(sa, salen, NULL, 0, buf, buflen, NI_NUMERICSERV) !=
-	    0)
-		return NULL;
+	    0) {
+		snprintf(buf, buflen, "%s", " unknown");
+        }
 
 	return save_buf;
 }
@@ -950,7 +955,23 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 #ifdef ENABLE_PKCS11
-	pkcs11_common();
+	if (HAVE_OPT(PROVIDER)) {
+		ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_MANUAL, NULL);
+		if (ret < 0)
+			fprintf(stderr, "pkcs11_init: %s",
+				gnutls_strerror(ret));
+		else {
+			ret =
+			    gnutls_pkcs11_add_provider(OPT_ARG(PROVIDER),
+						       NULL);
+			if (ret < 0) {
+				fprintf(stderr, "pkcs11_add_provider: %s",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+	}
+	pkcs11_common(NULL);
 #endif
 
 	/* Note that servers must generate parameters for
@@ -958,7 +979,6 @@ int main(int argc, char **argv)
 	 * gnutls_dh_params_set().
 	 */
 	if (generate != 0) {
-		generate_rsa_params();
 		generate_dh_primes();
 	} else if (dh_params_file) {
 		read_dh_params();
@@ -1150,8 +1170,10 @@ int main(int argc, char **argv)
 /*      gnutls_anon_set_server_dh_params(dh_cred, dh_params); */
 #endif
 
+#ifdef ENABLE_SESSION_TICKETS
 	if (noticket == 0)
 		gnutls_session_ticket_key_generate(&session_ticket_key);
+#endif
 
 	if (HAVE_OPT(MTU))
 		mtu = OPT_VALUE_MTU;
@@ -1171,6 +1193,63 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+static void retry_handshake(listener_item *j)
+{
+	int r, ret;
+
+	r = gnutls_handshake(j->tls_session);
+	if (r < 0 && gnutls_error_is_fatal(r) == 0) {
+		check_alert(j->tls_session, r);
+		/* nothing */
+	} else if (r < 0) {
+		j->http_state = HTTP_STATE_CLOSING;
+		check_alert(j->tls_session, r);
+		fprintf(stderr, "Error in handshake\n");
+		GERR(r);
+
+		do {
+			ret = gnutls_alert_send_appropriate(j->tls_session, r);
+		} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+	} else if (r == 0) {
+		if (gnutls_session_is_resumed(j->tls_session) != 0 && verbose != 0)
+			printf("*** This is a resumed session\n");
+
+		if (verbose != 0) {
+#if 0
+			printf("- connection from %s\n",
+			     human_addr((struct sockaddr *)
+				&client_address,
+				calen,
+				topbuf,
+				sizeof(topbuf)));
+#endif
+
+			print_info(j->tls_session, verbose, verbose);
+		}
+
+		j->handshake_ok = 1;
+	}
+}
+
+static void try_rehandshake(listener_item *j)
+{
+int r, ret;
+	fprintf(stderr, "*** Received hello message\n");
+	do {
+		r = gnutls_handshake(j->tls_session);
+	} while (r == GNUTLS_E_INTERRUPTED || r == GNUTLS_E_AGAIN);
+
+	if (r < 0) {
+		do {
+			ret = gnutls_alert_send_appropriate(j->tls_session, r);
+		} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+		GERR(r);
+		j->http_state = HTTP_STATE_CLOSING;
+	} else {
+		j->http_state = HTTP_STATE_REQUEST;
+	}
+}
+
 static void tcp_server(const char *name, int port)
 {
 	int n, s;
@@ -1178,6 +1257,7 @@ static void tcp_server(const char *name, int port)
 	int accept_fd;
 	struct sockaddr_storage client_address;
 	socklen_t calen;
+	struct timeval tv;
 
 	s = listen_socket(name, port, SOCK_STREAM);
 	if (s < 0)
@@ -1186,6 +1266,7 @@ static void tcp_server(const char *name, int port)
 	for (;;) {
 		listener_item *j;
 		fd_set rd, wr;
+		time_t now = time(0);
 #ifndef _WIN32
 		int val;
 #endif
@@ -1206,6 +1287,12 @@ static void tcp_server(const char *name, int port)
 				exit(1);
 			}
 #endif
+			if (j->start != 0 && now - j->start > 30) {
+				if (verbose != 0) {
+					fprintf(stderr, "Scheduling inactive connection for close\n");
+				}
+				j->http_state = HTTP_STATE_CLOSING;
+			}
 
 			if (j->listen_socket) {
 				FD_SET(j->fd, &rd);
@@ -1223,7 +1310,9 @@ static void tcp_server(const char *name, int port)
 		lloopend(listener_list, j);
 
 /* core operation */
-		n = select(n + 1, &rd, &wr, NULL, NULL);
+		tv.tv_sec = 10;
+		tv.tv_usec = 0;
+		n = select(n + 1, &rd, &wr, NULL, &tv);
 		if (n == -1 && errno == EINTR)
 			continue;
 		if (n < 0) {
@@ -1236,10 +1325,6 @@ static void tcp_server(const char *name, int port)
 
 			/* a new connection has arrived */
 			if (FD_ISSET(j->fd, &rd) && j->listen_socket) {
-				gnutls_session_t tls_session;
-
-				tls_session = initialize_session(0);
-
 				calen = sizeof(client_address);
 				memset(&client_address, 0, calen);
 				accept_fd =
@@ -1250,7 +1335,7 @@ static void tcp_server(const char *name, int port)
 				if (accept_fd < 0) {
 					perror("accept()");
 				} else {
-					time_t tt;
+					time_t tt = time(0);
 					char *ctt;
 
 					/* new list entry for the connection */
@@ -1260,15 +1345,16 @@ static void tcp_server(const char *name, int port)
 					    (char *) strdup("");
 					j->http_state = HTTP_STATE_REQUEST;
 					j->fd = accept_fd;
+					j->start = tt;
 
-					j->tls_session = tls_session;
+					j->tls_session = initialize_session(0);
+					gnutls_session_set_ptr(j->tls_session, j);
 					gnutls_transport_set_int
-					    (tls_session, accept_fd);
-					set_read_funcs(tls_session);
+					    (j->tls_session, accept_fd);
+					set_read_funcs(j->tls_session);
 					j->handshake_ok = 0;
 
 					if (verbose != 0) {
-						tt = time(0);
 						ctt = ctime(&tt);
 						ctt[strlen(ctt) - 1] = 0;
 
@@ -1290,66 +1376,10 @@ static void tcp_server(const char *name, int port)
 			if (FD_ISSET(j->fd, &rd) && !j->listen_socket) {
 /* read partial GET request */
 				char buf[1024];
-				int r, ret;
+				int r;
 
 				if (j->handshake_ok == 0) {
-					r = gnutls_handshake(j->
-							     tls_session);
-					if (r < 0
-					    && gnutls_error_is_fatal(r) ==
-					    0) {
-						check_alert(j->tls_session,
-							    r);
-						/* nothing */
-					} else if (r < 0
-						   &&
-						   gnutls_error_is_fatal(r)
-						   == 1) {
-						check_alert(j->tls_session,
-							    r);
-						fprintf(stderr,
-							"Error in handshake\n");
-						GERR(r);
-
-						do {
-							ret =
-							    gnutls_alert_send_appropriate
-							    (j->
-							     tls_session,
-							     r);
-						}
-						while (ret ==
-						       GNUTLS_E_AGAIN
-						       || ret ==
-						       GNUTLS_E_INTERRUPTED);
-						j->http_state =
-						    HTTP_STATE_CLOSING;
-					} else if (r == 0) {
-						if (gnutls_session_is_resumed(j->tls_session) != 0 && verbose != 0)
-							printf
-							    ("*** This is a resumed session\n");
-
-						if (verbose != 0) {
-							printf
-							    ("\n* Successful handshake from %s\n",
-							     human_addr((struct sockaddr *)
-									&client_address,
-									calen,
-									topbuf,
-									sizeof
-									(topbuf)));
-							print_info(j->
-								   tls_session,
-								   verbose,
-								   verbose);
-							if (gnutls_auth_get_type(j->tls_session) == GNUTLS_CRD_CERTIFICATE)
-								cert_verify
-								    (j->
-								     tls_session,
-								     NULL);
-						}
-						j->handshake_ok = 1;
-					}
+					retry_handshake(j);
 				}
 
 				if (j->handshake_ok == 1) {
@@ -1358,59 +1388,20 @@ static void tcp_server(const char *name, int port)
 							       buf,
 							       MIN(1024,
 								   SMALL_READ_TEST));
-					if (r ==
-					    GNUTLS_E_HEARTBEAT_PING_RECEIVED)
-					{
-						gnutls_heartbeat_pong(j->
-								      tls_session,
-								      0);
-					}
-					if (r == GNUTLS_E_INTERRUPTED
-					    || r == GNUTLS_E_AGAIN) {
+					if (r == GNUTLS_E_INTERRUPTED || r == GNUTLS_E_AGAIN) {
 						/* do nothing */
 					} else if (r <= 0) {
-						if (r ==
-						    GNUTLS_E_REHANDSHAKE) {
-							fprintf(stderr,
-								"*** Received hello message\n");
-							do {
-								r = gnutls_handshake(j->tls_session);
-							}
-							while (r ==
-							       GNUTLS_E_INTERRUPTED
-							       || r ==
-							       GNUTLS_E_AGAIN);
-
-							if (r < 0) {
-								do {
-									ret = gnutls_alert_send_appropriate(j->tls_session, r);
-								}
-								while (ret
-								       ==
-								       GNUTLS_E_AGAIN
-								       ||
-								       ret
-								       ==
-								       GNUTLS_E_INTERRUPTED);
-
-								GERR(r);
-								j->http_state = HTTP_STATE_CLOSING;
-							}
+						if (r == GNUTLS_E_HEARTBEAT_PING_RECEIVED) {
+							gnutls_heartbeat_pong(j->tls_session, 0);
+						} else if (r == GNUTLS_E_REHANDSHAKE) {
+						    	try_rehandshake(j);
 						} else {
+							j->http_state = HTTP_STATE_CLOSING;
 							if (r < 0) {
-								if (r !=
-								    GNUTLS_E_UNEXPECTED_PACKET_LENGTH)
-								{
-									j->http_state = HTTP_STATE_CLOSING;
-									check_alert
-									    (j->
-									     tls_session,
-									     r);
-									fprintf
-									    (stderr,
-									     "Error while receiving data\n");
-									GERR(r);
-								}
+								check_alert(j->tls_session, r);
+								fprintf(stderr,
+								     "Error while receiving data\n");
+								GERR(r);
 							}
 						}
 					} else {
@@ -1433,15 +1424,15 @@ static void tcp_server(const char *name, int port)
 							j->http_request[j->
 									request_length]
 							    = '\0';
-						} else
+						} else {
 							j->http_state =
 							    HTTP_STATE_CLOSING;
-
+						}
 					}
 /* check if we have a full HTTP header */
 
 					j->http_response = NULL;
-					if (j->http_request != NULL) {
+					if (j->http_state == HTTP_STATE_REQUEST && j->http_request != NULL) {
 						if ((http == 0
 						     && strchr(j->
 							       http_request,
@@ -1468,106 +1459,30 @@ static void tcp_server(const char *name, int port)
 					}
 				}
 			}
+
 			if (FD_ISSET(j->fd, &wr)) {
 /* write partial response request */
 				int r;
 
 				if (j->handshake_ok == 0) {
-					r = gnutls_handshake(j->
-							     tls_session);
-					if (r < 0
-					    && gnutls_error_is_fatal(r) ==
-					    0) {
-						check_alert(j->tls_session,
-							    r);
-						/* nothing */
-					} else if (r < 0
-						   &&
-						   gnutls_error_is_fatal(r)
-						   == 1) {
-						int ret;
-
-						j->http_state =
-						    HTTP_STATE_CLOSING;
-						check_alert(j->tls_session,
-							    r);
-						fprintf(stderr,
-							"Error in handshake\n");
-						GERR(r);
-
-						do {
-							ret =
-							    gnutls_alert_send_appropriate
-							    (j->
-							     tls_session,
-							     r);
-						}
-						while (ret ==
-						       GNUTLS_E_AGAIN);
-					} else if (r == 0) {
-						if (gnutls_session_is_resumed(j->tls_session) != 0 && verbose != 0)
-							printf
-							    ("*** This is a resumed session\n");
-						if (verbose != 0) {
-							printf
-							    ("- connection from %s\n",
-							     human_addr((struct sockaddr *)
-									&client_address,
-									calen,
-									topbuf,
-									sizeof
-									(topbuf)));
-
-							print_info(j->
-								   tls_session,
-								   verbose,
-								   verbose);
-							if (gnutls_auth_get_type(j->tls_session) == GNUTLS_CRD_CERTIFICATE)
-								cert_verify
-								    (j->
-								     tls_session,
-								     NULL);
-						}
-						j->handshake_ok = 1;
-					}
+					retry_handshake(j);
 				}
 
-				if (j->handshake_ok == 1
-				    && j->http_response != NULL) {
-					/* FIXME if j->http_response == NULL? */
-					r = gnutls_record_send(j->
-							       tls_session,
-							       j->
-							       http_response
+				if (j->handshake_ok == 1 && j->http_response == NULL) {
+					j->http_state = HTTP_STATE_CLOSING;
+				} else if (j->handshake_ok == 1 && j->http_response != NULL) {
+					r = gnutls_record_send(j->tls_session,
+							       j->http_response
 							       +
-							       j->
-							       response_written,
-							       MIN(j->
-								   response_length
+							       j->response_written,
+							       MIN(j->response_length
 								   -
-								   j->
-								   response_written,
+								   j->response_written,
 								   SMALL_READ_TEST));
-					if (r == GNUTLS_E_INTERRUPTED
-					    || r == GNUTLS_E_AGAIN) {
+					if (r == GNUTLS_E_INTERRUPTED || r == GNUTLS_E_AGAIN) {
 						/* do nothing */
 					} else if (r <= 0) {
-						if (http != 0)
-							j->http_state =
-							    HTTP_STATE_CLOSING;
-						else {
-							j->http_state =
-							    HTTP_STATE_REQUEST;
-							free(j->
-							     http_response);
-							j->response_length
-							    = 0;
-							j->request_length =
-							    0;
-							j->http_request[0]
-							    = 0;
-						}
-
+						j->http_state = HTTP_STATE_CLOSING;
 						if (r < 0) {
 							fprintf(stderr,
 								"Error while sending data\n");
@@ -1641,7 +1556,7 @@ static void cmd_parser(int argc, char **argv)
 	optionProcess(&gnutls_servOptions, argc, argv);
 
 	disable_client_cert = HAVE_OPT(DISABLE_CLIENT_CERT);
-	require_cert = HAVE_OPT(REQUIRE_CLIENT_CERT);
+	require_cert = ENABLED_OPT(REQUIRE_CLIENT_CERT);
 	if (HAVE_OPT(DEBUG))
 		debug = OPT_VALUE_DEBUG;
 

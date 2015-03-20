@@ -32,6 +32,12 @@ int main(void)
         const char *err;
         gnutls_certificate_credentials_t xcred;
 
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
+
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
 
         /* X509 stuff */
@@ -157,7 +163,29 @@ static int _verify_certificate_callback(gnutls_session_t session)
         /* This verification function uses the trusted CAs in the credentials
          * structure. So you must have installed one or more CA certificates.
          */
-        ret = gnutls_certificate_verify_peers3(session, hostname, &status);
+
+         /* The following demonstrate two different verification functions,
+          * the more flexible gnutls_certificate_verify_peers(), as well
+          * as the old gnutls_certificate_verify_peers3(). */
+#if 1
+        {
+        gnutls_typed_vdata_st data[2];
+
+        memset(data, 0, sizeof(data));
+
+        data[0].type = GNUTLS_DT_DNS_HOSTNAME;
+        data[0].data = (void*)hostname;
+
+        data[1].type = GNUTLS_DT_KEY_PURPOSE_OID;
+        data[1].data = (void*)GNUTLS_KP_TLS_WWW_SERVER;
+
+        ret = gnutls_certificate_verify_peers(session, data, 2,
+					      &status);
+        }
+#else
+        ret = gnutls_certificate_verify_peers3(session, hostname,
+					       &status);
+#endif
         if (ret < 0) {
                 printf("Error\n");
                 return GNUTLS_E_CERTIFICATE_ERROR;

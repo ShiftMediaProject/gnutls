@@ -33,7 +33,7 @@
 
 /* Functions for version handling. */
 const version_entry_st *version_to_entry(gnutls_protocol_t c);
-gnutls_protocol_t _gnutls_version_lowest(gnutls_session_t session);
+const version_entry_st *_gnutls_version_lowest(gnutls_session_t session);
 gnutls_protocol_t _gnutls_version_max(gnutls_session_t session);
 int _gnutls_version_priority(gnutls_session_t session,
 			     gnutls_protocol_t version);
@@ -75,7 +75,9 @@ int _gnutls_version_has_explicit_iv(const version_entry_st * ver)
 }
 
 /* Functions for MACs. */
-const mac_entry_st *mac_to_entry(gnutls_mac_algorithm_t c);
+const mac_entry_st *_gnutls_mac_to_entry(gnutls_mac_algorithm_t c);
+#define mac_to_entry(x) _gnutls_mac_to_entry(x)
+#define hash_to_entry(x) mac_to_entry((gnutls_mac_algorithm_t)(x))
 
 inline static int _gnutls_mac_is_ok(const mac_entry_st * e)
 {
@@ -192,7 +194,23 @@ _gnutls_cipher_get_implicit_iv_size(const cipher_entry_st * e)
 {
 	if (unlikely(e == NULL))
 		return 0;
-	return e->iv;
+	return e->implicit_iv;
+}
+
+inline static int
+_gnutls_cipher_get_iv_size(const cipher_entry_st * e)
+{
+	if (unlikely(e == NULL))
+		return 0;
+	return e->cipher_iv;
+}
+
+inline static int
+_gnutls_cipher_get_explicit_iv_size(const cipher_entry_st * e)
+{
+	if (unlikely(e == NULL))
+		return 0;
+	return e->explicit_iv;
 }
 
 inline static int _gnutls_cipher_get_key_size(const cipher_entry_st * e)
@@ -241,6 +259,7 @@ inline static int _gnutls_cipher_get_tag_size(const cipher_entry_st * e)
 
 /* Functions for key exchange. */
 int _gnutls_kx_needs_dh_params(gnutls_kx_algorithm_t algorithm);
+int _gnutls_kx_cert_pk_params(gnutls_kx_algorithm_t algorithm);
 int _gnutls_kx_needs_rsa_params(gnutls_kx_algorithm_t algorithm);
 mod_auth_st *_gnutls_kx_auth_struct(gnutls_kx_algorithm_t algorithm);
 int _gnutls_kx_is_ok(gnutls_kx_algorithm_t algorithm);
@@ -309,6 +328,16 @@ static inline int _gnutls_kx_is_ecc(gnutls_kx_algorithm_t kx)
 {
 	if (kx == GNUTLS_KX_ECDHE_RSA || kx == GNUTLS_KX_ECDHE_ECDSA ||
 	    kx == GNUTLS_KX_ANON_ECDH || kx == GNUTLS_KX_ECDHE_PSK)
+		return 1;
+
+	return 0;
+}
+
+static inline int _sig_is_ecdsa(gnutls_sign_algorithm_t sig)
+{
+	if (sig == GNUTLS_SIGN_ECDSA_SHA1 || sig == GNUTLS_SIGN_ECDSA_SHA224 ||
+	    sig == GNUTLS_SIGN_ECDSA_SHA256 || sig == GNUTLS_SIGN_ECDSA_SHA384 ||
+	    sig == GNUTLS_SIGN_ECDSA_SHA512)
 		return 1;
 
 	return 0;

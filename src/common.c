@@ -16,6 +16,20 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * In addition, as a special exception, the copyright holders give
+ * permission to link the code of portions of this program with the
+ * OpenSSL library under certain conditions as described in each
+ * individual source file, and distribute linked combinations including
+ * the two.
+ * 
+ * You must obey the GNU General Public License in all respects for all
+ * of the code used other than OpenSSL. If you modify file(s) with this
+ * exception, you may extend this exception to your version of the
+ * file(s), but you are not obligated to do so. If you do not wish to do
+ * so, delete this exception statement from your version. If you delete
+ * this exception statement from all source files in the program, then
+ * also delete it here.
  */
 
 #include <config.h>
@@ -101,7 +115,7 @@ static void print_x509_info_compact(gnutls_session_t session)
 }
 
 static void
-print_x509_info(gnutls_session_t session, int flag, int print_cert)
+print_x509_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
 {
 	gnutls_x509_crt_t crt;
 	const gnutls_datum_t *cert_list;
@@ -114,8 +128,8 @@ print_x509_info(gnutls_session_t session, int flag, int print_cert)
 		return;
 	}
 
-	printf("- Certificate type: X.509\n");
-	printf("- Got a certificate list of %d certificates.\n",
+	fprintf(out, "- Certificate type: X.509\n");
+	fprintf(out, "- Got a certificate list of %d certificates.\n",
 	       cert_list_size);
 
 	for (j = 0; j < cert_list_size; j++) {
@@ -131,13 +145,13 @@ print_x509_info(gnutls_session_t session, int flag, int print_cert)
 			return;
 		}
 
-		printf("- Certificate[%d] info:\n - ", j);
+		fprintf(out, "- Certificate[%d] info:\n - ", j);
 		if (flag == GNUTLS_CRT_PRINT_COMPACT && j > 0)
 			flag = GNUTLS_CRT_PRINT_ONELINE;
 
 		ret = gnutls_x509_crt_print(crt, flag, &cinfo);
 		if (ret == 0) {
-			printf("%s\n", cinfo.data);
+			fprintf(out, "%s\n", cinfo.data);
 			gnutls_free(cinfo.data);
 		}
 
@@ -168,9 +182,9 @@ print_x509_info(gnutls_session_t session, int flag, int print_cert)
 			}
 
 			p[size] = 0;
-			fputs("\n", stdout);
-			fputs(p, stdout);
-			fputs("\n", stdout);
+			fputs("\n", out);
+			fputs(p, out);
+			fputs("\n", out);
 
 			gnutls_free(p);
 		}
@@ -215,7 +229,7 @@ static void print_openpgp_info_compact(gnutls_session_t session)
 }
 
 static void
-print_openpgp_info(gnutls_session_t session, int flag, int print_cert)
+print_openpgp_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
 {
 
 	gnutls_openpgp_crt_t crt;
@@ -223,7 +237,7 @@ print_openpgp_info(gnutls_session_t session, int flag, int print_cert)
 	unsigned int cert_list_size = 0;
 	int ret;
 
-	printf("- Certificate type: OpenPGP\n");
+	fprintf(out, "- Certificate type: OpenPGP\n");
 
 	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
 
@@ -241,7 +255,7 @@ print_openpgp_info(gnutls_session_t session, int flag, int print_cert)
 
 		ret = gnutls_openpgp_crt_print(crt, flag, &cinfo);
 		if (ret == 0) {
-			printf("- %s\n", cinfo.data);
+			fprintf(out, "- %s\n", cinfo.data);
 			gnutls_free(cinfo.data);
 		}
 
@@ -271,8 +285,8 @@ print_openpgp_info(gnutls_session_t session, int flag, int print_cert)
 				return;
 			}
 
-			fputs(p, stdout);
-			fputs("\n", stdout);
+			fputs(p, out);
+			fputs("\n", out);
 
 			gnutls_free(p);
 		}
@@ -285,14 +299,30 @@ print_openpgp_info(gnutls_session_t session, int flag, int print_cert)
 
 /* returns false (0) if not verified, or true (1) otherwise 
  */
-int cert_verify(gnutls_session_t session, const char *hostname)
+int cert_verify(gnutls_session_t session, const char *hostname, const char *purpose)
 {
 	int rc;
 	unsigned int status = 0;
 	gnutls_datum_t out;
 	int type;
+	gnutls_typed_vdata_st data[2];
+	unsigned elements = 0;
 
-	rc = gnutls_certificate_verify_peers3(session, hostname, &status);
+	memset(data, 0, sizeof(data));
+
+	if (hostname) {
+		data[elements].type = GNUTLS_DT_DNS_HOSTNAME;
+		data[elements].data = (void*)hostname;
+		elements++;
+	}
+
+	if (purpose) {
+		data[elements].type = GNUTLS_DT_KEY_PURPOSE_OID;
+		data[elements].data = (void*)purpose;
+		elements++;
+	}
+
+	rc = gnutls_certificate_verify_peers(session, data, elements, &status);
 	if (rc == GNUTLS_E_NO_CERTIFICATE_FOUND) {
 		printf("- Peer did not send any certificate.\n");
 		return 0;
@@ -423,7 +453,7 @@ int print_info(gnutls_session_t session, int verbose, int print_cert)
 	unsigned char session_id[33];
 	size_t session_id_size = sizeof(session_id);
 	gnutls_srtp_profile_t srtp_profile;
-	gnutls_datum_t p;
+	gnutls_datum_t p, resp;
 	char *desc;
 	int rc;
 
@@ -539,6 +569,16 @@ int print_info(gnutls_session_t session, int verbose, int print_cert)
 	       (gnutls_compression_get(session)));
 	printf("- Compression: %s\n", tmp);
 
+	printf("- Options:");
+	if (gnutls_safe_renegotiation_status(session)!=0)
+		printf(" safe renegotiation,");
+#ifdef ENABLE_OCSP
+	if (gnutls_ocsp_status_request_get(session, &resp)==0) {
+		printf(" OCSP status request%s,", gnutls_ocsp_status_request_is_checked(session,0)!=0?"":"[ignored]");
+	}
+#endif
+	printf("\n");
+
 #ifdef ENABLE_DTLS_SRTP
 	rc = gnutls_srtp_get_selected_profile(session, &srtp_profile);
 	if (rc == 0)
@@ -582,6 +622,11 @@ int print_info(gnutls_session_t session, int verbose, int print_cert)
 
 void print_cert_info(gnutls_session_t session, int verbose, int print_cert)
 {
+	print_cert_info2(session, verbose, stdout, print_cert);
+}
+
+void print_cert_info2(gnutls_session_t session, int verbose, FILE *out, int print_cert)
+{
 	int flag;
 
 	if (verbose)
@@ -594,11 +639,11 @@ void print_cert_info(gnutls_session_t session, int verbose, int print_cert)
 
 	switch (gnutls_certificate_type_get(session)) {
 	case GNUTLS_CRT_X509:
-		print_x509_info(session, flag, print_cert);
+		print_x509_info(session, out, flag, print_cert);
 		break;
 #ifdef ENABLE_OPENPGP
 	case GNUTLS_CRT_OPENPGP:
-		print_openpgp_info(session, flag, print_cert);
+		print_openpgp_info(session, out, flag, print_cert);
 		break;
 #endif
 	default:
@@ -962,6 +1007,7 @@ pin_callback(void *user, int attempt, const char *token_url,
 	     size_t pin_max)
 {
 	const char *password = NULL;
+	common_info_st *info = user;
 	const char *desc;
 	int cache = MAX_CACHE_TRIES;
 	unsigned len;
@@ -995,7 +1041,7 @@ pin_callback(void *user, int attempt, const char *token_url,
 	if (cache > 0 && cached_url != NULL) {
 		if (token_url != NULL
 		    && strcmp(cached_url, token_url) == 0) {
-			if (strlen(pin) >= sizeof(cached_pin)) {
+			if (strlen(cached_pin) >= pin_max) {
 				fprintf(stderr, "Too long PIN given\n");
 				exit(1);
 			}
@@ -1011,12 +1057,12 @@ pin_callback(void *user, int attempt, const char *token_url,
 
 	printf("Token '%s' with URL '%s' ", token_label, token_url);
 	printf("requires %s PIN\n", desc);
-	
+
 	password = getenv(env);
-	if (env == NULL) /* compatibility */
+	if (password == NULL) /* compatibility */
 		password = getenv("GNUTLS_PIN");
 
-	if (password == NULL) {
+	if (password == NULL && (info == NULL || info->batch == 0)) {
 		password = getpass("Enter PIN: ");
 	} else {
 		if (flags & GNUTLS_PIN_WRONG) {
@@ -1026,7 +1072,10 @@ pin_callback(void *user, int attempt, const char *token_url,
 	}
 
 	if (password == NULL || password[0] == 0 || password[0] == '\n') {
-		fprintf(stderr, "No PIN given\n");
+		fprintf(stderr, "No PIN given.\n");
+		if (info != NULL && info->batch != 0) {
+			fprintf(stderr, "note: when operating in batch mode, set the GNUTLS_PIN or GNUTLS_SO_PIN environment variables\n");
+		}
 		exit(1);
 	}
 
@@ -1058,8 +1107,9 @@ static int
 token_callback(void *user, const char *label, const unsigned retry)
 {
 	char buf[32];
+	common_info_st *info = user;
 
-	if (retry > 0) {
+	if (retry > 0 || (info != NULL && info->batch != 0)) {
 		fprintf(stderr, "Could not find token %s\n", label);
 		return -1;
 	}
@@ -1070,11 +1120,11 @@ token_callback(void *user, const char *label, const unsigned retry)
 	return 0;
 }
 
-void pkcs11_common(void)
+void pkcs11_common(common_info_st *c)
 {
 
-	gnutls_pkcs11_set_pin_function(pin_callback, NULL);
-	gnutls_pkcs11_set_token_function(token_callback, NULL);
+	gnutls_pkcs11_set_pin_function(pin_callback, c);
+	gnutls_pkcs11_set_token_function(token_callback, c);
 
 }
 

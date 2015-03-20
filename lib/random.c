@@ -26,11 +26,25 @@
 #include <gnutls_int.h>
 #include <gnutls_errors.h>
 #include <random.h>
+#include <fips.h>
 
 void *gnutls_rnd_ctx;
 
 int _gnutls_rnd_init(void)
 {
+#ifdef ENABLE_FIPS140
+	/* The FIPS140 random generator is only enabled when we are compiled
+	 * with FIPS support, _and_ the system requires FIPS140.
+	 */
+	if (_gnutls_fips_mode_enabled() == 1) {
+		int ret;
+
+		ret = gnutls_crypto_rnd_register(100, &_gnutls_fips_rnd_ops);
+		if (ret < 0)
+			return ret;
+	}
+#endif
+
 	if (_gnutls_rnd_ops.init != NULL) {
 		if (_gnutls_rnd_ops.init(&gnutls_rnd_ctx) < 0) {
 			gnutls_assert();
@@ -59,12 +73,15 @@ void _gnutls_rnd_deinit(void)
  * This function will generate random data and store it to output
  * buffer.
  *
- * Returns: Zero or a negative error code on error.
+ * This function is thread-safe and also fork-safe.
+ *
+ * Returns: Zero on success, or a negative error code on error.
  *
  * Since: 2.12.0
  **/
 int gnutls_rnd(gnutls_rnd_level_t level, void *data, size_t len)
 {
+	FAIL_IF_LIB_ERROR;
 	return _gnutls_rnd(level, data, len);
 }
 

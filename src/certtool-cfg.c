@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2004-2012 Free Software Foundation, Inc.
- * Copyright (C) 2013 Nikos Mavrogiannopoulos
+ * Copyright (C) 2004-2014 Free Software Foundation, Inc.
+ * Copyright (C) 2013,2014 Nikos Mavrogiannopoulos
  *
  * This file is part of GnuTLS.
  *
@@ -25,25 +25,28 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <certtool-cfg.h>
 #include <gnutls/x509.h>
 #include <string.h>
 #include <limits.h>
 #include <inttypes.h>
 #include <time.h>
+#include <timespec.h>
 #include <parse-datetime.h>
 #include <autoopts/options.h>
 #include <intprops.h>
+#include <gnutls/crypto.h>
 
 /* for inet_pton */
 #include <sys/types.h>
 
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #elif HAVE_WS2TCPIP_H
 #include <ws2tcpip.h>
 #endif
-#include <arpa/inet.h>
 
 /* Gnulib portability files. */
 #include <getpass.h>
@@ -55,9 +58,70 @@ extern int ask_pass;
 #define MAX_ENTRIES 128
 #define MAX_POLICIES 8
 
+enum option_types { OPTION_NUMERIC, OPTION_STRING, OPTION_BOOLEAN, OPTION_MULTI_LINE };
+
+struct cfg_options {
+	const char *name;
+	unsigned type;
+
+	/* used when parsing */
+	unsigned found; 
+};
+
+static struct cfg_options available_options[] = {
+	{ .name = "unit", .type = OPTION_MULTI_LINE },
+	{ .name = "ou", .type = OPTION_MULTI_LINE },
+	{ .name = "organization", .type = OPTION_MULTI_LINE },
+	{ .name = "o", .type = OPTION_MULTI_LINE },
+	{ .name = "dc", .type = OPTION_MULTI_LINE },
+	{ .name = "dns_name", .type = OPTION_MULTI_LINE },
+	{ .name = "ip_address", .type = OPTION_MULTI_LINE },
+	{ .name = "email", .type = OPTION_MULTI_LINE },
+	{ .name = "key_purpose_oid", .type = OPTION_MULTI_LINE },
+	{ .name = "nc_exclude_dns", .type = OPTION_MULTI_LINE },
+	{ .name = "nc_exclude_email", .type = OPTION_MULTI_LINE },
+	{ .name = "nc_permit_dns", .type = OPTION_MULTI_LINE },
+	{ .name = "nc_permit_email", .type = OPTION_MULTI_LINE },
+	{ .name = "dn_oid", .type = OPTION_MULTI_LINE },
+	{ .name = "crl_dist_points", .type = OPTION_MULTI_LINE },
+	{ .name = "ocsp_uri", .type = OPTION_MULTI_LINE },
+	{ .name = "ca_issuers_uri", .type = OPTION_MULTI_LINE },
+	{ .name = "locality", .type = OPTION_STRING },
+	{ .name = "state", .type = OPTION_STRING },
+	{ .name = "dn", .type = OPTION_STRING },
+	{ .name = "cn", .type = OPTION_STRING },
+	{ .name = "uid", .type = OPTION_STRING },
+	{ .name = "challenge_password", .type = OPTION_STRING },
+	{ .name = "password", .type = OPTION_STRING },
+	{ .name = "pkcs9_email", .type = OPTION_STRING },
+	{ .name = "country", .type = OPTION_STRING },
+	{ .name = "expiration_date", .type = OPTION_STRING },
+	{ .name = "activation_date", .type = OPTION_STRING },
+	{ .name = "policy*", .type = OPTION_MULTI_LINE }, /* not a multi-line but there are multi as it is a wildcard */
+	{ .name = "pkcs12_key_name", .type = OPTION_STRING },
+	{ .name = "proxy_policy_language", .type = OPTION_STRING },
+	{ .name = "serial", .type = OPTION_NUMERIC },
+	{ .name = "expiration_days", .type = OPTION_NUMERIC },
+	{ .name = "crl_next_update", .type = OPTION_NUMERIC },
+	{ .name = "crl_number", .type = OPTION_NUMERIC },
+	{ .name = "path_len", .type = OPTION_NUMERIC },
+	{ .name = "ca", .type = OPTION_BOOLEAN },
+	{ .name = "honor_crq_extensions", .type = OPTION_BOOLEAN },
+	{ .name = "tls_www_client", .type = OPTION_BOOLEAN },
+	{ .name = "tls_www_server", .type = OPTION_BOOLEAN },
+	{ .name = "signing_key", .type = OPTION_BOOLEAN },
+	{ .name = "encryption_key", .type = OPTION_BOOLEAN },
+	{ .name = "cert_signing_key", .type = OPTION_BOOLEAN },
+	{ .name = "crl_signing_key", .type = OPTION_BOOLEAN },
+	{ .name = "code_signing_key", .type = OPTION_BOOLEAN },
+	{ .name = "ocsp_signing_key", .type = OPTION_BOOLEAN },
+	{ .name = "time_stamping_key", .type = OPTION_BOOLEAN },
+	{ .name = "ipsec_ike_key", .type = OPTION_BOOLEAN },
+};
+
 typedef struct _cfg_ctx {
-	char *organization;
-	char *unit;
+	char **organization;
+	char **unit;
 	char *locality;
 	char *state;
 	char *dn;
@@ -75,12 +139,16 @@ typedef struct _cfg_ctx {
 	char **ip_addr;
 	char **email;
 	char **dn_oid;
-	char *crl_dist_points;
+	char **permitted_nc_dns;
+	char **excluded_nc_dns;
+	char **permitted_nc_email;
+	char **excluded_nc_email;
+	char **crl_dist_points;
 	char *password;
 	char *pkcs12_key_name;
 	char *expiration_date;
 	char *activation_date;
-	int serial;
+	int64_t serial;
 	int expiration_days;
 	int ca;
 	int path_len;
@@ -96,7 +164,7 @@ typedef struct _cfg_ctx {
 	int ipsec_ike_key;
 	char **key_purpose_oids;
 	int crl_next_update;
-	int crl_number;
+	int64_t crl_number;
 	int crq_extensions;
 	char *proxy_policy_language;
 	char **ocsp_uris;
@@ -109,6 +177,7 @@ void cfg_init(void)
 {
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.path_len = -1;
+	cfg.crl_number = -1;
 	cfg.serial = -1;
 }
 
@@ -173,6 +242,13 @@ void cfg_init(void)
       s_name = 1; \
     }
 
+/* READ_NUMERIC only returns a long */
+#define CHECK_LONG_OVERFLOW(x) \
+      if (x == LONG_MAX) { \
+      	fprintf(stderr, "overflow in number\n"); \
+      	exit(1); \
+      }
+
 #define READ_NUMERIC(name, s_name) \
   val = optionGetValue(pov, name); \
   if (val != NULL) \
@@ -180,16 +256,41 @@ void cfg_init(void)
       if (val->valType == OPARG_TYPE_NUMERIC) \
         s_name = val->v.longVal; \
       else if (val->valType == OPARG_TYPE_STRING) \
-        s_name = atoi(val->v.strVal); \
+        s_name = strtol(val->v.strVal, NULL, 10); \
     }
+
+
+static int handle_option(const tOptionValue* val)
+{
+unsigned j;
+unsigned len, cmp;
+
+	for (j=0;j<sizeof(available_options)/sizeof(available_options[0]);j++) {
+		len = strlen(available_options[j].name);
+		if (len > 2 && available_options[j].name[len-1] == '*')
+			cmp = strncasecmp(val->pzName, available_options[j].name, len-1);
+		else
+			cmp = strcasecmp(val->pzName, available_options[j].name);
+
+		if (cmp == 0) {
+			if (available_options[j].type != OPTION_MULTI_LINE && 
+			    available_options[j].found != 0) {
+			    fprintf(stderr, "Warning: multiple options found for '%s'; only the first will be taken into account.\n", available_options[j].name);
+			}
+			available_options[j].found = 1;
+			return 1;
+		}
+	}
+
+	return 0;
+}
 
 int template_parse(const char *template)
 {
 	/* Parsing return code */
-	int ret;
 	unsigned int i;
 	tOptionValue const *pov;
-	const tOptionValue *val;
+	const tOptionValue *val, *prev;
 	char tmpstr[256];
 
 	pov = configFileLoad(template);
@@ -199,14 +300,25 @@ int template_parse(const char *template)
 		exit(1);
 	}
 
-	/* Option variables */
-	val = optionGetValue(pov, "organization");
-	if (val != NULL && val->valType == OPARG_TYPE_STRING)
-		cfg.organization = strdup(val->v.strVal);
+	val = optionGetValue(pov, NULL);
+	while (val != NULL) {
+		if (handle_option(val) == 0) {
+			fprintf(stderr, "Warning: skipping unknown option '%s'\n", val->pzName);
+		}
+		prev = val;
+		val = optionNextValue(pov, prev);
+	}
 
-	val = optionGetValue(pov, "unit");
-	if (val != NULL && val->valType == OPARG_TYPE_STRING)
-		cfg.unit = strdup(val->v.strVal);
+	/* Option variables */
+	READ_MULTI_LINE("unit", cfg.unit);
+	if (cfg.unit == NULL) {
+		READ_MULTI_LINE("ou", cfg.unit);
+	}
+
+	READ_MULTI_LINE("organization", cfg.organization);
+	if (cfg.organization == NULL) {
+		READ_MULTI_LINE("o", cfg.organization);
+	}
 
 	val = optionGetValue(pov, "locality");
 	if (val != NULL && val->valType == OPARG_TYPE_STRING)
@@ -284,11 +396,14 @@ int template_parse(const char *template)
 	READ_MULTI_LINE("email", cfg.email);
 	READ_MULTI_LINE("key_purpose_oid", cfg.key_purpose_oids);
 
+	READ_MULTI_LINE("nc_exclude_dns", cfg.excluded_nc_dns);
+	READ_MULTI_LINE("nc_exclude_email", cfg.excluded_nc_email);
+	READ_MULTI_LINE("nc_permit_dns", cfg.permitted_nc_dns);
+	READ_MULTI_LINE("nc_permit_email", cfg.permitted_nc_email);
+
 	READ_MULTI_LINE_TOKENIZED("dn_oid", cfg.dn_oid);
 
-	val = optionGetValue(pov, "crl_dist_points");
-	if (val != NULL && val->valType == OPARG_TYPE_STRING)
-		cfg.crl_dist_points = strdup(val->v.strVal);
+	READ_MULTI_LINE("crl_dist_points", cfg.crl_dist_points);
 
 	val = optionGetValue(pov, "pkcs12_key_name");
 	if (val != NULL && val->valType == OPARG_TYPE_STRING)
@@ -296,9 +411,13 @@ int template_parse(const char *template)
 
 
 	READ_NUMERIC("serial", cfg.serial);
+	CHECK_LONG_OVERFLOW(cfg.serial);
+
 	READ_NUMERIC("expiration_days", cfg.expiration_days);
 	READ_NUMERIC("crl_next_update", cfg.crl_next_update);
 	READ_NUMERIC("crl_number", cfg.crl_number);
+	CHECK_LONG_OVERFLOW(cfg.crl_number);
+
 	READ_NUMERIC("path_len", cfg.path_len);
 
 	val = optionGetValue(pov, "proxy_policy_language");
@@ -374,10 +493,10 @@ read_crq_set(gnutls_x509_crq_t crq, const char *input_str, const char *oid)
 
 /* The input_str should contain %d or %u to print the default.
  */
-static int read_int_with_default(const char *input_str, int def)
+static int64_t read_int_with_default(const char *input_str, long def)
 {
 	char *endptr;
-	long l, len;
+	int64_t l;
 	static char input[128];
 
 	fprintf(stderr, input_str, def);
@@ -387,28 +506,47 @@ static int read_int_with_default(const char *input_str, int def)
 	if (IS_NEWLINE(input))
 		return def;
 
-	len = strlen(input);
+#if SIZEOF_LONG < 8
+	l = strtoll(input, &endptr, 0);
 
+	if (*endptr != '\0' && *endptr != '\r' && *endptr != '\n') {
+		fprintf(stderr, "Trailing garbage ignored: `%s'\n",
+			endptr);
+		return 0;
+	} else {
+		*endptr = 0;
+	}
+
+	if (l <= LLONG_MIN || l >= LLONG_MAX) {
+		fprintf(stderr, "Integer out of range: `%s' (max: %llu)\n", input, LLONG_MAX-1);
+		return 0;
+	}
+#else
 	l = strtol(input, &endptr, 0);
 
 	if (*endptr != '\0' && *endptr != '\r' && *endptr != '\n') {
 		fprintf(stderr, "Trailing garbage ignored: `%s'\n",
 			endptr);
 		return 0;
+	} else {
+		*endptr = 0;
 	}
 
-	if (l <= INT_MIN || l >= INT_MAX) {
-		fprintf(stderr, "Integer out of range: `%s'\n", input);
+	if (l <= LONG_MIN || l >= LONG_MAX) {
+		fprintf(stderr, "Integer out of range: `%s' (max: %lu)\n", input, LONG_MAX-1);
 		return 0;
 	}
+#endif
+
+
 
 	if (input == endptr)
 		l = def;
 
-	return (int) l;
+	return l;
 }
 
-int read_int(const char *input_str)
+int64_t read_int(const char *input_str)
 {
 	return read_int_with_default(input_str, 0);
 }
@@ -505,14 +643,42 @@ const char *get_challenge_pass(void)
 		return getpass("Enter a challenge password: ");
 }
 
-const char *get_crl_dist_point_url(void)
+void get_crl_dist_point_set(gnutls_x509_crt_t crt)
 {
-	if (batch)
-		return cfg.crl_dist_points;
-	else
-		return
-		    read_str
-		    ("Enter the URI of the CRL distribution point: ");
+	int ret = 0, i;
+
+	if (batch) {
+		if (!cfg.crl_dist_points)
+			return;
+
+		for (i = 0; cfg.crl_dist_points[i] != NULL; i++) {
+			ret =
+			    gnutls_x509_crt_set_crl_dist_points
+			    (crt, GNUTLS_SAN_URI, cfg.crl_dist_points[i],
+			     0);
+			if (ret < 0)
+				break;
+		}
+	} else {
+		const char *p;
+
+		do {
+			p = read_str
+			    ("Enter the URI of the CRL distribution point: ");
+			if (!p)
+				return;
+
+			ret = gnutls_x509_crt_set_crl_dist_points
+			    (crt, GNUTLS_SAN_URI, p, 0);
+		}
+		while (p);
+	}
+
+	if (ret < 0) {
+		fprintf(stderr, "gnutls_x509_crt_set_crl_dist_points: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
 }
 
 void get_country_crt_set(gnutls_x509_crt_t crt)
@@ -542,21 +708,23 @@ void get_country_crt_set(gnutls_x509_crt_t crt)
 void get_organization_crt_set(gnutls_x509_crt_t crt)
 {
 	int ret;
+	unsigned i;
 
 	if (batch) {
 		if (!cfg.organization)
 			return;
 
-		ret =
-		    gnutls_x509_crt_set_dn_by_oid(crt,
+		for (i = 0; cfg.organization[i] != NULL; i++) {
+			ret =
+			    gnutls_x509_crt_set_dn_by_oid(crt,
 						  GNUTLS_OID_X520_ORGANIZATION_NAME,
-						  0, cfg.organization,
-						  strlen(cfg.
-							 organization));
-		if (ret < 0) {
-			fprintf(stderr, "set_dn: %s\n",
-				gnutls_strerror(ret));
-			exit(1);
+						  0, cfg.organization[i],
+						  strlen(cfg.organization[i]));
+			if (ret < 0) {
+				fprintf(stderr, "set_dn: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
 		}
 	} else {
 		read_crt_set(crt, "Organization name: ",
@@ -568,20 +736,23 @@ void get_organization_crt_set(gnutls_x509_crt_t crt)
 void get_unit_crt_set(gnutls_x509_crt_t crt)
 {
 	int ret;
+	unsigned i;
 
 	if (batch) {
 		if (!cfg.unit)
 			return;
 
-		ret =
-		    gnutls_x509_crt_set_dn_by_oid(crt,
+		for (i = 0; cfg.unit[i] != NULL; i++) {
+			ret =
+			    gnutls_x509_crt_set_dn_by_oid(crt,
 						  GNUTLS_OID_X520_ORGANIZATIONAL_UNIT_NAME,
-						  0, cfg.unit,
-						  strlen(cfg.unit));
-		if (ret < 0) {
-			fprintf(stderr, "set_dn: %s\n",
-				gnutls_strerror(ret));
-			exit(1);
+						  0, cfg.unit[i],
+						  strlen(cfg.unit[i]));
+			if (ret < 0) {
+				fprintf(stderr, "set_dn: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
 		}
 	} else {
 		read_crt_set(crt, "Organizational unit name: ",
@@ -679,6 +850,84 @@ void get_dn_crt_set(gnutls_x509_crt_t crt)
 	}
 }
 
+void crt_constraints_set(gnutls_x509_crt_t crt)
+{
+	int ret;
+	unsigned i;
+	gnutls_x509_name_constraints_t nc;
+	gnutls_datum_t name;
+
+	if (batch) {
+		if (cfg.permitted_nc_dns == NULL && cfg.permitted_nc_email == NULL &&
+			cfg.excluded_nc_dns == NULL && cfg.excluded_nc_email == NULL)
+			return; /* nothing to do */
+
+		ret = gnutls_x509_name_constraints_init(&nc);
+		if (ret < 0) {
+			fprintf(stderr, "nc_init: %s\n", gnutls_strerror(ret));
+			exit(1);
+		}
+
+		if (cfg.permitted_nc_dns) {
+
+			for (i = 0; cfg.permitted_nc_dns[i] != NULL; i++) {
+
+				name.data = (void*)cfg.permitted_nc_dns[i];
+				name.size = strlen((char*)name.data);
+				ret = gnutls_x509_name_constraints_add_permitted(nc, GNUTLS_SAN_DNSNAME, &name);
+				if (ret < 0) {
+					fprintf(stderr, "error adding constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+			}
+		}
+
+		if (cfg.excluded_nc_dns) {
+			for (i = 0; cfg.excluded_nc_dns[i] != NULL; i++) {
+				name.data = (void*)cfg.excluded_nc_dns[i];
+				name.size = strlen((char*)name.data);
+				ret = gnutls_x509_name_constraints_add_excluded(nc, GNUTLS_SAN_DNSNAME, &name);
+				if (ret < 0) {
+					fprintf(stderr, "error adding constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+			}
+		}
+
+		if (cfg.permitted_nc_email) {
+			for (i = 0; cfg.permitted_nc_email[i] != NULL; i++) {
+				name.data = (void*)cfg.permitted_nc_email[i];
+				name.size = strlen((char*)name.data);
+				ret = gnutls_x509_name_constraints_add_permitted(nc, GNUTLS_SAN_RFC822NAME, &name);
+				if (ret < 0) {
+					fprintf(stderr, "error adding constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+			}
+		}
+
+		if (cfg.excluded_nc_email) {
+			for (i = 0; cfg.excluded_nc_email[i] != NULL; i++) {
+				name.data = (void*)cfg.excluded_nc_email[i];
+				name.size = strlen((char*)name.data);
+				ret = gnutls_x509_name_constraints_add_excluded(nc, GNUTLS_SAN_RFC822NAME, &name);
+				if (ret < 0) {
+					fprintf(stderr, "error adding constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+			}
+		}
+
+		ret = gnutls_x509_crt_set_name_constraints(crt, nc, 1);
+		if (ret < 0) {
+			fprintf(stderr, "error setting constraints: %s\n", gnutls_strerror(ret));
+			exit(1);
+		}
+
+		gnutls_x509_name_constraints_deinit(nc);
+	}
+}
+
 void get_uid_crt_set(gnutls_x509_crt_t crt)
 {
 	int ret;
@@ -770,7 +1019,7 @@ void get_ocsp_issuer_set(gnutls_x509_crt_t crt)
 		if (!cfg.ocsp_uris)
 			return;
 		for (i = 0; cfg.ocsp_uris[i] != NULL; i++) {
-			uri.data = cfg.ocsp_uris[i];
+			uri.data = (void*)cfg.ocsp_uris[i];
 			uri.size = strlen(cfg.ocsp_uris[i]);
 			ret =
 			    gnutls_x509_crt_set_authority_info_access(crt,
@@ -795,7 +1044,7 @@ void get_ca_issuers_set(gnutls_x509_crt_t crt)
 		if (!cfg.ca_issuers_uris)
 			return;
 		for (i = 0; cfg.ca_issuers_uris[i] != NULL; i++) {
-			uri.data = cfg.ca_issuers_uris[i];
+			uri.data = (void*)cfg.ca_issuers_uris[i];
 			uri.size = strlen(cfg.ca_issuers_uris[i]);
 			ret =
 			    gnutls_x509_crt_set_authority_info_access(crt,
@@ -836,27 +1085,83 @@ void get_pkcs9_email_crt_set(gnutls_x509_crt_t crt)
 
 }
 
-int get_serial(void)
+
+static
+void get_rand_int_value(unsigned char* serial, size_t * size, int64_t cfg_val, const char *msg)
 {
-	int default_serial = time(NULL);
+	struct timespec ts;
+	uint32_t default_serial[2];
+
+	/* default format:
+	 * |  4 b |  4 b  |  4b
+	 * | secs | nsecs | rnd  |
+	 */
+	gettime(&ts);
+
+	if (*size < 12) {
+		fprintf(stderr, "error in get_serial()!\n");
+		exit(1);
+	}
+
+	if (batch && cfg_val < 0) {
+		serial[0] = (ts.tv_sec >> 24) & 0xff;
+		serial[1] = (ts.tv_sec >> 16) & 0xff;
+		serial[2] = (ts.tv_sec >> 8) & 0xff;
+		serial[3] = (ts.tv_sec) & 0xff;
+		serial[4] = (ts.tv_nsec >> 24) & 0xff;
+		serial[5] = (ts.tv_nsec >> 16) & 0xff;
+		serial[6] = (ts.tv_nsec >> 8) & 0xff;
+		serial[7] = (ts.tv_nsec) & 0xff;
+		serial[0] &= 0x7F;
+		gnutls_rnd(GNUTLS_RND_NONCE, &serial[8], 4);
+		*size = 12;
+		return;
+	}
 
 	if (batch) {
-		if (cfg.serial < 0)
-			return default_serial;
-		return cfg.serial;
+		default_serial[0] = cfg_val >> 32;
+		default_serial[1] = cfg_val;
 	} else {
-		return read_int_with_default
-		    ("Enter the certificate's serial number in decimal (default: %u): ",
-		     default_serial);
+		uint64_t default_serial_int;
+		char tmsg[256];
+
+#if SIZEOF_LONG < 8
+		default_serial_int = ts.tv_sec;
+#else
+		default_serial_int = (ts.tv_sec << 32) | ts.tv_nsec;
+#endif
+		snprintf(tmsg, sizeof(tmsg), "%s (default: %lu): ", msg, default_serial_int);
+		default_serial_int = read_int_with_default(tmsg, (long)default_serial_int);
+
+		default_serial[0] = default_serial_int >> 32;
+		default_serial[1] = default_serial_int;
 	}
+
+	serial[0] = (default_serial[0] >> 24) & 0xff;
+	serial[1] = (default_serial[0] >> 16) & 0xff;
+	serial[2] = (default_serial[0] >> 8) & 0xff;
+	serial[3] = (default_serial[0]) & 0xff;
+	serial[4] = (default_serial[1] >> 24) & 0xff;
+	serial[5] = (default_serial[1] >> 16) & 0xff;
+	serial[6] = (default_serial[1] >> 8) & 0xff;
+	serial[7] = (default_serial[1]) & 0xff;
+	serial[0] &= 0x7F;
+
+	*size = 8;
+
+	return;
+}
+
+void get_serial(unsigned char* serial, size_t * size)
+{
+	get_rand_int_value(serial, size, cfg.serial, "Enter the certificate's serial number in decimal");
 }
 
 static
 time_t get_date(const char* date)
 {
-	time_t t;
 	struct timespec r;
-	
+
 	if (date==NULL || parse_datetime(&r, date, NULL) == 0) {
 	        fprintf(stderr, "Cannot parse date: %s\n", date);
 	        exit(1);
@@ -871,7 +1176,7 @@ time_t get_activation_date()
 	if (batch && cfg.activation_date != NULL) {
        		return get_date(cfg.activation_date);
 	}
-	
+
 	return time(NULL);
 }
 
@@ -900,23 +1205,22 @@ time_t now = time(NULL);
         return secs;
 }
 
-time_t get_expiration_date()
+static
+time_t get_int_date(const char *txt_val, int int_val, const char *msg)
 {
 	if (batch) {
-		if (cfg.expiration_date == NULL) {
-		        time_t secs, now;
+		if (txt_val == NULL) {
+		        time_t secs;
 		        
-		        now = time(NULL);
-
-        		if (cfg.expiration_days == 0 || cfg.expiration_days < -2)
+        		if (int_val == 0 || int_val < -2)
         		        secs = days_to_secs(365);
                         else {
-                                secs = days_to_secs(cfg.expiration_days);
+                                secs = days_to_secs(int_val);
                         }
 
 			return secs;
 		} else
-			return get_date(cfg.expiration_date);
+			return get_date(txt_val);
 	} else {
 		int days;
 
@@ -928,6 +1232,11 @@ time_t get_expiration_date()
 		while (days == 0);
 		return days_to_secs(days);
 	}
+}
+
+time_t get_expiration_date()
+{
+	return get_int_date(cfg.expiration_date, cfg.expiration_days, "The certificate will expire in (days): ");
 }
 
 int get_ca_status(void)
@@ -954,13 +1263,9 @@ int get_crq_extensions_status(void)
 	}
 }
 
-int get_crl_number(void)
+void get_crl_number(unsigned char* serial, size_t * size)
 {
-	if (batch) {
-		return cfg.crl_number;
-	} else {
-		return read_int_with_default("CRL Number: ", 1);
-	}
+	get_rand_int_value(serial, size, cfg.crl_number, "CRL Number");
 }
 
 int get_path_len(void)
@@ -1496,24 +1801,9 @@ int get_ipsec_ike_status(void)
 	}
 }
 
-int get_crl_next_update(void)
+time_t get_crl_next_update()
 {
-	int days;
-
-	if (batch) {
-		if (cfg.crl_next_update <= 0)
-			return 365;
-		else
-			return cfg.crl_next_update;
-	} else {
-		do {
-			days =
-			    read_int
-			    ("The next CRL will be issued in (days): ");
-		}
-		while (days == 0);
-		return days;
-	}
+	return get_int_date(NULL, cfg.crl_next_update, "The next CRL will be issued in (days): ");
 }
 
 const char *get_proxy_policy(char **policy, size_t * policylen)
@@ -1574,21 +1864,24 @@ void get_country_crq_set(gnutls_x509_crq_t crq)
 void get_organization_crq_set(gnutls_x509_crq_t crq)
 {
 	int ret;
+	unsigned i;
 
 	if (batch) {
 		if (!cfg.organization)
 			return;
 
-		ret =
-		    gnutls_x509_crq_set_dn_by_oid(crq,
+		for (i = 0; cfg.organization[i] != NULL; i++) {
+			ret =
+			    gnutls_x509_crq_set_dn_by_oid(crq,
 						  GNUTLS_OID_X520_ORGANIZATION_NAME,
-						  0, cfg.organization,
+						  0, cfg.organization[i],
 						  strlen(cfg.
-							 organization));
-		if (ret < 0) {
-			fprintf(stderr, "set_dn: %s\n",
-				gnutls_strerror(ret));
-			exit(1);
+							 organization[i]));
+			if (ret < 0) {
+				fprintf(stderr, "set_dn: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
 		}
 	} else {
 		read_crq_set(crq, "Organization name: ",
@@ -1600,20 +1893,23 @@ void get_organization_crq_set(gnutls_x509_crq_t crq)
 void get_unit_crq_set(gnutls_x509_crq_t crq)
 {
 	int ret;
+	unsigned i;
 
 	if (batch) {
 		if (!cfg.unit)
 			return;
 
-		ret =
-		    gnutls_x509_crq_set_dn_by_oid(crq,
+		for (i = 0; cfg.unit[i] != NULL; i++) {
+			ret =
+			    gnutls_x509_crq_set_dn_by_oid(crq,
 						  GNUTLS_OID_X520_ORGANIZATIONAL_UNIT_NAME,
-						  0, cfg.unit,
-						  strlen(cfg.unit));
-		if (ret < 0) {
-			fprintf(stderr, "set_dn: %s\n",
-				gnutls_strerror(ret));
-			exit(1);
+						  0, cfg.unit[i],
+						  strlen(cfg.unit[i]));
+			if (ret < 0) {
+				fprintf(stderr, "set_dn: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
 		}
 	} else {
 		read_crq_set(crq, "Organizational unit name: ",

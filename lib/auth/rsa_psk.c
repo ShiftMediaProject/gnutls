@@ -148,7 +148,7 @@ _gnutls_gen_rsa_psk_client_kx(gnutls_session_t session,
 	gnutls_datum_t premaster_secret;
 	premaster_secret.size = GNUTLS_MASTER_SIZE;
 	premaster_secret.data =
-	    gnutls_secure_malloc(premaster_secret.size);
+	    gnutls_malloc(premaster_secret.size);
 
 	if (premaster_secret.data == NULL) {
 		gnutls_assert();
@@ -194,7 +194,7 @@ _gnutls_gen_rsa_psk_client_kx(gnutls_session_t session,
 	gnutls_pk_params_release(&params);
 
 	cred = (gnutls_psk_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -243,9 +243,9 @@ _gnutls_gen_rsa_psk_client_kx(gnutls_session_t session,
 
       cleanup:
 	_gnutls_free_datum(&sdata);
-	_gnutls_free_datum(&premaster_secret);
+	_gnutls_free_temp_key_datum(&premaster_secret);
 	if (free) {
-		gnutls_free(key.data);
+		_gnutls_free_temp_key_datum(&key);
 		gnutls_free(username.data);
 	}
 
@@ -271,7 +271,7 @@ _gnutls_proc_rsa_psk_client_kx(gnutls_session_t session, uint8_t * data,
 	gnutls_datum_t premaster_secret = { NULL, 0 };
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -296,7 +296,11 @@ _gnutls_proc_rsa_psk_client_kx(gnutls_session_t session, uint8_t * data,
 
 	/* copy the username to the auth info structures
 	 */
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
+	if (info == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INTERNAL_ERROR;
+	}
 
 	if (username.size > MAX_USERNAME_SIZE) {
 		gnutls_assert();
@@ -402,8 +406,8 @@ _gnutls_proc_rsa_psk_client_kx(gnutls_session_t session, uint8_t * data,
 
 	ret = 0;
       cleanup:
-	_gnutls_free_datum(&pwd_psk);
-	_gnutls_free_datum(&premaster_secret);
+	_gnutls_free_key_datum(&pwd_psk);
+	_gnutls_free_temp_key_datum(&premaster_secret);
 
 	return ret;
 }

@@ -35,6 +35,8 @@
 #include <gnutls_constate.h>
 #include <gnutls_dtls.h>
 
+#ifdef ENABLE_SESSION_TICKETS
+
 #define KEY_NAME_SIZE SESSION_TICKET_KEY_NAME_SIZE
 #define KEY_SIZE SESSION_TICKET_KEY_SIZE
 #define IV_SIZE 12 /* GCM */
@@ -579,7 +581,7 @@ int _gnutls_send_new_session_ticket(gnutls_session_t session, int again)
 		    ticket.encrypted_state_len + TAG_SIZE;
 
 		bufel =
-		    _gnutls_handshake_alloc(session, 4 + 2 + ticket_len,
+		    _gnutls_handshake_alloc(session, 
 					    4 + 2 + ticket_len);
 		if (!bufel) {
 			gnutls_assert();
@@ -708,3 +710,5 @@ int _gnutls_recv_new_session_ticket(gnutls_session_t session)
 
 	return ret;
 }
+
+#endif

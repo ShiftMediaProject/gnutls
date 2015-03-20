@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2007-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2007-2014 Free Software Foundation, Inc.
  *
- * Author: Simon Josefsson
+ * Author: Simon Josefsson, Nikos Mavrogiannopoulos
  *
  * This file is part of GnuTLS.
  *
@@ -38,12 +38,13 @@
 #define addf _gnutls_buffer_append_printf
 #define adds _gnutls_buffer_append_str
 
+#define NON_NULL(x) (((x)!=NULL)?((char*)(x)):"")
 #define ERROR_STR (char*) "(error)"
 
-static const char *ip_to_string(void *_ip, int ip_size, char *string,
+static const
+char *ip_to_string(void *_ip, int ip_size, char *string,
 			  int string_size)
 {
-	uint8_t *ip;
 
 	if (ip_size != 4 && ip_size != 16) {
 		gnutls_assert();
@@ -66,74 +67,79 @@ static const char *ip_to_string(void *_ip, int ip_size, char *string,
 	else
 		return inet_ntop(AF_INET6, _ip, string, string_size);
 #else
-	ip = _ip;
-	switch (ip_size) {
-	case 4:
-		snprintf(string, string_size, "%u.%u.%u.%u", ip[0], ip[1],
-			 ip[2], ip[3]);
-		break;
-	case 16:
-		snprintf(string, string_size, "%x:%x:%x:%x:%x:%x:%x:%x",
-			 (ip[0] << 8) | ip[1], (ip[2] << 8) | ip[3],
-			 (ip[4] << 8) | ip[5], (ip[6] << 8) | ip[7],
-			 (ip[8] << 8) | ip[9], (ip[10] << 8) | ip[11],
-			 (ip[12] << 8) | ip[13], (ip[14] << 8) | ip[15]);
-		break;
+	{
+		uint8_t *ip;
+		ip = _ip;
+		switch (ip_size) {
+		case 4:
+			snprintf(string, string_size, "%u.%u.%u.%u", ip[0], ip[1],
+				 ip[2], ip[3]);
+			break;
+		case 16:
+			snprintf(string, string_size, "%x:%x:%x:%x:%x:%x:%x:%x",
+				 (ip[0] << 8) | ip[1], (ip[2] << 8) | ip[3],
+				 (ip[4] << 8) | ip[5], (ip[6] << 8) | ip[7],
+				 (ip[8] << 8) | ip[9], (ip[10] << 8) | ip[11],
+				 (ip[12] << 8) | ip[13], (ip[14] << 8) | ip[15]);
+			break;
+		}
+		return string;
 	}
-	return string;
 #endif
 }
 
 static void
-add_altname(gnutls_buffer_st * str, const char *prefix,
-	    unsigned int alt_type, char *name, size_t name_size)
+print_name(gnutls_buffer_st *str, const char *prefix, unsigned type, gnutls_datum_t *name)
 {
-	char str_ip[64];
-	const char *p;
+char *sname = (char*)name->data;
+char str_ip[64];
+const char *p;
 
-	if ((alt_type == GNUTLS_SAN_DNSNAME
-	     || alt_type == GNUTLS_SAN_RFC822NAME
-	     || alt_type == GNUTLS_SAN_URI) && strlen(name) != name_size) {
-		adds(str, _("warning: altname contains an embedded NUL, "
-			    "replacing with '!'\n"));
-		while (strlen(name) < name_size)
-			name[strlen(name)] = '!';
+	if ((type == GNUTLS_SAN_DNSNAME || type == GNUTLS_SAN_OTHERNAME_XMPP
+	     || type == GNUTLS_SAN_RFC822NAME
+	     || type == GNUTLS_SAN_URI) && sname != NULL && strlen(sname) != name->size) {
+		adds(str,
+		     _("warning: generalName contains an embedded NUL, "
+			      "replacing with '!'\n"));
+		while (strlen(sname) < name->size)
+			name->data[strlen(sname)] = '!';
 	}
 
-	switch (alt_type) {
+	switch (type) {
 	case GNUTLS_SAN_DNSNAME:
-		addf(str, "%s\t\t\tDNSname: %.*s\n", prefix,
-		     (int) name_size, name);
+		addf(str,  _("%sDNSname: %.*s\n"), prefix, name->size, NON_NULL(name->data));
 		break;
 
 	case GNUTLS_SAN_RFC822NAME:
-		addf(str, "%s\t\t\tRFC822name: %.*s\n", prefix,
-		     (int) name_size, name);
+		addf(str,  _("%sRFC822Name: %.*s\n"), prefix, name->size, NON_NULL(name->data));
 		break;
 
 	case GNUTLS_SAN_URI:
-		addf(str, "%s\t\t\tURI: %.*s\n", prefix, (int) name_size,
-		     name);
+		addf(str,  _("%sURI: %.*s\n"), prefix, name->size, NON_NULL(name->data));
 		break;
 
 	case GNUTLS_SAN_IPADDRESS:
-		p = ip_to_string(name, name_size, str_ip, sizeof(str_ip));
+		p = ip_to_string(name->data, name->size, str_ip, sizeof(str_ip));
 		if (p == NULL)
 			p = ERROR_STR;
-		addf(str, "%s\t\t\tIPAddress: %s\n", prefix, p);
+		addf(str, "%sIPAddress: %s\n", prefix, p);
 		break;
 
 	case GNUTLS_SAN_DN:
-		addf(str, "%s\t\t\tdirectoryName: %.*s\n", prefix,
-		     (int) name_size, name);
+		addf(str,  _("%sdirectoryName: %.*s\n"), prefix, name->size, NON_NULL(name->data));
+		break;
+
+	case GNUTLS_SAN_OTHERNAME_XMPP:
+		addf(str,  _("%sXMPP Address: %.*s\n"), prefix, name->size, NON_NULL(name->data));
 		break;
 	default:
-		addf(str, "error: unknown altname\n");
+		addf(str,  _("%sUnknown name: "), prefix);
+		_gnutls_buffer_hexprint(str, name->data, name->size);
 		break;
 	}
 }
 
-static void print_proxy(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
+static void print_proxy(gnutls_buffer_st * str, gnutls_datum_t *der)
 {
 	int pathlen;
 	char *policyLanguage;
@@ -141,8 +147,7 @@ static void print_proxy(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
 	size_t npolicy;
 	int err;
 
-	err = gnutls_x509_crt_get_proxy(cert, NULL,
-					&pathlen, &policyLanguage,
+	err = gnutls_x509_ext_import_proxy(der, &pathlen, &policyLanguage,
 					&policy, &npolicy);
 	if (err < 0) {
 		addf(str, "error: get_proxy: %s\n", gnutls_strerror(err));
@@ -166,300 +171,195 @@ static void print_proxy(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
 		_gnutls_buffer_hexprint(str, policy, npolicy);
 		adds(str, "\n");
 	}
+	gnutls_free(policy);
+	gnutls_free(policyLanguage);
 }
 
-static void print_aia(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
+
+static void print_nc(gnutls_buffer_st * str, const char* prefix, gnutls_datum_t *der)
+{
+	gnutls_x509_name_constraints_t nc;
+	int ret;
+	unsigned idx = 0;
+	gnutls_datum_t name;
+	unsigned type;
+	char new_prefix[16];
+
+	ret = gnutls_x509_name_constraints_init(&nc);
+	if (ret < 0)
+		return;
+
+	ret = gnutls_x509_ext_import_name_constraints(der, nc, 0);
+	if (ret < 0)
+		goto cleanup;
+
+	snprintf(new_prefix, sizeof(new_prefix), "%s\t\t\t\t", prefix);
+
+	do {
+		ret = gnutls_x509_name_constraints_get_permitted(nc, idx++, &type, &name);
+
+		if (ret >= 0) {
+			if (idx == 1)
+				addf(str,  _("%s\t\t\tPermitted:\n"), prefix);
+
+			print_name(str, new_prefix, type, &name);
+		}
+	} while (ret == 0);
+
+	idx = 0;
+	do {
+		ret = gnutls_x509_name_constraints_get_excluded(nc, idx++, &type, &name);
+
+		if (ret >= 0) {
+			if (idx == 1)
+				addf(str,  _("%s\t\t\tExcluded:\n"), prefix);
+
+			print_name(str, new_prefix, type, &name);
+		}
+	} while (ret == 0);
+
+cleanup:
+	gnutls_x509_name_constraints_deinit(nc);
+}
+
+static void print_aia(gnutls_buffer_st * str, const gnutls_datum_t *der)
 {
 	int err;
-	int seq = 0;
-	gnutls_datum_t data = { NULL, 0 };
+	int seq;
+	gnutls_datum_t san = { NULL, 0 }, oid = {NULL, 0};
+	gnutls_x509_aia_t aia;
+	unsigned int san_type;
+	
+	err = gnutls_x509_aia_init(&aia);
+	if (err < 0)
+		return;
 
-	for (;;) {
-		err = gnutls_x509_crt_get_authority_info_access
-		    (cert, seq, GNUTLS_IA_ACCESSMETHOD_OID, &data, NULL);
+	err = gnutls_x509_ext_import_aia(der, aia, 0);
+	if (err < 0) {
+		addf(str, "error: get_aia: %s\n",
+		     gnutls_strerror(err));
+		return;
+	}
+
+	for (seq=0;;seq++) {
+		err = gnutls_x509_aia_get(aia, seq, &oid, &san_type, &san);
 		if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
-			return;
+			goto cleanup;
 		if (err < 0) {
-			addf(str, "error: get_aia: %s\n",
+			addf(str, "error: aia_get: %s\n",
 			     gnutls_strerror(err));
 			goto cleanup;
 		}
 
-		addf(str, _("\t\t\tAccess Method: %.*s"), data.size,
-		     data.data);
-		if (data.size == sizeof(GNUTLS_OID_AD_OCSP)
-		    && memcmp(data.data, GNUTLS_OID_AD_OCSP,
-			      data.size) == 0)
-			adds(str, " (id-ad-ocsp)\n");
-		else if (data.size == sizeof(GNUTLS_OID_AD_CAISSUERS) &&
-			 memcmp(data.data, GNUTLS_OID_AD_CAISSUERS,
-				data.size) == 0)
-			adds(str, " (id-ad-caIssuers)\n");
-		else
-			adds(str, " (UNKNOWN)\n");
-
-		gnutls_free(data.data);
-		data.data = NULL;
-
-		err = gnutls_x509_crt_get_authority_info_access
-		    (cert, seq, GNUTLS_IA_ACCESSLOCATION_GENERALNAME_TYPE,
-		     &data, NULL);
-		if (err < 0) {
-			addf(str, "error: get_aia type: %s\n",
-			     gnutls_strerror(err));
-			goto cleanup;
+		if (strcmp((char*)oid.data, GNUTLS_OID_AD_OCSP) == 0)
+			addf(str, _("\t\t\tAccess Method: %s (%s)\n"), GNUTLS_OID_AD_OCSP, "id-ad-ocsp");
+		else if (strcmp((char*)oid.data, GNUTLS_OID_AD_CAISSUERS) == 0)
+			addf(str, _("\t\t\tAccess Method: %s (%s)\n"), GNUTLS_OID_AD_CAISSUERS, "id-ad-caIssuers");
+		else {
+			addf(str, _("\t\t\tAccess Method: %s (%s)\n"), (char*)oid.data, "UNKNOWN");
 		}
 
-		if (data.size == sizeof("uniformResourceIdentifier") &&
-		    memcmp(data.data, "uniformResourceIdentifier",
-			   data.size) == 0) {
-
-			gnutls_free(data.data);
-			data.data = NULL;
-
-			adds(str, "\t\t\tAccess Location URI: ");
-			err = gnutls_x509_crt_get_authority_info_access
-			    (cert, seq, GNUTLS_IA_URI, &data, NULL);
-			if (err < 0) {
-				addf(str, "error: get_aia uri: %s\n",
-				     gnutls_strerror(err));
-				goto cleanup;
-			}
-			addf(str, "%.*s\n", data.size, data.data);
-		} else
-			adds(str,
-			     "\t\t\tUnsupported accessLocation type\n");
-
-		gnutls_free(data.data);
-		data.data = NULL;
-
-		seq++;
+		adds(str, "\t\t\tAccess Location ");
+		print_name(str, "", san_type, &san);
 	}
 
 	return;
 cleanup:
-	gnutls_free(data.data);
+	gnutls_x509_aia_deinit(aia);
 }
 
-static void print_ski(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
+static void print_ski(gnutls_buffer_st * str, gnutls_datum_t *der)
 {
-	char *buffer = NULL;
-	size_t size = 0;
+	gnutls_datum_t id = {NULL, 0};
 	int err;
 
-	err =
-	    gnutls_x509_crt_get_subject_key_id(cert, buffer, &size, NULL);
-	if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+	err = gnutls_x509_ext_import_subject_key_id(der, &id);
+	if (err < 0) {
 		addf(str, "error: get_subject_key_id: %s\n",
 		     gnutls_strerror(err));
 		return;
 	}
 
-	buffer = gnutls_malloc(size);
-	if (!buffer) {
-		addf(str, "error: malloc: %s\n",
-		     gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
-		return;
-	}
-
-	err =
-	    gnutls_x509_crt_get_subject_key_id(cert, buffer, &size, NULL);
-	if (err < 0) {
-		gnutls_free(buffer);
-		addf(str, "error: get_subject_key_id2: %s\n",
-		     gnutls_strerror(err));
-		return;
-	}
-
 	adds(str, "\t\t\t");
-	_gnutls_buffer_hexprint(str, buffer, size);
+	_gnutls_buffer_hexprint(str, id.data, id.size);
 	adds(str, "\n");
 
-	gnutls_free(buffer);
+	gnutls_free(id.data);
 }
 
-#define TYPE_CRL 1
 #define TYPE_CRT 2
 #define TYPE_CRQ 3
-#define TYPE_PUBKEY 4
-
-#define TYPE_CRT_SAN TYPE_CRT
-#define TYPE_CRQ_SAN TYPE_CRQ
-#define TYPE_CRT_IAN 4
 
 typedef union {
 	gnutls_x509_crt_t crt;
 	gnutls_x509_crq_t crq;
-	gnutls_x509_crl_t crl;
-	gnutls_pubkey_t pubkey;
 } cert_type_t;
 
 static void
-print_aki_gn_serial(gnutls_buffer_st * str, int type, cert_type_t cert)
+print_aki_gn_serial(gnutls_buffer_st * str, gnutls_x509_aki_t aki)
 {
-	char *buffer = NULL;
-	char serial[128];
-	size_t size = 0, serial_size = sizeof(serial);
+	gnutls_datum_t san, other_oid, serial;
 	unsigned int alt_type;
 	int err;
 
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_authority_key_gn_serial(cert.crt,
-								0, NULL,
-								&size,
-								&alt_type,
-								serial,
-								&serial_size,
-								NULL);
-	else if (type == TYPE_CRL)
-		err =
-		    gnutls_x509_crl_get_authority_key_gn_serial(cert.crl,
-								0, NULL,
-								&size,
-								&alt_type,
-								serial,
-								&serial_size,
-								NULL);
-	else {
-		gnutls_assert();
-		return;
-	}
-
-	if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		addf(str, "error: get_authority_key_gn_serial: %s\n",
-		     gnutls_strerror(err));
-		return;
-	}
-
-	buffer = gnutls_malloc(size);
-	if (!buffer) {
-		addf(str, "error: malloc: %s\n",
-		     gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
-		return;
-	}
-
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_authority_key_gn_serial(cert.crt,
-								0, buffer,
-								&size,
-								&alt_type,
-								serial,
-								&serial_size,
-								NULL);
-	else
-		err =
-		    gnutls_x509_crl_get_authority_key_gn_serial(cert.crl,
-								0, buffer,
-								&size,
-								&alt_type,
-								serial,
-								&serial_size,
-								NULL);
-
+	err =
+	    gnutls_x509_aki_get_cert_issuer(aki,
+					    0, &alt_type, &san, &other_oid, &serial);
 	if (err < 0) {
-		gnutls_free(buffer);
-		addf(str, "error: get_authority_key_gn_serial2: %s\n",
+		addf(str, "error: gnutls_x509_aki_get_cert_issuer: %s\n",
 		     gnutls_strerror(err));
 		return;
 	}
 
-	add_altname(str, "", alt_type, buffer, size);
-	adds(str, "\t\t\tserial: ");
-	_gnutls_buffer_hexprint(str, serial, serial_size);
-	adds(str, "\n");
+	print_name(str, "\t\t\t", alt_type, &san);
 
-	gnutls_free(buffer);
+	adds(str, "\t\t\tserial: ");
+	_gnutls_buffer_hexprint(str, serial.data, serial.size);
+	adds(str, "\n");
 }
 
-static void print_aki(gnutls_buffer_st * str, int type, cert_type_t cert)
+static void print_aki(gnutls_buffer_st * str, gnutls_datum_t *der)
 {
-	char *buffer = NULL;
-	size_t size = 0;
 	int err;
+	gnutls_x509_aki_t aki;
+	gnutls_datum_t id;
 
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_authority_key_id(cert.crt, buffer,
-							 &size, NULL);
-	else if (type == TYPE_CRL)
-		err =
-		    gnutls_x509_crl_get_authority_key_id(cert.crl, buffer,
-							 &size, NULL);
-	else {
-		gnutls_assert();
-		return;
-	}
-
-	if (err == GNUTLS_E_X509_UNSUPPORTED_EXTENSION) {
-		/* Check if an alternative name is there */
-		print_aki_gn_serial(str, type, cert);
-		return;
-	}
-
-	if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		addf(str, "error: get_authority_key_id: %s\n",
-		     gnutls_strerror(err));
-		return;
-	}
-
-	buffer = gnutls_malloc(size);
-	if (!buffer) {
-		addf(str, "error: malloc: %s\n",
-		     gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
-		return;
-	}
-
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_authority_key_id(cert.crt, buffer,
-							 &size, NULL);
-	else
-		err =
-		    gnutls_x509_crl_get_authority_key_id(cert.crl, buffer,
-							 &size, NULL);
-
+	err = gnutls_x509_aki_init(&aki);
 	if (err < 0) {
-		gnutls_free(buffer);
-		addf(str, "error: get_authority_key_id2: %s\n",
+		addf(str, "error: gnutls_x509_aki_init: %s\n",
 		     gnutls_strerror(err));
 		return;
 	}
 
+	err = gnutls_x509_ext_import_authority_key_id(der, aki, 0);
+	if (err < 0) {
+		addf(str, "error: gnutls_x509_ext_import_authority_key_id: %s\n",
+		     gnutls_strerror(err));
+		goto cleanup;
+	}
+
+	err = gnutls_x509_aki_get_id(aki, &id);
+	if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+		/* Check if an alternative name is there */
+		print_aki_gn_serial(str, aki);
+		goto cleanup;
+	} else if (err < 0) {
+		addf(str, "error: gnutls_x509_aki_get_id: %s\n",
+		     gnutls_strerror(err));
+		goto cleanup;
+	}
+	
 	adds(str, "\t\t\t");
-	_gnutls_buffer_hexprint(str, buffer, size);
+	_gnutls_buffer_hexprint(str, id.data, id.size);
 	adds(str, "\n");
 
-	gnutls_free(buffer);
+ cleanup:
+	gnutls_x509_aki_deinit(aki);
 }
 
 static void
-print_key_usage(gnutls_buffer_st * str, const char *prefix, int type,
-		cert_type_t cert)
+print_key_usage2(gnutls_buffer_st * str, const char *prefix, unsigned int key_usage)
 {
-	unsigned int key_usage;
-	int err;
-
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_key_usage(cert.crt, &key_usage,
-						  NULL);
-	else if (type == TYPE_CRQ)
-		err =
-		    gnutls_x509_crq_get_key_usage(cert.crq, &key_usage,
-						  NULL);
-	else if (type == TYPE_PUBKEY)
-		err = gnutls_pubkey_get_key_usage(cert.pubkey, &key_usage);
-	else
-		return;
-
-	if (err < 0) {
-		addf(str, "error: get_key_usage: %s\n",
-		     gnutls_strerror(err));
-		return;
-	}
-
 	if (key_usage & GNUTLS_KEY_DIGITAL_SIGNATURE)
 		addf(str, _("%sDigital signature.\n"), prefix);
 	if (key_usage & GNUTLS_KEY_NON_REPUDIATION)
@@ -481,8 +381,23 @@ print_key_usage(gnutls_buffer_st * str, const char *prefix, int type,
 }
 
 static void
-print_private_key_usage_period(gnutls_buffer_st * str, const char *prefix,
-			       int type, cert_type_t cert)
+print_key_usage(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
+{
+	unsigned int key_usage;
+	int err;
+
+	err = gnutls_x509_ext_import_key_usage(der, &key_usage);
+	if (err < 0) {
+		addf(str, "error: get_key_usage: %s\n",
+		     gnutls_strerror(err));
+		return;
+	}
+
+	print_key_usage2(str, prefix, key_usage);
+}
+
+static void
+print_private_key_usage_period(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
 {
 	time_t activation, expiration;
 	int err;
@@ -490,21 +405,7 @@ print_private_key_usage_period(gnutls_buffer_st * str, const char *prefix,
 	struct tm t;
 	size_t max;
 
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_private_key_usage_period(cert.crt,
-								 &activation,
-								 &expiration,
-								 NULL);
-	else if (type == TYPE_CRQ)
-		err =
-		    gnutls_x509_crq_get_private_key_usage_period(cert.crq,
-								 &activation,
-								 &expiration,
-								 NULL);
-	else
-		return;
-
+	err = gnutls_x509_ext_import_private_key_usage_period(der, &activation, &expiration);
 	if (err < 0) {
 		addf(str, "error: get_private_key_usage_period: %s\n",
 		     gnutls_strerror(err));
@@ -533,206 +434,118 @@ print_private_key_usage_period(gnutls_buffer_st * str, const char *prefix,
 
 }
 
-static void print_crldist(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
+static void print_crldist(gnutls_buffer_st * str, gnutls_datum_t *der)
 {
-	char *buffer = NULL;
-	size_t size;
-	char str_ip[64];
-	const char *p;
 	int err;
 	int indx;
+	gnutls_x509_crl_dist_points_t dp;
+	unsigned int flags, type;
+	gnutls_datum_t dist;
+
+	err = gnutls_x509_crl_dist_points_init(&dp);
+	if (err < 0) {
+		addf(str, "error: gnutls_x509_crl_dist_points_init: %s\n",
+		     gnutls_strerror(err));
+		return;
+	}
+
+	err = gnutls_x509_ext_import_crl_dist_points(der, dp, 0);
+	if (err < 0) {
+		addf(str, "error: gnutls_x509_ext_import_crl_dist_points: %s\n",
+		     gnutls_strerror(err));
+		goto cleanup;
+	}
 
 	for (indx = 0;; indx++) {
-		size = 0;
 		err =
-		    gnutls_x509_crt_get_crl_dist_points(cert, indx, buffer,
-							&size, NULL, NULL);
+		    gnutls_x509_crl_dist_points_get(dp, indx, &type, &dist, &flags);
 		if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
-			return;
-		if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+			goto cleanup;
+		else if (err < 0) {
 			addf(str, "error: get_crl_dist_points: %s\n",
 			     gnutls_strerror(err));
 			return;
 		}
 
-		buffer = gnutls_malloc(size);
-		if (!buffer) {
-			addf(str, "error: malloc: %s\n",
-			     gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
-			return;
-		}
-
-		err =
-		    gnutls_x509_crt_get_crl_dist_points(cert, indx, buffer,
-							&size, NULL, NULL);
-		if (err < 0) {
-			gnutls_free(buffer);
-			addf(str, "error: get_crl_dist_points2: %s\n",
-			     gnutls_strerror(err));
-			return;
-		}
-
-		if ((err == GNUTLS_SAN_DNSNAME
-		     || err == GNUTLS_SAN_RFC822NAME
-		     || err == GNUTLS_SAN_URI) && strlen(buffer) != size) {
-			adds(str,
-			     _
-			     ("warning: distributionPoint contains an embedded NUL, "
-			      "replacing with '!'\n"));
-			while (strlen(buffer) < size)
-				buffer[strlen(buffer)] = '!';
-		}
-
-		switch (err) {
-		case GNUTLS_SAN_DNSNAME:
-			addf(str, "\t\t\tDNSname: %.*s\n", (int) size,
-			     buffer);
-			break;
-
-		case GNUTLS_SAN_RFC822NAME:
-			addf(str, "\t\t\tRFC822name: %.*s\n", (int) size,
-			     buffer);
-			break;
-
-		case GNUTLS_SAN_URI:
-			addf(str, "\t\t\tURI: %.*s\n", (int) size, buffer);
-			break;
-
-		case GNUTLS_SAN_IPADDRESS:
-			p = ip_to_string(buffer, size, str_ip,
-					 sizeof(str_ip));
-			if (p == NULL)
-				p = ERROR_STR;
-			addf(str, "\t\t\tIPAddress: %s\n", p);
-			break;
-
-		case GNUTLS_SAN_DN:
-			addf(str, "\t\t\tdirectoryName: %.*s\n",
-			     (int) size, buffer);
-			break;
-
-		default:
-			addf(str, "error: unknown SAN\n");
-			break;
-		}
-		gnutls_free(buffer);
+		print_name(str, "\t\t\t", type, &dist);
 	}
+ cleanup:
+ 	gnutls_x509_crl_dist_points_deinit(dp);
 }
 
 static void
-print_key_purpose(gnutls_buffer_st * str, const char *prefix, int type,
-		  cert_type_t cert)
+print_key_purpose(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
 {
 	int indx;
-	char *buffer = NULL;
-	size_t size;
+	gnutls_datum_t oid;
+	char *p;
 	int err;
+	gnutls_x509_key_purposes_t purposes;
+	
+	err = gnutls_x509_key_purpose_init(&purposes);
+	if (err < 0) {
+		addf(str, "error: gnutls_x509_key_purpose_init: %s\n",
+		     gnutls_strerror(err));
+		return;
+	}
+
+	err = gnutls_x509_ext_import_key_purposes(der, purposes, 0);
+	if (err < 0) {
+		addf(str, "error: gnutls_x509_ext_import_key_purposes: %s\n",
+		     gnutls_strerror(err));
+		goto cleanup;
+	}
 
 	for (indx = 0;; indx++) {
-		size = 0;
-		if (type == TYPE_CRT)
-			err =
-			    gnutls_x509_crt_get_key_purpose_oid(cert.crt,
-								indx,
-								buffer,
-								&size,
-								NULL);
-		else if (type == TYPE_CRQ)
-			err =
-			    gnutls_x509_crq_get_key_purpose_oid(cert.crq,
-								indx,
-								buffer,
-								&size,
-								NULL);
-		else
-			return;
-
+		err = gnutls_x509_key_purpose_get(purposes, indx, &oid);
 		if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
-			return;
-		if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-			addf(str, "error: get_key_purpose_oid: %s\n",
+			goto cleanup;
+		else if (err < 0) {
+			addf(str, "error: gnutls_x509_key_purpose_get: %s\n",
 			     gnutls_strerror(err));
-			return;
+			goto cleanup;
 		}
 
-		buffer = gnutls_malloc(size);
-		if (!buffer) {
-			addf(str, "error: malloc: %s\n",
-			     gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
-			return;
-		}
-
-		if (type == TYPE_CRT)
-			err =
-			    gnutls_x509_crt_get_key_purpose_oid(cert.crt,
-								indx,
-								buffer,
-								&size,
-								NULL);
-		else
-			err =
-			    gnutls_x509_crq_get_key_purpose_oid(cert.crq,
-								indx,
-								buffer,
-								&size,
-								NULL);
-
-		if (err < 0) {
-			gnutls_free(buffer);
-			addf(str, "error: get_key_purpose_oid2: %s\n",
-			     gnutls_strerror(err));
-			return;
-		}
-
-		if (strcmp(buffer, GNUTLS_KP_TLS_WWW_SERVER) == 0)
+		p = (void*)oid.data;
+		if (strcmp(p, GNUTLS_KP_TLS_WWW_SERVER) == 0)
 			addf(str, _("%s\t\t\tTLS WWW Server.\n"), prefix);
-		else if (strcmp(buffer, GNUTLS_KP_TLS_WWW_CLIENT) == 0)
+		else if (strcmp(p, GNUTLS_KP_TLS_WWW_CLIENT) == 0)
 			addf(str, _("%s\t\t\tTLS WWW Client.\n"), prefix);
-		else if (strcmp(buffer, GNUTLS_KP_CODE_SIGNING) == 0)
+		else if (strcmp(p, GNUTLS_KP_CODE_SIGNING) == 0)
 			addf(str, _("%s\t\t\tCode signing.\n"), prefix);
-		else if (strcmp(buffer, GNUTLS_KP_EMAIL_PROTECTION) == 0)
+		else if (strcmp(p, GNUTLS_KP_EMAIL_PROTECTION) == 0)
 			addf(str, _("%s\t\t\tEmail protection.\n"),
 			     prefix);
-		else if (strcmp(buffer, GNUTLS_KP_TIME_STAMPING) == 0)
+		else if (strcmp(p, GNUTLS_KP_TIME_STAMPING) == 0)
 			addf(str, _("%s\t\t\tTime stamping.\n"), prefix);
-		else if (strcmp(buffer, GNUTLS_KP_OCSP_SIGNING) == 0)
+		else if (strcmp(p, GNUTLS_KP_OCSP_SIGNING) == 0)
 			addf(str, _("%s\t\t\tOCSP signing.\n"), prefix);
-		else if (strcmp(buffer, GNUTLS_KP_IPSEC_IKE) == 0)
+		else if (strcmp(p, GNUTLS_KP_IPSEC_IKE) == 0)
 			addf(str, _("%s\t\t\tIpsec IKE.\n"), prefix);
-		else if (strcmp(buffer, GNUTLS_KP_ANY) == 0)
+		else if (strcmp(p, GNUTLS_KP_ANY) == 0)
 			addf(str, _("%s\t\t\tAny purpose.\n"), prefix);
 		else
-			addf(str, "%s\t\t\t%s\n", prefix, buffer);
-
-		gnutls_free(buffer);
+			addf(str, "%s\t\t\t%s\n", prefix, p);
 	}
+ cleanup:
+	gnutls_x509_key_purpose_deinit(purposes);
 }
 
 static void
-print_basic(gnutls_buffer_st * str, const char *prefix, int type,
-	    cert_type_t cert)
+print_basic(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
 {
 	int pathlen;
+	unsigned ca;
 	int err;
 
-	if (type == TYPE_CRT)
-		err =
-		    gnutls_x509_crt_get_basic_constraints(cert.crt, NULL,
-							  NULL, &pathlen);
-	else if (type == TYPE_CRQ)
-		err =
-		    gnutls_x509_crq_get_basic_constraints(cert.crq, NULL,
-							  NULL, &pathlen);
-	else
-		return;
-
+	err = gnutls_x509_ext_import_basic_constraints(der, &ca, &pathlen);
 	if (err < 0) {
 		addf(str, "error: get_basic_constraints: %s\n",
 		     gnutls_strerror(err));
 		return;
 	}
 
-	if (err == 0)
+	if (ca == 0)
 		addf(str, _("%s\t\t\tCertificate Authority (CA): FALSE\n"),
 		     prefix);
 	else
@@ -746,179 +559,72 @@ print_basic(gnutls_buffer_st * str, const char *prefix, int type,
 
 
 static void
-print_altname(gnutls_buffer_st * str, const char *prefix,
-	      unsigned int altname_type, cert_type_t cert)
+print_altname(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
 {
 	unsigned int altname_idx;
+	gnutls_subject_alt_names_t names;
+	unsigned int type;
+	gnutls_datum_t san;
+	gnutls_datum_t othername;
+	char pfx[16];
+	int err;
+
+	err = gnutls_subject_alt_names_init(&names);
+	if (err < 0) {
+		addf(str, "error: gnutls_subject_alt_names_init: %s\n",
+		     gnutls_strerror(err));
+		return;
+	}
+
+	err = gnutls_x509_ext_import_subject_alt_names(der, names, 0);
+	if (err < 0) {
+		addf(str, "error: gnutls_x509_ext_import_subject_alt_names: %s\n",
+		     gnutls_strerror(err));
+		return;
+	}
 
 	for (altname_idx = 0;; altname_idx++) {
-		char *buffer = NULL;
-		size_t size = 0;
-		int err;
-
-		if (altname_type == TYPE_CRT_SAN)
-			err =
-			    gnutls_x509_crt_get_subject_alt_name(cert.crt,
-								 altname_idx,
-								 buffer,
-								 &size,
-								 NULL);
-		else if (altname_type == TYPE_CRQ_SAN)
-			err =
-			    gnutls_x509_crq_get_subject_alt_name(cert.crq,
-								 altname_idx,
-								 buffer,
-								 &size,
-								 NULL,
-								 NULL);
-		else if (altname_type == TYPE_CRT_IAN)
-			err =
-			    gnutls_x509_crt_get_issuer_alt_name(cert.crt,
-								altname_idx,
-								buffer,
-								&size,
-								NULL);
-		else
-			return;
-
+		err = gnutls_subject_alt_names_get(names, altname_idx,
+						   &type, &san, &othername);
 		if (err == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
 			break;
-		if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+		else if (err < 0) {
 			addf(str,
-			     "error: get_subject/issuer_alt_name: %s\n",
+			     "error: gnutls_subject_alt_names_get: %s\n",
 			     gnutls_strerror(err));
-			return;
+			break;
 		}
 
-		buffer = gnutls_malloc(size);
-		if (!buffer) {
-			addf(str, "error: malloc: %s\n",
-			     gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
-			return;
-		}
 
-		if (altname_type == TYPE_CRT_SAN)
-			err =
-			    gnutls_x509_crt_get_subject_alt_name(cert.crt,
-								 altname_idx,
-								 buffer,
-								 &size,
-								 NULL);
-		else if (altname_type == TYPE_CRQ_SAN)
-			err =
-			    gnutls_x509_crq_get_subject_alt_name(cert.crq,
-								 altname_idx,
-								 buffer,
-								 &size,
-								 NULL,
-								 NULL);
-		else if (altname_type == TYPE_CRT_IAN)
-			err =
-			    gnutls_x509_crt_get_issuer_alt_name(cert.crt,
-								altname_idx,
-								buffer,
-								&size,
-								NULL);
+		if (type == GNUTLS_SAN_OTHERNAME) {
+			unsigned vtype;
+			gnutls_datum_t virt;
 
-		if (err < 0) {
-			gnutls_free(buffer);
+			err = gnutls_x509_othername_to_virtual((char*)othername.data, &san, &vtype, &virt);
+			if (err >= 0) {
+				snprintf(pfx, sizeof(pfx), "%s\t\t\t", prefix);
+				print_name(str, pfx, vtype, &virt);
+				gnutls_free(virt.data);
+				continue;
+			}
+
 			addf(str,
-			     "error: get_subject/issuer_alt_name2: %s\n",
-			     gnutls_strerror(err));
-			return;
-		}
-
-
-		if (err == GNUTLS_SAN_OTHERNAME) {
-			char *oid = NULL;
-			size_t oidsize;
-
-			oidsize = 0;
-			if (altname_type == TYPE_CRT_SAN)
-				err =
-				    gnutls_x509_crt_get_subject_alt_othername_oid
-				    (cert.crt, altname_idx, oid, &oidsize);
-			else if (altname_type == TYPE_CRQ_SAN)
-				err =
-				    gnutls_x509_crq_get_subject_alt_othername_oid
-				    (cert.crq, altname_idx, oid, &oidsize);
-			else if (altname_type == TYPE_CRT_IAN)
-				err =
-				    gnutls_x509_crt_get_issuer_alt_othername_oid
-				    (cert.crt, altname_idx, oid, &oidsize);
-
-			if (err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-				gnutls_free(buffer);
-				addf(str,
-				     "error: get_subject/issuer_alt_othername_oid: %s\n",
-				     gnutls_strerror(err));
-				return;
-			}
-
-			oid = gnutls_malloc(oidsize);
-			if (!oid) {
-				gnutls_free(buffer);
-				addf(str, "error: malloc: %s\n",
-				     gnutls_strerror
-				     (GNUTLS_E_MEMORY_ERROR));
-				return;
-			}
-
-			if (altname_type == TYPE_CRT_SAN)
-				err =
-				    gnutls_x509_crt_get_subject_alt_othername_oid
-				    (cert.crt, altname_idx, oid, &oidsize);
-			else if (altname_type == TYPE_CRQ_SAN)
-				err =
-				    gnutls_x509_crq_get_subject_alt_othername_oid
-				    (cert.crq, altname_idx, oid, &oidsize);
-			else if (altname_type == TYPE_CRT_IAN)
-				err =
-				    gnutls_x509_crt_get_issuer_alt_othername_oid
-				    (cert.crt, altname_idx, oid, &oidsize);
-
-			if (err < 0) {
-				gnutls_free(buffer);
-				gnutls_free(oid);
-				addf(str,
-				     "error: get_subject_alt_othername_oid2: %s\n",
-				     gnutls_strerror(err));
-				return;
-			}
-
-			if (err == GNUTLS_SAN_OTHERNAME_XMPP) {
-				if (strlen(buffer) != size) {
-					adds(str,
-					     _
-					     ("warning: altname contains an embedded NUL, "
-					      "replacing with '!'\n"));
-					while (strlen(buffer) < size)
-						buffer[strlen(buffer)] =
-						    '!';
-				}
-
-				addf(str,
-				     _("%s\t\t\tXMPP Address: %.*s\n"),
-				     prefix, (int) size, buffer);
-			} else {
-				addf(str,
-				     _("%s\t\t\totherName OID: %.*s\n"),
-				     prefix, (int) oidsize, oid);
-				addf(str, _("%s\t\t\totherName DER: "),
+			     _("%s\t\t\totherName OID: %.*s\n"),
+			     prefix, (int)othername.size, (char*)othername.data);
+			addf(str, _("%s\t\t\totherName DER: "),
 				     prefix);
-				_gnutls_buffer_hexprint(str, buffer, size);
-				addf(str, _("\n%s\t\t\totherName ASCII: "),
+			_gnutls_buffer_hexprint(str, san.data, san.size);
+			addf(str, _("\n%s\t\t\totherName ASCII: "),
 				     prefix);
-				_gnutls_buffer_asciiprint(str, buffer,
-							  size);
+			_gnutls_buffer_asciiprint(str, (char*)san.data, san.size);
 				addf(str, "\n");
-			}
-			gnutls_free(oid);
-		} else
-			add_altname(str, prefix, err, buffer, size);
+		} else {
 
-		gnutls_free(buffer);
+			snprintf(pfx, sizeof(pfx), "%s\t\t\t", prefix);
+			print_name(str, pfx, type, &san);
+		}
 	}
+	gnutls_subject_alt_names_deinit(names);
 }
 
 static void
@@ -979,22 +685,261 @@ print_unique_ids(gnutls_buffer_st * str, const gnutls_x509_crt_t cert)
 	}
 }
 
+struct ext_indexes_st {
+	int san;
+	int ian;
+	int proxy;
+	int basic;
+	int keyusage;
+	int keypurpose;
+	int ski;
+	int aki, nc;
+	int crldist, pkey_usage_period;
+};
+
+static void print_extension(gnutls_buffer_st * str, const char *prefix,
+			    struct ext_indexes_st *idx, const char *oid,
+			    unsigned critical, gnutls_datum_t *der)
+{
+	int err;
+	unsigned j;
+	char pfx[16];
+
+	if (strcmp(oid, "2.5.29.19") == 0) {
+		if (idx->basic) {
+			addf(str,
+			     "warning: more than one basic constraint\n");
+		}
+
+		addf(str, _("%s\t\tBasic Constraints (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_basic(str, prefix, der);
+		idx->basic++;
+
+	} else if (strcmp(oid, "2.5.29.14") == 0) {
+		if (idx->ski) {
+			addf(str,
+			     "warning: more than one SKI extension\n");
+		}
+
+		addf(str,
+		     _("%s\t\tSubject Key Identifier (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_ski(str, der);
+
+		idx->ski++;
+	} else if (strcmp(oid, "2.5.29.32") == 0) {
+		struct gnutls_x509_policy_st policy;
+		gnutls_x509_policies_t policies;
+		const char *name;
+		int x;
+
+		err = gnutls_x509_policies_init(&policies);
+		if (err < 0) {
+			addf(str,
+			     "error: certificate policies: %s\n",
+			     gnutls_strerror(err));
+			return;
+		}
+
+		err = gnutls_x509_ext_import_policies(der, policies, 0);
+		if (err < 0) {
+			addf(str,
+			     "error: certificate policies import: %s\n",
+			     gnutls_strerror(err));
+			return;
+		}
+
+		for (x = 0;; x++) {
+			err = gnutls_x509_policies_get(policies, x, &policy);
+			if (err ==
+			    GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+				break;
+
+			if (err < 0) {
+				addf(str,
+				     "error: certificate policy: %s\n",
+				     gnutls_strerror(err));
+				break;
+			}
+
+			if (x == 0)
+				addf(str,
+				     "%s\t\tCertificate Policies (%s):\n",
+				     prefix,
+				     critical ? _("critical") :
+				     _("not critical"));
+
+			addf(str, "%s\t\t\t%s\n", prefix, policy.oid);
+			for (j = 0; j < policy.qualifiers; j++) {
+				if (policy.qualifier[j].type ==
+				    GNUTLS_X509_QUALIFIER_URI)
+					name = "URI";
+				else if (policy.qualifier[j].
+					 type ==
+					 GNUTLS_X509_QUALIFIER_NOTICE)
+					name = "Note";
+				else
+					name = "Unknown qualifier";
+				addf(str, "%s\t\t\t\t%s: %s\n",
+				     prefix, name,
+				     policy.qualifier[j].data);
+			}
+		}
+		gnutls_x509_policies_deinit(policies);
+	} else if (strcmp(oid, "2.5.29.35") == 0) {
+
+		if (idx->aki) {
+			addf(str,
+			     "warning: more than one AKI extension\n");
+		}
+
+		addf(str,
+		     _("%s\t\tAuthority Key Identifier (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_aki(str, der);
+
+		idx->aki++;
+	} else if (strcmp(oid, "2.5.29.15") == 0) {
+		if (idx->keyusage) {
+			addf(str,
+			     "warning: more than one key usage extension\n");
+		}
+
+		addf(str, _("%s\t\tKey Usage (%s):\n"), prefix,
+			     critical ? _("critical") : _("not critical"));
+
+		snprintf(pfx, sizeof(pfx), "%s\t\t\t", prefix);
+		print_key_usage(str, pfx, der);
+
+		idx->keyusage++;
+	} else if (strcmp(oid, "2.5.29.16") == 0) {
+		if (idx->pkey_usage_period) {
+			addf(str,
+			     "warning: more than one private key usage period extension\n");
+		}
+
+		addf(str,
+		     _("%s\t\tPrivate Key Usage Period (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_private_key_usage_period(str, prefix, der);
+
+		idx->pkey_usage_period++;
+	} else if (strcmp(oid, "2.5.29.37") == 0) {
+		if (idx->keypurpose) {
+			addf(str,
+			     "warning: more than one key purpose extension\n");
+		}
+
+		addf(str, _("%s\t\tKey Purpose (%s):\n"), prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_key_purpose(str, prefix, der);
+		idx->keypurpose++;
+	} else if (strcmp(oid, "2.5.29.17") == 0) {
+		if (idx->san) {
+			addf(str,
+			     "warning: more than one SKI extension\n");
+		}
+
+		addf(str,
+		     _("%s\t\tSubject Alternative Name (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+			print_altname(str, prefix, der);
+		idx->san++;
+	} else if (strcmp(oid, "2.5.29.18") == 0) {
+		if (idx->ian) {
+			addf(str,
+			     "warning: more than one Issuer AltName extension\n");
+		}
+
+		addf(str,
+		     _("%s\t\tIssuer Alternative Name (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_altname(str, prefix, der);
+
+		idx->ian++;
+	} else if (strcmp(oid, "2.5.29.31") == 0) {
+		if (idx->crldist) {
+			addf(str,
+			     "warning: more than one CRL distribution point\n");
+		}
+
+		addf(str,
+		     _("%s\t\tCRL Distribution points (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_crldist(str, der);
+		idx->crldist++;
+	} else if (strcmp(oid, "1.3.6.1.5.5.7.1.14") == 0) {
+		if (idx->proxy) {
+			addf(str,
+			     "warning: more than one proxy extension\n");
+		}
+
+		addf(str,
+			     _
+		     ("%s\t\tProxy Certificate Information (%s):\n"),
+		     prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_proxy(str, der);
+
+		idx->proxy++;
+	} else if (strcmp(oid, "1.3.6.1.5.5.7.1.1") == 0) {
+		addf(str, _("%s\t\tAuthority Information "
+			    "Access (%s):\n"), prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_aia(str, der);
+	} else if (strcmp(oid, "2.5.29.30") == 0) {
+		if (idx->nc) {
+			addf(str,
+			     "warning: more than one name constraints extension\n");
+		}
+		idx->nc++;
+
+		addf(str, _("%s\t\tName Constraints (%s):\n"), prefix,
+		     critical ? _("critical") : _("not critical"));
+
+		print_nc(str, prefix, der);
+	} else {
+		addf(str, _("%s\t\tUnknown extension %s (%s):\n"),
+		     prefix, oid,
+		     critical ? _("critical") : _("not critical"));
+
+		addf(str, _("%s\t\t\tASCII: "), prefix);
+		_gnutls_buffer_asciiprint(str, (char*)der->data, der->size);
+
+		addf(str, "\n");
+		addf(str, _("%s\t\t\tHexdump: "), prefix);
+		_gnutls_buffer_hexprint(str, (char*)der->data, der->size);
+		adds(str, "\n");
+	}
+}
+
 static void
 print_extensions(gnutls_buffer_st * str, const char *prefix, int type,
 		 cert_type_t cert)
 {
-	unsigned i, j;
+	unsigned i;
 	int err;
-	int san_idx = 0;
-	int ian_idx = 0;
-	int proxy_idx = 0;
-	int basic_idx = 0;
-	int keyusage_idx = 0;
-	int keypurpose_idx = 0;
-	int ski_idx = 0;
-	int aki_idx = 0;
-	int crldist_idx = 0, pkey_usage_period_idx = 0;
-	char pfx[16];
+	gnutls_datum_t der = {NULL, 0};
+	struct ext_indexes_st idx;
+
+	memset(&idx, 0, sizeof(idx));
 
 	for (i = 0;; i++) {
 		char oid[MAX_OID_SIZE] = "";
@@ -1030,274 +975,18 @@ print_extensions(gnutls_buffer_st * str, const char *prefix, int type,
 		if (i == 0)
 			addf(str, _("%s\tExtensions:\n"), prefix);
 
-		if (strcmp(oid, "2.5.29.19") == 0) {
-			if (basic_idx) {
-				addf(str,
-				     "error: more than one basic constraint\n");
-				continue;
-			}
+		if (type == TYPE_CRT)
+			err = gnutls_x509_crt_get_extension_data2(cert.crt, i, &der);
+		else
+			err = gnutls_x509_crq_get_extension_data2(cert.crq, i, &der);
 
-			addf(str, _("%s\t\tBasic Constraints (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			print_basic(str, prefix, type, cert);
-
-			basic_idx++;
-		} else if (strcmp(oid, "2.5.29.14") == 0) {
-			if (ski_idx) {
-				addf(str,
-				     "error: more than one SKI extension\n");
-				continue;
-			}
-
-			addf(str,
-			     _("%s\t\tSubject Key Identifier (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			if (type == TYPE_CRT)
-				print_ski(str, cert.crt);
-
-			ski_idx++;
-		} else if (strcmp(oid, "2.5.29.32") == 0) {
-			struct gnutls_x509_policy_st policy;
-			const char *name;
-			int x;
-
-			for (x = 0;; x++) {
-				err =
-				    gnutls_x509_crt_get_policy(cert.crt, x,
-							       &policy,
-							       &critical);
-				if (err ==
-				    GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
-					break;
-
-				if (err < 0) {
-					addf(str,
-					     "error: certificate policy: %s\n",
-					     gnutls_strerror(err));
-					break;
-				}
-
-				if (x == 0)
-					addf(str,
-					     "%s\t\tCertificate Policies (%s):\n",
-					     prefix,
-					     critical ? _("critical") :
-					     _("not critical"));
-
-				addf(str, "%s\t\t\t%s\n", prefix,
-				     policy.oid);
-				for (j = 0; j < policy.qualifiers; j++) {
-					if (policy.qualifier[j].type ==
-					    GNUTLS_X509_QUALIFIER_URI)
-						name = "URI";
-					else if (policy.qualifier[j].
-						 type ==
-						 GNUTLS_X509_QUALIFIER_NOTICE)
-						name = "Note";
-					else
-						name = "Unknown qualifier";
-					addf(str, "%s\t\t\t\t%s: %s\n",
-					     prefix, name,
-					     policy.qualifier[j].data);
-				}
-
-				gnutls_x509_policy_release(&policy);
-			}
-		} else if (strcmp(oid, "2.5.29.35") == 0) {
-
-			if (aki_idx) {
-				addf(str,
-				     "error: more than one AKI extension\n");
-				continue;
-			}
-
-			addf(str,
-			     _("%s\t\tAuthority Key Identifier (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			if (type == TYPE_CRT)
-				print_aki(str, TYPE_CRT, cert);
-
-			aki_idx++;
-		} else if (strcmp(oid, "2.5.29.15") == 0) {
-			if (keyusage_idx) {
-				addf(str,
-				     "error: more than one key usage extension\n");
-				continue;
-			}
-
-			addf(str, _("%s\t\tKey Usage (%s):\n"), prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			snprintf(pfx, sizeof(pfx), "%s\t\t\t", prefix);
-			print_key_usage(str, pfx, type, cert);
-
-			keyusage_idx++;
-		} else if (strcmp(oid, "2.5.29.16") == 0) {
-			if (pkey_usage_period_idx) {
-				addf(str,
-				     "error: more than one private key usage period extension\n");
-				continue;
-			}
-
-			addf(str,
-			     _("%s\t\tPrivate Key Usage Period (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			print_private_key_usage_period(str, prefix, type,
-						       cert);
-
-			pkey_usage_period_idx++;
-		} else if (strcmp(oid, "2.5.29.37") == 0) {
-			if (keypurpose_idx) {
-				addf(str,
-				     "error: more than one key purpose extension\n");
-				continue;
-			}
-
-			addf(str, _("%s\t\tKey Purpose (%s):\n"), prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			print_key_purpose(str, prefix, type, cert);
-			keypurpose_idx++;
-		} else if (strcmp(oid, "2.5.29.17") == 0) {
-			if (san_idx) {
-				addf(str,
-				     "error: more than one SKI extension\n");
-				continue;
-			}
-
-			addf(str,
-			     _("%s\t\tSubject Alternative Name (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			print_altname(str, prefix, type, cert);
-
-			san_idx++;
-		} else if (strcmp(oid, "2.5.29.18") == 0) {
-			if (ian_idx) {
-				addf(str,
-				     "error: more than one Issuer AltName extension\n");
-				continue;
-			}
-
-			addf(str,
-			     _("%s\t\tIssuer Alternative Name (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			print_altname(str, prefix, TYPE_CRT_IAN, cert);
-
-			ian_idx++;
-		} else if (strcmp(oid, "2.5.29.31") == 0) {
-			if (crldist_idx) {
-				addf(str,
-				     "error: more than one CRL distribution point\n");
-				continue;
-			}
-
-			addf(str,
-			     _("%s\t\tCRL Distribution points (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			if (type == TYPE_CRT)
-				print_crldist(str, cert.crt);
-			crldist_idx++;
-		} else if (strcmp(oid, "1.3.6.1.5.5.7.1.14") == 0) {
-			if (proxy_idx) {
-				addf(str,
-				     "error: more than one proxy extension\n");
-				continue;
-			}
-
-			addf(str,
-			     _
-			     ("%s\t\tProxy Certificate Information (%s):\n"),
-			     prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			if (type == TYPE_CRT)
-				print_proxy(str, cert.crt);
-
-			proxy_idx++;
-		} else if (strcmp(oid, "1.3.6.1.5.5.7.1.1") == 0) {
-			addf(str, _("%s\t\tAuthority Information "
-				    "Access (%s):\n"), prefix,
-			     critical ? _("critical") : _("not critical"));
-
-			if (type == TYPE_CRT)
-				print_aia(str, cert.crt);
-		} else {
-			char *buffer;
-			size_t extlen = 0;
-
-			addf(str, _("%s\t\tUnknown extension %s (%s):\n"),
-			     prefix, oid,
-			     critical ? _("critical") : _("not critical"));
-
-			if (type == TYPE_CRT)
-				err =
-				    gnutls_x509_crt_get_extension_data
-				    (cert.crt, i, NULL, &extlen);
-			else if (type == TYPE_CRQ)
-				err =
-				    gnutls_x509_crq_get_extension_data
-				    (cert.crq, i, NULL, &extlen);
-			else {
-				gnutls_assert();
-				return;
-			}
-
-			if (err < 0 && err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-				addf(str,
-				     "error: get_extension_data: %s\n",
-				     gnutls_strerror(err));
-				continue;
-			}
-
-			buffer = gnutls_malloc(extlen);
-			if (!buffer) {
-				addf(str, "error: malloc: %s\n",
-				     gnutls_strerror
-				     (GNUTLS_E_MEMORY_ERROR));
-				continue;
-			}
-
-			if (type == TYPE_CRT)
-				err =
-				    gnutls_x509_crt_get_extension_data
-				    (cert.crt, i, buffer, &extlen);
-			else if (type == TYPE_CRQ)
-				err =
-				    gnutls_x509_crq_get_extension_data
-				    (cert.crq, i, buffer, &extlen);
-
-			if (err < 0 && err) {
-				gnutls_free(buffer);
-				addf(str,
-				     "error: get_extension_data2: %s\n",
-				     gnutls_strerror(err));
-				continue;
-			}
-
-			addf(str, _("%s\t\t\tASCII: "), prefix);
-			_gnutls_buffer_asciiprint(str, buffer, extlen);
-			addf(str, "\n");
-
-			addf(str, _("%s\t\t\tHexdump: "), prefix);
-			_gnutls_buffer_hexprint(str, buffer, extlen);
-			adds(str, "\n");
-
-			gnutls_free(buffer);
+		if (err < 0) {
+			der.data = NULL;
+			der.size = 0;
 		}
+
+		print_extension(str, prefix, &idx, oid, critical, &der);
+		gnutls_free(der.data);
 	}
 }
 
@@ -1732,10 +1421,8 @@ print_fingerprint(gnutls_buffer_st * str, gnutls_x509_crt_t cert,
 		return;
 	}
 
-	if (algo == GNUTLS_DIG_MD5)
-		adds(str, _("\tMD5 fingerprint:\n\t\t"));
-	else
-		adds(str, _("\tSHA-1 fingerprint:\n\t\t"));
+	addf(str, _("\t%s fingerprint:\n\t\t"), gnutls_mac_get_name((gnutls_mac_algorithm_t)algo));
+
 	_gnutls_buffer_hexprint(str, buffer, size);
 	adds(str, "\n");
 }
@@ -1785,6 +1472,7 @@ print_other(gnutls_buffer_st * str, gnutls_x509_crt_t cert,
 {
 	if (format != GNUTLS_CRT_PRINT_UNSIGNED_FULL) {
 		print_fingerprint(str, cert, GNUTLS_DIG_SHA1);
+		print_fingerprint(str, cert, GNUTLS_DIG_SHA256);
 	}
 	print_keyid(str, cert);
 }
@@ -1970,7 +1658,7 @@ static void print_oneline(gnutls_buffer_st * str, gnutls_x509_crt_t cert)
  * gnutls_x509_crt_print:
  * @cert: The structure to be printed
  * @format: Indicate the format to use
- * @out: Newly allocated datum with (0) terminated string.
+ * @out: Newly allocated datum with null terminated string.
  *
  * This function will pretty print a X.509 certificate, suitable for
  * display to a human.
@@ -2170,8 +1858,7 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 
 				if (crl_nr) {
 					addf(str,
-					     "error: more than one CRL number\n");
-					continue;
+					     "warning: more than one CRL number\n");
 				}
 
 				err =
@@ -2195,12 +1882,11 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 
 				crl_nr++;
 			} else if (strcmp(oid, "2.5.29.35") == 0) {
-				cert_type_t ccert;
+				gnutls_datum_t der;
 
 				if (aki_idx) {
 					addf(str,
-					     "error: more than one AKI extension\n");
-					continue;
+					     "warning: more than one AKI extension\n");
 				}
 
 				addf(str,
@@ -2209,13 +1895,19 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 				     critical ? _("critical") :
 				     _("not critical"));
 
-				ccert.crl = crl;
-				print_aki(str, TYPE_CRL, ccert);
+				err = gnutls_x509_crl_get_extension_data2(crl, i, &der);
+				if (err < 0) {
+					addf(str,
+					     "error: get_extension_data2: %s\n",
+					     gnutls_strerror(err));
+					continue;
+				}
+				print_aki(str, &der);
+				gnutls_free(der.data);
 
 				aki_idx++;
 			} else {
-				char *buffer;
-				size_t extlen = 0;
+				gnutls_datum_t der;
 
 				addf(str,
 				     _("\t\tUnknown extension %s (%s):\n"),
@@ -2224,32 +1916,10 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 				     _("not critical"));
 
 				err =
-				    gnutls_x509_crl_get_extension_data(crl,
+				    gnutls_x509_crl_get_extension_data2(crl,
 								       i,
-								       NULL,
-								       &extlen);
-				if (err < 0 && err != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-					addf(str,
-					     "error: get_extension_data: %s\n",
-					     gnutls_strerror(err));
-					continue;
-				}
-
-				buffer = gnutls_malloc(extlen);
-				if (!buffer) {
-					addf(str, "error: malloc: %s\n",
-					     gnutls_strerror
-					     (GNUTLS_E_MEMORY_ERROR));
-					continue;
-				}
-
-				err =
-				    gnutls_x509_crl_get_extension_data(crl,
-								       i,
-								       buffer,
-								       &extlen);
+								       &der);
 				if (err < 0) {
-					gnutls_free(buffer);
 					addf(str,
 					     "error: get_extension_data2: %s\n",
 					     gnutls_strerror(err));
@@ -2257,16 +1927,14 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 				}
 
 				adds(str, _("\t\t\tASCII: "));
-				_gnutls_buffer_asciiprint(str, buffer,
-							  extlen);
+				_gnutls_buffer_asciiprint(str, (char*)der.data, der.size);
 				adds(str, "\n");
 
 				adds(str, _("\t\t\tHexdump: "));
-				_gnutls_buffer_hexprint(str, buffer,
-							extlen);
+				_gnutls_buffer_hexprint(str, der.data, der.size);
 				adds(str, "\n");
 
-				gnutls_free(buffer);
+				gnutls_free(der.data);
 			}
 		}
 	}
@@ -2275,6 +1943,7 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 	/* Revoked certificates. */
 	{
 		int num = gnutls_x509_crl_get_crt_count(crl);
+		gnutls_x509_crl_iter_t iter = NULL;
 		int j;
 
 		if (num)
@@ -2290,13 +1959,14 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 			time_t tim;
 
 			err =
-			    gnutls_x509_crl_get_crt_serial(crl, j, serial,
+			    gnutls_x509_crl_iter_crt_serial(crl, &iter, serial,
 							   &serial_size,
 							   &tim);
-			if (err < 0)
-				addf(str, "error: get_crt_serial: %s\n",
+			if (err < 0) {
+				addf(str, "error: iter_crt_serial: %s\n",
 				     gnutls_strerror(err));
-			else {
+				break;
+			} else {
 				char s[42];
 				size_t max = sizeof(s);
 				struct tm t;
@@ -2322,6 +1992,7 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 					     _("\t\tRevoked at: %s\n"), s);
 			}
 		}
+		gnutls_x509_crl_iter_deinit(iter);
 	}
 
 	/* Signature. */
@@ -2380,7 +2051,7 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
  * gnutls_x509_crl_print:
  * @crl: The structure to be printed
  * @format: Indicate the format to use
- * @out: Newly allocated datum with (0) terminated string.
+ * @out: Newly allocated datum with null terminated string.
  *
  * This function will pretty print a X.509 certificate revocation
  * list, suitable for display to a human.
@@ -2528,8 +2199,7 @@ print_crq(gnutls_buffer_st * str, gnutls_x509_crq_t cert,
 
 				if (extensions) {
 					addf(str,
-					     "error: more than one extensionsRequest\n");
-					continue;
+					     "warning: more than one extensionsRequest\n");
 				}
 
 				ccert.crq = cert;
@@ -2544,8 +2214,7 @@ print_crq(gnutls_buffer_st * str, gnutls_x509_crq_t cert,
 
 				if (challenge) {
 					adds(str,
-					     "error: more than one Challenge password attribute\n");
-					continue;
+					     "warning: more than one Challenge password attribute\n");
 				}
 
 				err =
@@ -2676,7 +2345,7 @@ static void print_crq_other(gnutls_buffer_st * str, gnutls_x509_crq_t crq)
  * gnutls_x509_crq_print:
  * @crq: The structure to be printed
  * @format: Indicate the format to use
- * @out: Newly allocated datum with (0) terminated string.
+ * @out: Newly allocated datum with null terminated string.
  *
  * This function will pretty print a certificate request, suitable for
  * display to a human.
@@ -2724,9 +2393,6 @@ print_pubkey_other(gnutls_buffer_st * str, gnutls_pubkey_t pubkey,
 	size_t size = sizeof(buffer);
 	int ret;
 	unsigned int usage;
-	cert_type_t ccert;
-
-	ccert.pubkey = pubkey;
 
 	ret = gnutls_pubkey_get_key_usage(pubkey, &usage);
 	if (ret < 0) {
@@ -2737,7 +2403,7 @@ print_pubkey_other(gnutls_buffer_st * str, gnutls_pubkey_t pubkey,
 
 	adds(str, "\n");
 	adds(str, _("Public Key Usage:\n"));
-	print_key_usage(str, "\t", TYPE_PUBKEY, ccert);
+	print_key_usage2(str, "\t", pubkey->key_usage);
 
 	ret = gnutls_pubkey_get_key_id(pubkey, 0, buffer, &size);
 	if (ret < 0) {
@@ -2755,7 +2421,7 @@ print_pubkey_other(gnutls_buffer_st * str, gnutls_pubkey_t pubkey,
  * gnutls_pubkey_print:
  * @pubkey: The structure to be printed
  * @format: Indicate the format to use
- * @out: Newly allocated datum with (0) terminated string.
+ * @out: Newly allocated datum with null terminated string.
  *
  * This function will pretty print public key information, suitable for
  * display to a human.
@@ -2791,5 +2457,44 @@ gnutls_pubkey_print(gnutls_pubkey_t pubkey,
 	if (out->size > 0)
 		out->size--;
 
+	return ret;
+}
+
+/**
+ * gnutls_x509_ext_print:
+ * @exts: The structures to be printed
+ * @exts_size: the number of available structures
+ * @format: Indicate the format to use
+ * @out: Newly allocated datum with null terminated string.
+ *
+ * This function will pretty print X.509 certificate extensions, 
+ * suitable for display to a human.
+ *
+ * The output @out needs to be deallocated using gnutls_free().
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error value.
+ **/
+int
+gnutls_x509_ext_print(gnutls_x509_ext_st *exts, unsigned int exts_size,
+		      gnutls_certificate_print_formats_t format,
+		      gnutls_datum_t * out)
+{
+	gnutls_buffer_st str;
+	struct ext_indexes_st idx;
+	int ret;
+	unsigned i;
+
+	memset(&idx, 0, sizeof(idx));
+	_gnutls_buffer_init(&str);
+
+	for (i=0;i<exts_size;i++)
+		print_extension(&str, "", &idx, (char*)exts[i].oid, exts[i].critical, &exts[i].data);
+
+	_gnutls_buffer_append_data(&str, "\x00", 1);
+
+	ret = _gnutls_buffer_to_datum(&str, out);
+	if (out->size > 0)
+		out->size--;
 	return ret;
 }

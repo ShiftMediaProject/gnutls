@@ -119,12 +119,13 @@ _gnutls_psk_pwd_find_entry(gnutls_session_t session, char *username,
 {
 	gnutls_psk_server_credentials_t cred;
 	FILE *fd;
-	char line[2 * 1024];
+	char *line = NULL;
+	size_t line_size = 0;
 	unsigned i, len;
 	int ret;
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 	if (cred == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INSUFFICIENT_CREDENTIALS;
@@ -169,35 +170,42 @@ _gnutls_psk_pwd_find_entry(gnutls_session_t session, char *username,
 	}
 
 	len = strlen(username);
-	while (fgets(line, sizeof(line), fd) != NULL) {
+	while (getline(&line, &line_size, fd) > 0) {
 		/* move to first ':' */
 		i = 0;
-		while ((i < sizeof(line)) && (line[i] != ':') && (line[i] != '\0')) {
+		while ((i < line_size) && (line[i] != '\0')
+		       && (line[i] != ':')) {
 			i++;
 		}
 
 		if (strncmp(username, line, MAX(i, len)) == 0) {
 			ret = pwd_put_values(psk, line);
-			fclose(fd);
 			if (ret < 0) {
 				gnutls_assert();
-				return GNUTLS_E_SRP_PWD_ERROR;
+				ret = GNUTLS_E_SRP_PWD_ERROR;
+				goto cleanup;
 			}
-			return 0;
+			ret = 0;
+			goto cleanup;
 		}
 	}
-	fclose(fd);
 
 	/* user was not found. Fake him. 
-	 * the last index found and randomize the entry.
 	 */
 	ret = _randomize_psk(psk);
 	if (ret < 0) {
-		gnutls_assert();
-		return ret;
+		goto cleanup;
 	}
 
-	return 0;
+	ret = 0;
+cleanup:
+	if (fd != NULL)
+		fclose(fd);
+        
+        zeroize_key(line, line_size);
+	free(line);
+
+	return ret;
 
 }
 

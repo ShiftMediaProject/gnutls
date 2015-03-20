@@ -3,7 +3,8 @@ prog-name     = danetool;
 prog-title    = "GnuTLS DANE tool";
 prog-desc     = "Generate DANE TLSA RR entries.";
 detail    = "Tool to generate and check DNS resource records for the DANE protocol.";
-short-usage   = "danetool [options]\ndanetool --help for usage instructions.\n";
+short-usage   = "danetool --[tlsa-rr|check] [options]
+danetool --help for additional usage instructions.\n";
 explain       = "";
 
 #define  INFILE_OPT    0
@@ -43,7 +44,7 @@ flag = {
     name      = check;
     arg-type  = string;
     descrip   = "Check a host's DANE TLSA entry";
-    doc = "Obtains the DANE TLSA entry from the given hostname and prints information. Note that the actual certificate of the host has to be provided using --load-certificate.";
+    doc = "Obtains the DANE TLSA entry from the given hostname and prints information. Note that the actual certificate of the host can be provided using --load-certificate, otherwise danetool will connect to the server to obtain it. The exit code on verification success will be zero.";
 };
 
 flag = {
@@ -56,36 +57,6 @@ flag = {
     name      = check-ca;
     descrip   = "Check only the CA's certificate";
     doc = "Checks the trust anchor's and CA's certificate only. End-entities are not considered.";
-};
-
-flag = {
-    name      = insecure;
-    descrip   = "Do not verify any DNSSEC signature";
-    doc = "Ignores any DNSSEC signature verification results.";
-};
-
-flag = {
-    name      = local-dns;
-    descrip   = "Use the local DNS server for DNSSEC resolving";
-    disabled;
-    disable   = "no";
-    doc       = "This option will use the local DNS server for DNSSEC.
-This is disabled by default due to many servers not allowing DNSSEC.";
-};
-
-flag = {
-    name      = inder;
-    descrip   = "Use DER format for input certificates and private keys";
-    disabled;
-    disable   = "no";
-    doc       = "The input files will be assumed to be in DER or RAW format. 
-Unlike options that in PEM input would allow multiple input data (e.g. multiple 
-certificates), when reading in DER format a single data structure is read.";
-};
-
-flag = {
-    name      = inraw;
-    aliases   = inder;
 };
 
 flag = {
@@ -120,6 +91,13 @@ flag = {
 };
 
 flag = {
+    name      = app-proto;
+    descrip   = "The application protocol to be used to obtain the server's certificate (https, smtp, imap)";
+    arg-type  = string;
+    doc = "When the server's certificate isn't provided danetool will connect to the server to obtain the certificate. In that case it is required to known the protocol to talk with the server prior to initiating the TLS handshake.";
+};
+
+flag = {
     name      = ca;
     descrip   = "Whether the provided certificate or public key is a Certificate Authority";
     doc      = "Marks the DANE RR as a CA certificate if specified.";
@@ -143,6 +121,52 @@ flag = {
     disable   = "no";
     doc      = "DANE distinguishes certificates and public keys offered via the DNSSEC to trusted and local entities. This flag indicates that this is a domain-issued certificate, meaning that there could be no CA involved.";
 };
+
+flag = {
+    name      = local-dns;
+    descrip   = "Use the local DNS server for DNSSEC resolving";
+    disabled;
+    disable   = "no";
+    doc       = "This option will use the local DNS server for DNSSEC.
+This is disabled by default due to many servers not allowing DNSSEC.";
+};
+
+flag = {
+    name      = insecure;
+    descrip   = "Do not verify any DNSSEC signature";
+    doc = "Ignores any DNSSEC signature verification results.";
+};
+
+flag = {
+    name      = inder;
+    descrip   = "Use DER format for input certificates and private keys";
+    disabled;
+    disable   = "no";
+    doc       = "The input files will be assumed to be in DER or RAW format. 
+Unlike options that in PEM input would allow multiple input data (e.g. multiple 
+certificates), when reading in DER format a single data structure is read.";
+};
+
+flag = {
+    name      = inraw;
+    aliases   = inder;
+};
+
+flag = {
+    name      = print-raw;
+    descrip   = "Print the received DANE data in raw format";
+    disabled;
+    disable   = "no";
+    doc = "This option will print the received DANE data.";
+};
+
+flag = {
+    name      = quiet;
+    descrip   = "Suppress several informational messages";
+    doc      = "In that case on the exit code can be used as an indication of verification success";
+};
+
+
 
 doc-section = {
   ds-type = 'SEE ALSO';

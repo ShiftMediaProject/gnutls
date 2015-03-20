@@ -33,6 +33,7 @@
 #include <gnutls_num.h>
 #include <gnutls_helper.h>
 #include <algorithms.h>
+#include <random.h>
 
 #include "debug.h"
 
@@ -44,40 +45,45 @@ static int
 _gnutls_srp_gx(uint8_t * text, size_t textsize, uint8_t ** result,
 	       bigint_t g, bigint_t prime)
 {
-	bigint_t x, e;
+	bigint_t x, e = NULL;
 	size_t result_size;
 	int ret;
 
-	if (_gnutls_mpi_scan_nz(&x, text, textsize)) {
+	if (_gnutls_mpi_init_scan_nz(&x, text, textsize)) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
 
-	e = _gnutls_mpi_alloc_like(prime);
-	if (e == NULL) {
-		gnutls_assert();
-		_gnutls_mpi_release(&x);
-		return GNUTLS_E_MEMORY_ERROR;
-	}
+	ret = _gnutls_mpi_init(&e);
+	if (ret < 0)
+		goto cleanup;
 
 	/* e = g^x mod prime (n) */
-	_gnutls_mpi_powm(e, g, x, prime);
-	_gnutls_mpi_release(&x);
+	ret = _gnutls_mpi_powm(e, g, x, prime);
+	if (ret < 0)
+		goto cleanup;
 
 	ret = _gnutls_mpi_print(e, NULL, &result_size);
 	if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
 		*result = gnutls_malloc(result_size);
-		if ((*result) == NULL)
-			return GNUTLS_E_MEMORY_ERROR;
+		if ((*result) == NULL) {
+			ret = GNUTLS_E_MEMORY_ERROR;
+			goto cleanup;
+		}
 
-		_gnutls_mpi_print(e, *result, &result_size);
+		ret = _gnutls_mpi_print(e, *result, &result_size);
+		if (ret < 0)
+			goto cleanup;
+
 		ret = result_size;
 	} else {
 		gnutls_assert();
 		ret = GNUTLS_E_MPI_PRINT_FAILED;
 	}
 
+cleanup:
 	_gnutls_mpi_release(&e);
+	_gnutls_mpi_release(&x);
 
 	return ret;
 
@@ -94,33 +100,15 @@ _gnutls_calc_srp_B(bigint_t * ret_b, bigint_t g, bigint_t n, bigint_t v)
 {
 	bigint_t tmpB = NULL, tmpV = NULL;
 	bigint_t b = NULL, B = NULL, k = NULL;
-	int bits;
-
+	int ret;
 
 	/* calculate:  B = (k*v + g^b) % N 
 	 */
-	bits = _gnutls_mpi_get_nbits(n);
+	ret = _gnutls_mpi_init_multi(&tmpV, &tmpB, &B, &b, NULL);
+	if (ret < 0)
+		return NULL;
 
-	tmpV = _gnutls_mpi_alloc_like(n);
-
-	if (tmpV == NULL) {
-		gnutls_assert();
-		goto error;
-	}
-
-	b = _gnutls_mpi_randomize(NULL, bits, GNUTLS_RND_RANDOM);
-
-	tmpB = _gnutls_mpi_new(bits);
-	if (tmpB == NULL) {
-		gnutls_assert();
-		goto error;
-	}
-
-	B = _gnutls_mpi_new(bits);
-	if (B == NULL) {
-		gnutls_assert();
-		goto error;
-	}
+	_gnutls_mpi_random_modp(b, n, GNUTLS_RND_RANDOM);
 
 	k = _gnutls_calc_srp_u(n, g, n);
 	if (k == NULL) {
@@ -128,10 +116,23 @@ _gnutls_calc_srp_B(bigint_t * ret_b, bigint_t g, bigint_t n, bigint_t v)
 		goto error;
 	}
 
-	_gnutls_mpi_mulm(tmpV, k, v, n);
-	_gnutls_mpi_powm(tmpB, g, b, n);
+	ret = _gnutls_mpi_mulm(tmpV, k, v, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
-	_gnutls_mpi_addm(B, tmpV, tmpB, n);
+	ret = _gnutls_mpi_powm(tmpB, g, b, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	ret = _gnutls_mpi_addm(B, tmpV, tmpB, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
 	_gnutls_mpi_release(&k);
 	_gnutls_mpi_release(&tmpB);
@@ -185,7 +186,7 @@ bigint_t _gnutls_calc_srp_u(bigint_t A, bigint_t B, bigint_t n)
 	_gnutls_mpi_print(A, &holder[n_size - a_size], &a_size);
 	_gnutls_mpi_print(B, &holder[n_size + n_size - b_size], &b_size);
 
-	ret = _gnutls_hash_fast(GNUTLS_MAC_SHA1, holder, holder_size, hd);
+	ret = _gnutls_hash_fast(GNUTLS_DIG_SHA1, holder, holder_size, hd);
 	if (ret < 0) {
 		gnutls_free(holder);
 		gnutls_assert();
@@ -195,7 +196,7 @@ bigint_t _gnutls_calc_srp_u(bigint_t A, bigint_t B, bigint_t n)
 	/* convert the bytes of hd to integer
 	 */
 	hash_size = 20;		/* SHA */
-	ret = _gnutls_mpi_scan_nz(&res, hd, hash_size);
+	ret = _gnutls_mpi_init_scan_nz(&res, hd, hash_size);
 	gnutls_free(holder);
 
 	if (ret < 0) {
@@ -215,19 +216,24 @@ _gnutls_calc_srp_S1(bigint_t A, bigint_t b, bigint_t u, bigint_t v,
 {
 	bigint_t tmp1 = NULL, tmp2 = NULL;
 	bigint_t S = NULL;
+	int ret;
 
-	S = _gnutls_mpi_alloc_like(n);
-	if (S == NULL)
+	ret = _gnutls_mpi_init_multi(&S, &tmp1, &tmp2, NULL);
+	if (ret < 0)
 		return NULL;
 
-	tmp1 = _gnutls_mpi_alloc_like(n);
-	tmp2 = _gnutls_mpi_alloc_like(n);
+	ret = _gnutls_mpi_powm(tmp1, v, u, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
-	if (tmp1 == NULL || tmp2 == NULL)
-		goto freeall;
+	ret = _gnutls_mpi_mulm(tmp2, A, tmp1, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
 
-	_gnutls_mpi_powm(tmp1, v, u, n);
-	_gnutls_mpi_mulm(tmp2, A, tmp1, n);
 	_gnutls_mpi_powm(S, tmp2, b, n);
 
 	_gnutls_mpi_release(&tmp1);
@@ -235,7 +241,8 @@ _gnutls_calc_srp_S1(bigint_t A, bigint_t b, bigint_t u, bigint_t v,
 
 	return S;
 
-      freeall:
+error:
+	_gnutls_mpi_release(&S);
 	_gnutls_mpi_release(&tmp1);
 	_gnutls_mpi_release(&tmp2);
 	return NULL;
@@ -248,18 +255,19 @@ bigint_t _gnutls_calc_srp_A(bigint_t * a, bigint_t g, bigint_t n)
 {
 	bigint_t tmpa;
 	bigint_t A;
-	int bits;
+	int ret;
 
-	bits = _gnutls_mpi_get_nbits(n);
-	tmpa = _gnutls_mpi_randomize(NULL, bits, GNUTLS_RND_RANDOM);
-
-	A = _gnutls_mpi_new(bits);
-	if (A == NULL) {
+	ret = _gnutls_mpi_init_multi(&A, &tmpa, NULL);
+	if (ret < 0) {
 		gnutls_assert();
-		_gnutls_mpi_release(&tmpa);
 		return NULL;
 	}
-	_gnutls_mpi_powm(A, g, tmpa, n);
+
+	_gnutls_mpi_random_modp(tmpa, n, GNUTLS_RND_RANDOM);
+
+	ret = _gnutls_mpi_powm(A, g, tmpa, n);
+	if (ret < 0)
+		goto error;
 
 	if (a != NULL)
 		*a = tmpa;
@@ -267,6 +275,10 @@ bigint_t _gnutls_calc_srp_A(bigint_t * a, bigint_t g, bigint_t n)
 		_gnutls_mpi_release(&tmpa);
 
 	return A;
+error:
+	_gnutls_mpi_release(&tmpa);
+	_gnutls_mpi_release(&A);
+	return NULL;
 }
 
 /* generate x = SHA(s | SHA(U | ":" | p))
@@ -326,17 +338,11 @@ _gnutls_calc_srp_S2(bigint_t B, bigint_t g, bigint_t x, bigint_t a,
 {
 	bigint_t S = NULL, tmp1 = NULL, tmp2 = NULL;
 	bigint_t tmp4 = NULL, tmp3 = NULL, k = NULL;
+	int ret;
 
-	S = _gnutls_mpi_alloc_like(n);
-	if (S == NULL)
+	ret = _gnutls_mpi_init_multi(&S, &tmp1, &tmp2, &tmp3, &tmp4, NULL);
+	if (ret < 0)
 		return NULL;
-
-	tmp1 = _gnutls_mpi_alloc_like(n);
-	tmp2 = _gnutls_mpi_alloc_like(n);
-	tmp3 = _gnutls_mpi_alloc_like(n);
-	if (tmp1 == NULL || tmp2 == NULL || tmp3 == NULL) {
-		goto freeall;
-	}
 
 	k = _gnutls_calc_srp_u(n, g, n);
 	if (k == NULL) {
@@ -344,17 +350,41 @@ _gnutls_calc_srp_S2(bigint_t B, bigint_t g, bigint_t x, bigint_t a,
 		goto freeall;
 	}
 
-	_gnutls_mpi_powm(tmp1, g, x, n);	/* g^x */
-	_gnutls_mpi_mulm(tmp3, tmp1, k, n);	/* k*g^x mod n */
-	_gnutls_mpi_subm(tmp2, B, tmp3, n);
-
-	tmp4 = _gnutls_mpi_alloc_like(n);
-	if (tmp4 == NULL)
+	ret = _gnutls_mpi_powm(tmp1, g, x, n);	/* g^x */
+	if (ret < 0) {
+		gnutls_assert();
 		goto freeall;
+	}
 
-	_gnutls_mpi_mul(tmp1, u, x);
-	_gnutls_mpi_add(tmp4, a, tmp1);
-	_gnutls_mpi_powm(S, tmp2, tmp4, n);
+	ret = _gnutls_mpi_mulm(tmp3, tmp1, k, n);	/* k*g^x mod n */
+	if (ret < 0) {
+		gnutls_assert();
+		goto freeall;
+	}
+
+	ret = _gnutls_mpi_subm(tmp2, B, tmp3, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto freeall;
+	}
+
+	ret = _gnutls_mpi_mul(tmp1, u, x);
+	if (ret < 0) {
+		gnutls_assert();
+		goto freeall;
+	}
+
+	ret = _gnutls_mpi_add(tmp4, a, tmp1);
+	if (ret < 0) {
+		gnutls_assert();
+		goto freeall;
+	}
+
+	ret = _gnutls_mpi_powm(S, tmp2, tmp4, n);
+	if (ret < 0) {
+		gnutls_assert();
+		goto freeall;
+	}
 
 	_gnutls_mpi_release(&tmp1);
 	_gnutls_mpi_release(&tmp2);
@@ -460,9 +490,22 @@ void gnutls_srp_free_server_credentials(gnutls_srp_server_credentials_t sc)
 {
 	gnutls_free(sc->password_file);
 	gnutls_free(sc->password_conf_file);
+	_gnutls_free_datum(&sc->fake_salt_seed);
 
 	gnutls_free(sc);
 }
+
+/* Size of the default (random) seed if
+ * gnutls_srp_set_server_fake_salt_seed() is not called to set
+ * a seed.
+ */
+#define DEFAULT_FAKE_SALT_SEED_SIZE 20
+
+/* Size of the fake salts generated if
+ * gnutls_srp_set_server_fake_salt_seed() is not called to set
+ * another size.
+ */
+#define DEFAULT_FAKE_SALT_SIZE 16
 
 /**
  * gnutls_srp_allocate_server_credentials:
@@ -478,12 +521,36 @@ int
 gnutls_srp_allocate_server_credentials(gnutls_srp_server_credentials_t *
 				       sc)
 {
+	int ret;
 	*sc = gnutls_calloc(1, sizeof(srp_server_cred_st));
 
 	if (*sc == NULL)
 		return GNUTLS_E_MEMORY_ERROR;
 
+	(*sc)->fake_salt_seed.size = DEFAULT_FAKE_SALT_SEED_SIZE;
+	(*sc)->fake_salt_seed.data = gnutls_malloc(
+					DEFAULT_FAKE_SALT_SEED_SIZE);
+	if ((*sc)->fake_salt_seed.data == NULL) {
+		ret = GNUTLS_E_MEMORY_ERROR;
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = _gnutls_rnd(GNUTLS_RND_RANDOM, (*sc)->fake_salt_seed.data,
+				DEFAULT_FAKE_SALT_SEED_SIZE);
+
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	(*sc)->fake_salt_length = DEFAULT_FAKE_SALT_SIZE;
 	return 0;
+
+cleanup:
+	_gnutls_free_datum(&(*sc)->fake_salt_seed);
+	gnutls_free(*sc);
+	return ret;
 }
 
 /**
@@ -549,21 +616,26 @@ gnutls_srp_set_server_credentials_file(gnutls_srp_server_credentials_t res,
  * SRP credentials.  The callback's function form is:
  *
  * int (*callback)(gnutls_session_t, const char* username,
- *  gnutls_datum_t* salt, gnutls_datum_t *verifier, gnutls_datum_t* generator,
- *  gnutls_datum_t* prime);
+ *  gnutls_datum_t *salt, gnutls_datum_t *verifier, gnutls_datum_t *generator,
+ *  gnutls_datum_t *prime);
  *
  * @username contains the actual username.
  * The @salt, @verifier, @generator and @prime must be filled
  * in using the gnutls_malloc(). For convenience @prime and @generator
  * may also be one of the static parameters defined in gnutls.h.
  *
- * In case the callback returned a negative number then gnutls will
- * assume that the username does not exist.
+ * Initially, the data field is NULL in every #gnutls_datum_t
+ * structure that the callback has to fill in. When the
+ * callback is done GnuTLS deallocates all of those buffers
+ * which are non-NULL, regardless of the return value.
  *
  * In order to prevent attackers from guessing valid usernames,
  * if a user does not exist, g and n values should be filled in
  * using a random user's parameters. In that case the callback must
  * return the special value (1).
+ * See #gnutls_srp_set_server_fake_salt_seed too.
+ * If this is not required for your application, return a negative
+ * number from the callback to abort the handshake.
  *
  * The callback function will only be called once per handshake.
  * The callback function should return 0 on success, while
@@ -573,7 +645,7 @@ void
 gnutls_srp_set_server_credentials_function(gnutls_srp_server_credentials_t
 					   cred,
 					   gnutls_srp_server_credentials_function
-					   * func)
+					   *func)
 {
 	cred->pwd_callback = func;
 }
@@ -629,7 +701,7 @@ const char *gnutls_srp_server_get_username(gnutls_session_t session)
 
 	CHECK_AUTH(GNUTLS_CRD_SRP, NULL);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_SRP);
 	if (info == NULL)
 		return NULL;
 	return info->username;
@@ -673,13 +745,13 @@ gnutls_srp_verifier(const char *username, const char *password,
 	}
 
 	size = prime->size;
-	if (_gnutls_mpi_scan_nz(&_n, prime->data, size)) {
+	if (_gnutls_mpi_init_scan_nz(&_n, prime->data, size)) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
 
 	size = generator->size;
-	if (_gnutls_mpi_scan_nz(&_g, generator->data, size)) {
+	if (_gnutls_mpi_init_scan_nz(&_g, generator->data, size)) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
@@ -714,6 +786,53 @@ gnutls_srp_verifier(const char *username, const char *password,
 void gnutls_srp_set_prime_bits(gnutls_session_t session, unsigned int bits)
 {
 	session->internals.srp_prime_bits = bits;
+}
+
+/**
+ * gnutls_srp_set_server_fake_salt_seed:
+ * @cred: is a #gnutls_srp_server_credentials_t structure
+ * @seed: is the seed data, only needs to be valid until the function
+ * returns; size of the seed must be greater than zero
+ * @salt_length: is the length of the generated fake salts
+ *
+ * This function sets the seed that is used to generate salts for
+ * invalid (non-existent) usernames.
+ *
+ * In order to prevent attackers from guessing valid usernames,
+ * when a user does not exist gnutls generates a salt and a verifier
+ * and proceeds with the protocol as usual.
+ * The authentication will ultimately fail, but the client cannot tell
+ * whether the username is valid (exists) or invalid.
+ *
+ * If an attacker learns the seed, given a salt (which is part of the
+ * handshake) which was generated when the seed was in use, it can tell
+ * whether or not the authentication failed because of an unknown username.
+ * This seed cannot be used to reveal application data or passwords.
+ *
+ * @salt_length should represent the salt length your application uses.
+ * Generating fake salts longer than 20 bytes is not supported.
+ *
+ * By default the seed is a random value, different each time a
+ * #gnutls_srp_server_credentials_t is allocated and fake salts are
+ * 16 bytes long.
+ *
+ * Since: 3.3.0
+ **/
+void
+gnutls_srp_set_server_fake_salt_seed(gnutls_srp_server_credentials_t cred,
+				     const gnutls_datum_t * seed,
+				     unsigned int salt_length)
+{
+	_gnutls_free_datum(&cred->fake_salt_seed);
+	_gnutls_set_datum(&cred->fake_salt_seed, seed->data, seed->size);
+
+	/* Cap the salt length at the output size of the MAC algorithm
+	 * we are using to generate the fake salts.
+	 */
+	const mac_entry_st * me = mac_to_entry(SRP_FAKE_SALT_MAC);
+	const size_t mac_len = me->output_size;
+
+	cred->fake_salt_length = (salt_length < mac_len ? salt_length : mac_len);
 }
 
 #endif				/* ENABLE_SRP */

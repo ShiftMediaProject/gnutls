@@ -25,6 +25,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #if !defined(_WIN32)
@@ -49,52 +50,74 @@ static void dump(const char *name, unsigned char *buf, int buf_size)
 
 void doit(void)
 {
-	unsigned char buf1[32];
-	unsigned char buf2[32];
+	unsigned char buf1[64];
+	unsigned char buf2[64];
 	pid_t pid;
 	int ret;
 	FILE *fp;
+	unsigned i;
 
 	global_init();
-	pid = fork();
-	if (pid == 0) {
-		fp = fopen(FILENAME, "w");
-		if (fp == NULL)
-			fail("cannot open file");
 
-		gnutls_rnd(GNUTLS_RND_NONCE, buf1, sizeof(buf1));
-		if (debug)
-			dump("buf1", buf1, sizeof(buf1));
+	for (i = GNUTLS_RND_NONCE; i <= GNUTLS_RND_KEY; i++) {
+		pid = fork();
+		if (pid == 0) {
+			fp = fopen(FILENAME, "w");
+			if (fp == NULL)
+				fail("cannot open file");
 
-		fwrite(buf1, 1, sizeof(buf1), fp);
-		fclose(fp);
-	} else {
-		/* daddy */
-		gnutls_rnd(GNUTLS_RND_NONCE, buf2, sizeof(buf2));
-		if (debug)
-			dump("buf2", buf2, sizeof(buf2));
-		waitpid(pid, NULL, 0);
+			gnutls_rnd(i, buf1, sizeof(buf1));
+			if (debug)
+				dump("buf1", buf1, sizeof(buf1));
 
-		fp = fopen(FILENAME, "r");
-		if (fp == NULL)
-			fail("cannot open file");
+			fwrite(buf1, 1, sizeof(buf1), fp);
+			fclose(fp);
+			gnutls_global_deinit();
+			exit(0);
+		} else {
+			/* daddy */
+			gnutls_rnd(i, buf2, sizeof(buf2));
+			if (debug)
+				dump("buf2", buf2, sizeof(buf2));
+			waitpid(pid, NULL, 0);
 
-		ret = fread(buf1, 1, sizeof(buf1), fp);
+			fp = fopen(FILENAME, "r");
+			if (fp == NULL)
+				fail("cannot open file");
 
-		fclose(fp);
-		remove(FILENAME);
+			ret = fread(buf1, 1, sizeof(buf1), fp);
 
-		if (ret != sizeof(buf1)) {
-			fail("error testing the random generator.");
-			return;
+			fclose(fp);
+			remove(FILENAME);
+
+			if (ret != sizeof(buf1)) {
+				fail("error testing the random generator (%u).\n", i);
+				return;
+			}
+
+			if (memcmp(buf1, buf2, sizeof(buf1)) == 0) {
+				fail("error in the random generator (%u). Produces same valus after fork()\n", i);
+				return;
+			}
+			if (debug)
+				success("success\n");
 		}
+	}
 
-		if (memcmp(buf1, buf2, sizeof(buf1)) == 0) {
-			fail("error in the random generator. Produces same valus after fork()");
-			return;
+	for (i = 0; i <= 65539; i++) {
+		ret = gnutls_rnd(GNUTLS_RND_NONCE, buf1, sizeof(buf1));
+		if (ret < 0) {
+			fail("Error iterating RNG-nonce more than %u times\n", i);
+			exit(1);
 		}
-		if (debug)
-			success("success\n");
+	}
+
+	for (i = 0; i <= 65539; i++) {
+		ret = gnutls_rnd(GNUTLS_RND_RANDOM, buf1, sizeof(buf1));
+		if (ret < 0) {
+			fail("Error iterating RNG-random more than %u times\n", i);
+			exit(1);
+		}
 	}
 
 	gnutls_global_deinit();

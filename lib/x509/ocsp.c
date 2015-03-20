@@ -571,7 +571,7 @@ gnutls_ocsp_req_add_cert_id(gnutls_ocsp_req_t req,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	oid = _gnutls_x509_digest_to_oid(mac_to_entry(digest));
+	oid = _gnutls_x509_digest_to_oid(hash_to_entry(digest));
 	if (oid == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
@@ -838,7 +838,7 @@ gnutls_ocsp_req_set_extension(gnutls_ocsp_req_t req,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	return set_extension(req->req, "tbsRequest.requestExtensions", oid,
+	return _gnutls_set_extension(req->req, "tbsRequest.requestExtensions", oid,
 			     data, critical);
 }
 
@@ -868,7 +868,7 @@ gnutls_ocsp_req_get_nonce(gnutls_ocsp_req_t req,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	ret = get_extension(req->req, "tbsRequest.requestExtensions",
+	ret = _gnutls_get_extension(req->req, "tbsRequest.requestExtensions",
 			    GNUTLS_OCSP_NONCE, 0, &tmp, critical);
 	if (ret != GNUTLS_E_SUCCESS) {
 		gnutls_assert();
@@ -930,7 +930,7 @@ gnutls_ocsp_req_set_nonce(gnutls_ocsp_req_t req,
 	memcpy(dernonce.data + 1, temp, len);
 	memcpy(dernonce.data + 1 + len, nonce->data, nonce->size);
 
-	ret = set_extension(req->req, "tbsRequest.requestExtensions",
+	ret = _gnutls_set_extension(req->req, "tbsRequest.requestExtensions",
 			    GNUTLS_OCSP_NONCE, &dernonce, critical);
 	gnutls_free(dernonce.data);
 	if (ret != GNUTLS_E_SUCCESS) {
@@ -1238,7 +1238,7 @@ gnutls_ocsp_resp_check_crt(gnutls_ocsp_resp_t resp,
 		goto cleanup;
 	}
 
-	hash_len = _gnutls_hash_get_algo_len(mac_to_entry(digest));
+	hash_len = _gnutls_hash_get_algo_len(hash_to_entry(digest));
 	if (hash_len != rdn_hash.size) {
 		ret = gnutls_assert_val(GNUTLS_E_OCSP_RESPONSE_ERROR);
 		goto cleanup;
@@ -1604,7 +1604,7 @@ gnutls_ocsp_resp_get_nonce(gnutls_ocsp_resp_t resp,
 	gnutls_datum_t tmp;
 
 	ret =
-	    get_extension(resp->basicresp,
+	    _gnutls_get_extension(resp->basicresp,
 			  "tbsResponseData.responseExtensions",
 			  GNUTLS_OCSP_NONCE, 0, &tmp, critical);
 	if (ret != GNUTLS_E_SUCCESS) {
@@ -1885,7 +1885,7 @@ _ocsp_resp_verify_direct(gnutls_ocsp_resp_t resp,
 	}
 	sigalg = rc;
 
-	rc = _gnutls_x509_get_raw_dn2(resp->basicresp, &resp->der, "tbsResponseData", &data);
+	rc = _gnutls_x509_get_raw_field2(resp->basicresp, &resp->der, "tbsResponseData", &data);
 	if (rc != GNUTLS_E_SUCCESS) {
 		gnutls_assert();
 		goto done;
@@ -2087,6 +2087,7 @@ gnutls_ocsp_resp_verify(gnutls_ocsp_resp_t resp,
 			unsigned int *verify, unsigned int flags)
 {
 	gnutls_x509_crt_t signercert = NULL;
+	gnutls_x509_crt_t issuer = NULL;
 	int rc;
 
 	/* Algorithm:
@@ -2114,14 +2115,13 @@ gnutls_ocsp_resp_verify(gnutls_ocsp_resp_t resp,
 	rc = _gnutls_trustlist_inlist(trustlist, signercert);
 	if (rc == 0) {
 		/* not in trustlist, need to verify signature and bits */
-		gnutls_x509_crt_t issuer;
 		unsigned vtmp;
 
 		gnutls_assert();
 
 		rc = gnutls_x509_trust_list_get_issuer(trustlist,
 						       signercert, &issuer,
-						       0);
+						       GNUTLS_TL_GET_COPY);
 		if (rc != GNUTLS_E_SUCCESS) {
 			gnutls_assert();
 			*verify = GNUTLS_OCSP_VERIFY_UNTRUSTED_SIGNER;
@@ -2156,6 +2156,8 @@ gnutls_ocsp_resp_verify(gnutls_ocsp_resp_t resp,
 
       done:
 	gnutls_x509_crt_deinit(signercert);
+	if (issuer != NULL)
+		gnutls_x509_crt_deinit(issuer);
 
 	return rc;
 }

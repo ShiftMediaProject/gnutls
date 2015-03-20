@@ -53,8 +53,12 @@ typedef struct common_info {
 	unsigned int crq_extensions;
 	unsigned int v1_cert;
 
+	const char *pin;
+	const char *so_pin;
+
 	int cprint;
 
+	unsigned int batch;
 	unsigned int verbose;
 } common_info_st;
 
@@ -68,7 +72,7 @@ gnutls_x509_privkey_t *load_privkey_list(int mand, size_t * privkey_size,
 					 common_info_st * info);
 gnutls_x509_crq_t load_request(common_info_st * info);
 gnutls_privkey_t load_ca_private_key(common_info_st * info);
-gnutls_x509_crt_t load_ca_cert(common_info_st * info);
+gnutls_x509_crt_t load_ca_cert(unsigned mand, common_info_st * info);
 gnutls_x509_crt_t load_cert(int mand, common_info_st * info);
 gnutls_datum_t *load_secret_key(int mand, common_info_st * info);
 gnutls_pubkey_t load_pubkey(int mand, common_info_st * info);
@@ -78,6 +82,7 @@ int get_bits(gnutls_pk_algorithm_t key_type, int info_bits,
 	     const char *info_sec_param, int warn);
 
 gnutls_sec_param_t str_to_sec_param(const char *str);
+gnutls_ecc_curve_t str_to_curve(const char *str);
 
 /* prime.c */
 int generate_prime(FILE * outfile, int how, common_info_st * info);
@@ -105,8 +110,9 @@ FILE *safe_open_rw(const char *file, int privkey_op);
 const char *get_password(common_info_st * cinfo, unsigned int *flags,
 			 int confirm);
 
-extern unsigned char buffer[];
-extern const int buffer_size;
+extern unsigned char *lbuffer;
+extern int lbuffer_size;
 
+void fix_lbuffer(unsigned);
 
 #endif

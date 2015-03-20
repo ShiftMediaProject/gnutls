@@ -27,6 +27,7 @@
 #include <gnutls_datum.h>
 #include <gnutls/crypto.h>
 #include <crypto.h>
+#include <fips.h>
 #include <algorithms.h>
 
 #define SR(x, cleanup) if ( (x)<0 ) { \
@@ -61,6 +62,8 @@ _gnutls_cipher_init(cipher_hd_st * handle, const cipher_entry_st * e,
 
 	if (unlikely(e == NULL || e->id == GNUTLS_CIPHER_NULL))
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+		
+        FAIL_IF_LIB_ERROR;
 
 	handle->e = e;
 
@@ -143,6 +146,8 @@ int _gnutls_auth_cipher_init(auth_cipher_hd_st * handle,
 
 	if (unlikely(e == NULL))
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+        FAIL_IF_LIB_ERROR;
 
 	memset(handle, 0, sizeof(*handle));
 
@@ -234,17 +239,19 @@ int _gnutls_auth_cipher_encrypt2_tag(auth_cipher_hd_st * handle,
 
 		if (handle->non_null != 0) {
 			l = (textlen / blocksize) * blocksize;
-			ret =
-			    _gnutls_cipher_encrypt2(&handle->cipher, text,
+			if (l > 0) {
+				ret =
+			    	_gnutls_cipher_encrypt2(&handle->cipher, text,
 						    l, ciphertext,
 						    ciphertextlen);
-			if (ret < 0)
-				return gnutls_assert_val(ret);
+				if (ret < 0)
+					return gnutls_assert_val(ret);
 
-			textlen -= l;
-			text += l;
-			ciphertext += l;
-			ciphertextlen -= l;
+				textlen -= l;
+				text += l;
+				ciphertext += l;
+				ciphertextlen -= l;
+			}
 
 			if (ciphertext != text && textlen > 0)
 				memcpy(ciphertext, text, textlen);

@@ -1846,7 +1846,7 @@ sha256_block_data_order_ssse3:
 
 .align	16
 .Lssse3_00_47:
-	subq	$-32*4,%rbp
+	subq	$-128,%rbp
 	rorl	$14,%r13d
 	movdqa	%xmm1,%xmm4
 	movl	%r14d,%eax
@@ -2878,4 +2878,6 @@ sha256_block_data_order_ssse3:
 	.byte	0xf3,0xc3
 .size	sha256_block_data_order_ssse3,.-sha256_block_data_order_ssse3
 
+
 .section .note.GNU-stack,"",%progbits
+

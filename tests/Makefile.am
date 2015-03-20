@@ -20,7 +20,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 SUBDIRS = . rsa-md5-collision pkcs1-padding pkcs8-decode pkcs12-decode	\
-	userid cert-tests key-id sha2 safe-renegotiation dsa scripts ecdsa \
+	userid cert-tests key-tests sha2 safe-renegotiation dsa scripts ecdsa \
 	slow dtls srp
 
 if ENABLE_OPENPGP
@@ -31,7 +31,11 @@ if WANT_TEST_SUITE
 SUBDIRS += suite
 endif
 
-EXTRA_DIST = suppressions.valgrind eagain-common.h
+EXTRA_DIST = suppressions.valgrind eagain-common.h test-chains.h \
+	certs/ca-cert-ecc.pem  certs/cert-ecc256.pem  certs/cert-ecc521.pem \
+	certs/cert-rsa-2432.pem certs/ecc384.pem certs/ecc.pem \
+	certs/ca-ecc.pem certs/cert-ecc384.pem certs/cert-ecc.pem certs/ecc256.pem \
+	certs/ecc521.pem certs/rsa-2432.pem x509cert-dir/ca.pem
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 AM_CPPFLAGS = \
@@ -39,7 +43,9 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/gl			\
 	-I$(top_srcdir)/lib/includes		\
 	-I$(top_builddir)/lib/includes		\
-	-I$(top_srcdir)/extra/includes	\
+	-I$(top_srcdir)/libdane/includes	\
+	-I$(top_builddir)/libdane/includes	\
+	-I$(top_srcdir)/extra/includes		\
 	-I$(top_builddir)/extra/includes	\
 	-I$(top_srcdir)/lib			\
 	-I$(top_srcdir)/doc/examples
@@ -51,6 +57,8 @@ LDADD = ../lib/libgnutls.la \
 	$(LTLIBGCRYPT)	\
 	$(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB)
 
+dane_LDADD = $(LDADD) ../libdane/libgnutls-dane.la
+
 if ENABLE_MINITASN1
 AM_CPPFLAGS += -I$(srcdir)/../lib/minitasn1
 endif
@@ -59,7 +67,7 @@ noinst_LTLIBRARIES = libutils.la
 libutils_la_SOURCES = utils.h utils.c
 libutils_la_LIBADD = ../gl/libgnu.la
 
-ctests = simple gc set_pkcs12_cred certder certuniqueid	\
+ctests = mini-record-2 simple gc set_pkcs12_cred certder certuniqueid	\
 	 mpi certificate_set_x509_crl dn parse_ca moredn record-sizes \
 	 hostname-check cve-2008-4989 pkcs12_s2k chainverify record-sizes-range \
 	 crq_key_id x509sign-verify cve-2009-1415 cve-2009-1416		\
@@ -71,20 +79,27 @@ ctests = simple gc set_pkcs12_cred certder certuniqueid	\
 	 mini-termination mini-x509-cas mini-x509-2 pkcs12_simple \
 	 mini-emsgsize-dtls chainverify-unsorted mini-overhead \
 	 mini-dtls-heartbeat mini-x509-callbacks key-openssl priorities	\
-	 mini-dtls-srtp mini-xssl rsa-encrypt-decrypt mini-loss-time \
+	 mini-dtls-srtp rsa-encrypt-decrypt mini-loss-time \
 	 mini-record mini-dtls-record mini-handshake-timeout mini-record-range \
-	 mini-cert-status mini-rsa-psk mini-record-2 mini-rehandshake-2
+	 mini-cert-status mini-rsa-psk global-init sec-params \
+	 fips-test mini-global-load name-constraints x509-extensions \
+	 long-session-id mini-x509-callbacks-intr \
+	 crlverify init_fds mini-rehandshake-2
 
 if ENABLE_OCSP
 ctests += ocsp
 endif
 
+if ENABLE_DANE
+ctests += dane
+endif
+
 if ENABLE_OPENSSL
+if !ENABLE_FIPS140
 ctests +=  openssl
 openssl_LDADD = ../extra/libgnutls-openssl.la $(LDADD)
 endif
-
-mini_xssl_LDADD = $(LDADD) ../lib/libgnutls-xssl.la
+endif
 
 if ENABLE_OPENPGP
 ctests += openpgp-auth openpgp-auth2 openpgp-keyring pgps2kgnu
@@ -114,6 +129,7 @@ TESTS_ENVIRONMENT =						\
 	PKCS12FILE_2=$(srcdir)/pkcs12-decode/pkcs12_2certs.p12	\
 	PKCS12PASSWORD_2=""					\
 	PKCS12PATH=$(srcdir)/pkcs12-decode/			\
+	X509CERTDIR=$(srcdir)/x509cert-dir/			\
 	EXEEXT=$(EXEEXT)					\
 	top_builddir="$(top_builddir)"				\
 	srcdir="$(srcdir)"

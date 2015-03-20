@@ -54,8 +54,12 @@ int main(void)
         char buffer[MAX_BUF + 1];
         int optval = 1;
 
-        /* this must be called once in the program
-         */
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
+
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
 
         gnutls_anon_allocate_server_credentials(&anoncred);
@@ -89,7 +93,7 @@ int main(void)
         for (;;) {
                 gnutls_init(&session, GNUTLS_SERVER);
                 gnutls_priority_set_direct(session,
-                                           "NORMAL:+ANON-ECDH:+ANON-DH",
+                                           "NORMAL::+ANON-ECDH:+ANON-DH",
                                            NULL);
                 gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
 

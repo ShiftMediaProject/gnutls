@@ -39,7 +39,7 @@
 /* This is a temporary function to be used before the generate_*
    internal API is changed to use mbuffers. For now we don't avoid the
    extra alloc + memcpy. */
-static inline int
+static int
 send_handshake(gnutls_session_t session, uint8_t * data, size_t size,
 	       gnutls_handshake_description_t type)
 {
@@ -53,7 +53,7 @@ send_handshake(gnutls_session_t session, uint8_t * data, size_t size,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	bufel = _gnutls_handshake_alloc(session, size, size);
+	bufel = _gnutls_handshake_alloc(session, size);
 	if (bufel == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_MEMORY_ERROR;
@@ -150,7 +150,7 @@ generate_normal_master(gnutls_session_t session,
 	}
 
 	if (!keep_premaster)
-		_gnutls_free_datum(premaster);
+		_gnutls_free_temp_key_datum(premaster);
 
 	if (ret < 0)
 		return ret;

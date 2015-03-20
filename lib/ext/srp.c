@@ -66,6 +66,8 @@ _gnutls_srp_recv_params(gnutls_session_t session, const uint8_t * data,
 
 	if (session->security_parameters.entity == GNUTLS_SERVER) {
 		if (data_size > 0) {
+			DECR_LEN(data_size, 1);
+
 			len = data[0];
 			DECR_LEN(data_size, len);
 
@@ -121,7 +123,7 @@ _gnutls_srp_send_params(gnutls_session_t session,
 	if (session->security_parameters.entity == GNUTLS_CLIENT) {
 		gnutls_srp_client_credentials_t cred =
 		    (gnutls_srp_client_credentials_t)
-		    _gnutls_get_cred(session, GNUTLS_CRD_SRP, NULL);
+		    _gnutls_get_cred(session, GNUTLS_CRD_SRP);
 
 		if (cred == NULL)
 			return 0;

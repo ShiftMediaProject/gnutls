@@ -1,7 +1,7 @@
 %{
 /* Parse a string into an internal time stamp.
 
-   Copyright (C) 1999-2000, 2002-2014 Free Software Foundation, Inc.
+   Copyright (C) 1999-2000, 2002-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1031,7 +1031,7 @@ lookup_word (parser_control const *pc, char *word)
 }
 
 static int
-yylex (YYSTYPE *lvalp, parser_control *pc)
+yylex (union YYSTYPE *lvalp, parser_control *pc)
 {
   unsigned char c;
   size_t count;
@@ -1161,7 +1161,7 @@ yylex (YYSTYPE *lvalp, parser_control *pc)
 
           do
             {
-              if (p - buff < sizeof buff - 1)
+              if (p < buff + sizeof buff - 1)
                 *p++ = c;
               c = *++pc->input;
             }

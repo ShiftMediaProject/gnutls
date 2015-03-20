@@ -17,7 +17,10 @@ flag = {
     descrip   = "Enable trust on first use authentication";
     disabled;
     disable   = "no";
-    doc       = "This option will, in addition to certificate authentication, perform authentication based on previously seen public keys, a model similar to SSH authentication.";
+    doc       = "This option will, in addition to certificate authentication, perform authentication
+based on previously seen public keys, a model similar to SSH authentication. Note that when tofu 
+is specified (PKI) and DANE authentication will become advisory to assist the public key acceptance
+process.";
 };
 
 flag = {
@@ -25,7 +28,7 @@ flag = {
     descrip   = "Fail to connect if a known certificate has changed";
     disabled;
     disable   = "no";
-    doc       = "This option will perform authentication as with option --tofu; however, while --tofu asks whether to trust a changed certificate, this option will fail in case of certificate changes.";
+    doc       = "This option will perform authentication as with option --tofu; however, while --tofu asks whether to trust a changed public key, this option will fail in case of public key changes.";
 };
 
 flag = {
@@ -82,6 +85,18 @@ flag = {
     value     = s;
     descrip   = "Connect, establish a plain session and start TLS";
     doc       = "The TLS session will be initiated when EOF or a SIGALRM is received.";
+};
+
+flag = {
+    name      = app-proto;
+    aliases   = starttls-proto;
+};
+
+flag = {
+    name      = starttls-proto;
+    descrip   = "The application protocol to be used to obtain the server's certificate (https, smtp, imap)";
+    arg-type  = string;
+    doc       = "Specify the application layer protocol for STARTTLS. If the protocol is supported, gnutls-cli will proceed to the TLS negotiation.";
 };
 
 flag = {
@@ -249,18 +264,12 @@ flag = {
 flag = {
     name      = ranges;
     descrip   = "Use length-hiding padding to prevent traffic analysis";
-    doc      = "When possible (e.g., when %NEW_PADDING is specified), use length-hiding padding to prevent traffic analysis.";
+    doc      = "When possible (e.g., when using CBC ciphersuites), use length-hiding padding to prevent traffic analysis.";
 };
 
 flag = {
     name      = benchmark-ciphers;
     descrip   = "Benchmark individual ciphers";
-    doc      = "";
-};
-
-flag = {
-    name      = benchmark-soft-ciphers;
-    descrip   = "Benchmark individual software ciphers (no hw acceleration)";
     doc      = "";
 };
 
@@ -281,6 +290,7 @@ flag = {
     value     = l;
     descrip   = "Print a list of the supported algorithms and modes";
     doc      = "Print a list of the supported algorithms and modes. If a priority string is given then only the enabled ciphersuites are shown.";
+    flags-cant = port;
 };
 
 flag = {
@@ -341,9 +351,22 @@ flag = {
 flag = {
     name      = inline-commands-prefix;
     arg-type  = string;
-    descrip   = "Change the default (^) used as a delimiter for inline commands.
-\t\t\t\tThe value is a single US-ASCII character (octets 0 - 127).";
-    doc       = "Change the default (^) delimiter used for inline commands. The delimiter is expected to be a single US-ASCII character (octets 0 - 127). This option is only relevant if inline commands are enabled via the inline-commands option";
+    descrip   = "Change the default delimiter for inline commands.";
+    doc       = "Change the default delimiter (^) used for inline commands. The delimiter is expected to be a single US-ASCII character (octets 0 - 127). This option is only relevant if inline commands are enabled via the inline-commands option";
+};
+
+flag = {
+    name      = provider;
+    arg-type  = file;
+    file-exists = yes;
+    descrip   = "Specify the PKCS #11 provider library";
+    doc      = "This will override the default options in /etc/gnutls/pkcs11.conf";
+};
+
+flag = {
+    name      = fips140-mode;
+    descrip   = "Reports the status of the FIPS140-2 mode in gnutls library";
+    doc      = "";
 };
 
 doc-section = {

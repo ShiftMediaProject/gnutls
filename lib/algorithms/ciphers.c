@@ -35,65 +35,65 @@
  */
 static const cipher_entry_st algorithms[] = {
 	{"AES-256-CBC", GNUTLS_CIPHER_AES_256_CBC, 16, 32, CIPHER_BLOCK,
-	 16, 16, 0},
+	 0, 16, 16, 0},
 	{"AES-192-CBC", GNUTLS_CIPHER_AES_192_CBC, 16, 24, CIPHER_BLOCK,
-	 16, 16, 0},
+	 0, 16, 16, 0},
 	{"AES-128-CBC", GNUTLS_CIPHER_AES_128_CBC, 16, 16, CIPHER_BLOCK,
-	 16, 16, 0},
+	 0, 16, 16, 0},
 	{"AES-128-GCM", GNUTLS_CIPHER_AES_128_GCM, 16, 16, CIPHER_STREAM,
-	 AEAD_IMPLICIT_DATA_SIZE, 12, 1},
+	 4, 8, 12, 1},
 	{"AES-256-GCM", GNUTLS_CIPHER_AES_256_GCM, 16, 32, CIPHER_STREAM,
-	 AEAD_IMPLICIT_DATA_SIZE, 12, 1},
-	{"ARCFOUR-128", GNUTLS_CIPHER_ARCFOUR_128, 1, 16, CIPHER_STREAM, 0,
-	 0, 0},
+	 4, 8, 12, 1},
+	{"ARCFOUR-128", GNUTLS_CIPHER_ARCFOUR_128, 1, 16, CIPHER_STREAM, 
+	 0, 0, 0, 0},
 	{"ESTREAM-SALSA20-256", GNUTLS_CIPHER_ESTREAM_SALSA20_256, 64, 32,
-	 CIPHER_STREAM, 8, 8, 0},
+	 CIPHER_STREAM, 0, 0, 8, 0},
 	{"SALSA20-256", GNUTLS_CIPHER_SALSA20_256, 64, 32, CIPHER_STREAM,
-	 8, 8, 0},
+	 0, 0, 8, 0},
 	{"CAMELLIA-256-CBC", GNUTLS_CIPHER_CAMELLIA_256_CBC, 16, 32,
-	 CIPHER_BLOCK,
-	 16, 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 	{"CAMELLIA-192-CBC", GNUTLS_CIPHER_CAMELLIA_192_CBC, 16, 24,
-	 CIPHER_BLOCK,
-	 16, 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 	{"CAMELLIA-128-CBC", GNUTLS_CIPHER_CAMELLIA_128_CBC, 16, 16,
-	 CIPHER_BLOCK,
-	 16, 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 	{"CAMELLIA-128-GCM", GNUTLS_CIPHER_CAMELLIA_128_GCM, 16, 16,
-	 CIPHER_STREAM, AEAD_IMPLICIT_DATA_SIZE, 12, 1},
+	 CIPHER_STREAM, 4, 8, 12, 1},
 	{"CAMELLIA-256-GCM", GNUTLS_CIPHER_CAMELLIA_256_GCM, 16, 32,
-	 CIPHER_STREAM, AEAD_IMPLICIT_DATA_SIZE, 12, 1},
-	{"3DES-CBC", GNUTLS_CIPHER_3DES_CBC, 8, 24, CIPHER_BLOCK, 8, 8, 0},
-	{"DES-CBC", GNUTLS_CIPHER_DES_CBC, 8, 8, CIPHER_BLOCK, 8, 8, 0},
-	{"ARCFOUR-40", GNUTLS_CIPHER_ARCFOUR_40, 1, 5, CIPHER_STREAM, 0, 0,
-	 0},
-	{"RC2-40", GNUTLS_CIPHER_RC2_40_CBC, 8, 5, CIPHER_BLOCK, 8, 8, 0},
+	 CIPHER_STREAM, 4, 8, 12, 1},
+	{"3DES-CBC", GNUTLS_CIPHER_3DES_CBC, 8, 24, CIPHER_BLOCK, 0, 8, 8, 0},
+	{"DES-CBC", GNUTLS_CIPHER_DES_CBC, 8, 8, CIPHER_BLOCK, 0, 8, 8, 0},
+	{"ARCFOUR-40", GNUTLS_CIPHER_ARCFOUR_40, 1, 5, CIPHER_STREAM, 0, 0, 0, 0},
+	{"RC2-40", GNUTLS_CIPHER_RC2_40_CBC, 8, 5, CIPHER_BLOCK, 0, 8, 8, 0},
 
 #ifdef ENABLE_OPENPGP
 	{"IDEA-PGP-CFB", GNUTLS_CIPHER_IDEA_PGP_CFB, 8, 16, CIPHER_BLOCK,
-	 8, 8, 0},
+	 0, 8, 8, 0},
 	{"3DES-PGP-CFB", GNUTLS_CIPHER_3DES_PGP_CFB, 8, 24, CIPHER_BLOCK,
-	 8, 8, 0},
+	 0, 8, 8, 0},
 	{"CAST5-PGP-CFB", GNUTLS_CIPHER_CAST5_PGP_CFB, 8, 16, CIPHER_BLOCK,
-	 8, 8, 0},
+	 0, 8, 8, 0},
 	{"BLOWFISH-PGP-CFB", GNUTLS_CIPHER_BLOWFISH_PGP_CFB, 8,
-	 16 /*actually unlimited */ , CIPHER_BLOCK, 8, 8, 0},
+	 16 /*actually unlimited */ , CIPHER_BLOCK, 0, 8, 8, 0},
 	{"SAFER-SK128-PGP-CFB", GNUTLS_CIPHER_SAFER_SK128_PGP_CFB, 8, 16,
-	 CIPHER_BLOCK, 8, 8, 0},
+	 CIPHER_BLOCK, 0, 8, 8, 0},
 	{"AES-128-PGP-CFB", GNUTLS_CIPHER_AES128_PGP_CFB, 16, 16,
-	 CIPHER_BLOCK, 16,
-	 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 	{"AES-192-PGP-CFB", GNUTLS_CIPHER_AES192_PGP_CFB, 16, 24,
-	 CIPHER_BLOCK, 16,
-	 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 	{"AES-256-PGP-CFB", GNUTLS_CIPHER_AES256_PGP_CFB, 16, 32,
-	 CIPHER_BLOCK, 16,
-	 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 	{"TWOFISH-PGP-CFB", GNUTLS_CIPHER_TWOFISH_PGP_CFB, 16, 16,
-	 CIPHER_BLOCK, 16,
-	 16, 0},
+	 CIPHER_BLOCK, 0, 16, 16, 0},
 #endif
+
+#ifndef ENABLE_FIPS140
+	/* All the other ciphers are disabled on the back-end library.
+	 * This needs to be disabled here as it is merely a placeholder
+	 * rather than an actual cipher.
+	 */
 	{"NULL", GNUTLS_CIPHER_NULL, 1, 0, CIPHER_STREAM, 0, 0, 0},
+#endif
+
 	{0, 0, 0, 0, 0, 0, 0}
 };
 
@@ -226,7 +226,8 @@ gnutls_cipher_algorithm_t gnutls_cipher_get_id(const char *name)
 
 	GNUTLS_CIPHER_LOOP(
 		if (strcasecmp(p->name, name) == 0) {
-			ret = p->id; 
+			if (p->id == GNUTLS_CIPHER_NULL || _gnutls_cipher_exists(p->id))
+				ret = p->id; 
 			break;
 		}
 	);
@@ -257,7 +258,7 @@ const gnutls_cipher_algorithm_t *gnutls_cipher_list(void)
 		int i = 0;
 
 		GNUTLS_CIPHER_LOOP(
-			if (_gnutls_cipher_exists(p->id))
+			if (p->id == GNUTLS_CIPHER_NULL || _gnutls_cipher_exists(p->id))
 				supported_ciphers[i++] = p->id;
 		);
 		supported_ciphers[i++] = 0;

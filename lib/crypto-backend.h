@@ -77,18 +77,14 @@ typedef struct {
 
 typedef struct gnutls_crypto_rnd {
 	int (*init) (void **ctx);
+	int (*check) (void **ctx);
 	int (*rnd) (void *ctx, int level, void *data, size_t datasize);
 	void (*rnd_refresh) (void *ctx);
 	void (*deinit) (void *ctx);
+	int (*self_test) (void);
 } gnutls_crypto_rnd_st;
 
 typedef void *bigint_t;
-
-typedef struct {
-	bigint_t g;		/* group generator */
-	bigint_t p;		/* prime */
-	int q_bits;		/* the number of bits of q */
-} gnutls_group_st;
 
 /**
  * gnutls_bigint_format_t:
@@ -110,64 +106,64 @@ typedef enum {
 
 /* Multi precision integer arithmetic */
 typedef struct gnutls_crypto_bigint {
-	bigint_t(*bigint_new) (int nbits);
+	int (*bigint_init) (bigint_t*);
+	int (*bigint_init_multi) (bigint_t*, ...);
 	void (*bigint_release) (bigint_t n);
 	void (*bigint_clear) (bigint_t n);	/* zeros the int */
 	/* 0 for equality, > 0 for m1>m2, < 0 for m1<m2 */
 	int (*bigint_cmp) (const bigint_t m1, const bigint_t m2);
 	/* as bigint_cmp */
 	int (*bigint_cmp_ui) (const bigint_t m1, unsigned long m2);
-	/* ret = a % b */
-	 bigint_t(*bigint_mod) (const bigint_t a, const bigint_t b);
+	/* r = a % b */
+	int (*bigint_modm) (bigint_t r, const bigint_t a, const bigint_t b);
 	/* a = b -> ret == a */
-	 bigint_t(*bigint_set) (bigint_t a, const bigint_t b);
+	int (*bigint_set) (bigint_t a, const bigint_t b);
+	bigint_t (*bigint_copy) (const bigint_t a);
 	/* a = b -> ret == a */
-	 bigint_t(*bigint_set_ui) (bigint_t a, unsigned long b);
+	int (*bigint_set_ui) (bigint_t a, unsigned long b);
 	unsigned int (*bigint_get_nbits) (const bigint_t a);
 	/* w = b ^ e mod m */
-	 bigint_t(*bigint_powm) (bigint_t w, const bigint_t b,
+	int (*bigint_powm) (bigint_t w, const bigint_t b,
 				 const bigint_t e, const bigint_t m);
 	/* w = a + b mod m */
-	 bigint_t(*bigint_addm) (bigint_t w, const bigint_t a,
+	int (*bigint_addm) (bigint_t w, const bigint_t a,
 				 const bigint_t b, const bigint_t m);
 	/* w = a - b mod m */
-	 bigint_t(*bigint_subm) (bigint_t w, const bigint_t a,
+	int (*bigint_subm) (bigint_t w, const bigint_t a,
 				 const bigint_t b, const bigint_t m);
 	/* w = a * b mod m */
-	 bigint_t(*bigint_mulm) (bigint_t w, const bigint_t a,
+	int (*bigint_mulm) (bigint_t w, const bigint_t a,
 				 const bigint_t b, const bigint_t m);
-	/* w = a + b */ bigint_t(*bigint_add) (bigint_t w,
+	/* w = a + b */ int (*bigint_add) (bigint_t w,
 					       const bigint_t a,
 					       const bigint_t b);
-	/* w = a - b */ bigint_t(*bigint_sub) (bigint_t w,
+	/* w = a - b */ int (*bigint_sub) (bigint_t w,
 					       const bigint_t a,
 					       const bigint_t b);
 	/* w = a * b */
-	 bigint_t(*bigint_mul) (bigint_t w, const bigint_t a,
+	int (*bigint_mul) (bigint_t w, const bigint_t a,
 				const bigint_t b);
 	/* w = a + b */
-	 bigint_t(*bigint_add_ui) (bigint_t w, const bigint_t a,
+	int (*bigint_add_ui) (bigint_t w, const bigint_t a,
 				   unsigned long b);
 	/* w = a - b */
-	 bigint_t(*bigint_sub_ui) (bigint_t w, const bigint_t a,
+	int (*bigint_sub_ui) (bigint_t w, const bigint_t a,
 				   unsigned long b);
 	/* w = a * b */
-	 bigint_t(*bigint_mul_ui) (bigint_t w, const bigint_t a,
+	int (*bigint_mul_ui) (bigint_t w, const bigint_t a,
 				   unsigned long b);
 	/* q = a / b */
-	 bigint_t(*bigint_div) (bigint_t q, const bigint_t a,
+	int (*bigint_div) (bigint_t q, const bigint_t a,
 				const bigint_t b);
 	/* 0 if prime */
 	int (*bigint_prime_check) (const bigint_t pp);
-	int (*bigint_generate_group) (gnutls_group_st * gg,
-				      unsigned int bits);
 
 	/* reads a bigint from a buffer */
 	/* stores a bigint into the buffer.  returns
 	 * GNUTLS_E_SHORT_MEMORY_BUFFER if buf_size is not sufficient to
 	 * store this integer, and updates the buf_size;
 	 */
-	 bigint_t(*bigint_scan) (const void *buf, size_t buf_size,
+	int (*bigint_scan) (bigint_t m, const void *buf, size_t buf_size,
 				 gnutls_bigint_format_t format);
 	int (*bigint_print) (const bigint_t a, void *buf,
 			     size_t * buf_size,
@@ -180,6 +176,7 @@ typedef struct {
 	bigint_t params[GNUTLS_MAX_PK_PARAMS];
 	unsigned int params_nr;	/* the number of parameters */
 	unsigned int flags;
+	gnutls_pk_algorithm_t algo;
 } gnutls_pk_params_st;
 
 /**
@@ -202,6 +199,7 @@ void gnutls_pk_params_init(gnutls_pk_params_st * p);
 
 /* parameters should not be larger than this limit */
 #define DSA_PUBLIC_PARAMS 4
+#define DH_PUBLIC_PARAMS 4
 #define RSA_PUBLIC_PARAMS 2
 #define ECC_PUBLIC_PARAMS 2
 
@@ -210,6 +208,7 @@ void gnutls_pk_params_init(gnutls_pk_params_st * p);
 
 /* parameters should not be larger than this limit */
 #define DSA_PRIVATE_PARAMS 5
+#define DH_PRIVATE_PARAMS 5
 #define RSA_PRIVATE_PARAMS 8
 #define ECC_PRIVATE_PARAMS 3
 
@@ -247,6 +246,8 @@ void gnutls_pk_params_init(gnutls_pk_params_st * p);
  *  [3] is y (public key)
  *  [4] is x (private key only)
  *
+ * DH: as DSA
+ *
  * ECC:
  *  [0] is prime
  *  [1] is order
@@ -268,6 +269,12 @@ void gnutls_pk_params_init(gnutls_pk_params_st * p);
 #define DSA_G 2
 #define DSA_Y 3
 #define DSA_X 4
+
+#define DH_P 0
+#define DH_Q 1
+#define DH_G 2
+#define DH_Y 3
+#define DH_X 4
 
 #define RSA_MODULUS 0
 #define RSA_PUB 1
@@ -314,9 +321,13 @@ typedef struct gnutls_crypto_pk {
 			       gnutls_pk_params_st * issuer_params,
 			       gnutls_digest_algorithm_t *);
 	/* sanity checks the public key parameters */
-	int (*verify_params) (gnutls_pk_algorithm_t,
+	int (*verify_priv_params) (gnutls_pk_algorithm_t,
+			      const gnutls_pk_params_st * priv);
+	int (*verify_pub_params) (gnutls_pk_algorithm_t,
 			      const gnutls_pk_params_st * pub);
-	int (*generate) (gnutls_pk_algorithm_t, unsigned int nbits,
+	int (*generate_keys) (gnutls_pk_algorithm_t, unsigned int nbits,
+			 gnutls_pk_params_st *);
+	int (*generate_params) (gnutls_pk_algorithm_t, unsigned int nbits,
 			 gnutls_pk_params_st *);
 	/* this function should convert params to ones suitable
 	 * for the above functions
@@ -328,7 +339,7 @@ typedef struct gnutls_crypto_pk {
 		       const gnutls_pk_params_st * priv,
 		       const gnutls_pk_params_st * pub);
 
-
+	int (*curve_exists) (gnutls_ecc_curve_t);	/* true/false */
 } gnutls_crypto_pk_st;
 
 /* priority: infinity for backend algorithms, 90 for kernel

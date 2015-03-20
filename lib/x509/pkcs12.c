@@ -118,6 +118,24 @@ _decode_pkcs12_auth_safe(ASN1_TYPE pkcs12, ASN1_TYPE * authen_safe,
 	return result;
 }
 
+static int pkcs12_reinit(gnutls_pkcs12_t pkcs12)
+{
+int result;
+
+	if (pkcs12->pkcs12)
+		asn1_delete_structure(&pkcs12->pkcs12);
+
+	result = asn1_create_element(_gnutls_get_pkix(),
+					 "PKIX1.pkcs-12-PFX",
+					 &pkcs12->pkcs12);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+
+	return 0;
+}
+
 /**
  * gnutls_pkcs12_init:
  * @pkcs12: The structure to be initialized
@@ -134,13 +152,11 @@ int gnutls_pkcs12_init(gnutls_pkcs12_t * pkcs12)
 	*pkcs12 = gnutls_calloc(1, sizeof(gnutls_pkcs12_int));
 
 	if (*pkcs12) {
-		int result = asn1_create_element(_gnutls_get_pkix(),
-						 "PKIX1.pkcs-12-PFX",
-						 &(*pkcs12)->pkcs12);
-		if (result != ASN1_SUCCESS) {
+		int result = pkcs12_reinit(*pkcs12);
+		if (result < 0) {
 			gnutls_assert();
 			gnutls_free(*pkcs12);
-			return _gnutls_asn2err(result);
+			return result;
 		}
 		return 0;	/* success */
 	}
@@ -210,6 +226,15 @@ gnutls_pkcs12_import(gnutls_pkcs12_t pkcs12,
 
 		need_free = 1;
 	}
+
+	if (pkcs12->expanded) {
+		result = pkcs12_reinit(pkcs12);
+		if (result < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+	}
+	pkcs12->expanded = 1;
 
 	result =
 	    asn1_der_decoding(&pkcs12->pkcs12, _data.data, _data.size,
@@ -1350,39 +1375,35 @@ static int make_chain(gnutls_x509_crt_t ** chain, unsigned int *chain_len,
 
 /**
  * gnutls_pkcs12_simple_parse:
- * @p12: the PKCS12 blob.
- * @password: optional password used to decrypt PKCS12 blob, bags and keys.
+ * @p12: should contain a gnutls_pkcs12_t structure
+ * @password: optional password used to decrypt the structure, bags and keys.
  * @key: a structure to store the parsed private key.
  * @chain: the corresponding to key certificate chain (may be %NULL)
  * @chain_len: will be updated with the number of additional (may be %NULL)
  * @extra_certs: optional pointer to receive an array of additional
- *               certificates found in the PKCS12 blob (may be %NULL).
+ *               certificates found in the PKCS12 structure (may be %NULL).
  * @extra_certs_len: will be updated with the number of additional
  *                   certs (may be %NULL).
  * @crl: an optional structure to store the parsed CRL (may be %NULL).
  * @flags: should be zero or one of GNUTLS_PKCS12_SP_*
  *
- * This function parses a PKCS12 blob in @p12blob and extracts the
- * private key, the corresponding certificate chain, and any additional
+ * This function parses a PKCS12 structure in @pkcs12 and extracts the
+ * private key, the corresponding certificate chain, any additional
  * certificates and a CRL.
  *
- * The @extra_certs_ret and @extra_certs_len parameters are optional
+ * The @extra_certs and @extra_certs_len parameters are optional
  * and both may be set to %NULL. If either is non-%NULL, then both must
- * be set.
+ * be set. The value for @extra_certs is allocated
+ * using gnutls_malloc().
  * 
- * Encrypted PKCS12 bags and PKCS8 private keys are supported.  However,
- * only password based security, and the same password for all
- * operations, are supported.
+ * Encrypted PKCS12 bags and PKCS8 private keys are supported, but
+ * only with password based security and the same password for all
+ * operations.
  *
- * A PKCS12 file may contain many keys and/or certificates, and there
- * is no way to identify which key/certificate pair you want.  You
- * should make sure the PKCS12 file only contain one key/certificate
- * pair and/or one CRL.
- *
- * It is believed that the limitations of this function are acceptable
- * for common usage, and that any more flexibility would introduce
- * complexity that would make it harder to use this functionality at
- * all.
+ * Note that a PKCS12 structure may contain many keys and/or certificates,
+ * and there is no way to identify which key/certificate pair you want.
+ * For this reason this function is useful for PKCS12 files that contain 
+ * only one key/certificate pair and/or one CRL.
  *
  * If the provided structure has encrypted fields but no password
  * is provided then this function returns %GNUTLS_E_DECRYPTION_FAILED.
@@ -1392,10 +1413,13 @@ static int make_chain(gnutls_x509_crt_t ** chain, unsigned int *chain_len,
  * %GNUTLS_PKCS12_SP_INCLUDE_SELF_SIGNED is specified then
  * self signed certificates will be included in the chain.
  *
+ * Prior to using this function the PKCS #12 structure integrity must
+ * be verified using gnutls_pkcs12_verify_mac().
+ *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
  *
- * Since: 3.1
+ * Since: 3.1.0
  **/
 int
 gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
@@ -1519,7 +1543,6 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 				     GNUTLS_PKCS_PLAIN : 0);
 				if (ret < 0) {
 					gnutls_assert();
-					gnutls_x509_privkey_deinit(*key);
 					goto done;
 				}
 
@@ -1530,7 +1553,6 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 								   &key_id_size);
 				if (ret < 0) {
 					gnutls_assert();
-					gnutls_x509_privkey_deinit(*key);
 					goto done;
 				}
 

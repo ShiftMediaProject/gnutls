@@ -20,9 +20,11 @@
 
 ACLOCAL_AMFLAGS = -I ../m4 -I ../gl/m4
 
-BUILT_SOURCES = pkix_asn1_tab.c gnutls_asn1_tab.c
+EXTRA_DIST = priority_options.gperf
+BUILT_SOURCES = pkix_asn1_tab.c gnutls_asn1_tab.c priority_options.h
 
-SUBDIRS = includes x509 accelerated auth ext algorithms extras
+SUBDIRS = includes x509 auth ext algorithms extras accelerated
+
 if ENABLE_MINITASN1
 SUBDIRS += minitasn1
 endif
@@ -74,15 +76,20 @@ COBJECTS = gnutls_range.c gnutls_record.c \
 	gnutls_global.c gnutls_constate.c gnutls_anon_cred.c		\
 	pkix_asn1_tab.c gnutls_asn1_tab.c				\
 	gnutls_mem.c gnutls_ui.c vasprintf.c vasprintf.h		\
-	gnutls_sig.c gnutls_ecc.c gnutls_dh_primes.c gnutls_alert.c	\
+	gnutls_sig.c gnutls_ecc.c gnutls_alert.c gnutls_privkey_raw.c	\
 	system.c gnutls_str.c gnutls_state.c gnutls_x509.c		\
 	gnutls_rsa_export.c gnutls_helper.c gnutls_supplemental.c	\
 	random.c crypto-api.c gnutls_privkey.c gnutls_pcert.c		\
 	gnutls_pubkey.c locks.c gnutls_dtls.c system_override.c	\
-	crypto-backend.c verify-tofu.c pin.c tpm.c inet_pton.c
+	crypto-backend.c verify-tofu.c pin.c tpm.c fips.c \
+	safe-memset.c inet_pton.c
+
+if ENABLE_SELF_CHECKS
+COBJECTS += crypto-selftests.c crypto-selftests-pk.c
+endif
 
 if ENABLE_PKCS11
-COBJECTS += pkcs11.c pkcs11_privkey.c pkcs11_write.c pkcs11_secret.c \
+COBJECTS += pkcs11.c pkcs11x.c pkcs11_privkey.c pkcs11_write.c pkcs11_secret.c \
 	pkcs11_int.c
 endif
 
@@ -102,10 +109,11 @@ HFILES = abstract_int.h debug.h gnutls_compress.h gnutls_cipher.h	\
 	gnutls_state.h gnutls_x509.h crypto-backend.h			\
 	gnutls_srp.h auth/srp.h auth/srp_passwd.h	\
 	gnutls_helper.h gnutls_supplemental.h crypto.h random.h system.h\
-	locks.h gnutls_mbuffers.h gnutls_ecc.h pin.h 
+	locks.h gnutls_mbuffers.h gnutls_ecc.h pin.h fips.h \
+	priority_options.h
 
 if ENABLE_PKCS11
-HFILES += pkcs11_int.h
+HFILES += pkcs11_int.h pkcs11x.h
 endif
 
 # Separate so we can create the documentation
@@ -118,11 +126,15 @@ libgnutls_la_LDFLAGS = -no-undefined \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 libgnutls_la_LIBADD = ../gl/libgnu.la x509/libgnutls_x509.la \
-	accelerated/libaccelerated.la ext/libgnutls_ext.la \
+	ext/libgnutls_ext.la \
 	auth/libgnutls_auth.la algorithms/libgnutls_alg.la \
 	extras/libgnutls_extras.la
-thirdparty_libadd = $(LTLIBZ) $(LTLIBINTL) $(LIBSOCKET) \
+thirdparty_libadd = $(LTLIBZ) $(LTLIBINTL) $(LIBSOCKET) $(LTLIBNSL) \
 	$(LTLIBICONV) $(P11_KIT_LIBS) $(LIB_SELECT) $(TSS_LIBS)
+
+if ENABLE_NETTLE
+libgnutls_la_LIBADD += accelerated/libaccelerated.la
+endif
 
 if !WINDOWS
 thirdparty_libadd += $(LTLIBPTHREAD)
@@ -130,6 +142,10 @@ endif
 
 if NEEDS_LIBRT
 thirdparty_libadd += $(LTLIBRT)
+endif
+
+if ENABLE_FIPS140
+thirdparty_libadd += $(FIPS140_LIBS)
 endif
 
 if ENABLE_OPENPGP
@@ -194,19 +210,6 @@ pkix_asn1_tab.c: $(srcdir)/pkix.asn
 gnutls_asn1_tab.c: $(srcdir)/gnutls.asn
 	-asn1Parser $(srcdir)/gnutls.asn gnutls_asn1_tab.c
 
-libgnutls_xssl_la_LDFLAGS = -no-undefined -export-symbols-regex '^xssl.*'
+priority_options.h: $(srcdir)/priority_options.gperf
+	-gperf -t $^ > $@-tmp && mv $@-tmp $@
 
-lib_LTLIBRARIES += libgnutls-xssl.la
-
-libgnutls_xssl_la_SOURCES = xssl.c xssl_getline.c xssl.h vasprintf.c vasprintf.h
-
-libgnutls_xssl_la_LIBADD = ../gl/libgnu.la libgnutls.la
-
-libgnutls_xssl_la_LDFLAGS += -version-info $(LT_XSSL_CURRENT):$(LT_XSSL_REVISION):$(LT_XSSL_AGE)
-
-if HAVE_LD_OUTPUT_DEF
-libgnutls_xssl_la_LDFLAGS += \
-	-Wl,--output-def,libgnutls-xssl-$(DLL_VERSION).def
-libgnutls-xssl-$(DLL_VERSION).def: libgnutls-xssl.la
-defexec_DATA += libgnutls-xssl-$(DLL_VERSION).def
-endif

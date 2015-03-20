@@ -79,17 +79,24 @@ int main(void)
         /* Allow connections to servers that have OpenPGP keys as well.
          */
 
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
+
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
-        /* PKCS11 private key operations might require PIN.
-         * Register a callback.
-         */
+
+        /* The PKCS11 private key operations may require PIN.
+         * Register a callback. */
         gnutls_pkcs11_set_pin_function(pin_callback, NULL);
 
         /* X509 stuff */
         gnutls_certificate_allocate_credentials(&xcred);
 
         /* priorities */
-        gnutls_priority_init(&priorities_cache, "NORMAL", NULL);
+        gnutls_priority_init(&priorities_cache, 
+                             "NORMAL", NULL);
 
         /* sets the trusted cas file
          */

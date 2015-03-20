@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2003-2012 Free Software Foundation, Inc.
- * Author: Nikos Mavrogiannopoulos, Simon Josefsson, Howard Chu
+ * Copyright (C) 2003-2014 Free Software Foundation, Inc.
+ * Authors: Nikos Mavrogiannopoulos, Simon Josefsson, Howard Chu
  *
  * This file is part of GnuTLS.
  *
@@ -27,11 +27,33 @@
 #include <gnutls_global.h>
 #include <gnutls_errors.h>
 #include <common.h>
+#include <gnutls/x509-ext.h>
 #include <gnutls_x509.h>
 #include <x509_b64.h>
 #include <x509_int.h>
 #include <libtasn1.h>
 #include <gnutls_pk.h>
+
+static int crt_reinit(gnutls_x509_crt_t crt)
+{
+	int result;
+
+	crt->raw_dn.size = 0;
+	crt->raw_issuer_dn.size = 0;
+
+	asn1_delete_structure(&crt->cert);
+
+	result = asn1_create_element(_gnutls_get_pkix(),
+				     "PKIX1.Certificate",
+				     &crt->cert);
+	if (result != ASN1_SUCCESS) {
+		result = _gnutls_asn2err(result);
+		gnutls_assert();
+		return result;
+	}
+
+	return 0;
+}
 
 /**
  * gnutls_x509_crt_init:
@@ -44,7 +66,11 @@
  **/
 int gnutls_x509_crt_init(gnutls_x509_crt_t * cert)
 {
-	gnutls_x509_crt_t tmp =
+	gnutls_x509_crt_t tmp;
+
+	FAIL_IF_LIB_ERROR;
+
+	tmp =
 	    gnutls_calloc(1, sizeof(gnutls_x509_crt_int));
 	int result;
 
@@ -138,6 +164,71 @@ void gnutls_x509_crt_deinit(gnutls_x509_crt_t cert)
 	gnutls_free(cert);
 }
 
+static int compare_sig_algorithm(gnutls_x509_crt_t cert)
+{
+	int ret, s2;
+	gnutls_datum_t sp1 = {NULL, 0};
+	gnutls_datum_t sp2 = {NULL, 0};
+	unsigned empty1 = 0, empty2 = 0;
+
+	ret = _gnutls_x509_get_signature_algorithm(cert->cert,
+						      "signatureAlgorithm.algorithm");
+	if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	s2 = _gnutls_x509_get_signature_algorithm(cert->cert,
+						  "tbsCertificate.signature.algorithm");
+	if (ret != s2) {
+		_gnutls_debug_log("signatureAlgorithm.algorithm differs from tbsCertificate.signature.algorithm: %s, %s\n",
+			gnutls_sign_get_name(ret), gnutls_sign_get_name(s2));
+		gnutls_assert();
+		return GNUTLS_E_CERTIFICATE_ERROR;
+	}
+
+	/* compare the parameters */
+	ret = _gnutls_x509_read_value(cert->cert, "signatureAlgorithm.parameters", &sp1);
+	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND) {
+		empty1 = 1;
+	} else if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	ret = _gnutls_x509_read_value(cert->cert, "signatureAlgorithm.parameters", &sp2);
+	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND) {
+		empty2 = 1;
+	} else if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	/* handle equally empty parameters with missing parameters */
+	if (sp1.size == 2 && memcmp(sp1.data, "\x05\x00", 2) == 0) {
+		empty1 = 1;
+	 	_gnutls_free_datum(&sp1);
+	}
+
+	if (sp2.size == 2 && memcmp(sp2.data, "\x05\x00", 2) == 0) {
+		empty2 = 1;
+	 	_gnutls_free_datum(&sp2);
+	}
+
+	if (empty1 != empty2 || 
+	    sp1.size != sp2.size || memcmp(sp1.data, sp2.data, sp1.size) != 0) {
+		gnutls_assert();
+		ret = GNUTLS_E_CERTIFICATE_ERROR;
+		goto cleanup;
+	}
+
+	ret = 0;
+ cleanup:
+ 	_gnutls_free_datum(&sp1);
+ 	_gnutls_free_datum(&sp2);
+ 	return ret;
+}
+
 /**
  * gnutls_x509_crt_import:
  * @cert: The structure to store the parsed certificate.
@@ -160,6 +251,7 @@ gnutls_x509_crt_import(gnutls_x509_crt_t cert,
 		       gnutls_x509_crt_fmt_t format)
 {
 	int result = 0;
+	int version;
 
 	if (cert == NULL) {
 		gnutls_assert();
@@ -203,17 +295,14 @@ gnutls_x509_crt_import(gnutls_x509_crt_t cert,
 		/* Any earlier asn1_der_decoding will modify the ASN.1
 		   structure, so we need to replace it with a fresh
 		   structure. */
-		asn1_delete_structure(&cert->cert);
-
-		result = asn1_create_element(_gnutls_get_pkix(),
-					     "PKIX1.Certificate",
-					     &cert->cert);
-		if (result != ASN1_SUCCESS) {
-			result = _gnutls_asn2err(result);
+		result = crt_reinit(cert);
+		if (result < 0) {
 			gnutls_assert();
 			goto cleanup;
 		}
 	}
+
+	cert->expanded = 1;
 
 	result =
 	    asn1_der_decoding(&cert->cert, cert->der.data, cert->der.size, NULL);
@@ -223,7 +312,14 @@ gnutls_x509_crt_import(gnutls_x509_crt_t cert,
 		goto cleanup;
 	}
 
-	result = _gnutls_x509_get_raw_dn2(cert->cert, &cert->der,
+	result = compare_sig_algorithm(cert);
+	if (result < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+
+	result = _gnutls_x509_get_raw_field2(cert->cert, &cert->der,
 					  "tbsCertificate.issuer.rdnSequence",
 					  &cert->raw_issuer_dn);
 	if (result < 0) {
@@ -231,7 +327,7 @@ gnutls_x509_crt_import(gnutls_x509_crt_t cert,
 		goto cleanup;
 	}
 
-	result = _gnutls_x509_get_raw_dn2(cert->cert, &cert->der,
+	result = _gnutls_x509_get_raw_field2(cert->cert, &cert->der,
 					  "tbsCertificate.subject.rdnSequence",
 					  &cert->raw_dn);
 	if (result < 0) {
@@ -239,7 +335,27 @@ gnutls_x509_crt_import(gnutls_x509_crt_t cert,
 		goto cleanup;
 	}
 
-	cert->expanded = 1;
+	result = _gnutls_x509_get_raw_field2(cert->cert, &cert->der,
+					  "tbsCertificate.subjectPublicKeyInfo",
+					  &cert->raw_spki);
+	if (result < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	/* enforce the rule that only version 3 certificates carry extensions */
+	version = gnutls_x509_crt_get_version(cert);
+	if (version < 3) {
+		gnutls_datum_t exts;
+		result = _gnutls_x509_get_raw_field2(cert->cert, &cert->der,
+			"tbsCertificate.extensions", &exts);
+		if (result >= 0 && exts.size > 0) {
+			gnutls_assert();
+			_gnutls_debug_log("error: extensions present in certificate with version %d\n", version);
+			result = GNUTLS_E_X509_CERTIFICATE_ERROR;
+			goto cleanup;
+		}
+	}
 
 	/* Since we do not want to disable any extension
 	 */
@@ -560,7 +676,7 @@ int gnutls_x509_crt_get_signature_algorithm(gnutls_x509_crt_t cert)
  * gnutls_x509_crt_get_signature:
  * @cert: should contain a #gnutls_x509_crt_t structure
  * @sig: a pointer where the signature part will be copied (may be null).
- * @sizeof_sig: initially holds the size of @sig
+ * @sig_size: initially holds the size of @sig
  *
  * This function will extract the signature field of a certificate.
  *
@@ -569,45 +685,28 @@ int gnutls_x509_crt_get_signature_algorithm(gnutls_x509_crt_t cert)
  **/
 int
 gnutls_x509_crt_get_signature(gnutls_x509_crt_t cert,
-			      char *sig, size_t * sizeof_sig)
+			      char *sig, size_t * sig_size)
 {
-	int result;
-	int bits;
-	int len;
+	gnutls_datum_t dsig = {NULL, 0};
+	int ret;
 
-	if (cert == NULL) {
+	if (cert == NULL)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	ret = _gnutls_x509_get_signature(cert->cert, "signature", &dsig);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = _gnutls_copy_data(&dsig, (uint8_t*)sig, sig_size);
+	if (ret < 0) {
 		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
+		goto cleanup;
 	}
 
-	len = 0;
-	result = asn1_read_value(cert->cert, "signature", NULL, &len);
-	if (result != ASN1_MEM_ERROR) {
-		gnutls_assert();
-		return _gnutls_asn2err(result);
-	}
-
-	bits = len;
-	if (bits % 8 != 0 || bits < 8) {
-		gnutls_assert();
-		return GNUTLS_E_CERTIFICATE_ERROR;
-	}
-
-	len = bits / 8;
-
-	if (*sizeof_sig < (unsigned int) len) {
-		*sizeof_sig = len;
-		return GNUTLS_E_SHORT_MEMORY_BUFFER;
-	}
-
-	result = asn1_read_value(cert->cert, "signature", sig, &len);
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		return _gnutls_asn2err(result);
-	}
-	*sizeof_sig = (unsigned)(len/8);
-
-	return 0;
+	ret = 0;
+ cleanup:
+ 	gnutls_free(dsig.data);
+ 	return ret;
 }
 
 /**
@@ -707,9 +806,8 @@ gnutls_x509_crt_get_private_key_usage_period(gnutls_x509_crt_t cert,
 					     time_t * expiration,
 					     unsigned int *critical)
 {
-	int result, ret;
+	int ret;
 	gnutls_datum_t der = { NULL, 0 };
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
 
 	if (cert == NULL) {
 		gnutls_assert();
@@ -727,32 +825,16 @@ gnutls_x509_crt_get_private_key_usage_period(gnutls_x509_crt_t cert,
 		    gnutls_assert_val
 		    (GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE);
 
-	result = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.PrivateKeyUsagePeriod", &c2);
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_x509_ext_import_private_key_usage_period(&der, activation, expiration);
+	if (ret < 0) {
 		gnutls_assert();
-		ret = _gnutls_asn2err(result);
 		goto cleanup;
 	}
-
-	result = asn1_der_decoding(&c2, der.data, der.size, NULL);
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = _gnutls_asn2err(result);
-		goto cleanup;
-	}
-
-	if (activation)
-		*activation = _gnutls_x509_get_time(c2, "notBefore", 1);
-
-	if (expiration)
-		*expiration = _gnutls_x509_get_time(c2, "notAfter", 1);
 
 	ret = 0;
 
       cleanup:
 	_gnutls_free_datum(&der);
-	asn1_delete_structure(&c2);
 
 	return ret;
 }
@@ -816,112 +898,52 @@ gnutls_x509_crt_get_subject_key_id(gnutls_x509_crt_t cert, void *ret,
 				   size_t * ret_size,
 				   unsigned int *critical)
 {
-	int result, len;
-	gnutls_datum_t id;
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	int result;
+	gnutls_datum_t id = {NULL,0};
+	gnutls_datum_t der = {NULL, 0};
 
 	if (cert == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-
-	if (ret)
-		memset(ret, 0, *ret_size);
-	else
+	if (ret == NULL)
 		*ret_size = 0;
 
 	if ((result =
-	     _gnutls_x509_crt_get_extension(cert, "2.5.29.14", 0, &id,
+	     _gnutls_x509_crt_get_extension(cert, "2.5.29.14", 0, &der,
 					    critical)) < 0) {
 		return result;
 	}
 
-	if (id.size == 0 || id.data == NULL) {
+	result = gnutls_x509_ext_import_subject_key_id(&der, &id);
+	if (result < 0) {
 		gnutls_assert();
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		goto cleanup;
 	}
 
-	result = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.SubjectKeyIdentifier", &c2);
-	if (result != ASN1_SUCCESS) {
+	result = _gnutls_copy_data(&id, ret, ret_size);
+	if (result < 0) {
 		gnutls_assert();
-		_gnutls_free_datum(&id);
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	result = asn1_der_decoding(&c2, id.data, id.size, NULL);
-	_gnutls_free_datum(&id);
+	result = 0;
 
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		asn1_delete_structure(&c2);
-		return _gnutls_asn2err(result);
-	}
-
-	len = *ret_size;
-	result = asn1_read_value(c2, "", ret, &len);
-
-	*ret_size = len;
-	asn1_delete_structure(&c2);
-
-	if (result == ASN1_VALUE_NOT_FOUND
-	    || result == ASN1_ELEMENT_NOT_FOUND) {
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	}
-
-	if (result != ASN1_SUCCESS) {
-		if (result != ASN1_MEM_ERROR)
-			gnutls_assert();
-		return _gnutls_asn2err(result);
-	}
-
-	return 0;
+ cleanup:
+	gnutls_free(der.data);
+	gnutls_free(id.data);
+	return result;
 }
 
-static int
-_get_authority_key_id(gnutls_x509_crt_t cert, ASN1_TYPE * c2,
-		      unsigned int *critical)
+inline static int is_type_printable(int type)
 {
-	int ret;
-	gnutls_datum_t id;
-
-	*c2 = ASN1_TYPE_EMPTY;
-
-	if (cert == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
-
-	if ((ret =
-	     _gnutls_x509_crt_get_extension(cert, "2.5.29.35", 0, &id,
-					    critical)) < 0) {
-		return gnutls_assert_val(ret);
-	}
-
-	if (id.size == 0 || id.data == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	}
-
-	ret = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.AuthorityKeyIdentifier", c2);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		_gnutls_free_datum(&id);
-		return _gnutls_asn2err(ret);
-	}
-
-	ret = asn1_der_decoding(c2, id.data, id.size, NULL);
-	_gnutls_free_datum(&id);
-
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		asn1_delete_structure(c2);
-		return _gnutls_asn2err(ret);
-	}
-
-	return 0;
+	if (type == GNUTLS_SAN_DNSNAME || type == GNUTLS_SAN_RFC822NAME ||
+	    type == GNUTLS_SAN_URI || type == GNUTLS_SAN_OTHERNAME_XMPP ||
+	    type == GNUTLS_SAN_OTHERNAME)
+		return 1;
+	else
+		return 0;
 }
 
 /**
@@ -957,42 +979,69 @@ gnutls_x509_crt_get_authority_key_gn_serial(gnutls_x509_crt_t cert,
 					    size_t * serial_size,
 					    unsigned int *critical)
 {
-	int ret, result, len;
-	ASN1_TYPE c2;
+	int ret;
+	gnutls_datum_t der, san, iserial;
+	gnutls_x509_aki_t aki = NULL;
+	unsigned san_type;
 
-	ret = _get_authority_key_id(cert, &c2, critical);
-	if (ret < 0)
-		return gnutls_assert_val(ret);
-
-	ret =
-	    _gnutls_parse_general_name(c2, "authorityCertIssuer", seq, alt,
-				       alt_size, alt_type, 0);
-	if (ret < 0) {
-		ret = gnutls_assert_val(ret);
-		goto fail;
+	if (cert == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (serial) {
-		len = *serial_size;
-		result =
-		    asn1_read_value(c2, "authorityCertSerialNumber",
-				    serial, &len);
+	if ((ret =
+	     _gnutls_x509_crt_get_extension(cert, "2.5.29.35", 0, &der,
+					    critical)) < 0) {
+		return gnutls_assert_val(ret);
+	}
 
-		*serial_size = len;
+	if (der.size == 0 || der.data == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+	}
 
-		if (result < 0) {
-			ret = _gnutls_asn2err(result);
-			goto fail;
-		}
+	ret = gnutls_x509_aki_init(&aki);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
 
+	ret = gnutls_x509_ext_import_authority_key_id(&der, aki, 0);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = gnutls_x509_aki_get_cert_issuer(aki, seq, &san_type, &san, NULL, &iserial);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	if (is_type_printable(san_type))
+		ret = _gnutls_copy_string(&san, alt, alt_size);
+	else
+		ret = _gnutls_copy_data(&san, alt, alt_size);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	if (alt_type)
+		*alt_type = san_type;
+
+	ret = _gnutls_copy_data(&iserial, serial, serial_size);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
 	}
 
 	ret = 0;
-
-      fail:
-	asn1_delete_structure(&c2);
-
-	return ret;
+ cleanup:
+ 	if (aki != NULL)
+ 		gnutls_x509_aki_deinit(aki);
+ 	gnutls_free(der.data);
+ 	return ret;
 }
 
 /**
@@ -1018,31 +1067,67 @@ gnutls_x509_crt_get_authority_key_id(gnutls_x509_crt_t cert, void *id,
 				     size_t * id_size,
 				     unsigned int *critical)
 {
-	int ret, result, len;
-	ASN1_TYPE c2;
+	int ret;
+	gnutls_datum_t der, l_id;
+	gnutls_x509_aki_t aki = NULL;
 
-	ret = _get_authority_key_id(cert, &c2, critical);
-	if (ret < 0)
-		return gnutls_assert_val(ret);
-
-	len = *id_size;
-	result = asn1_read_value(c2, "keyIdentifier", id, &len);
-
-	*id_size = len;
-	asn1_delete_structure(&c2);
-
-	if (result == ASN1_VALUE_NOT_FOUND
-	    || result == ASN1_ELEMENT_NOT_FOUND)
-		return
-		    gnutls_assert_val(GNUTLS_E_X509_UNSUPPORTED_EXTENSION);
-
-	if (result != ASN1_SUCCESS) {
-		if (result != ASN1_MEM_ERROR)
-			gnutls_assert();
-		return _gnutls_asn2err(result);
+	if (cert == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	return 0;
+	if ((ret =
+	     _gnutls_x509_crt_get_extension(cert, "2.5.29.35", 0, &der,
+					    critical)) < 0) {
+		return gnutls_assert_val(ret);
+	}
+
+	if (der.size == 0 || der.data == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+	}
+
+	ret = gnutls_x509_aki_init(&aki);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = gnutls_x509_ext_import_authority_key_id(&der, aki, 0);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = gnutls_x509_aki_get_id(aki, &l_id);
+
+	if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+		gnutls_datum_t serial;
+		ret = gnutls_x509_aki_get_cert_issuer(aki, 0, NULL, NULL, NULL, &serial);
+		if (ret >= 0) {
+			ret = gnutls_assert_val(GNUTLS_E_X509_UNSUPPORTED_EXTENSION);
+		} else {
+			ret = gnutls_assert_val(GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE);
+		}
+	}
+
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = _gnutls_copy_data(&l_id, id, id_size);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = 0;
+ cleanup:
+ 	if (aki != NULL)
+ 		gnutls_x509_aki_deinit(aki);
+ 	gnutls_free(der.data);
+ 	return ret;
 }
 
 /**
@@ -1089,37 +1174,38 @@ gnutls_x509_crt_get_pk_algorithm(gnutls_x509_crt_t cert,
 
 }
 
-inline static int is_type_printable(int type)
-{
-	if (type == GNUTLS_SAN_DNSNAME || type == GNUTLS_SAN_RFC822NAME ||
-	    type == GNUTLS_SAN_URI)
-		return 1;
-	else
-		return 0;
-}
-
-#define XMPP_OID "1.3.6.1.5.5.7.8.5"
-
 /* returns the type and the name on success.
  * Type is also returned as a parameter in case of an error.
+ *
+ * @seq: in case of GeneralNames it will return the corresponding name.
+ *       in case of GeneralName, it must be -1
+ * @dname: the name returned
+ * @ret_type: The type of the name
+ * @othername_oid: if the name is otherName return the OID
+ *
  */
 int
-_gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
-			   int seq, void *name, size_t * name_size,
+_gnutls_parse_general_name2(ASN1_TYPE src, const char *src_name,
+			   int seq, gnutls_datum_t *dname, 
 			   unsigned int *ret_type, int othername_oid)
 {
-	int len;
+	int len, ret;
 	char nptr[ASN1_MAX_NAME_SIZE];
 	int result;
+	gnutls_datum_t tmp = {NULL, 0};
 	char choice_type[128];
 	gnutls_x509_subject_alt_name_t type;
 
-	seq++;			/* 0->1, 1->2 etc */
+	if (seq != -1) {
+		seq++;	/* 0->1, 1->2 etc */
 
-	if (src_name[0] != 0)
-		snprintf(nptr, sizeof(nptr), "%s.?%u", src_name, seq);
-	else
-		snprintf(nptr, sizeof(nptr), "?%u", seq);
+		if (src_name[0] != 0)
+			snprintf(nptr, sizeof(nptr), "%s.?%u", src_name, seq);
+		else
+			snprintf(nptr, sizeof(nptr), "?%u", seq);
+	} else {
+		snprintf(nptr, sizeof(nptr), "%s", src_name);
+	}
 
 	len = sizeof(choice_type);
 	result = asn1_read_value(src, nptr, choice_type, &len);
@@ -1133,7 +1219,6 @@ _gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
 		gnutls_assert();
 		return _gnutls_asn2err(result);
 	}
-
 
 	type = _gnutls_x509_san_find_type(choice_type);
 	if (type == (gnutls_x509_subject_alt_name_t) - 1) {
@@ -1152,24 +1237,17 @@ _gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
 			_gnutls_str_cat(nptr, sizeof(nptr),
 					".otherName.value");
 
-		len = *name_size;
-		result = asn1_read_value(src, nptr, name, &len);
-		*name_size = len;
-
-		if (result == ASN1_MEM_ERROR)
-			return GNUTLS_E_SHORT_MEMORY_BUFFER;
-
-		if (result != ASN1_SUCCESS) {
+		ret = _gnutls_x509_read_value(src, nptr, &tmp);
+		if (ret < 0) {
 			gnutls_assert();
-			return _gnutls_asn2err(result);
+			return ret;
 		}
 
 		if (othername_oid) {
-			if ((unsigned) len > strlen(XMPP_OID)
-			    && strcmp(name, XMPP_OID) == 0)
-				type = GNUTLS_SAN_OTHERNAME_XMPP;
+			dname->size = tmp.size;
+			dname->data = tmp.data;
 		} else {
-			char oid[42];
+			char oid[MAX_OID_SIZE];
 
 			if (src_name[0] != 0)
 				snprintf(nptr, sizeof(nptr),
@@ -1180,112 +1258,111 @@ _gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
 					 "?%u.otherName.type-id", seq);
 
 			len = sizeof(oid);
+
 			result = asn1_read_value(src, nptr, oid, &len);
 			if (result != ASN1_SUCCESS) {
 				gnutls_assert();
-				return _gnutls_asn2err(result);
+				ret = _gnutls_asn2err(result);
+				goto cleanup;
 			}
+			if (len > 0) len--;
 
-			if ((unsigned) len > strlen(XMPP_OID)
-			    && strcmp(oid, XMPP_OID) == 0) {
-				gnutls_datum_t out;
-
-				result =
-				    _gnutls_x509_decode_string
-				    (ASN1_ETYPE_UTF8_STRING, name,
-				     *name_size, &out);
-				if (result < 0) {
-					gnutls_assert();
-					return result;
-				}
-
-				if (*name_size <= out.size) {
-					gnutls_assert();
-					gnutls_free(out.data);
-					*name_size = len + 1;
-					return
-					    GNUTLS_E_SHORT_MEMORY_BUFFER;
-				}
-
-				*name_size = out.size;
-				memcpy(name, out.data, out.size);
-				/* null terminate it */
-				((char *) name)[*name_size] = 0;
-				gnutls_free(out.data);
-			}
+			dname->size = tmp.size;
+			dname->data = tmp.data;
 		}
 	} else if (type == GNUTLS_SAN_DN) {
 		_gnutls_str_cat(nptr, sizeof(nptr), ".directoryName");
-		result = _gnutls_x509_parse_dn(src, nptr, name, name_size);
-		if (result < 0) {
+		ret = _gnutls_x509_get_dn(src, nptr, dname);
+		if (ret < 0) {
 			gnutls_assert();
-			return result;
+			goto cleanup;
 		}
-	} else if (othername_oid)
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	else {
-		size_t orig_name_size = *name_size;
-
+	} else if (othername_oid) {
+		gnutls_assert();
+		ret = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		goto cleanup;
+	} else {
 		_gnutls_str_cat(nptr, sizeof(nptr), ".");
 		_gnutls_str_cat(nptr, sizeof(nptr), choice_type);
 
-		len = *name_size;
-		result = asn1_read_value(src, nptr, name, &len);
-		*name_size = len;
-
-		if (result == ASN1_MEM_ERROR) {
-			if (is_type_printable(type))
-				(*name_size)++;
-			return GNUTLS_E_SHORT_MEMORY_BUFFER;
-		}
-
-		if (result != ASN1_SUCCESS) {
+		ret = _gnutls_x509_read_value(src, nptr, &tmp);
+		if (ret < 0) {
 			gnutls_assert();
-			return _gnutls_asn2err(result);
+			return ret;
 		}
 
-		if (is_type_printable(type)) {
-
-			if ((unsigned) len + 1 > orig_name_size) {
-				gnutls_assert();
-				(*name_size)++;
-				return GNUTLS_E_SHORT_MEMORY_BUFFER;
-			}
-
-			/* null terminate it */
-			if (name)
-				((char *) name)[*name_size] = 0;
-		}
-
+		/* _gnutls_x509_read_value() null terminates */
+		dname->size = tmp.size;
+		dname->data = tmp.data;
 	}
 
 	return type;
+
+ cleanup:
+	gnutls_free(tmp.data);
+	return ret;
+}
+
+/* returns the type and the name on success.
+ * Type is also returned as a parameter in case of an error.
+ */
+int
+_gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
+			   int seq, void *name, size_t * name_size,
+			   unsigned int *ret_type, int othername_oid)
+{
+	int ret;
+	gnutls_datum_t res = {NULL,0};
+	unsigned type;
+
+	ret = _gnutls_parse_general_name2(src, src_name, seq, &res, ret_type, othername_oid);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	type = ret;
+
+	if (is_type_printable(type)) {
+		ret = _gnutls_copy_string(&res, name, name_size);
+	} else {
+		ret = _gnutls_copy_data(&res, name, name_size);
+	}
+
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = type;
+cleanup:
+	gnutls_free(res.data);
+	return ret;
 }
 
 static int
 get_alt_name(gnutls_x509_crt_t cert, const char *extension_id,
-	     unsigned int seq, void *alt,
+	     unsigned int seq, uint8_t *alt,
 	     size_t * alt_size, unsigned int *alt_type,
 	     unsigned int *critical, int othername_oid)
 {
-	int result;
-	gnutls_datum_t dnsname;
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	int ret;
+	gnutls_datum_t dnsname = {NULL, 0};
+	gnutls_datum_t ooid = {NULL, 0};
+	gnutls_datum_t res;
+	gnutls_subject_alt_names_t sans = NULL;
+	unsigned int type;
 
 	if (cert == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (alt)
-		memset(alt, 0, *alt_size);
-	else
+	if (alt == NULL)
 		*alt_size = 0;
 
-	if ((result =
+	if ((ret =
 	     _gnutls_x509_crt_get_extension(cert, extension_id, 0,
 					    &dnsname, critical)) < 0) {
-		return result;
+		return ret;
 	}
 
 	if (dnsname.size == 0 || dnsname.data == NULL) {
@@ -1293,44 +1370,61 @@ get_alt_name(gnutls_x509_crt_t cert, const char *extension_id,
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	if (strcmp("2.5.29.17", extension_id) == 0)
-		result = asn1_create_element(_gnutls_get_pkix(),
-					     "PKIX1.SubjectAltName", &c2);
-	else if (strcmp("2.5.29.18", extension_id) == 0)
-		result = asn1_create_element(_gnutls_get_pkix(),
-					     "PKIX1.IssuerAltName", &c2);
-	else {
+	ret = gnutls_subject_alt_names_init(&sans);
+	if (ret < 0) {
 		gnutls_assert();
-		return GNUTLS_E_INTERNAL_ERROR;
+		goto cleanup;
 	}
 
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_x509_ext_import_subject_alt_names(&dnsname, sans, 0);
+	if (ret < 0) {
 		gnutls_assert();
-		_gnutls_free_datum(&dnsname);
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	result = asn1_der_decoding(&c2, dnsname.data, dnsname.size, NULL);
-	_gnutls_free_datum(&dnsname);
-
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_subject_alt_names_get(sans, seq, &type, &res, &ooid);
+	if (ret < 0) {
 		gnutls_assert();
-		asn1_delete_structure(&c2);
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	result =
-	    _gnutls_parse_general_name(c2, "", seq, alt, alt_size,
-				       alt_type, othername_oid);
-
-	asn1_delete_structure(&c2);
-
-	if (result < 0) {
-		gnutls_assert();
-		return result;
+	if (othername_oid && type == GNUTLS_SAN_OTHERNAME) {
+		unsigned vtype;
+		gnutls_datum_t virt;
+		ret = gnutls_x509_othername_to_virtual((char*)ooid.data, &res, &vtype, &virt);
+		if (ret >= 0) {
+			type = vtype;
+			gnutls_free(res.data);
+			res.data = virt.data;
+			res.size = virt.size;
+		}
 	}
 
-	return result;
+	if (alt_type)
+		*alt_type = type;
+
+	if (othername_oid) {
+		ret = _gnutls_copy_string(&ooid, alt, alt_size);
+	} else {
+		if (is_type_printable(type)) {
+			ret = _gnutls_copy_string(&res, alt, alt_size);
+		} else {
+			ret = _gnutls_copy_data(&res, alt, alt_size);
+		}
+	}
+
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = type;
+cleanup:
+	gnutls_free(dnsname.data);
+	if (sans != NULL)
+		gnutls_subject_alt_names_deinit(sans);
+
+	return ret;
 }
 
 /**
@@ -1615,15 +1709,10 @@ gnutls_x509_crt_get_basic_constraints(gnutls_x509_crt_t cert,
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	result =
-	    _gnutls_x509_ext_extract_basicConstraints(&tmp_ca,
-						      pathlen,
-						      basicConstraints.
-						      data,
-						      basicConstraints.
-						      size);
+	result = gnutls_x509_ext_import_basic_constraints(&basicConstraints, &tmp_ca, pathlen);
 	if (ca)
 		*ca = tmp_ca;
+
 	_gnutls_free_datum(&basicConstraints);
 
 	if (result < 0) {
@@ -1647,9 +1736,11 @@ gnutls_x509_crt_get_basic_constraints(gnutls_x509_crt_t cert,
  * Use gnutls_x509_crt_get_basic_constraints() if you want to read the
  * pathLenConstraint field too.
  *
- * Returns: A negative error code may be returned in case of parsing error.
- * If the certificate does not contain the basicConstraints extension
- * %GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE will be returned.
+ * Returns: If the certificate is a CA a positive value will be
+ * returned, or (0) if the certificate does not have CA flag set.  A
+ * negative error code may be returned in case of errors.  If the
+ * certificate does not contain the basicConstraints extension
+ * GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE will be returned.
  **/
 int
 gnutls_x509_crt_get_ca_status(gnutls_x509_crt_t cert,
@@ -1687,7 +1778,6 @@ gnutls_x509_crt_get_key_usage(gnutls_x509_crt_t cert,
 {
 	int result;
 	gnutls_datum_t keyUsage;
-	uint16_t _usage;
 
 	if (cert == NULL) {
 		gnutls_assert();
@@ -1705,11 +1795,8 @@ gnutls_x509_crt_get_key_usage(gnutls_x509_crt_t cert,
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	result = _gnutls_x509_ext_extract_keyUsage(&_usage, keyUsage.data,
-						   keyUsage.size);
+	result = gnutls_x509_ext_import_key_usage(&keyUsage, key_usage);
 	_gnutls_free_datum(&keyUsage);
-
-	*key_usage = _usage;
 
 	if (result < 0) {
 		gnutls_assert();
@@ -1763,13 +1850,10 @@ gnutls_x509_crt_get_proxy(gnutls_x509_crt_t cert,
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	result = _gnutls_x509_ext_extract_proxyCertInfo(pathlen,
+	result = gnutls_x509_ext_import_proxy(&proxyCertInfo, pathlen,
 							policyLanguage,
 							policy,
-							sizeof_policy,
-							proxyCertInfo.data,
-							proxyCertInfo.
-							size);
+							sizeof_policy);
 	_gnutls_free_datum(&proxyCertInfo);
 	if (result < 0) {
 		gnutls_assert();
@@ -1797,83 +1881,10 @@ void gnutls_x509_policy_release(struct gnutls_x509_policy_st *policy)
 		gnutls_free(policy->qualifier[i].data);
 }
 
-static int decode_user_notice(const void *data, size_t size,
-			      gnutls_datum_t * txt)
-{
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
-	int ret, len;
-	char choice_type[64];
-	char name[128];
-	gnutls_datum_t td, utd;
-
-	ret = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.UserNotice", &c2);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = GNUTLS_E_PARSING_ERROR;
-		goto cleanup;
-	}
-
-	ret = asn1_der_decoding(&c2, data, size, NULL);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = GNUTLS_E_PARSING_ERROR;
-		goto cleanup;
-	}
-
-	len = sizeof(choice_type);
-	ret = asn1_read_value(c2, "explicitText", choice_type, &len);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = GNUTLS_E_PARSING_ERROR;
-		goto cleanup;
-	}
-
-	if (strcmp(choice_type, "utf8String") != 0
-	    && strcmp(choice_type, "ia5String") != 0
-	    && strcmp(choice_type, "bmpString") != 0
-	    && strcmp(choice_type, "visibleString") != 0) {
-		gnutls_assert();
-		ret = GNUTLS_E_PARSING_ERROR;
-		goto cleanup;
-	}
-
-	snprintf(name, sizeof(name), "explicitText.%s", choice_type);
-
-	ret = _gnutls_x509_read_value(c2, name, &td);
-	if (ret < 0) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	if (strcmp(choice_type, "bmpString") == 0) {	/* convert to UTF-8 */
-		ret = _gnutls_ucs2_to_utf8(td.data, td.size, &utd);
-		_gnutls_free_datum(&td);
-		if (ret < 0) {
-			gnutls_assert();
-			goto cleanup;
-		}
-
-		td.data = utd.data;
-		td.size = utd.size;
-	} else {
-		/* _gnutls_x509_read_value allows that */
-		td.data[td.size] = 0;
-	}
-
-	txt->data = (void *) td.data;
-	txt->size = td.size;
-	ret = 0;
-
-      cleanup:
-	asn1_delete_structure(&c2);
-	return ret;
-
-}
 
 /**
  * gnutls_x509_crt_get_policy:
- * @cert: should contain a #gnutls_x509_crt_t structure
+ * @crt: should contain a #gnutls_x509_crt_t structure
  * @indx: This specifies which policy to return. Use (0) to get the first one.
  * @policy: A pointer to a policy structure.
  * @critical: will be non-zero if the extension is marked as critical
@@ -1894,12 +1905,9 @@ gnutls_x509_crt_get_policy(gnutls_x509_crt_t crt, int indx,
 			   struct gnutls_x509_policy_st *policy,
 			   unsigned int *critical)
 {
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
-	char tmpstr[128];
-	char tmpoid[MAX_OID_SIZE];
 	gnutls_datum_t tmpd = { NULL, 0 };
-	int ret, len;
-	unsigned i;
+	int ret;
+	gnutls_x509_policies_t policies = NULL;
 
 	if (crt == NULL) {
 		gnutls_assert();
@@ -1908,130 +1916,43 @@ gnutls_x509_crt_get_policy(gnutls_x509_crt_t crt, int indx,
 
 	memset(policy, 0, sizeof(*policy));
 
+	ret = gnutls_x509_policies_init(&policies);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
 	if ((ret =
 	     _gnutls_x509_crt_get_extension(crt, "2.5.29.32", 0, &tmpd,
 					    critical)) < 0) {
-		return ret;
+		goto cleanup;
 	}
 
 	if (tmpd.size == 0 || tmpd.data == NULL) {
 		gnutls_assert();
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	}
-
-	ret = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.certificatePolicies", &c2);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = _gnutls_asn2err(ret);
-		goto cleanup;
-	}
-
-	ret = asn1_der_decoding(&c2, tmpd.data, tmpd.size, NULL);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = _gnutls_asn2err(ret);
-		goto cleanup;
-	}
-	_gnutls_free_datum(&tmpd);
-
-	indx++;
-	/* create a string like "?1"
-	 */
-	snprintf(tmpstr, sizeof(tmpstr), "?%u.policyIdentifier", indx);
-
-	ret = _gnutls_x509_read_value(c2, tmpstr, &tmpd);
-
-	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND)
 		ret = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		goto cleanup;
+	}
 
+	ret = gnutls_x509_ext_import_policies(&tmpd, policies, 0);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
 	}
-	policy->oid = (void *) tmpd.data;
-	tmpd.data = NULL;
 
-	for (i = 0; i < GNUTLS_MAX_QUALIFIERS; i++) {
-		gnutls_datum_t td;
-
-		snprintf(tmpstr, sizeof(tmpstr),
-			 "?%u.policyQualifiers.?%u.policyQualifierId",
-			 indx, i + 1);
-
-		len = sizeof(tmpoid);
-		ret = asn1_read_value(c2, tmpstr, tmpoid, &len);
-
-		if (ret == ASN1_ELEMENT_NOT_FOUND)
-			break;	/* finished */
-
-		if (ret != ASN1_SUCCESS) {
-			gnutls_assert();
-			ret = _gnutls_asn2err(ret);
-			goto cleanup;
-		}
-
-		if (strcmp(tmpoid, "1.3.6.1.5.5.7.2.1") == 0) {
-			snprintf(tmpstr, sizeof(tmpstr),
-				 "?%u.policyQualifiers.?%u.qualifier",
-				 indx, i + 1);
-
-			ret =
-			    _gnutls_x509_read_string(c2, tmpstr, &td,
-						     ASN1_ETYPE_IA5_STRING);
-			if (ret < 0) {
-				gnutls_assert();
-				goto full_cleanup;
-			}
-
-			policy->qualifier[i].data = (void *) td.data;
-			policy->qualifier[i].size = td.size;
-			td.data = NULL;
-			policy->qualifier[i].type =
-			    GNUTLS_X509_QUALIFIER_URI;
-		} else if (strcmp(tmpoid, "1.3.6.1.5.5.7.2.2") == 0) {
-			gnutls_datum_t txt;
-
-			snprintf(tmpstr, sizeof(tmpstr),
-				 "?%u.policyQualifiers.?%u.qualifier",
-				 indx, i + 1);
-
-			ret = _gnutls_x509_read_value(c2, tmpstr, &td);
-			if (ret < 0) {
-				gnutls_assert();
-				goto full_cleanup;
-			}
-
-			ret = decode_user_notice(td.data, td.size, &txt);
-			gnutls_free(td.data);
-			td.data = NULL;
-
-			if (ret < 0) {
-				gnutls_assert();
-				goto full_cleanup;
-			}
-
-			policy->qualifier[i].data = (void *) txt.data;
-			policy->qualifier[i].size = txt.size;
-			policy->qualifier[i].type =
-			    GNUTLS_X509_QUALIFIER_NOTICE;
-		} else
-			policy->qualifier[i].type =
-			    GNUTLS_X509_QUALIFIER_UNKNOWN;
-
-		policy->qualifiers++;
-
+	ret = gnutls_x509_policies_get(policies, indx, policy);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
 	}
 
+	_gnutls_x509_policies_erase(policies, indx);
+
 	ret = 0;
-	goto cleanup;
 
-      full_cleanup:
-	gnutls_x509_policy_release(policy);
-
-      cleanup:
+ cleanup:
+ 	if (policies != NULL)
+ 		gnutls_x509_policies_deinit(policies);
 	_gnutls_free_datum(&tmpd);
-	asn1_delete_structure(&c2);
+
 	return ret;
 }
 
@@ -2094,7 +2015,53 @@ gnutls_x509_crt_get_extension_by_oid(gnutls_x509_crt_t cert,
 	_gnutls_free_datum(&output);
 
 	return 0;
+}
 
+/**
+ * gnutls_x509_crt_get_extension_by_oid2:
+ * @cert: should contain a #gnutls_x509_crt_t structure
+ * @oid: holds an Object Identified in null terminated string
+ * @indx: In case multiple same OIDs exist in the extensions, this specifies which to send. Use (0) to get the first one.
+ * @output: will hold the allocated extension data
+ * @critical: will be non-zero if the extension is marked as critical
+ *
+ * This function will return the extension specified by the OID in the
+ * certificate.  The extensions will be returned as binary data DER
+ * encoded, in the provided buffer.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned,
+ *   otherwise a negative error code is returned. If the certificate does not
+ *   contain the specified extension
+ *   GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE will be returned.
+ *
+ * Since: 3.3.8
+ **/
+int
+gnutls_x509_crt_get_extension_by_oid2(gnutls_x509_crt_t cert,
+				     const char *oid, int indx,
+				     gnutls_datum_t *output,
+				     unsigned int *critical)
+{
+	int ret;
+	
+	if (cert == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	if ((ret =
+	     _gnutls_x509_crt_get_extension(cert, oid, indx, output,
+					    critical)) < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	if (output->size == 0 || output->data == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+	}
+
+	return 0;
 }
 
 /**
@@ -2148,7 +2115,7 @@ gnutls_x509_crt_get_extension_oid(gnutls_x509_crt_t cert, int indx,
  * This function will return the requested extension OID in the
  * certificate, and the critical flag for it.  The extension OID will
  * be stored as a string in the provided buffer.  Use
- * gnutls_x509_crt_get_extension_data() to extract the data.
+ * gnutls_x509_crt_get_extension() to extract the data.
  *
  * If the buffer provided is not long enough to hold the output, then
  * @oid_size is updated and %GNUTLS_E_SHORT_MEMORY_BUFFER will be
@@ -2217,7 +2184,7 @@ gnutls_x509_crt_get_extension_info(gnutls_x509_crt_t cert, int indx,
  * @sizeof_data: initially holds the size of @data
  *
  * This function will return the requested extension data in the
- * certificate.  The extension data will be stored as a string in the
+ * certificate.  The extension data will be stored in the
  * provided buffer.
  *
  * Use gnutls_x509_crt_get_extension_info() to extract the OID and
@@ -2280,8 +2247,12 @@ int
 gnutls_x509_crt_get_raw_issuer_dn(gnutls_x509_crt_t cert,
 				  gnutls_datum_t * dn)
 {
-	return _gnutls_set_datum(dn, cert->raw_issuer_dn.data,
-				 cert->raw_issuer_dn.size);
+	if (cert->raw_issuer_dn.size > 0) {
+		return _gnutls_set_datum(dn, cert->raw_issuer_dn.data,
+					 cert->raw_issuer_dn.size);
+	} else {
+		return _gnutls_x509_get_raw_field(cert->cert, "tbsCertificate.issuer.rdnSequence", dn);
+	}
 }
 
 /**
@@ -2298,7 +2269,11 @@ gnutls_x509_crt_get_raw_issuer_dn(gnutls_x509_crt_t cert,
  **/
 int gnutls_x509_crt_get_raw_dn(gnutls_x509_crt_t cert, gnutls_datum_t * dn)
 {
-	return _gnutls_set_datum(dn, cert->raw_dn.data, cert->raw_dn.size);
+	if (cert->raw_dn.size > 0) {
+		return _gnutls_set_datum(dn, cert->raw_dn.data, cert->raw_dn.size);
+	} else {
+		return _gnutls_x509_get_raw_field(cert->cert, "tbsCertificate.subject.rdnSequence", dn);
+	}
 }
 
 static int
@@ -2475,7 +2450,8 @@ gnutls_x509_dn_get_rdn_ava(gnutls_x509_dn_t dn,
  * @buf_size: initially holds the size of @buf
  *
  * This function will calculate and copy the certificate's fingerprint
- * in the provided buffer.
+ * in the provided buffer. The fingerprint is a hash of the DER-encoded
+ * data of the certificate.
  *
  * If the buffer is null then only the size will be filled.
  *
@@ -2601,7 +2577,7 @@ _gnutls_get_key_id(gnutls_pk_algorithm_t pk, gnutls_pk_params_st * params,
 	gnutls_datum_t der = { NULL, 0 };
 	const gnutls_digest_algorithm_t hash = GNUTLS_DIG_SHA1;
 	unsigned int digest_len =
-	    _gnutls_hash_get_algo_len(mac_to_entry(hash));
+	    _gnutls_hash_get_algo_len(hash_to_entry(hash));
 
 	if (output_data == NULL || *output_data_size < digest_len) {
 		gnutls_assert();
@@ -2703,7 +2679,8 @@ _gnutls_x509_crt_check_revocation(gnutls_x509_crt_t cert,
 	uint8_t serial[128];
 	uint8_t cert_serial[128];
 	size_t serial_size, cert_serial_size;
-	int ncerts, ret, i, j;
+	int ret, j;
+	gnutls_x509_crl_iter_t iter = NULL;
 
 	if (cert == NULL) {
 		gnutls_assert();
@@ -2738,23 +2715,20 @@ _gnutls_x509_crt_check_revocation(gnutls_x509_crt_t cert,
 		 *   certificate serial we have.
 		 */
 
-		ncerts = gnutls_x509_crl_get_crt_count(crl_list[j]);
-		if (ncerts < 0) {
-			gnutls_assert();
-			return ncerts;
-		}
-
-		for (i = 0; i < ncerts; i++) {
+		iter = NULL;
+		do {
 			serial_size = sizeof(serial);
 			ret =
-			    gnutls_x509_crl_get_crt_serial(crl_list[j], i,
-							   serial,
-							   &serial_size,
-							   NULL);
-
-			if (ret < 0) {
+			    gnutls_x509_crl_iter_crt_serial(crl_list[j],
+							    &iter,
+							    serial,
+							    &serial_size,
+							    NULL);
+			if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+				break;
+			} else if (ret < 0) {
 				gnutls_assert();
-				return ret;
+				goto fail;
 			}
 
 			if (serial_size == cert_serial_size) {
@@ -2767,15 +2741,24 @@ _gnutls_x509_crt_check_revocation(gnutls_x509_crt_t cert,
 						     crl_list[j],
 						     GNUTLS_CERT_REVOKED |
 						     GNUTLS_CERT_INVALID);
-					return 1;	/* revoked! */
+					ret = 1;	/* revoked! */
+					goto fail;
 				}
 			}
-		}
+		} while(1);
+
+		gnutls_x509_crl_iter_deinit(iter);
+		iter = NULL;
+
 		if (func)
 			func(cert, NULL, crl_list[j], 0);
 
 	}
 	return 0;		/* not revoked. */
+
+ fail:
+ 	gnutls_x509_crl_iter_deinit(iter);
+ 	return ret;
 }
 
 
@@ -2978,7 +2961,7 @@ gnutls_x509_crt_verify_hash(gnutls_x509_crt_t crt, unsigned int flags,
 
 	ret =
 	    pubkey_verify_hashed_data(gnutls_x509_crt_get_pk_algorithm
-				      (crt, NULL), mac_to_entry(algo),
+				      (crt, NULL), hash_to_entry(algo),
 				      hash, signature, &params);
 	if (ret < 0) {
 		gnutls_assert();
@@ -2995,8 +2978,8 @@ gnutls_x509_crt_verify_hash(gnutls_x509_crt_t crt, unsigned int flags,
  * gnutls_x509_crt_get_crl_dist_points:
  * @cert: should contain a #gnutls_x509_crt_t structure
  * @seq: specifies the sequence number of the distribution point (0 for the first one, 1 for the second etc.)
- * @ret: is the place where the distribution point will be copied to
- * @ret_size: holds the size of ret.
+ * @san: is the place where the distribution point will be copied to
+ * @san_size: holds the size of ret.
  * @reason_flags: Revocation reasons. An ORed sequence of flags from %gnutls_x509_crl_reason_flags_t.
  * @critical: will be non-zero if the extension is marked as critical (may be null)
  *
@@ -3014,103 +2997,69 @@ gnutls_x509_crt_verify_hash(gnutls_x509_crt_t crt, unsigned int flags,
  **/
 int
 gnutls_x509_crt_get_crl_dist_points(gnutls_x509_crt_t cert,
-				    unsigned int seq, void *ret,
-				    size_t * ret_size,
+				    unsigned int seq, void *san,
+				    size_t * san_size,
 				    unsigned int *reason_flags,
 				    unsigned int *critical)
 {
-	int result;
+	int ret;
 	gnutls_datum_t dist_points = { NULL, 0 };
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
-	char name[ASN1_MAX_NAME_SIZE];
-	int len;
-	gnutls_x509_subject_alt_name_t type;
-	uint8_t reasons[2];
+	unsigned type;
+	gnutls_x509_crl_dist_points_t cdp = NULL;
+	gnutls_datum_t t_san;
 
 	if (cert == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (*ret_size > 0 && ret)
-		memset(ret, 0, *ret_size);
-	else
-		*ret_size = 0;
+	ret = gnutls_x509_crl_dist_points_init(&cdp);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
 
 	if (reason_flags)
 		*reason_flags = 0;
 
-	result =
+	ret =
 	    _gnutls_x509_crt_get_extension(cert, "2.5.29.31", 0,
 					   &dist_points, critical);
-	if (result < 0) {
-		return result;
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
 	}
 
 	if (dist_points.size == 0 || dist_points.data == NULL) {
 		gnutls_assert();
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		ret = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		goto cleanup;
 	}
 
-	result = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.CRLDistributionPoints", &c2);
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_x509_ext_import_crl_dist_points(&dist_points, cdp, 0);
+	if (ret < 0) {
 		gnutls_assert();
-		_gnutls_free_datum(&dist_points);
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	result =
-	    asn1_der_decoding(&c2, dist_points.data, dist_points.size,
-			      NULL);
+	ret = gnutls_x509_crl_dist_points_get(cdp, seq, &type, &t_san, reason_flags);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = _gnutls_copy_string(&t_san, san, san_size);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = type;
+
+ cleanup:
 	_gnutls_free_datum(&dist_points);
+	if (cdp != NULL)
+		gnutls_x509_crl_dist_points_deinit(cdp);
 
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		asn1_delete_structure(&c2);
-		return _gnutls_asn2err(result);
-	}
-
-	/* Return the different names from the first CRLDistr. point.
-	 * The whole thing is a mess.
-	 */
-	_gnutls_str_cpy(name, sizeof(name),
-			"?1.distributionPoint.fullName");
-
-	result =
-	    _gnutls_parse_general_name(c2, name, seq, ret, ret_size, NULL,
-				       0);
-	if (result < 0) {
-		asn1_delete_structure(&c2);
-		return result;
-	}
-
-	type = result;
-
-
-	/* Read the CRL reasons.
-	 */
-	if (reason_flags) {
-		_gnutls_str_cpy(name, sizeof(name), "?1.reasons");
-
-		reasons[0] = reasons[1] = 0;
-
-		len = sizeof(reasons);
-		result = asn1_read_value(c2, name, reasons, &len);
-
-		if (result != ASN1_VALUE_NOT_FOUND
-		    && result != ASN1_SUCCESS) {
-			gnutls_assert();
-			asn1_delete_structure(&c2);
-			return _gnutls_asn2err(result);
-		}
-
-		*reason_flags = reasons[0] | (reasons[1] << 8);
-	}
-
-	asn1_delete_structure(&c2);
-
-	return type;
+	return ret;
 }
 
 /**
@@ -3139,10 +3088,10 @@ gnutls_x509_crt_get_key_purpose_oid(gnutls_x509_crt_t cert,
 				    int indx, void *oid, size_t * oid_size,
 				    unsigned int *critical)
 {
-	char tmpstr[ASN1_MAX_NAME_SIZE];
-	int result, len;
-	gnutls_datum_t id;
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	int ret;
+	gnutls_datum_t ext;
+	gnutls_x509_key_purposes_t p = NULL;
+	gnutls_datum_t out;
 
 	if (cert == NULL) {
 		gnutls_assert();
@@ -3154,57 +3103,48 @@ gnutls_x509_crt_get_key_purpose_oid(gnutls_x509_crt_t cert,
 	else
 		*oid_size = 0;
 
-	if ((result =
-	     _gnutls_x509_crt_get_extension(cert, "2.5.29.37", 0, &id,
+	if ((ret =
+	     _gnutls_x509_crt_get_extension(cert, "2.5.29.37", 0, &ext,
 					    critical)) < 0) {
-		return result;
+		return ret;
 	}
 
-	if (id.size == 0 || id.data == NULL) {
+	if (ext.size == 0 || ext.data == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	result = asn1_create_element
-	    (_gnutls_get_pkix(), "PKIX1.ExtKeyUsageSyntax", &c2);
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_x509_key_purpose_init(&p);
+	if (ret < 0) {
 		gnutls_assert();
-		_gnutls_free_datum(&id);
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	result = asn1_der_decoding(&c2, id.data, id.size, NULL);
-	_gnutls_free_datum(&id);
-
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_x509_ext_import_key_purposes(&ext, p, 0);
+	if (ret < 0) {
 		gnutls_assert();
-		asn1_delete_structure(&c2);
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	indx++;
-	/* create a string like "?1"
-	 */
-	snprintf(tmpstr, sizeof(tmpstr), "?%u", indx);
-
-	len = *oid_size;
-	result = asn1_read_value(c2, tmpstr, oid, &len);
-
-	*oid_size = len;
-	asn1_delete_structure(&c2);
-
-	if (result == ASN1_VALUE_NOT_FOUND
-	    || result == ASN1_ELEMENT_NOT_FOUND) {
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	}
-
-	if (result != ASN1_SUCCESS) {
+	ret = gnutls_x509_key_purpose_get(p, indx, &out);
+	if (ret < 0) {
 		gnutls_assert();
-		return _gnutls_asn2err(result);
+		goto cleanup;
 	}
 
-	return 0;
+	ret = _gnutls_copy_data(&out, oid, oid_size);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
 
+	ret = 0;
+
+ cleanup:
+ 	gnutls_free(ext.data);
+ 	if (p!=NULL)
+ 		gnutls_x509_key_purpose_deinit(p);
+	return ret;
 }
 
 /**
@@ -3414,24 +3354,17 @@ gnutls_x509_crt_list_import2(gnutls_x509_crt_t ** certs,
 
 static int check_if_sorted(gnutls_x509_crt_t * crt, int nr)
 {
-	char prev_dn[MAX_DN];
-	char dn[MAX_DN];
-	size_t prev_dn_size, dn_size;
+	void *prev_dn = NULL;
+	void *dn;
+	size_t prev_dn_size = 0, dn_size;
 	int i, ret;
 
 	/* check if the X.509 list is ordered */
 	if (nr > 1) {
-
 		for (i = 0; i < nr; i++) {
 			if (i > 0) {
-				dn_size = sizeof(dn);
-				ret =
-				    gnutls_x509_crt_get_dn(crt[i], dn,
-							   &dn_size);
-				if (ret < 0) {
-					ret = gnutls_assert_val(ret);
-					goto cleanup;
-				}
+				dn = crt[i]->raw_dn.data;
+				dn_size = crt[i]->raw_dn.size;
 
 				if (dn_size != prev_dn_size
 				    || memcmp(dn, prev_dn, dn_size) != 0) {
@@ -3442,20 +3375,13 @@ static int check_if_sorted(gnutls_x509_crt_t * crt, int nr)
 				}
 			}
 
-			prev_dn_size = sizeof(prev_dn);
-			ret =
-			    gnutls_x509_crt_get_issuer_dn(crt[i], prev_dn,
-							  &prev_dn_size);
-			if (ret < 0) {
-				ret = gnutls_assert_val(ret);
-				goto cleanup;
-			}
+			prev_dn = crt[i]->raw_issuer_dn.data;
+			prev_dn_size = crt[i]->raw_issuer_dn.size;
 		}
 	}
-
 	ret = 0;
 
-      cleanup:
+cleanup:
 	return ret;
 }
 
@@ -3696,7 +3622,7 @@ gnutls_x509_crt_get_issuer_unique_id(gnutls_x509_crt_t crt, char *buf,
 }
 
 static int
-_gnutls_parse_aia(ASN1_TYPE src,
+legacy_parse_aia(ASN1_TYPE src,
 		  unsigned int seq, int what, gnutls_datum_t * data)
 {
 	int len;
@@ -3723,7 +3649,7 @@ _gnutls_parse_aia(ASN1_TYPE src,
 		if (oid == NULL)
 			oid = GNUTLS_OID_AD_OCSP;
 		{
-			char tmpoid[20];
+			char tmpoid[MAX_OID_SIZE];
 			snprintf(nptr, sizeof(nptr), "?%u.accessMethod",
 				 seq);
 			len = sizeof(tmpoid);
@@ -3798,20 +3724,14 @@ _gnutls_parse_aia(ASN1_TYPE src,
  * @seq: specifies the sequence number of the access descriptor (0 for the first one, 1 for the second etc.)
  * @what: what data to get, a #gnutls_info_access_what_t type.
  * @data: output data to be freed with gnutls_free().
- * @critical: pointer to output integer that is set to non-0 if the extension is marked as critical (may be %NULL)
+ * @critical: pointer to output integer that is set to non-zero if the extension is marked as critical (may be %NULL)
  *
+ * Note that a simpler API to access the authority info data is provided
+ * by gnutls_x509_aia_get() and gnutls_x509_ext_import_aia().
+ * 
  * This function extracts the Authority Information Access (AIA)
  * extension, see RFC 5280 section 4.2.2.1 for more information.  The
- * AIA extension holds a sequence of AccessDescription (AD) data:
- *
- * <informalexample><programlisting>
- * AuthorityInfoAccessSyntax  ::=
- *         SEQUENCE SIZE (1..MAX) OF AccessDescription
- *
- * AccessDescription  ::=  SEQUENCE {
- *         accessMethod          OBJECT IDENTIFIER,
- *         accessLocation        GeneralName  }
- * </programlisting></informalexample>
+ * AIA extension holds a sequence of AccessDescription (AD) data.
  *
  * The @seq input parameter is used to indicate which member of the
  * sequence the caller is interested in.  The first member is 0, the
@@ -3830,17 +3750,20 @@ _gnutls_parse_aia(ASN1_TYPE src,
  *
  * If @what is %GNUTLS_IA_URI, @data will hold the accessLocation URI
  * data.  Requesting this @what value leads to an error if the
- * accessLocation is not of the "uniformResourceIdentifier" type.
+ * accessLocation is not of the "uniformResourceIdentifier" type. 
  *
  * If @what is %GNUTLS_IA_OCSP_URI, @data will hold the OCSP URI.
  * Requesting this @what value leads to an error if the accessMethod
  * is not 1.3.6.1.5.5.7.48.1 aka OSCP, or if accessLocation is not of
- * the "uniformResourceIdentifier" type.
+ * the "uniformResourceIdentifier" type. In that case %GNUTLS_E_UNKNOWN_ALGORITHM
+ * will be returned, and @seq should be increased and this function
+ * called again.
  *
  * If @what is %GNUTLS_IA_CAISSUERS_URI, @data will hold the caIssuers
  * URI.  Requesting this @what value leads to an error if the
  * accessMethod is not 1.3.6.1.5.5.7.48.2 aka caIssuers, or if
  * accessLocation is not of the "uniformResourceIdentifier" type.
+ * In that case handle as in %GNUTLS_IA_OCSP_URI.
  *
  * More @what values may be allocated in the future as needed.
  *
@@ -3907,7 +3830,7 @@ gnutls_x509_crt_get_authority_info_access(gnutls_x509_crt_t crt,
 		return _gnutls_asn2err(ret);
 	}
 
-	ret = _gnutls_parse_aia(c2, seq, what, data);
+	ret = legacy_parse_aia(c2, seq, what, data);
 
 	asn1_delete_structure(&c2);
 	if (ret < 0)

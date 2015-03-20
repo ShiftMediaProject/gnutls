@@ -141,6 +141,44 @@ gnutls_credentials_set(gnutls_session_t session,
 }
 
 /**
+ * gnutls_credentials_get:
+ * @session: is a #gnutls_session_t structure.
+ * @type: is the type of the credentials to return
+ * @cred: will contain the pointer to the credentials structure.
+ *
+ * Returns the previously provided credentials structures.
+ *
+ * For %GNUTLS_CRD_ANON, @cred will be
+ * #gnutls_anon_client_credentials_t in case of a client.  In case of
+ * a server it should be #gnutls_anon_server_credentials_t.
+ *
+ * For %GNUTLS_CRD_SRP, @cred will be #gnutls_srp_client_credentials_t
+ * in case of a client, and #gnutls_srp_server_credentials_t, in case
+ * of a server.
+ *
+ * For %GNUTLS_CRD_CERTIFICATE, @cred will be
+ * #gnutls_certificate_credentials_t.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned,
+ *   otherwise a negative error code is returned.
+ **/
+int
+gnutls_credentials_get(gnutls_session_t session,
+		       gnutls_credentials_type_t type, void **cred)
+{
+const void *_cred;
+
+	_cred = _gnutls_get_cred(session, type);
+	if (_cred == NULL)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	if (cred)
+		*cred = (void*)_cred;
+
+	return 0;
+}
+
+/**
  * gnutls_auth_get_type:
  * @session: is a #gnutls_session_t structure.
  *
@@ -215,21 +253,18 @@ gnutls_auth_client_get_type(gnutls_session_t session)
  * free that!!!
  */
 const void *_gnutls_get_kx_cred(gnutls_session_t session,
-				gnutls_kx_algorithm_t algo, int *err)
+				gnutls_kx_algorithm_t algo)
 {
 	int server =
 	    session->security_parameters.entity == GNUTLS_SERVER ? 1 : 0;
 
 	return _gnutls_get_cred(session,
-				_gnutls_map_kx_get_cred(algo, server),
-				err);
+				_gnutls_map_kx_get_cred(algo, server));
 }
 
 const void *_gnutls_get_cred(gnutls_session_t session,
-			     gnutls_credentials_type_t type, int *err)
+			     gnutls_credentials_type_t type)
 {
-	const void *retval = NULL;
-	int _err = -1;
 	auth_cred_st *ccred;
 	gnutls_key_st *key = &session->key;
 
@@ -241,33 +276,9 @@ const void *_gnutls_get_cred(gnutls_session_t session,
 		ccred = ccred->next;
 	}
 	if (ccred == NULL)
-		goto out;
+		return NULL;
 
-	_err = 0;
-	retval = ccred->credentials;
-
-      out:
-	if (err != NULL)
-		*err = _err;
-	return retval;
-}
-
-/*-
- * _gnutls_get_auth_info - Returns a pointer to authentication information.
- * @session: is a #gnutls_session_t structure.
- *
- * This function must be called after a successful gnutls_handshake().
- * Returns a pointer to authentication information. That information
- * is data obtained by the handshake protocol, the key exchange algorithm,
- * and the TLS extensions messages.
- *
- * In case of GNUTLS_CRD_ANON returns a type of &anon_(server/client)_auth_info_t;
- * In case of GNUTLS_CRD_CERTIFICATE returns a type of &cert_auth_info_t;
- * In case of GNUTLS_CRD_SRP returns a type of &srp_(server/client)_auth_info_t;
- -*/
-void *_gnutls_get_auth_info(gnutls_session_t session)
-{
-	return session->key.auth_info;
+	return ccred->credentials;
 }
 
 /*-
@@ -293,7 +304,7 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 	case GNUTLS_CRD_ANON:
 		{
 			anon_auth_info_t info =
-			    _gnutls_get_auth_info(session);
+			    _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 
 			if (info == NULL)
 				break;
@@ -305,7 +316,7 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 	case GNUTLS_CRD_PSK:
 		{
 			psk_auth_info_t info =
-			    _gnutls_get_auth_info(session);
+			    _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 
 			if (info == NULL)
 				break;
@@ -318,7 +329,7 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 		{
 			unsigned int i;
 			cert_auth_info_t info =
-			    _gnutls_get_auth_info(session);
+			    _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 
 			if (info == NULL)
 				break;
@@ -351,8 +362,9 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 
 }
 
-/* This function will set the auth info structure in the key
- * structure.
+/* This function will create the auth info structure in the key
+ * structure if needed.
+ *
  * If allow change is !=0 then this will allow changing the auth
  * info structure to a different type.
  */
@@ -377,8 +389,7 @@ _gnutls_auth_info_set(gnutls_session_t session,
 			 * ciphersuite which is negotiated has different authentication
 			 * schema.
 			 */
-			if (gnutls_auth_get_type(session) !=
-			    session->key.auth_info_type) {
+			if (type != session->key.auth_info_type) {
 				gnutls_assert();
 				return GNUTLS_E_INVALID_REQUEST;
 			}
@@ -389,8 +400,7 @@ _gnutls_auth_info_set(gnutls_session_t session,
 			 * certificate (in order to prevent revealing the certificate's contents,
 			 * to passive eavesdropers.
 			 */
-			if (gnutls_auth_get_type(session) !=
-			    session->key.auth_info_type) {
+			if (type != session->key.auth_info_type) {
 
 				_gnutls_free_auth_info(session);
 

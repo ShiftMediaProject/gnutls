@@ -65,7 +65,10 @@ void gcm_gmult_clmul(u64 Xi[2], const u128 Htable[16]);
 
 static void aes_gcm_deinit(void *_ctx)
 {
-	gnutls_free(_ctx);
+	struct aes_gcm_ctx *ctx = _ctx;
+
+	zeroize_temp_key(ctx, sizeof(*ctx));
+	gnutls_free(ctx);
 }
 
 static int
@@ -114,7 +117,7 @@ static int aes_gcm_setiv(void *_ctx, const void *iv, size_t iv_size)
 	struct aes_gcm_ctx *ctx = _ctx;
 
 	if (iv_size != GCM_BLOCK_SIZE - 4)
-		return GNUTLS_E_INVALID_REQUEST;
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
 	memset(ctx->gcm.Xi.c, 0, sizeof(ctx->gcm.Xi.c));
 	memset(ctx->gcm.len.c, 0, sizeof(ctx->gcm.len.c));

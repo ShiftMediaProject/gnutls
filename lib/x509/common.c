@@ -39,11 +39,18 @@ data2hex(const void *data, size_t data_size,
 
 struct oid_to_string {
 	const char *oid;
+	unsigned oid_size;
 	const char *ldap_desc;
+	unsigned ldap_desc_size;
 	const char *asn_desc;	/* description in the pkix file if complex type */
 	unsigned int etype;	/* the libtasn1 ASN1_ETYPE or INVALID
 				 * if cannot be simply parsed */
 };
+
+#define ENTRY(oid, ldap, asn, etype) {oid, sizeof(oid)-1, ldap, sizeof(ldap)-1, asn, etype}
+
+/* when there is no ldap description */
+#define ENTRY_ND(oid, asn, etype) {oid, sizeof(oid)-1, NULL, 0, asn, etype}
 
 /* This list contains all the OIDs that may be
  * contained in a rdnSequence and are printable.
@@ -51,85 +58,98 @@ struct oid_to_string {
 static const struct oid_to_string _oid2str[] = {
 	/* PKIX
 	 */
-	{"1.3.6.1.5.5.7.9.2", "placeOfBirth", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"1.3.6.1.5.5.7.9.3", "gender", NULL, ASN1_ETYPE_PRINTABLE_STRING},
-	{"1.3.6.1.5.5.7.9.4", "countryOfCitizenship", NULL,
-	 ASN1_ETYPE_PRINTABLE_STRING},
-	{"1.3.6.1.5.5.7.9.5", "countryOfResidence", NULL,
-	 ASN1_ETYPE_PRINTABLE_STRING},
+	ENTRY("1.3.6.1.5.5.7.9.2", "placeOfBirth", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("1.3.6.1.5.5.7.9.3", "gender", NULL, ASN1_ETYPE_PRINTABLE_STRING),
+	ENTRY("1.3.6.1.5.5.7.9.4", "countryOfCitizenship", NULL,
+	 ASN1_ETYPE_PRINTABLE_STRING),
+	ENTRY("1.3.6.1.5.5.7.9.5", "countryOfResidence", NULL,
+	 ASN1_ETYPE_PRINTABLE_STRING),
 
-	{"2.5.4.6", "C", NULL, ASN1_ETYPE_PRINTABLE_STRING},
-	{"2.5.4.9", "street", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.12", "title", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.10", "O", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.11", "OU", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.3", "CN", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.7", "L", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.8", "ST", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.13", "description", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
+	ENTRY("2.5.4.6", "C", NULL, ASN1_ETYPE_PRINTABLE_STRING),
+	ENTRY("2.5.4.9", "street", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.12", "title", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.10", "O", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.11", "OU", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.3", "CN", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.7", "L", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.8", "ST", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.13", "description", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
 
-	{"2.5.4.5", "serialNumber", NULL, ASN1_ETYPE_PRINTABLE_STRING},
-	{"2.5.4.20", "telephoneNumber", NULL, ASN1_ETYPE_PRINTABLE_STRING},
-	{"2.5.4.4", "surName", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"2.5.4.43", "initials", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"2.5.4.44", "generationQualifier", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"2.5.4.42", "givenName", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"2.5.4.65", "pseudonym", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"2.5.4.46", "dnQualifier", NULL, ASN1_ETYPE_PRINTABLE_STRING},
-	{"2.5.4.17", "postalCode", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"2.5.4.41", "name", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"2.5.4.15", "businessCategory", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
+	ENTRY("2.5.4.5", "serialNumber", NULL, ASN1_ETYPE_PRINTABLE_STRING),
+	ENTRY("2.5.4.20", "telephoneNumber", NULL, ASN1_ETYPE_PRINTABLE_STRING),
+	ENTRY("2.5.4.4", "surName", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.43", "initials", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.44", "generationQualifier", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.42", "givenName", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.65", "pseudonym", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.46", "dnQualifier", NULL, ASN1_ETYPE_PRINTABLE_STRING),
+	ENTRY("2.5.4.17", "postalCode", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.41", "name", "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("2.5.4.15", "businessCategory", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
 
-	{"0.9.2342.19200300.100.1.25", "DC", NULL, ASN1_ETYPE_IA5_STRING},
-	{"0.9.2342.19200300.100.1.1", "UID", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
-	{"1.2.840.113556.1.4.656", "userPrincipalName", "PKIX1.DirectoryString",
-	 ASN1_ETYPE_INVALID},
+	ENTRY("0.9.2342.19200300.100.1.25", "DC", NULL, ASN1_ETYPE_IA5_STRING),
+	ENTRY("0.9.2342.19200300.100.1.1", "UID", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
+	ENTRY("1.2.840.113556.1.4.656", "userPrincipalName", "PKIX1.DirectoryString",
+	 ASN1_ETYPE_INVALID),
 
 	/* Extended validation
 	 */
-	{"1.3.6.1.4.1.311.60.2.1.1",
+	ENTRY("1.3.6.1.4.1.311.60.2.1.1",
 	 "jurisdictionOfIncorporationLocalityName",
-	 "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"1.3.6.1.4.1.311.60.2.1.2",
+	 "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("1.3.6.1.4.1.311.60.2.1.2",
 	 "jurisdictionOfIncorporationStateOrProvinceName",
-	 "PKIX1.DirectoryString", ASN1_ETYPE_INVALID},
-	{"1.3.6.1.4.1.311.60.2.1.3",
+	 "PKIX1.DirectoryString", ASN1_ETYPE_INVALID),
+	ENTRY("1.3.6.1.4.1.311.60.2.1.3",
 	 "jurisdictionOfIncorporationCountryName",
-	 NULL, ASN1_ETYPE_PRINTABLE_STRING},
+	 NULL, ASN1_ETYPE_PRINTABLE_STRING),
 
 	/* PKCS #9
 	 */
-	{"1.2.840.113549.1.9.1", "EMAIL", NULL, ASN1_ETYPE_IA5_STRING},
-	{"1.2.840.113549.1.9.7", NULL, "PKIX1.pkcs-9-challengePassword",
-	 ASN1_ETYPE_INVALID},
+	ENTRY("1.2.840.113549.1.9.1", "EMAIL", NULL, ASN1_ETYPE_IA5_STRING),
+	ENTRY_ND("1.2.840.113549.1.9.7", "PKIX1.pkcs-9-challengePassword",
+	 ASN1_ETYPE_INVALID),
 
 	/* friendly name */
-	{"1.2.840.113549.1.9.20", NULL, NULL, ASN1_ETYPE_BMP_STRING},
+	ENTRY_ND("1.2.840.113549.1.9.20", NULL, ASN1_ETYPE_BMP_STRING),
 	/* local key id */
-	{"1.2.840.113549.1.9.21", NULL, NULL, ASN1_ETYPE_OCTET_STRING},
+	ENTRY_ND("1.2.840.113549.1.9.21", NULL, ASN1_ETYPE_OCTET_STRING),
 
 	/* rfc3920 section 5.1.1 */
-	{"1.3.6.1.5.5.7.8.5", "XmppAddr", NULL, ASN1_ETYPE_UTF8_STRING},
+	ENTRY("1.3.6.1.5.5.7.8.5", "XmppAddr", NULL, ASN1_ETYPE_UTF8_STRING),
 
-	{NULL, NULL, NULL, 0}
+	{NULL, 0, NULL, 0, NULL, 0}
 };
+
+int _san_othername_to_virtual(const char *oid, size_t size)
+{
+	if (oid) {
+		if ((unsigned) size == (sizeof(XMPP_OID)-1)
+		    && memcmp(oid, XMPP_OID, sizeof(XMPP_OID)-1) == 0)
+			return GNUTLS_SAN_OTHERNAME_XMPP;
+	}
+
+	return GNUTLS_SAN_OTHERNAME;
+} 
 
 static const struct oid_to_string *get_oid_entry(const char *oid)
 {
 	unsigned int i = 0;
+	unsigned len = strlen(oid);
 
 	do {
-		if (strcmp(_oid2str[i].oid, oid) == 0)
+		if (len == _oid2str[i].oid_size &&
+			strcmp(_oid2str[i].oid, oid) == 0)
 			return &_oid2str[i];
 		i++;
 	}
@@ -144,7 +164,7 @@ const char *_gnutls_ldap_string_to_oid(const char *str, unsigned str_len)
 
 	do {
 		if ((_oid2str[i].ldap_desc != NULL) &&
-		    (str_len == strlen(_oid2str[i].ldap_desc)) &&
+		    (str_len == _oid2str[i].ldap_desc_size) &&
 		    (strncasecmp(_oid2str[i].ldap_desc, str, str_len) ==
 		     0))
 			return _oid2str[i].oid;
@@ -221,9 +241,11 @@ static int str_escape(const gnutls_datum_t * str, gnutls_datum_t * escaped)
 int gnutls_x509_dn_oid_known(const char *oid)
 {
 	unsigned int i = 0;
+	unsigned len = strlen(oid);
 
 	do {
-		if (strcmp(_oid2str[i].oid, oid) == 0)
+		if (len == _oid2str[i].oid_size &&
+			strcmp(_oid2str[i].oid, oid) == 0)
 			return 1;
 		i++;
 	}
@@ -249,9 +271,11 @@ int gnutls_x509_dn_oid_known(const char *oid)
 const char *gnutls_x509_dn_oid_name(const char *oid, unsigned int flags)
 {
 	unsigned int i = 0;
+	unsigned len = strlen(oid);
 
 	do {
-		if (strcmp(_oid2str[i].oid, oid) == 0 && _oid2str[i].ldap_desc != NULL)
+		if ((_oid2str[i].oid_size == len) && 
+			strcmp(_oid2str[i].oid, oid) == 0 && _oid2str[i].ldap_desc != NULL)
 			return _oid2str[i].ldap_desc;
 		i++;
 	}
@@ -399,7 +423,7 @@ decode_complex_string(const struct oid_to_string *oentry, void *value,
 	} else {
 		out->data = td.data;
 		out->size = td.size;
-		out->data[out->size] = 0;
+		/* _gnutls_x509_read_value always null terminates */
 	}
 
 	/* Refuse to deal with strings containing NULs. */
@@ -996,8 +1020,8 @@ _gnutls_x509_decode_string(unsigned int etype,
 /* Reads a value from an ASN1 tree, and puts the output
  * in an allocated variable in the given datum.
  *
- * Note that this function always places allocates one plus
- * the required data size (to allow for a null byte).
+ * Note that this function always allocates one plus
+ * the required data size (and places a null byte).
  */
 int
 _gnutls_x509_read_value(ASN1_TYPE c, const char *root,
@@ -1020,8 +1044,7 @@ _gnutls_x509_read_value(ASN1_TYPE c, const char *root,
 	}
 
 	if (etype == ASN1_ETYPE_BIT_STRING) {
-		len /= 8;
-		len++;
+		len = (len + 7)/8;
 	}
 
 	tmp = gnutls_malloc((size_t) len + 1);
@@ -1039,12 +1062,12 @@ _gnutls_x509_read_value(ASN1_TYPE c, const char *root,
 	}
 
 	if (etype == ASN1_ETYPE_BIT_STRING) {
-		ret->size = len / 8;
-		if (len % 8 > 0)
-			ret->size++;
-	} else
+		ret->size = (len+7) / 8;
+	} else {
 		ret->size = (unsigned) len;
+	}
 
+	tmp[ret->size] = 0;
 	ret->data = tmp;
 
 	return 0;
@@ -1161,10 +1184,10 @@ _gnutls_x509_der_encode(ASN1_TYPE src, const char *src_name,
 
 	size = 0;
 	result = asn1_der_coding(src, src_name, NULL, &size, NULL);
+	/* this check explicitly covers the case where size == 0 && result == 0 */
 	if (result != ASN1_MEM_ERROR) {
 		gnutls_assert();
-		result = _gnutls_asn2err(result);
-		goto cleanup;
+		return _gnutls_asn2err(result);
 	}
 
 	/* allocate data for the der
@@ -1177,8 +1200,7 @@ _gnutls_x509_der_encode(ASN1_TYPE src, const char *src_name,
 	data = gnutls_malloc((size_t) size);
 	if (data == NULL) {
 		gnutls_assert();
-		result = GNUTLS_E_MEMORY_ERROR;
-		goto cleanup;
+		return GNUTLS_E_MEMORY_ERROR;
 	}
 
 	result = asn1_der_coding(src, src_name, data, &size, NULL);
@@ -1371,7 +1393,6 @@ _gnutls_x509_encode_and_copy_PKI_params(ASN1_TYPE dst,
 			    ".algorithm.parameters");
 
 	result = asn1_write_value(dst, name, der.data, der.size);
-
 	_gnutls_free_datum(&der);
 
 	if (result != ASN1_SUCCESS) {
@@ -1498,13 +1519,15 @@ _gnutls_x509_get_signed_data(ASN1_TYPE src,  const gnutls_datum *_der,
 {
 	int start, end, result;
 	gnutls_datum_t der;
+	unsigned need_free = 0;
 
-	if (_der == NULL) {
+	if (_der == NULL || _der->size == 0) {
 		result = _gnutls_x509_der_encode(src, "", &der, 0);
 		if (result < 0) {
 			gnutls_assert();
 			return result;
 		}
+		need_free = 1;
 	} else {
 		der.data = _der->data;
 		der.size = _der->size;
@@ -1532,7 +1555,7 @@ _gnutls_x509_get_signed_data(ASN1_TYPE src,  const gnutls_datum *_der,
 	result = 0;
 
       cleanup:
-	if (_der == NULL)
+	if (need_free != 0)
 		_gnutls_free_datum(&der);
 
 	return result;
@@ -1618,7 +1641,7 @@ _gnutls_x509_get_signature(ASN1_TYPE src, const char *src_name,
 	 */
 	bits = len;
 	result =
-	    asn1_read_value(src, src_name, signature->data, (int *) &bits);
+	    asn1_read_value(src, src_name, signature->data, &bits);
 
 	if (result != ASN1_SUCCESS) {
 		result = _gnutls_asn2err(result);
@@ -1821,9 +1844,8 @@ int _gnutls_strdatum_to_buf(gnutls_datum_t * d, void *buf,
 	return ret;
 }
 
-/* returns a constant string in @dn pointing to @raw */
 int
-_gnutls_x509_get_raw_dn2(ASN1_TYPE c2, gnutls_datum_t * raw,
+_gnutls_x509_get_raw_field2(ASN1_TYPE c2, gnutls_datum_t * raw,
 			 const char *whom, gnutls_datum_t * dn)
 {
 	int result, len1;
@@ -1845,5 +1867,127 @@ _gnutls_x509_get_raw_dn2(ASN1_TYPE c2, gnutls_datum_t * raw,
 	result = 0;
 
       cleanup:
+	return result;
+}
+
+int _gnutls_copy_string(gnutls_datum_t* str, uint8_t *out, size_t *out_size)
+{
+unsigned size_to_check;
+
+	size_to_check = str->size + 1;
+
+	if ((unsigned) size_to_check > *out_size) {
+		gnutls_assert();
+		(*out_size) = size_to_check;
+		return GNUTLS_E_SHORT_MEMORY_BUFFER;
+	}
+
+	if (out != NULL && str->data != NULL) {
+		memcpy(out, str->data, str->size);
+		out[str->size] = 0;
+	} else if (out != NULL) {
+		out[0] = 0;
+	}
+	*out_size = str->size;
+
+	return 0;
+}
+
+int _gnutls_copy_data(gnutls_datum_t* str, uint8_t *out, size_t *out_size)
+{
+	if ((unsigned) str->size > *out_size) {
+		gnutls_assert();
+		(*out_size) = str->size;
+		return GNUTLS_E_SHORT_MEMORY_BUFFER;
+	}
+
+	if (out != NULL && str->data != NULL) {
+		memcpy(out, str->data, str->size);
+	}
+	*out_size = str->size;
+
+	return 0;
+}
+
+/* Converts an X.509 certificate to subjectPublicKeyInfo */
+int x509_crt_to_raw_pubkey(gnutls_x509_crt_t crt,
+			   gnutls_datum_t * rpubkey)
+{
+	gnutls_pubkey_t pubkey = NULL;
+	int ret;
+
+	ret = gnutls_pubkey_init(&pubkey);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = gnutls_pubkey_import_x509(pubkey, crt, 0);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret =
+	    gnutls_pubkey_export2(pubkey, GNUTLS_X509_FMT_DER, rpubkey);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = 0;
+
+      cleanup:
+	gnutls_pubkey_deinit(pubkey);
+	return ret;
+}
+
+/* Converts an X.509 certificate to subjectPublicKeyInfo */
+int x509_raw_crt_to_raw_pubkey(const gnutls_datum_t * cert,
+			   gnutls_datum_t * rpubkey)
+{
+	gnutls_x509_crt_t crt = NULL;
+	int ret;
+
+	ret = gnutls_x509_crt_init(&crt);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = gnutls_x509_crt_import(crt, cert, GNUTLS_X509_FMT_DER);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	ret = x509_crt_to_raw_pubkey(crt, rpubkey);
+ cleanup:
+	gnutls_x509_crt_deinit(crt);
+
+	return ret;
+}
+
+bool
+_gnutls_check_valid_key_id(gnutls_datum_t *key_id,
+                           gnutls_x509_crt_t cert, time_t now)
+{
+	uint8_t id[MAX_KEY_ID_SIZE];
+	size_t id_size;
+	bool result = 0;
+
+	if (now > gnutls_x509_crt_get_expiration_time(cert) ||
+	    now < gnutls_x509_crt_get_activation_time(cert)) {
+		/* don't bother, certificate is not yet activated or expired */
+		gnutls_assert();
+		goto out;
+	}
+
+	id_size = sizeof(id);
+	if (gnutls_x509_crt_get_subject_key_id(cert, id, &id_size, NULL) < 0) {
+		gnutls_assert();
+		goto out;
+	}
+
+	if (id_size == key_id->size && !memcmp(id, key_id->data, id_size))
+		result = 1;
+
+ out:
 	return result;
 }

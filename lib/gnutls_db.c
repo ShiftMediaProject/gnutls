@@ -132,9 +132,7 @@ void gnutls_db_set_cache_expiration(gnutls_session_t session, int seconds)
 /**
  * gnutls_db_get_default_cache_expiration:
  *
- * Returns: the expiration time (in seconds) of stored sessions for resumption. 
- *
- * Since 3.2.10
+ * Returns the expiration time (in seconds) of stored sessions for resumption. 
  **/
 unsigned gnutls_db_get_default_cache_expiration(void)
 {

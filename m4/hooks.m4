@@ -38,22 +38,18 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   # Library code modified:                              REVISION++
   # Interfaces changed/added/removed:   CURRENT++       REVISION=0
   # Interfaces added:                             AGE++
-  # Interfaces removed:                           AGE=0
-  AC_SUBST(LT_CURRENT, 58)
-  AC_SUBST(LT_REVISION, 12)
-  AC_SUBST(LT_AGE, 30)
+  # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
+  AC_SUBST(LT_CURRENT, 69)
+  AC_SUBST(LT_REVISION, 5)
+  AC_SUBST(LT_AGE, 41)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
   AC_SUBST(LT_SSL_AGE, 0)
 
-  AC_SUBST(LT_DANE_CURRENT, 4)
-  AC_SUBST(LT_DANE_REVISION, 1)
-  AC_SUBST(LT_DANE_AGE, 4)
-
-  AC_SUBST(LT_XSSL_CURRENT, 0)
-  AC_SUBST(LT_XSSL_REVISION, 0)
-  AC_SUBST(LT_XSSL_AGE, 0)
+  AC_SUBST(LT_DANE_CURRENT, 5)
+  AC_SUBST(LT_DANE_REVISION, 0)
+  AC_SUBST(LT_DANE_AGE, 5)
 
   AC_SUBST(CXX_LT_CURRENT, 29)
   AC_SUBST(CXX_LT_REVISION, 0)
@@ -108,7 +104,7 @@ AC_MSG_ERROR([[
       included_libtasn1=$withval,
       included_libtasn1=no)
   if test "$included_libtasn1" = "no"; then
-    PKG_CHECK_MODULES(LIBTASN1, [libtasn1 >= 3.1], [], [included_libtasn1=yes])
+    PKG_CHECK_MODULES(LIBTASN1, [libtasn1 >= 3.9], [], [included_libtasn1=yes])
     if test "$included_libtasn1" = yes; then
       AC_MSG_WARN([[
   *** 
@@ -309,6 +305,22 @@ AC_MSG_ERROR([[
    AC_MSG_RESULT(yes)
   fi
   AM_CONDITIONAL(ENABLE_OCSP, test "$ac_enable_ocsp" != "no")
+
+
+  AC_MSG_CHECKING([whether to disable session tickets support])
+  AC_ARG_ENABLE(session-tickets,
+    AS_HELP_STRING([--disable-session-tickets],
+                   [disable session tickets support]),
+    ac_enable_session_tickets=$enableval,ac_enable_session_tickets=yes)
+  if test x$ac_enable_session_tickets != xno; then
+   ac_enable_session_tickets=yes
+   AC_MSG_RESULT(no)
+   AC_DEFINE([ENABLE_SESSION_TICKETS], 1, [enable session tickets support])
+  else
+   ac_full=0
+   AC_MSG_RESULT(yes)
+  fi
+  AM_CONDITIONAL(ENABLE_SESSION_TICKETS, test "$ac_enable_session_tickets" != "no")
 
   # For storing integers in pointers without warnings
   # http://developer.gnome.org/doc/API/2.0/glib/glib-Type-Conversion-Macros.html#desc

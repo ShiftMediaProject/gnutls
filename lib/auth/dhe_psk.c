@@ -101,7 +101,7 @@ gen_ecdhe_psk_client_kx(gnutls_session_t session, gnutls_buffer_st * data)
 	gnutls_datum_t username, key;
 
 	cred = (gnutls_psk_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL)
 		return
@@ -131,7 +131,7 @@ gen_ecdhe_psk_client_kx(gnutls_session_t session, gnutls_buffer_st * data)
       cleanup:
 	if (free) {
 		_gnutls_free_datum(&username);
-		_gnutls_free_datum(&key);
+		_gnutls_free_temp_key_datum(&key);
 	}
 
 	return ret;
@@ -145,7 +145,7 @@ gen_dhe_psk_client_kx(gnutls_session_t session, gnutls_buffer_st * data)
 	gnutls_datum_t username, key;
 
 	cred = (gnutls_psk_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL)
 		return
@@ -175,7 +175,7 @@ gen_dhe_psk_client_kx(gnutls_session_t session, gnutls_buffer_st * data)
       cleanup:
 	if (free) {
 		_gnutls_free_datum(&username);
-		_gnutls_free_datum(&key);
+		_gnutls_free_temp_key_datum(&key);
 	}
 
 	return ret;
@@ -191,7 +191,7 @@ gen_dhe_psk_server_kx(gnutls_session_t session, gnutls_buffer_st * data)
 	gnutls_psk_server_credentials_t cred;
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 	if (cred == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INSUFFICIENT_CREDENTIALS;
@@ -222,9 +222,12 @@ gen_dhe_psk_server_kx(gnutls_session_t session, gnutls_buffer_st * data)
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
+	ret = _gnutls_set_dh_pk_params(session, g, p, dh_params->q_bits);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
 	ret =
-	    _gnutls_dh_common_print_server_kx(session, g, p,
-					      dh_params->q_bits, data);
+	    _gnutls_dh_common_print_server_kx(session, data);
 	if (ret < 0)
 		gnutls_assert();
 
@@ -272,7 +275,7 @@ proc_dhe_psk_client_kx(gnutls_session_t session, uint8_t * data,
 	ssize_t data_size = _data_size;
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -307,7 +310,11 @@ proc_dhe_psk_client_kx(gnutls_session_t session, uint8_t * data,
 
 	/* copy the username to the auth info structures
 	 */
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
+	if (info == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INTERNAL_ERROR;
+	}
 
 	if (username.size > MAX_USERNAME_SIZE) {
 		gnutls_assert();
@@ -328,7 +335,7 @@ proc_dhe_psk_client_kx(gnutls_session_t session, uint8_t * data,
 	ret = _gnutls_proc_dh_common_client_kx(session, data, data_size,
 					       g, p, &psk_key);
 
-	_gnutls_free_datum(&psk_key);
+	_gnutls_free_key_datum(&psk_key);
 
 	return ret;
 
@@ -346,7 +353,7 @@ proc_ecdhe_psk_client_kx(gnutls_session_t session, uint8_t * data,
 	ssize_t data_size = _data_size;
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -369,7 +376,12 @@ proc_ecdhe_psk_client_kx(gnutls_session_t session, uint8_t * data,
 
 	/* copy the username to the auth info structures
 	 */
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
+	if (info == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INTERNAL_ERROR;
+	}
+
 
 	if (username.size > MAX_USERNAME_SIZE) {
 		gnutls_assert();
@@ -393,7 +405,7 @@ proc_ecdhe_psk_client_kx(gnutls_session_t session, uint8_t * data,
 						 _gnutls_session_ecc_curve_get
 						 (session), &psk_key);
 
-	_gnutls_free_datum(&psk_key);
+	_gnutls_free_key_datum(&psk_key);
 
 	return ret;
 }

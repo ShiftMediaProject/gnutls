@@ -54,7 +54,7 @@ static const mac_entry_st hash_algorithms[] = {
 #define GNUTLS_HASH_ALG_LOOP(a) \
                         GNUTLS_HASH_LOOP( if(p->id == algorithm) { a; break; } )
 
-const mac_entry_st *mac_to_entry(gnutls_mac_algorithm_t c)
+const mac_entry_st *_gnutls_mac_to_entry(gnutls_mac_algorithm_t c)
 {
 	GNUTLS_HASH_LOOP(if (c == p->id) return p);
 
@@ -132,7 +132,8 @@ gnutls_digest_algorithm_t gnutls_digest_get_id(const char *name)
 
 	GNUTLS_HASH_LOOP(
 		if (p->oid != NULL && strcasecmp(p->name, name) == 0) {
-			ret = p->id;
+			if (_gnutls_digest_exists((gnutls_digest_algorithm_t)p->id))
+				ret = (gnutls_digest_algorithm_t)p->id;
 			break;
 		}
 	);
@@ -156,7 +157,8 @@ gnutls_mac_algorithm_t gnutls_mac_get_id(const char *name)
 
 	GNUTLS_HASH_LOOP(
 		if (strcasecmp(p->name, name) == 0) {
-			ret = p->id;
+			if (p->placeholder != 0 || _gnutls_mac_exists(p->id))
+  				ret = p->id;
 			break;
 		}
 	);
@@ -252,7 +254,7 @@ const gnutls_digest_algorithm_t *gnutls_digest_list(void)
 			if (p->oid != NULL && (p->placeholder != 0 ||
 				_gnutls_mac_exists(p->id))) {
 				
-				supported_digests[i++] = p->id;
+				supported_digests[i++] = (gnutls_digest_algorithm_t)p->id;
 			}
 		);
 		supported_digests[i++] = 0;

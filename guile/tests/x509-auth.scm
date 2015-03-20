@@ -27,14 +27,9 @@
              (gnutls build tests)
              (srfi srfi-4))
 
-
-;; TLS session settings (using the deprecated method).
-(define %protos  (list protocol/tls-1.0))
-(define %certs   (list certificate-type/x509))
-(define %ciphers (list cipher/null cipher/arcfour cipher/aes-128-cbc
-                       cipher/aes-256-cbc))
-(define %kx      (list kx/rsa kx/rsa-export kx/dhe-dss kx/dhe-dss))
-(define %macs    (list mac/sha1 mac/rmd160 mac/md5))
+;; TLS session settings.
+(define priorities
+  "NORMAL")
 
 ;; Message sent by the client.
 (define %message
@@ -76,13 +71,7 @@
               (let ((client (make-session connection-end/client))
                     (cred   (make-certificate-credentials)))
                 ;; client-side (child process)
-                (set-session-default-priority! client)
-                (set-session-certificate-type-priority! client %certs)
-                (set-session-kx-priority! client %kx)
-                (set-session-protocol-priority! client %protos)
-                (set-session-cipher-priority! client %ciphers)
-                (set-session-mac-priority! client %macs)
-
+                (set-session-priorities! client priorities)
                 (set-certificate-credentials-x509-keys! cred (list pub) sec)
                 (set-session-credentials! client cred)
                 (set-session-dh-prime-bits! client 1024)
@@ -99,12 +88,7 @@
                     (rsa    (import-rsa-params "rsa-parameters.pem"))
                     (dh     (import-dh-params "dh-parameters.pem")))
                 ;; server-side
-                (set-session-default-priority! server)
-                (set-session-certificate-type-priority! server %certs)
-                (set-session-kx-priority! server %kx)
-                (set-session-protocol-priority! server %protos)
-                (set-session-cipher-priority! server %ciphers)
-                (set-session-mac-priority! server %macs)
+                (set-session-priorities! server priorities)
                 (set-server-session-certificate-request! server
                          certificate-request/require)
 

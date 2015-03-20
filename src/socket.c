@@ -15,6 +15,20 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * In addition, as a special exception, the copyright holders give
+ * permission to link the code of portions of this program with the
+ * OpenSSL library under certain conditions as described in each
+ * individual source file, and distribute linked combinations including
+ * the two.
+ * 
+ * You must obey the GNU General Public License in all respects for all
+ * of the code used other than OpenSSL. If you modify file(s) with this
+ * exception, you may extend this exception to your version of the
+ * file(s), but you are not obligated to do so. If you do not wish to do
+ * so, delete this exception statement from your version. If you delete
+ * this exception statement from all source files in the program, then
+ * also delete it here.
  */
 
 #include <config.h>
@@ -33,6 +47,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #ifndef _WIN32
+#include <arpa/inet.h>
 #include <signal.h>
 #endif
 #include <socket.h>
@@ -40,7 +55,6 @@
 
 #define MAX_BUF 4096
 
-extern unsigned int verbose;
 /* Functions to manipulate sockets
  */
 
@@ -105,12 +119,98 @@ socket_send_range(const socket_st * socket, const void *buffer,
 		}
 		while (ret == -1 && errno == EINTR);
 
-	if (ret > 0 && ret != buffer_size && verbose)
+	if (ret > 0 && ret != buffer_size && socket->verbose)
 		fprintf(stderr,
 			"*** Only sent %d bytes instead of %d.\n", ret,
 			buffer_size);
 
 	return ret;
+}
+
+static
+ssize_t send_line(int fd, const char *txt)
+{
+	int len = strlen(txt);
+	int ret;
+
+	ret = send(fd, txt, len, 0);
+
+	if (ret == -1) {
+		fprintf(stderr, "error sending %s\n", txt);
+		exit(1);
+	}
+
+	return ret;
+}
+
+static
+ssize_t wait_for_text(int fd, const char *txt, unsigned txt_size)
+{
+	char buf[512];
+	char *p;
+	int ret;
+	fd_set read_fds;
+	struct timeval tv;
+
+	do {
+		FD_ZERO(&read_fds);
+		FD_SET(fd, &read_fds);
+		tv.tv_sec = 10;
+		tv.tv_usec = 0;
+		ret = select(fd + 1, &read_fds, NULL, NULL, &tv);
+		if (ret <= 0)
+			ret = -1;
+		else
+			ret = recv(fd, buf, sizeof(buf)-1, 0);
+		if (ret == -1) {
+			fprintf(stderr, "error receiving %s\n", txt);
+			exit(1);
+		}
+		buf[ret] = 0;
+
+		p = memmem(buf, ret, txt, txt_size);
+		if (p != NULL && p != buf) {
+			p--;
+			if (*p == '\n')
+				break;
+		}
+	} while(ret < (int)txt_size || strncmp(buf, txt, txt_size) != 0);
+
+	return ret;
+}
+
+void
+socket_starttls(socket_st * socket, const char *app_proto)
+{
+	if (socket->secure)
+		return;
+
+	if (app_proto == NULL || strcasecmp(app_proto, "https") == 0)
+		return;
+
+	if (strcasecmp(app_proto, "smtp") == 0 || strcasecmp(app_proto, "submission") == 0) {
+		if (socket->verbose)
+			printf("Negotiating SMTP STARTTLS\n");
+
+		wait_for_text(socket->fd, "220 ", 4);
+		send_line(socket->fd, "EHLO mail.example.com\n");
+		wait_for_text(socket->fd, "250 ", 4);
+		send_line(socket->fd, "STARTTLS\n");
+		wait_for_text(socket->fd, "220 ", 4);
+	} else if (strcasecmp(app_proto, "imap") == 0 || strcasecmp(app_proto, "imap2") == 0) {
+		if (socket->verbose)
+			printf("Negotiating IMAP STARTTLS\n");
+
+		send_line(socket->fd, "a CAPABILITY\r\n");
+		wait_for_text(socket->fd, "a OK", 4);
+		send_line(socket->fd, "a STARTTLS\r\n");
+		wait_for_text(socket->fd, "a OK", 4);
+	} else {
+		if (socket->verbose)
+			fprintf(stderr, "unknown protocol %s\n", app_proto);
+	}
+
+	return;
 }
 
 void socket_bye(socket_st * socket)
@@ -144,16 +244,23 @@ void socket_bye(socket_st * socket)
 
 void
 socket_open(socket_st * hd, const char *hostname, const char *service,
-	    int udp)
+	    int udp, const char *msg)
 {
 	struct addrinfo hints, *res, *ptr;
 	int sd, err;
 	char buffer[MAX_BUF + 1];
 	char portname[16] = { 0 };
 
-	printf("Resolving '%s'...\n", hostname);
+	if (msg != NULL)
+		printf("Resolving '%s'...\n", hostname);
+
 	/* get server name */
 	memset(&hints, 0, sizeof(hints));
+
+#ifdef AI_IDN
+	hints.ai_flags = AI_IDN|AI_IDN_ALLOW_UNASSIGNED;
+#endif
+
 	hints.ai_socktype = udp ? SOCK_DGRAM : SOCK_STREAM;
 	if ((err = getaddrinfo(hostname, service, &hints, &res))) {
 		fprintf(stderr, "Cannot resolve %s:%s: %s\n", hostname,
@@ -194,7 +301,8 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 		}
 
 
-		printf("Connecting to '%s:%s'...\n", buffer, portname);
+		if (msg)
+			printf("%s '%s:%s'...\n", msg, buffer, portname);
 
 		err = connect(sd, ptr->ai_addr, ptr->ai_addrlen);
 		if (err < 0) {
@@ -239,4 +347,46 @@ void sockets_init(void)
 	signal(SIGPIPE, SIG_IGN);
 #endif
 
+}
+
+/* converts a textual service or port to
+ * a service.
+ */
+const char *port_to_service(const char *sport, const char *proto)
+{
+	unsigned int port;
+	struct servent *sr;
+
+	port = atoi(sport);
+	if (port == 0)
+		return sport;
+
+	port = htons(port);
+
+	sr = getservbyport(port, proto);
+	if (sr == NULL) {
+		fprintf(stderr,
+			"Warning: getservbyport() failed. Using port number as service.\n");
+		return sport;
+	}
+
+	return sr->s_name;
+}
+
+int service_to_port(const char *service, const char *proto)
+{
+	unsigned int port;
+	struct servent *sr;
+
+	port = atoi(service);
+	if (port != 0)
+		return port;
+
+	sr = getservbyname(service, proto);
+	if (sr == NULL) {
+		fprintf(stderr, "Warning: getservbyname() failed.\n");
+		exit(1);
+	}
+
+	return ntohs(sr->s_port);
 }

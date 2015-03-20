@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2000-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2000-2014 Free Software Foundation, Inc.
+ * Copyright (C) 2013-2014 Nikos Mavrogiannopoulos
  *
  * This file is part of GnuTLS.
  *
@@ -373,49 +374,6 @@ static int read_yesno(const char *input_str)
 	return 0;
 }
 
-/* converts a textual service or port to
- * a service.
- */
-static const char *port_to_service(const char *sport)
-{
-	unsigned int port;
-	struct servent *sr;
-
-	port = atoi(sport);
-	if (port == 0)
-		return sport;
-
-	port = htons(port);
-
-	sr = getservbyport(port, udp ? "udp" : "tcp");
-	if (sr == NULL) {
-		fprintf(stderr,
-			"Warning: getservbyport() failed. Using port number as service.\n");
-		return sport;
-	}
-
-	return sr->s_name;
-}
-
-static int service_to_port(const char *service)
-{
-	unsigned int port;
-	struct servent *sr;
-
-	port = atoi(service);
-	if (port != 0)
-		return port;
-
-	sr = getservbyname(service, udp ? "udp" : "tcp");
-	if (sr == NULL) {
-		fprintf(stderr, "Warning: getservbyname() failed.\n");
-		exit(1);
-	}
-
-	return ntohs(sr->s_port);
-}
-
-
 static int cert_verify_callback(gnutls_session_t session)
 {
 	int rc;
@@ -428,6 +386,10 @@ static int cert_verify_callback(gnutls_session_t session)
 	int ca_verify = ENABLED_OPT(CA_VERIFICATION);
 	const char *txt_service;
 
+	/* On an session with TOFU the PKI/DANE verification
+	 * become advisory.
+	 */
+
 	if (strictssh) {
 		ssh = strictssh;
 	}
@@ -435,7 +397,7 @@ static int cert_verify_callback(gnutls_session_t session)
 	print_cert_info(session, verbose, print_cert);
 
 	if (ca_verify) {
-		rc = cert_verify(session, hostname);
+		rc = cert_verify(session, hostname, GNUTLS_KP_TLS_WWW_SERVER);
 		if (rc == 0) {
 			printf
 			    ("*** PKI verification of server certificate failed...\n");
@@ -443,13 +405,15 @@ static int cert_verify_callback(gnutls_session_t session)
 				return -1;
 		} else if (ENABLED_OPT(OCSP) && gnutls_ocsp_status_request_is_checked(session, 0) == 0) {	/* off-line verification succeeded. Try OCSP */
 			rc = cert_verify_ocsp(session);
-			if (rc == 0) {
+			if (rc == -1) {
 				printf
-				    ("*** Verifying (with OCSP) server certificate failed...\n");
+				    ("*** Verifying (with OCSP) server certificate chain failed...\n");
 				if (!insecure && !ssh)
 					return -1;
-			} else if (rc == -1)
-				printf("*** OCSP response ignored...\n");
+			} else if (rc == 0)
+				printf("*** OCSP: nothing to check.\n");
+			else
+				printf("*** OCSP: verified %d certificate(s).\n", rc);
 		}
 	}
 
@@ -466,7 +430,7 @@ static int cert_verify_callback(gnutls_session_t session)
 		if (ca_verify == 0)
 			vflags |= DANE_VFLAG_ONLY_CHECK_EE_USAGE;
 
-		port = service_to_port(service);
+		port = service_to_port(service, udp?"udp":"tcp");
 		rc = dane_verify_session_crt(NULL, session, hostname,
 					     udp ? "udp" : "tcp", port,
 					     sflags, vflags, &status);
@@ -507,7 +471,7 @@ static int cert_verify_callback(gnutls_session_t session)
 			return -1;
 		}
 
-		txt_service = port_to_service(service);
+		txt_service = port_to_service(service, udp?"udp":"tcp");
 
 		rc = gnutls_verify_stored_pubkey(NULL, NULL, hostname,
 						 txt_service,
@@ -561,7 +525,6 @@ static int cert_verify_callback(gnutls_session_t session)
 					gnutls_strerror(rc));
 		}
 	}
-
 	return 0;
 }
 
@@ -650,9 +613,6 @@ static gnutls_session_t init_tls_session(const char *hostname)
 	unsigned i;
 	gnutls_session_t session;
 
-	if (priorities == NULL)
-		priorities = "NORMAL";
-
 	if (udp) {
 		gnutls_init(&session, GNUTLS_DATAGRAM | init_flags);
 		if (mtu)
@@ -673,7 +633,7 @@ static gnutls_session_t init_tls_session(const char *hostname)
 	/* allow the use of private ciphersuites.
 	 */
 	if (disable_extensions == 0 && disable_sni == 0) {
-		if (!isdigit(hostname[0]) && strchr(hostname, ':') == 0)
+		if (hostname != NULL && is_ip(hostname) == 0)
 			gnutls_server_name_set(session, GNUTLS_NAME_DNS,
 					       hostname, strlen(hostname));
 	}
@@ -729,19 +689,23 @@ static gnutls_session_t init_tls_session(const char *hostname)
 					GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 
 #ifdef ENABLE_DTLS_SRTP
-	if (HAVE_OPT(SRTP_PROFILES)) {
-		ret =
-		    gnutls_srtp_set_profile_direct(session,
-						   OPT_ARG(SRTP_PROFILES),
-						   &err);
-		if (ret == GNUTLS_E_INVALID_REQUEST)
-			fprintf(stderr, "Syntax error at: %s\n", err);
-		else
-			fprintf(stderr, "Error in profiles: %s\n",
-				gnutls_strerror(ret));
-		exit(1);
-	}
+        if (HAVE_OPT(SRTP_PROFILES)) {
+                ret =
+                    gnutls_srtp_set_profile_direct(session,
+                                                   OPT_ARG(SRTP_PROFILES),
+                                                   &err);
+                if (ret == GNUTLS_E_INVALID_REQUEST)
+                        fprintf(stderr, "Syntax error at: %s\n", err);
+                else if (ret != 0)
+                        fprintf(stderr, "Error in profiles: %s\n",
+                                gnutls_strerror(ret));
+                else fprintf(stderr,"DTLS profile set to %s\n",
+                             OPT_ARG(SRTP_PROFILES));
+
+                if (ret != 0) exit(1);
+        }
 #endif
+
 
 	return session;
 }
@@ -892,7 +856,10 @@ static int try_resume(socket_st * hd)
 
 	printf
 	    ("\n\n- Connecting again- trying to resume previous session\n");
-	socket_open(hd, hostname, service, udp);
+	socket_open(hd, hostname, service, udp, CONNECT_MSG);
+
+	if (HAVE_OPT(STARTTLS_PROTO))
+	        socket_starttls(hd, OPT_ARG(STARTTLS_PROTO));
 
 	hd->session = init_tls_session(hostname);
 	gnutls_session_set_data(hd->session, session_data,
@@ -1115,7 +1082,11 @@ int main(int argc, char **argv)
 
 	init_global_tls_stuff();
 
-	socket_open(&hd, hostname, service, udp);
+	socket_open(&hd, hostname, service, udp, CONNECT_MSG);
+	hd.verbose = verbose;
+
+	if (HAVE_OPT(STARTTLS_PROTO))
+	        socket_starttls(&hd, OPT_ARG(STARTTLS_PROTO));
 
 	hd.session = init_tls_session(hostname);
 	if (starttls)
@@ -1344,13 +1315,18 @@ static void cmd_parser(int argc, char **argv)
 	if (rest == NULL && argc > 0)
 		rest = argv[0];
 
-	if (HAVE_OPT(BENCHMARK_CIPHERS)) {
-		benchmark_cipher(1, OPT_VALUE_DEBUG);
-		exit(0);
+
+	if (HAVE_OPT(FIPS140_MODE)) {
+		if (gnutls_fips140_mode_enabled() != 0) {
+			fprintf(stderr, "library is in FIPS140-2 mode\n");
+			exit(0);
+		}
+		fprintf(stderr, "library is NOT in FIPS140-2 mode\n");
+		exit(1);
 	}
 
-	if (HAVE_OPT(BENCHMARK_SOFT_CIPHERS)) {
-		benchmark_cipher(0, OPT_VALUE_DEBUG);
+	if (HAVE_OPT(BENCHMARK_CIPHERS)) {
+		benchmark_cipher(OPT_VALUE_DEBUG);
 		exit(0);
 	}
 
@@ -1621,6 +1597,25 @@ static void init_global_tls_stuff(void)
 {
 	int ret;
 
+#ifdef ENABLE_PKCS11
+	if (HAVE_OPT(PROVIDER)) {
+		ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_MANUAL, NULL);
+		if (ret < 0)
+			fprintf(stderr, "pkcs11_init: %s",
+				gnutls_strerror(ret));
+		else {
+			ret =
+			    gnutls_pkcs11_add_provider(OPT_ARG(PROVIDER),
+						       NULL);
+			if (ret < 0) {
+				fprintf(stderr, "pkcs11_add_provider: %s",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+	}
+#endif
+
 	/* X509 stuff */
 	if (gnutls_certificate_allocate_credentials(&xcred) < 0) {
 		fprintf(stderr, "Certificate allocation memory error\n");
@@ -1633,7 +1628,11 @@ static void init_global_tls_stuff(void)
 							     x509_cafile,
 							     x509ctype);
 	} else {
-		ret = gnutls_certificate_set_x509_system_trust(xcred);
+		if (insecure == 0) {
+			ret = gnutls_certificate_set_x509_system_trust(xcred);
+		} else {
+			ret = 0;
+		}
 	}
 	if (ret < 0) {
 		fprintf(stderr, "Error setting the x509 trust file\n");
@@ -1712,80 +1711,93 @@ static void init_global_tls_stuff(void)
 }
 
 /* OCSP check for the peer's certificate. Should be called 
- * only after the certificate list verication is complete.
+ * only after the certificate list verification is complete.
  * Returns:
- * 0: certificate is revoked
- * 1: certificate is ok
- * -1: dunno
+ * -1: certificate chain could not be checked fully
+ * >=0: number of certificates verified ok
  */
 static int cert_verify_ocsp(gnutls_session_t session)
 {
-	gnutls_x509_crt_t crt, issuer;
+	gnutls_x509_crt_t cert, issuer;
 	const gnutls_datum_t *cert_list;
-	unsigned int cert_list_size = 0;
-	int deinit_issuer = 0;
+	unsigned int cert_list_size = 0, ok = 0;
+	unsigned failed = 0;
+	int deinit_issuer = 0, deinit_cert;
 	gnutls_datum_t resp;
 	unsigned char noncebuf[23];
 	gnutls_datum_t nonce = { noncebuf, sizeof(noncebuf) };
 	int ret;
+	unsigned it;
 
 	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
 	if (cert_list_size == 0) {
 		fprintf(stderr, "No certificates found!\n");
-		return -1;
+		return 0;
 	}
 
-	gnutls_x509_crt_init(&crt);
-	ret =
-	    gnutls_x509_crt_import(crt, &cert_list[0],
-				   GNUTLS_X509_FMT_DER);
-	if (ret < 0) {
-		fprintf(stderr, "Decoding error: %s\n",
-			gnutls_strerror(ret));
-		return -1;
-	}
-
-	ret = gnutls_certificate_get_issuer(xcred, crt, &issuer, 0);
-	if (ret < 0 && cert_list_size > 1) {
-		gnutls_x509_crt_init(&issuer);
-		ret =
-		    gnutls_x509_crt_import(issuer, &cert_list[1],
-					   GNUTLS_X509_FMT_DER);
+	for (it = 0; it < cert_list_size; it++) {
+		gnutls_x509_crt_init(&cert);
+		if (deinit_cert)
+			gnutls_x509_crt_deinit(cert);
+		gnutls_x509_crt_init(&cert);
+		deinit_cert = 1;
+		ret = gnutls_x509_crt_import(cert, &cert_list[it], GNUTLS_X509_FMT_DER);
 		if (ret < 0) {
-			fprintf(stderr, "Decoding error: %s\n",
-				gnutls_strerror(ret));
-			return -1;
+			fprintf(stderr, "Decoding error: %s\n", gnutls_strerror(ret));
+			goto cleanup;
 		}
-		deinit_issuer = 1;
-	} else if (ret < 0) {
-		fprintf(stderr, "Cannot find issuer\n");
-		ret = -1;
-		goto cleanup;
+
+		if (deinit_issuer) {
+			gnutls_x509_crt_deinit(issuer);
+			deinit_issuer = 0;
+		}
+
+		ret = gnutls_certificate_get_issuer(xcred, cert, &issuer, 0);
+		if (ret < 0 && cert_list_size - it > 1) {
+			gnutls_x509_crt_init(&issuer);
+			deinit_issuer = 1;
+			ret = gnutls_x509_crt_import(issuer, &cert_list[it + 1], GNUTLS_X509_FMT_DER);
+			if (ret < 0) {
+				fprintf(stderr, "Decoding error: %s\n", gnutls_strerror(ret));
+				goto cleanup;
+			}
+		} else if (ret < 0) {
+			fprintf(stderr, "Cannot find issuer\n");
+			goto cleanup;
+		}
+
+		ret = gnutls_rnd(GNUTLS_RND_NONCE, nonce.data, nonce.size);
+		if (ret < 0) {
+			fprintf(stderr, "gnutls_rnd: %s", gnutls_strerror(ret));
+			goto cleanup;
+		}
+
+		ret = send_ocsp_request(NULL, cert, issuer, &resp, &nonce);
+		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+			continue;
+		}
+		if (ret < 0) {
+			fprintf(stderr, "Cannot contact OCSP server\n");
+			goto cleanup;
+		}
+
+		/* verify and check the response for revoked cert */
+		ret = check_ocsp_response(cert, issuer, &resp, &nonce, verbose);
+		if (ret == 1)
+			ok++;
+		else if (ret == 0) {
+			failed++;
+			break;
+		}
 	}
 
-	ret =
-	    gnutls_rnd(GNUTLS_RND_NONCE, nonce.data, nonce.size);
-	if (ret < 0) {
-		fprintf(stderr, "gnutls_rnd: %s",
-			gnutls_strerror(ret));
-		ret = -1;
-		goto cleanup;
-	}
-
-	ret = send_ocsp_request(NULL, crt, issuer, &resp, &nonce);
-	if (ret < 0) {
-		fprintf(stderr, "Cannot contact OCSP server\n");
-		ret = -1;
-		goto cleanup;
-	}
-
-	/* verify and check the response for revoked cert */
-	ret = check_ocsp_response(crt, issuer, &resp, &nonce);
-
-      cleanup:
+cleanup:
 	if (deinit_issuer)
 		gnutls_x509_crt_deinit(issuer);
-	gnutls_x509_crt_deinit(crt);
+	if (deinit_cert)
+		gnutls_x509_crt_deinit(cert);
 
-	return ret;
+	if (failed > 0)
+		return -1;
+	return ok > 1 ? (int) ok : -1;
 }

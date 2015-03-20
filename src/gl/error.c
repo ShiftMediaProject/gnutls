@@ -1,5 +1,5 @@
 /* Error handler for noninteractive utilities
-   Copyright (C) 1990-1998, 2000-2007, 2009-2014 Free Software Foundation, Inc.
+   Copyright (C) 1990-1998, 2000-2007, 2009-2015 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    This program is free software: you can redistribute it and/or modify
@@ -75,7 +75,7 @@ extern void __error (int status, int errnum, const char *message, ...)
 extern void __error_at_line (int status, int errnum, const char *file_name,
                              unsigned int line_number, const char *message,
                              ...)
-     __attribute__ ((__format__ (__printf__, 5, 6)));;
+     __attribute__ ((__format__ (__printf__, 5, 6)));
 # define error __error
 # define error_at_line __error_at_line
 

@@ -51,7 +51,7 @@ extern "C" {
 typedef enum gnutls_pubkey_flags {
 	GNUTLS_PUBKEY_VERIFY_FLAG_TLS1_RSA = 1,
 	GNUTLS_PUBKEY_DISABLE_CALLBACKS = 1 << 2,
-	GNUTLS_PUBKEY_GET_OPENPGP_FINGERPRINT = 1 << 3,
+	GNUTLS_PUBKEY_GET_OPENPGP_FINGERPRINT = 1 << 3
 } gnutls_pubkey_flags_t;
 
 typedef int (*gnutls_privkey_sign_func) (gnutls_privkey_t key,
@@ -70,6 +70,8 @@ typedef void (*gnutls_privkey_deinit_func) (gnutls_privkey_t key,
 
 int gnutls_pubkey_init(gnutls_pubkey_t * key);
 void gnutls_pubkey_deinit(gnutls_pubkey_t key);
+
+int gnutls_pubkey_verify_params(gnutls_pubkey_t key);
 
 void gnutls_pubkey_set_pin_function(gnutls_pubkey_t key,
 				    gnutls_pin_callback_t fn,
@@ -125,16 +127,23 @@ int gnutls_pubkey_get_preferred_hash_algorithm(gnutls_pubkey_t key,
 					       gnutls_digest_algorithm_t
 					       * hash, unsigned int *mand);
 
-int gnutls_pubkey_get_pk_rsa_raw(gnutls_pubkey_t key,
+#define gnutls_pubkey_get_pk_rsa_raw gnutls_pubkey_export_rsa_raw
+int gnutls_pubkey_export_rsa_raw(gnutls_pubkey_t key,
 				 gnutls_datum_t * m, gnutls_datum_t * e);
-int gnutls_pubkey_get_pk_dsa_raw(gnutls_pubkey_t key,
+
+#define gnutls_pubkey_get_pk_dsa_raw gnutls_pubkey_export_dsa_raw
+int gnutls_pubkey_export_dsa_raw(gnutls_pubkey_t key,
 				 gnutls_datum_t * p,
 				 gnutls_datum_t * q,
 				 gnutls_datum_t * g, gnutls_datum_t * y);
-int gnutls_pubkey_get_pk_ecc_raw(gnutls_pubkey_t key,
+
+#define gnutls_pubkey_get_pk_ecc_raw gnutls_pubkey_export_ecc_raw
+int gnutls_pubkey_export_ecc_raw(gnutls_pubkey_t key,
 				 gnutls_ecc_curve_t * curve,
 				 gnutls_datum_t * x, gnutls_datum_t * y);
-int gnutls_pubkey_get_pk_ecc_x962(gnutls_pubkey_t key,
+
+#define gnutls_pubkey_get_pk_ecc_x962 gnutls_pubkey_export_ecc_x962
+int gnutls_pubkey_export_ecc_x962(gnutls_pubkey_t key,
 				  gnutls_datum_t * parameters,
 				  gnutls_datum_t * ecpoint);
 
@@ -225,9 +234,22 @@ gnutls_pubkey_verify_data2(gnutls_pubkey_t pubkey,
 int gnutls_privkey_init(gnutls_privkey_t * key);
 void gnutls_privkey_deinit(gnutls_privkey_t key);
 
-void gnutls_privkey_set_pin_function(gnutls_privkey_t key,
-				     gnutls_pin_callback_t fn,
-				     void *userdata);
+/* macros to allow specifying a subgroup and group size in gnutls_privkey_generate()
+ * and gnutls_x509_privkey_generate() */
+#define GNUTLS_SUBGROUP_TO_BITS(group, subgroup) (unsigned int)((subgroup<<16)|(group))
+#define GNUTLS_BITS_TO_SUBGROUP(bits) ((bits >> 16) & 0xFFFF)
+#define GNUTLS_BITS_TO_GROUP(bits) (bits & 0xFFFF)
+#define GNUTLS_BITS_HAVE_SUBGROUP(bits) ((bits) & 0xFFFF0000)
+
+int
+gnutls_privkey_generate (gnutls_privkey_t key,
+                         gnutls_pk_algorithm_t algo, unsigned int bits,
+                         unsigned int flags);
+
+int gnutls_privkey_verify_params(gnutls_privkey_t key);
+
+void gnutls_privkey_set_pin_function (gnutls_privkey_t key,
+                                      gnutls_pin_callback_t fn, void *userdata);
 
 int gnutls_privkey_get_pk_algorithm(gnutls_privkey_t key,
 				    unsigned int *bits);
@@ -249,7 +271,7 @@ typedef enum gnutls_privkey_flags {
 	GNUTLS_PRIVKEY_IMPORT_AUTO_RELEASE = 1,
 	GNUTLS_PRIVKEY_IMPORT_COPY = 1 << 1,
 	GNUTLS_PRIVKEY_DISABLE_CALLBACKS = 1 << 2,
-	GNUTLS_PRIVKEY_SIGN_FLAG_TLS1_RSA = 1 << 4,
+	GNUTLS_PRIVKEY_SIGN_FLAG_TLS1_RSA = 1 << 4
 } gnutls_privkey_flags_t;
 
 int gnutls_privkey_import_pkcs11(gnutls_privkey_t pkey,
@@ -314,6 +336,29 @@ gnutls_privkey_import_ext2(gnutls_privkey_t pkey,
 			   gnutls_privkey_deinit_func deinit_func,
 			   unsigned int flags);
 
+int gnutls_privkey_import_dsa_raw(gnutls_privkey_t key,
+				       const gnutls_datum_t * p,
+				       const gnutls_datum_t * q,
+				       const gnutls_datum_t * g,
+				       const gnutls_datum_t * y,
+				       const gnutls_datum_t * x);
+
+int gnutls_privkey_import_rsa_raw(gnutls_privkey_t key,
+					const gnutls_datum_t * m,
+					const gnutls_datum_t * e,
+					const gnutls_datum_t * d,
+					const gnutls_datum_t * p,
+					const gnutls_datum_t * q,
+					const gnutls_datum_t * u,
+					const gnutls_datum_t * e1,
+					const gnutls_datum_t * e2);
+int gnutls_privkey_import_ecc_raw(gnutls_privkey_t key,
+				       gnutls_ecc_curve_t curve,
+				       const gnutls_datum_t * x,
+				       const gnutls_datum_t * y,
+				       const gnutls_datum_t * k);
+
+
 int gnutls_privkey_sign_data(gnutls_privkey_t signer,
 			     gnutls_digest_algorithm_t hash,
 			     unsigned int flags,
@@ -331,6 +376,28 @@ int gnutls_privkey_decrypt_data(gnutls_privkey_t key,
 				unsigned int flags,
 				const gnutls_datum_t * ciphertext,
 				gnutls_datum_t * plaintext);
+
+int
+gnutls_privkey_export_rsa_raw(gnutls_privkey_t key,
+				    gnutls_datum_t * m, gnutls_datum_t * e,
+				    gnutls_datum_t * d, gnutls_datum_t * p,
+				    gnutls_datum_t * q, gnutls_datum_t * u,
+				    gnutls_datum_t * e1,
+				    gnutls_datum_t * e2);
+
+int
+gnutls_privkey_export_dsa_raw(gnutls_privkey_t key,
+			     gnutls_datum_t * p, gnutls_datum_t * q,
+			     gnutls_datum_t * g, gnutls_datum_t * y,
+			     gnutls_datum_t * x);
+
+int
+gnutls_privkey_export_ecc_raw(gnutls_privkey_t key,
+				       gnutls_ecc_curve_t * curve,
+				       gnutls_datum_t * x,
+				       gnutls_datum_t * y,
+				       gnutls_datum_t * k);
+
 
 int gnutls_x509_crt_privkey_sign(gnutls_x509_crt_t crt,
 				 gnutls_x509_crt_t issuer,

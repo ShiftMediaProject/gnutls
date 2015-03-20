@@ -38,8 +38,11 @@
 #include <gnutls_datum.h>
 #include <gnutls_num.h>
 #include <random.h>
+#include <algorithms.h>
 
-static int _randomize_pwd_entry(SRP_PWD_ENTRY * entry);
+static int _randomize_pwd_entry(SRP_PWD_ENTRY * entry,
+				gnutls_srp_server_credentials_t cred,
+				const char * username);
 
 /* this function parses tpasswd.conf file. Format is:
  * string(username):base64(v):base64(salt):int(index)
@@ -115,7 +118,7 @@ static int parse_tpasswd_values(SRP_PWD_ENTRY * entry, char *str)
 	entry->username = gnutls_strdup(str);
 	if (entry->username == NULL) {
 		_gnutls_free_datum(&entry->salt);
-		_gnutls_free_datum(&entry->v);
+		_gnutls_free_key_datum(&entry->v);
 		gnutls_assert();
 		return GNUTLS_E_MEMORY_ERROR;
 	}
@@ -191,7 +194,8 @@ static int
 pwd_read_conf(const char *pconf_file, SRP_PWD_ENTRY * entry, int idx)
 {
 	FILE *fd;
-	char line[2 * 1024];
+	char *line = NULL;
+	size_t line_size = 0;
 	unsigned i, len;
 	char indexstr[10];
 	int ret;
@@ -205,12 +209,14 @@ pwd_read_conf(const char *pconf_file, SRP_PWD_ENTRY * entry, int idx)
 	}
 
 	len = strlen(indexstr);
-	while (fgets(line, sizeof(line), fd) != NULL) {
+	while (getline(&line, &line_size, fd) > 0) {
 		/* move to first ':' */
 		i = 0;
-		while ((i < sizeof(line)) && (line[i] != ':') && (line[i] != '\0')) {
+		while ((i < line_size) && (line[i] != ':')
+                       && (line[i] != '\0')) {
 			i++;
 		}
+
 		if (strncmp(indexstr, line, MAX(i, len)) == 0) {
 			if ((idx =
 			     parse_tpasswd_conf_values(entry,
@@ -225,7 +231,9 @@ pwd_read_conf(const char *pconf_file, SRP_PWD_ENTRY * entry, int idx)
 	}
 	ret = GNUTLS_E_SRP_PWD_ERROR;
 
-      cleanup:
+cleanup:
+	zeroize_key(line, line_size);
+	free(line);
 	fclose(fd);
 	return ret;
 
@@ -237,7 +245,8 @@ _gnutls_srp_pwd_read_entry(gnutls_session_t state, char *username,
 {
 	gnutls_srp_server_credentials_t cred;
 	FILE *fd = NULL;
-	char line[2 * 1024];
+	char *line = NULL;
+	size_t line_size = 0;
 	unsigned i, len;
 	int ret;
 	int idx;
@@ -251,7 +260,7 @@ _gnutls_srp_pwd_read_entry(gnutls_session_t state, char *username,
 	entry = *_entry;
 
 	cred = (gnutls_srp_server_credentials_t)
-	    _gnutls_get_cred(state, GNUTLS_CRD_SRP, NULL);
+	    _gnutls_get_cred(state, GNUTLS_CRD_SRP);
 	if (cred == NULL) {
 		gnutls_assert();
 		ret = GNUTLS_E_INSUFFICIENT_CREDENTIALS;
@@ -267,7 +276,7 @@ _gnutls_srp_pwd_read_entry(gnutls_session_t state, char *username,
 
 		if (ret == 1) {	/* the user does not exist */
 			if (entry->g.size != 0 && entry->n.size != 0) {
-				ret = _randomize_pwd_entry(entry);
+				ret = _randomize_pwd_entry(entry, cred, username);
 				if (ret < 0) {
 					gnutls_assert();
 					goto cleanup;
@@ -307,10 +316,11 @@ _gnutls_srp_pwd_read_entry(gnutls_session_t state, char *username,
 	}
 
 	len = strlen(username);
-	while (fgets(line, sizeof(line), fd) != NULL) {
+	while (getline(&line, &line_size, fd) > 0) {
 		/* move to first ':' */
 		i = 0;
-		while ((i < sizeof(line)) && (line[i] != ':') && (line[i] != '\0')) {
+		while ((i < line_size) && (line[i] != '\0')
+		       && (line[i] != ':')) {
 			i++;
 		}
 
@@ -322,7 +332,7 @@ _gnutls_srp_pwd_read_entry(gnutls_session_t state, char *username,
 				if (pwd_read_conf
 				    (cred->password_conf_file, entry,
 				     idx) == 0) {
-				        ret = 0;
+					ret = 0;
 					goto found;
 				} else {
 					gnutls_assert();
@@ -341,49 +351,47 @@ _gnutls_srp_pwd_read_entry(gnutls_session_t state, char *username,
 	 * the last index found and randomize the entry.
 	 */
 	if (pwd_read_conf(cred->password_conf_file, entry, 1) == 0) {
-		ret = _randomize_pwd_entry(entry);
+		ret = _randomize_pwd_entry(entry, cred, username);
 		if (ret < 0) {
 			gnutls_assert();
 			goto cleanup;
 		}
 
+		ret = 0;
 		goto found;
 	}
 
 	ret = GNUTLS_E_SRP_PWD_ERROR;
-      cleanup:
-	gnutls_assert();
-	if (fd)
-		fclose(fd);
-	_gnutls_srp_entry_free(entry);
-	return ret;
 
-      found:
+cleanup:
+	gnutls_assert();
+	_gnutls_srp_entry_free(entry);
+
+found:
+	zeroize_key(line, line_size);
+	free(line);
 	if (fd)
 		fclose(fd);
 	return ret;
 }
 
 /* Randomizes the given password entry. It actually sets the verifier
- * and the salt. Returns 0 on success.
+ * to random data and sets the salt based on fake_salt_seed and
+ * username. Returns 0 on success.
  */
-static int _randomize_pwd_entry(SRP_PWD_ENTRY * entry)
+static int _randomize_pwd_entry(SRP_PWD_ENTRY * entry,
+				gnutls_srp_server_credentials_t sc,
+				const char * username)
 {
-	unsigned char rnd;
 	int ret;
+	const mac_entry_st *me = mac_to_entry(SRP_FAKE_SALT_MAC);
+	mac_hd_st ctx;
+	size_t username_len = strlen(username);
 
 	if (entry->g.size == 0 || entry->n.size == 0) {
 		gnutls_assert();
 		return GNUTLS_E_INTERNAL_ERROR;
 	}
-
-	ret = _gnutls_rnd(GNUTLS_RND_NONCE, &rnd, 1);
-	if (ret < 0) {
-		gnutls_assert();
-		return ret;
-	}
-
-	entry->salt.size = (rnd % 10) + 9;
 
 	entry->v.data = gnutls_malloc(20);
 	entry->v.size = 20;
@@ -398,19 +406,35 @@ static int _randomize_pwd_entry(SRP_PWD_ENTRY * entry)
 		return ret;
 	}
 
-	entry->salt.data = gnutls_malloc(entry->salt.size);
+	/* Always allocate and work with the output size of the MAC,
+	 * even if they don't need salts that long, for convenience.
+	 *
+	 * In case an error occurs 'entry' (and the salt inside)
+	 * is deallocated by our caller: _gnutls_srp_pwd_read_entry().
+	 */
+	entry->salt.data = gnutls_malloc(me->output_size);
 	if (entry->salt.data == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_MEMORY_ERROR;
 	}
 
-	ret =
-	    _gnutls_rnd(GNUTLS_RND_NONCE, entry->salt.data,
-			entry->salt.size);
+	ret = _gnutls_mac_init(&ctx, me, sc->fake_salt_seed.data,
+			sc->fake_salt_seed.size);
+
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
 	}
+
+	_gnutls_mac(&ctx, "salt", 4);
+	_gnutls_mac(&ctx, username, username_len);
+	_gnutls_mac_deinit(&ctx, entry->salt.data);
+
+	/* Set length to the actual number of bytes they asked for.
+	 * This is always less than or equal to the output size of
+	 * the MAC, enforced by gnutls_srp_set_server_fake_salt_seed().
+	 */
+	entry->salt.size = sc->fake_salt_length;
 
 	return 0;
 }
@@ -420,7 +444,7 @@ static int _randomize_pwd_entry(SRP_PWD_ENTRY * entry)
  */
 void _gnutls_srp_entry_free(SRP_PWD_ENTRY * entry)
 {
-	_gnutls_free_datum(&entry->v);
+	_gnutls_free_key_datum(&entry->v);
 	_gnutls_free_datum(&entry->salt);
 
 	if ((entry->g.data != gnutls_srp_1024_group_generator.data)

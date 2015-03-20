@@ -26,33 +26,35 @@
 #include <gnutls_errors.h>
 
 #include <sys/socket.h>
-#include <sys/select.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <c-ctype.h>
 
 #ifdef _WIN32
-#include <windows.h>
-#include <wincrypt.h>
-#if defined(__MINGW32__) && !defined(__MINGW64__) && __MINGW32_MAJOR_VERSION <= 3 && __MINGW32_MINOR_VERSION <= 20
+# include <windows.h>
+# include <wincrypt.h>
+# if defined(__MINGW32__) && !defined(__MINGW64__) && __MINGW32_MAJOR_VERSION <= 3 && __MINGW32_MINOR_VERSION <= 20
 typedef PCCRL_CONTEXT WINAPI(*Type_CertEnumCRLsInStore) (HCERTSTORE
 							 hCertStore,
 							 PCCRL_CONTEXT
 							 pPrevCrlContext);
 static Type_CertEnumCRLsInStore Loaded_CertEnumCRLsInStore;
 static HMODULE Crypt32_dll;
-#else
-#define Loaded_CertEnumCRLsInStore CertEnumCRLsInStore
-#endif
-#else
-#ifdef HAVE_PTHREAD_LOCKS
-#include <pthread.h>
-#endif
+# else
+#  define Loaded_CertEnumCRLsInStore CertEnumCRLsInStore
+# endif
 
-#if defined(HAVE_GETPWUID_R)
-#include <pwd.h>
-#endif
+#else /* _WIN32 */
+# include <sys/select.h>
+
+# ifdef HAVE_PTHREAD_LOCKS
+#  include <pthread.h>
+# endif
+
+# if defined(HAVE_GETPWUID_R)
+#  include <pwd.h>
+# endif
 #endif
 
 /* System specific function wrappers.
@@ -316,8 +318,12 @@ void gnutls_system_global_deinit()
  */
 int _gnutls_find_config_path(char *path, size_t max_size)
 {
-	char tmp_home_dir[GNUTLS_PATH_MAX];
 	const char *home_dir = getenv("HOME");
+
+	if (home_dir != NULL && home_dir[0] != 0) {
+		snprintf(path, max_size, "%s/" CONFIG_PATH, home_dir);
+		return 0;
+	}
 
 #ifdef _WIN32
 	if (home_dir == NULL || home_dir[0] == '\0') {
@@ -325,42 +331,30 @@ int _gnutls_find_config_path(char *path, size_t max_size)
 		const char *home_path = getenv("HOMEPATH");
 
 		if (home_drive != NULL && home_path != NULL) {
-			snprintf(tmp_home_dir, sizeof(tmp_home_dir),
-				 "%s%s", home_drive, home_path);
+			snprintf(path, max_size, "%s%s/" CONFIG_PATH, home_drive, home_path);
 		} else {
-			tmp_home_dir[0] = 0;
+			path[0] = 0;
 		}
-
-		home_dir = tmp_home_dir;
 	}
 #elif defined(HAVE_GETPWUID_R)
 	if (home_dir == NULL || home_dir[0] == '\0') {
 		struct passwd *pwd;
 		struct passwd _pwd;
 		int ret;
-		char buf[1024];
+		char tmp[512];
 
-		ret = getpwuid_r(getuid(), &_pwd, buf, sizeof(buf), &pwd);
+		ret = getpwuid_r(getuid(), &_pwd, tmp, sizeof(tmp), &pwd);
 		if (ret == 0 && pwd != NULL) {
-			snprintf(tmp_home_dir, sizeof(tmp_home_dir), "%s",
-				 pwd->pw_dir);
+			snprintf(path, max_size, "%s/" CONFIG_PATH, pwd->pw_dir);
 		} else {
-			tmp_home_dir[0] = 0;
+			path[0] = 0;
 		}
-
-		home_dir = tmp_home_dir;
 	}
 #else
 	if (home_dir == NULL || home_dir[0] == '\0') {
-		tmp_home_dir[0] = 0;
-		home_dir = tmp_home_dir;
+			path[0] = 0;
 	}
 #endif
-
-	if (home_dir == NULL || home_dir[0] == 0)
-		path[0] = 0;
-	else
-		snprintf(path, max_size, "%s/" CONFIG_PATH, home_dir);
 
 	return 0;
 }
@@ -474,42 +468,13 @@ int add_system_trust(gnutls_x509_trust_list_t list, unsigned int tl_flags,
 
 	return r;
 }
-#elif defined(ANDROID) || defined(__ANDROID__)
-#include <dirent.h>
-#include <unistd.h>
-static int load_dir_certs(const char *dirname,
-			  gnutls_x509_trust_list_t list,
-			  unsigned int tl_flags, unsigned int tl_vflags,
-			  unsigned type)
-{
-	DIR *dirp;
-	struct dirent *d;
-	int ret;
-	int r = 0;
-	char path[GNUTLS_PATH_MAX];
+#elif defined(ANDROID) || defined(__ANDROID__) || defined(DEFAULT_TRUST_STORE_DIR)
 
-	dirp = opendir(dirname);
-	if (dirp != NULL) {
-		do {
-			d = readdir(dirp);
-			if (d != NULL && d->d_type == DT_REG) {
-				snprintf(path, sizeof(path), "%s/%s",
-					 dirname, d->d_name);
+# include <dirent.h>
+# include <unistd.h>
 
-				ret =
-				    gnutls_x509_trust_list_add_trust_file
-				    (list, path, NULL, type, tl_flags,
-				     tl_vflags);
-				if (ret >= 0)
-					r += ret;
-			}
-		}
-		while (d != NULL);
-		closedir(dirp);
-	}
-
-	return r;
-}
+# if defined(ANDROID) || defined(__ANDROID__)
+#  define DEFAULT_TRUST_STORE_DIR "/system/etc/security/cacerts/"
 
 static int load_revoked_certs(gnutls_x509_trust_list_t list, unsigned type)
 {
@@ -541,6 +506,8 @@ static int load_revoked_certs(gnutls_x509_trust_list_t list, unsigned type)
 
 	return r;
 }
+# endif
+
 
 /* This works on android 4.x 
  */
@@ -550,21 +517,21 @@ int add_system_trust(gnutls_x509_trust_list_t list, unsigned int tl_flags,
 {
 	int r = 0, ret;
 
-	ret =
-	    load_dir_certs("/system/etc/security/cacerts/", list, tl_flags,
-			   tl_vflags, GNUTLS_X509_FMT_PEM);
+	ret = gnutls_x509_trust_list_add_trust_dir(list, DEFAULT_TRUST_STORE_DIR,
+		NULL, GNUTLS_X509_FMT_PEM, tl_flags, tl_vflags);
 	if (ret >= 0)
 		r += ret;
 
+# if defined(ANDROID) || defined(__ANDROID__)
 	ret = load_revoked_certs(list, GNUTLS_X509_FMT_DER);
 	if (ret >= 0)
 		r -= ret;
 
-	ret =
-	    load_dir_certs("/data/misc/keychain/cacerts-added/", list,
-			   tl_flags, tl_vflags, GNUTLS_X509_FMT_DER);
+	ret = gnutls_x509_trust_list_add_trust_dir(list, "/data/misc/keychain/cacerts-added/",
+		NULL, GNUTLS_X509_FMT_DER, tl_flags, tl_vflags);
 	if (ret >= 0)
 		r += ret;
+# endif
 
 	return r;
 }
@@ -581,8 +548,10 @@ int add_system_trust(gnutls_x509_trust_list_t list, unsigned int tl_flags,
  * @tl_vflags: gnutls_certificate_verify_flags if flags specifies GNUTLS_TL_VERIFY_CRL
  *
  * This function adds the system's default trusted certificate
- * authorities to the trusted list. Note that on unsupported system
+ * authorities to the trusted list. Note that on unsupported systems
  * this function returns %GNUTLS_E_UNIMPLEMENTED_FEATURE.
+ *
+ * This function implies the flag %GNUTLS_TL_NO_DUPLICATES.
  *
  * Returns: The number of added elements or a negative error code on error.
  *
@@ -593,7 +562,7 @@ gnutls_x509_trust_list_add_system_trust(gnutls_x509_trust_list_t list,
 					unsigned int tl_flags,
 					unsigned int tl_vflags)
 {
-	return add_system_trust(list, tl_flags, tl_vflags);
+	return add_system_trust(list, tl_flags|GNUTLS_TL_NO_DUPLICATES, tl_vflags);
 }
 
 #if defined(_WIN32)
@@ -608,24 +577,43 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 	int len = 0, src_len;
 	char *dst = NULL;
 	char *src = NULL;
+	static unsigned flags = 0;
+	static int checked = 0;
 
-	src_len = size / 2;
+	if (checked == 0) {
+		/* Not all windows versions support MB_ERR_INVALID_CHARS */
+		ret =
+		    WideCharToMultiByte(CP_UTF8, MB_ERR_INVALID_CHARS,
+				L"hello", -1, NULL, 0, NULL, NULL);
+		if (ret > 0)
+			flags = MB_ERR_INVALID_CHARS;
+		checked = 1;
+	}
 
-	src = gnutls_malloc(size);
+	if (((uint8_t *) data)[size] == 0 && ((uint8_t *) data)[size+1] == 0) {
+		size -= 2;
+	}
+
+	src_len = wcslen(data);
+
+	src = gnutls_malloc(size+2);
 	if (src == NULL)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
 	/* convert to LE */
 	for (i = 0; i < size; i += 2) {
-		src[i] = ((char *) data)[1 + i];
-		src[1 + i] = ((char *) data)[i];
+		src[i] = ((uint8_t *) data)[1 + i];
+		src[1 + i] = ((uint8_t *) data)[i];
 	}
+	src[size] = 0;
+	src[size+1] = 0;
 
 	ret =
-	    WideCharToMultiByte(CP_UTF8, MB_ERR_INVALID_CHARS,
-				(void *) src, src_len, NULL, 0, NULL,
-				NULL);
+	    WideCharToMultiByte(CP_UTF8, flags,
+				(void *) src, src_len, NULL, 0,
+				NULL, NULL);
 	if (ret == 0) {
+		_gnutls_debug_log("WideCharToMultiByte: %d\n", (int)GetLastError());
 		ret = gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
 		goto fail;
 	}
@@ -636,19 +624,21 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 		ret = gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 		goto fail;
 	}
+	dst[0] = 0;
 
 	ret =
-	    WideCharToMultiByte(CP_UTF8, MB_ERR_INVALID_CHARS,
-				(void *) src, src_len, dst, len, NULL,
+	    WideCharToMultiByte(CP_UTF8, flags,
+				(void *) src, src_len, dst, len-1, NULL,
 				NULL);
 	if (ret == 0) {
 		ret = gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
 		goto fail;
 	}
-
 	dst[len - 1] = 0;
+
 	output->data = dst;
 	output->size = ret;
+
 	ret = 0;
 	goto cleanup;
 

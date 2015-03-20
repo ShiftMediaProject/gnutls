@@ -39,7 +39,7 @@
 
 /**
  * gnutls_random_art:
- * @type: The type of the random art
+ * @type: The type of the random art (for now only %GNUTLS_RANDOM_ART_OPENSSH is supported)
  * @key_type: The type of the key (RSA, DSA etc.)
  * @key_size: The size of the key in bits
  * @fpr: The fingerprint of the key
@@ -47,7 +47,7 @@
  * @art: The returned random art
  *
  * This function will convert a given fingerprint to an "artistic"
- * image. The returned image is allocated using gnutls_malloc()
+ * image. The returned image is allocated using gnutls_malloc().
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise
  *   an error code is returned.
@@ -103,7 +103,8 @@ int gnutls_random_art(gnutls_random_art_t type,
  **/
 void gnutls_dh_set_prime_bits(gnutls_session_t session, unsigned int bits)
 {
-	if (bits <= 512 && bits != 0)
+	if (bits <= gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_VERY_WEAK)
+		&& bits != 0)
 		_gnutls_audit_log(session,
 				  "Note that the security level of the Diffie-Hellman key exchange has been lowered to %u bits and this may allow decryption of the session data\n",
 				  bits);
@@ -138,19 +139,19 @@ gnutls_dh_get_group(gnutls_session_t session,
 
 	switch (gnutls_auth_get_type(session)) {
 	case GNUTLS_CRD_ANON:
-		anon_info = _gnutls_get_auth_info(session);
+		anon_info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 		if (anon_info == NULL)
 			return GNUTLS_E_INTERNAL_ERROR;
 		dh = &anon_info->dh;
 		break;
 	case GNUTLS_CRD_PSK:
-		psk_info = _gnutls_get_auth_info(session);
+		psk_info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 		if (psk_info == NULL)
 			return GNUTLS_E_INTERNAL_ERROR;
 		dh = &psk_info->dh;
 		break;
 	case GNUTLS_CRD_CERTIFICATE:
-		cert_info = _gnutls_get_auth_info(session);
+		cert_info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 		if (cert_info == NULL)
 			return GNUTLS_E_INTERNAL_ERROR;
 		dh = &cert_info->dh;
@@ -202,7 +203,7 @@ gnutls_dh_get_pubkey(gnutls_session_t session, gnutls_datum_t * raw_key)
 	switch (gnutls_auth_get_type(session)) {
 	case GNUTLS_CRD_ANON:
 		{
-			anon_info = _gnutls_get_auth_info(session);
+			anon_info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (anon_info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			dh = &anon_info->dh;
@@ -210,7 +211,7 @@ gnutls_dh_get_pubkey(gnutls_session_t session, gnutls_datum_t * raw_key)
 		}
 	case GNUTLS_CRD_PSK:
 		{
-			psk_info = _gnutls_get_auth_info(session);
+			psk_info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (psk_info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			dh = &psk_info->dh;
@@ -219,7 +220,7 @@ gnutls_dh_get_pubkey(gnutls_session_t session, gnutls_datum_t * raw_key)
 	case GNUTLS_CRD_CERTIFICATE:
 		{
 
-			cert_info = _gnutls_get_auth_info(session);
+			cert_info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (cert_info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			dh = &cert_info->dh;
@@ -252,7 +253,7 @@ int gnutls_dh_get_secret_bits(gnutls_session_t session)
 		{
 			anon_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			return info->dh.secret_bits;
@@ -261,7 +262,7 @@ int gnutls_dh_get_secret_bits(gnutls_session_t session)
 		{
 			psk_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			return info->dh.secret_bits;
@@ -270,7 +271,7 @@ int gnutls_dh_get_secret_bits(gnutls_session_t session)
 		{
 			cert_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -288,7 +289,7 @@ static int mpi_buf2bits(gnutls_datum_t * mpi_buf)
 	bigint_t mpi;
 	int rc;
 
-	rc = _gnutls_mpi_scan_nz(&mpi, mpi_buf->data, mpi_buf->size);
+	rc = _gnutls_mpi_init_scan_nz(&mpi, mpi_buf->data, mpi_buf->size);
 	if (rc) {
 		gnutls_assert();
 		return rc;
@@ -323,7 +324,7 @@ int gnutls_dh_get_prime_bits(gnutls_session_t session)
 		{
 			anon_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			dh = &info->dh;
@@ -333,7 +334,7 @@ int gnutls_dh_get_prime_bits(gnutls_session_t session)
 		{
 			psk_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			dh = &info->dh;
@@ -343,7 +344,7 @@ int gnutls_dh_get_prime_bits(gnutls_session_t session)
 		{
 			cert_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -378,7 +379,7 @@ int gnutls_dh_get_peers_public_bits(gnutls_session_t session)
 		{
 			anon_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -389,7 +390,7 @@ int gnutls_dh_get_peers_public_bits(gnutls_session_t session)
 		{
 			psk_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -400,7 +401,7 @@ int gnutls_dh_get_peers_public_bits(gnutls_session_t session)
 		{
 			cert_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -457,7 +458,7 @@ const gnutls_datum_t *gnutls_certificate_get_ours(gnutls_session_t session)
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, NULL);
 
 	cred = (gnutls_certificate_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE);
 	if (cred == NULL || cred->certs == NULL) {
 		gnutls_assert();
 		return NULL;
@@ -483,7 +484,7 @@ const gnutls_datum_t *gnutls_certificate_get_ours(gnutls_session_t session)
  * In case of OpenPGP keys a single key will be returned in raw
  * format.
  *
- * Returns: a pointer to a #gnutls_datum_t containing our
+ * Returns: a pointer to a #gnutls_datum_t containing the peer's
  *   certificates, or %NULL in case of an error or if no certificate
  *   was used.
  **/
@@ -495,7 +496,7 @@ const gnutls_datum_t *gnutls_certificate_get_peers(gnutls_session_t
 
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, NULL);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 	if (info == NULL)
 		return NULL;
 
@@ -525,7 +526,7 @@ int gnutls_certificate_get_peers_subkey_id(gnutls_session_t session,
 
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, GNUTLS_E_INVALID_REQUEST);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 	if (info == NULL)
 		return GNUTLS_E_INVALID_REQUEST;
 
@@ -543,8 +544,7 @@ int gnutls_certificate_get_peers_subkey_id(gnutls_session_t session,
  * Get whether client certificate is requested or not.
  *
  * Returns: 0 if the peer (server) did not request client
- *   authentication or 1 otherwise, or a negative error code in case of
- *   error.
+ *   authentication or 1 otherwise.
  **/
 int gnutls_certificate_client_get_request_status(gnutls_session_t session)
 {
@@ -577,7 +577,7 @@ gnutls_fingerprint(gnutls_digest_algorithm_t algo,
 		   size_t * result_size)
 {
 	int ret;
-	int hash_len = _gnutls_hash_get_algo_len(mac_to_entry(algo));
+	int hash_len = _gnutls_hash_get_algo_len(hash_to_entry(algo));
 
 	if (hash_len < 0 || (unsigned) hash_len > *result_size
 	    || result == NULL) {
@@ -813,6 +813,7 @@ gnutls_certificate_set_rsa_export_params(gnutls_certificate_credentials_t
 char *gnutls_session_get_desc(gnutls_session_t session)
 {
 	gnutls_kx_algorithm_t kx;
+	const char *kx_str;
 	unsigned type;
 	char kx_name[32];
 	char proto_name[32];
@@ -833,15 +834,20 @@ char *gnutls_session_get_desc(gnutls_session_t session)
 		dh_bits = gnutls_dh_get_prime_bits(session);
 	}
 
-	if (curve_name != NULL)
-		snprintf(kx_name, sizeof(kx_name), "%s-%s",
-			 gnutls_kx_get_name(kx), curve_name);
-	else if (dh_bits != 0)
-		snprintf(kx_name, sizeof(kx_name), "%s-%u",
-			 gnutls_kx_get_name(kx), dh_bits);
-	else
-		snprintf(kx_name, sizeof(kx_name), "%s",
-			 gnutls_kx_get_name(kx));
+	kx_str = gnutls_kx_get_name(kx);
+	if (kx_str) {
+		if (curve_name != NULL)
+			snprintf(kx_name, sizeof(kx_name), "%s-%s",
+				 kx_str, curve_name);
+		else if (dh_bits != 0)
+			snprintf(kx_name, sizeof(kx_name), "%s-%u",
+				 kx_str, dh_bits);
+		else
+			snprintf(kx_name, sizeof(kx_name), "%s",
+				 kx_str);
+	} else {
+		strcpy(kx_name, "NULL");
+	}
 
 	type = gnutls_certificate_type_get(session);
 	if (type == GNUTLS_CRT_X509)

@@ -46,6 +46,12 @@ int main(void)
 
         strcpy(name, "Echo Server");
 
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
+
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
 
         /* SRP_PASSWD a password file (created with the included srptool utility) 
@@ -85,7 +91,8 @@ int main(void)
         for (;;) {
                 gnutls_init(&session, GNUTLS_SERVER);
                 gnutls_priority_set_direct(session,
-                                           "NORMAL:-KX-ALL:+SRP:+SRP-DSS:+SRP-RSA",
+                                           "NORMAL"
+                                           ":-KX-ALL:+SRP:+SRP-DSS:+SRP-RSA",
                                            NULL);
                 gnutls_credentials_set(session, GNUTLS_CRD_SRP, srp_cred);
                 /* for the certificate authenticated ciphersuites.
@@ -93,7 +100,10 @@ int main(void)
                 gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE,
                                        cert_cred);
 
-                /* request client certificate if any.
+                /* We don't request any certificate from the client.
+                 * If we did we would need to verify it. One way of
+                 * doing that is shown in the "Verifying a certificate"
+                 * example.
                  */
                 gnutls_certificate_server_set_request(session,
                                                       GNUTLS_CERT_IGNORE);

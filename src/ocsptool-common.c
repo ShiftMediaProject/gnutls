@@ -147,6 +147,7 @@ int send_ocsp_request(const char *server,
 	unsigned char *p;
 	const char *hostname;
 	const char *path = "";
+	unsigned i;
 	unsigned int headers_size = 0, port;
 	socket_st hd;
 
@@ -156,20 +157,28 @@ int send_ocsp_request(const char *server,
 		/* try to read URL from issuer certificate */
 		gnutls_datum_t data;
 
-		ret = gnutls_x509_crt_get_authority_info_access(cert, 0,
-								GNUTLS_IA_OCSP_URI,
-								&data,
-								NULL);
+		i = 0;
+		do {
+			ret = gnutls_x509_crt_get_authority_info_access(cert, i++,
+									GNUTLS_IA_OCSP_URI,
+									&data,
+									NULL);
+		} while(ret == GNUTLS_E_UNKNOWN_ALGORITHM);
 
-		if (ret < 0)
-			ret =
-			    gnutls_x509_crt_get_authority_info_access
-			    (issuer, 0, GNUTLS_IA_OCSP_URI, &data, NULL);
+		if (ret < 0) {
+			i = 0;
+			do {
+				ret =
+				    gnutls_x509_crt_get_authority_info_access
+				    (issuer, i++, GNUTLS_IA_OCSP_URI, &data, NULL);
+			} while(ret == GNUTLS_E_UNKNOWN_ALGORITHM);
+		}
+
 		if (ret < 0) {
 			fprintf(stderr,
-				"Cannot find URL from issuer: %s\n",
+				"*** Cannot find OCSP server URI in certificate: %s\n",
 				gnutls_strerror(ret));
-			return -1;
+			return ret;
 		}
 
 		url = malloc(data.size + 1);
@@ -195,7 +204,7 @@ int send_ocsp_request(const char *server,
 		 (unsigned int) req.size);
 	headers_size = strlen(headers);
 
-	socket_open(&hd, hostname, service, 0);
+	socket_open(&hd, hostname, service, 0, CONNECT_MSG);
 
 	socket_send(&hd, headers, headers_size);
 	socket_send(&hd, req.data, req.size);
@@ -305,7 +314,7 @@ void print_ocsp_verify_res(unsigned int output)
 int
 check_ocsp_response(gnutls_x509_crt_t cert,
 		    gnutls_x509_crt_t issuer, gnutls_datum_t * data,
-		    gnutls_datum_t * nonce)
+		    gnutls_datum_t * nonce, int verbose)
 {
 	gnutls_ocsp_resp_t resp;
 	int ret;
@@ -330,8 +339,13 @@ check_ocsp_response(gnutls_x509_crt_t cert,
 
 	ret = gnutls_ocsp_resp_check_crt(resp, 0, cert);
 	if (ret < 0) {
-		printf
-		    ("*** Got OCSP response on an unrelated certificate (ignoring)\n");
+		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+			printf
+			    ("*** Got OCSP response with no data (ignoring)\n");
+		} else {
+			printf
+			    ("*** Got OCSP response on an unrelated certificate (ignoring)\n");
+		}
 		ret = -1;
 		goto cleanup;
 	}
@@ -395,7 +409,8 @@ check_ocsp_response(gnutls_x509_crt_t cert,
 
 		ret = gnutls_ocsp_resp_get_nonce(resp, NULL, &rnonce);
 		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
-			fprintf(stderr, "*** The OCSP reply did not include the requested nonce.\n");
+			if (verbose)
+				fprintf(stderr, "*** The OCSP reply did not include the requested nonce.\n");
 			goto finish_ok;
 		}
 

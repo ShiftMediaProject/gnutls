@@ -75,7 +75,12 @@ update-po: refresh-po
 config:
 	./configure $(CFGFLAGS)
 
-bootstrap: autoreconf
+.submodule.stamp:
+	git submodule init
+	git submodule update
+	touch $@
+
+bootstrap: autoreconf .submodule.stamp
 
 # The only non-lgpl modules used are: gettime progname timespec. Those
 # are not used (and must not be used) in the library)
@@ -120,7 +125,7 @@ clang-upload:
 # Release
 
 ChangeLog:
-	git log --pretty --numstat --summary --since="2011 November 07" -- | git2cl > ChangeLog
+	git log --pretty --numstat --summary --since="2012 November 07" -- | git2cl > ChangeLog
 	cat .clcopying >> ChangeLog
 
 tag = $(PACKAGE)_`echo $(VERSION) | sed 's/\./_/g'`
@@ -154,6 +159,9 @@ web:
 	sed 's/\@VERSION\@/$(VERSION)/g' -i $(htmldir)/manual/html_node/*.html $(htmldir)/manual/gnutls.html
 	-cd doc && make gnutls.epub && cp gnutls.epub ../$(htmldir)/manual/
 	cd doc/latex && make gnutls.pdf && cp gnutls.pdf ../../$(htmldir)/manual/
+	make -C doc gnutls-guile.html gnutls-guile.pdf
+	cd doc && makeinfo --html --split=node -o ../$(htmldir)/manual/gnutls-guile/ --css-include=./texinfo.css gnutls-guile.texi
+	cd doc && cp gnutls-guile.pdf gnutls-guile.html ../$(htmldir)/manual/
 	#cd doc/doxygen && doxygen && cd ../.. && cp -v doc/doxygen/html/* $(htmldir)/devel/doxygen/ && cd doc/doxygen/latex && make refman.pdf && cd ../../../ && cp doc/doxygen/latex/refman.pdf $(htmldir)/devel/doxygen/$(PACKAGE).pdf
 	-cp -v doc/reference/html/*.html doc/reference/html/*.png doc/reference/html/*.devhelp doc/reference/html/*.css $(htmldir)/reference/
 	#cp -v doc/cyclo/cyclo-$(PACKAGE).html $(htmldir)/cyclo/
@@ -188,11 +196,14 @@ asm-sources: $(ASM_SOURCES_ELF) $(ASM_SOURCES_COFF) $(ASM_SOURCES_MACOSX) lib/ac
 asm-sources-clean:
 	rm -f $(ASM_SOURCES_ELF) $(ASM_SOURCES_COFF) $(ASM_SOURCES_MACOSX) lib/accelerated/x86/files.mk
 
-X86_FILES=XXX/aesni-x86.s XXX/cpuid-x86.s XXX/e_padlock-x86.s XXX/sha1-ssse3-x86.s \
+X86_FILES=XXX/aesni-x86.s XXX/cpuid-x86.s XXX/sha1-ssse3-x86.s \
 	XXX/sha256-ssse3-x86.s XXX/sha512-ssse3-x86.s XXX/aes-ssse3-x86.s
 
-X86_64_FILES=XXX/aesni-x86_64.s XXX/cpuid-x86_64.s XXX/e_padlock-x86_64.s XXX/ghash-x86_64.s \
+X86_64_FILES=XXX/aesni-x86_64.s XXX/cpuid-x86_64.s XXX/ghash-x86_64.s \
 	XXX/sha1-ssse3-x86_64.s XXX/sha512-ssse3-x86_64.s XXX/aes-ssse3-x86_64.s
+
+X86_PADLOCK_FILES=XXX/e_padlock-x86.s
+X86_64_PADLOCK_FILES=XXX/e_padlock-x86_64.s
 
 X86_FILES_ELF := $(subst XXX,elf,$(X86_FILES))
 X86_FILES_COFF := $(subst XXX,coff,$(X86_FILES))
@@ -201,6 +212,13 @@ X86_64_FILES_ELF := $(subst XXX,elf,$(X86_64_FILES))
 X86_64_FILES_COFF := $(subst XXX,coff,$(X86_64_FILES))
 X86_64_FILES_MACOSX := $(subst XXX,macosx,$(X86_64_FILES))
 
+X86_PADLOCK_FILES_ELF := $(subst XXX,elf,$(X86_PADLOCK_FILES))
+X86_PADLOCK_FILES_COFF := $(subst XXX,coff,$(X86_PADLOCK_FILES))
+X86_PADLOCK_FILES_MACOSX := $(subst XXX,macosx,$(X86_PADLOCK_FILES))
+X86_64_PADLOCK_FILES_ELF := $(subst XXX,elf,$(X86_64_PADLOCK_FILES))
+X86_64_PADLOCK_FILES_COFF := $(subst XXX,coff,$(X86_64_PADLOCK_FILES))
+X86_64_PADLOCK_FILES_MACOSX := $(subst XXX,macosx,$(X86_64_PADLOCK_FILES))
+
 lib/accelerated/x86/files.mk: $(ASM_SOURCES_ELF)
 	echo X86_FILES_ELF=$(X86_FILES_ELF) > $@.tmp
 	echo X86_FILES_COFF=$(X86_FILES_COFF) >> $@.tmp
@@ -208,30 +226,36 @@ lib/accelerated/x86/files.mk: $(ASM_SOURCES_ELF)
 	echo X86_64_FILES_ELF=$(X86_64_FILES_ELF) >> $@.tmp
 	echo X86_64_FILES_COFF=$(X86_64_FILES_COFF) >> $@.tmp
 	echo X86_64_FILES_MACOSX=$(X86_64_FILES_MACOSX) >> $@.tmp
+	echo X86_PADLOCK_FILES_ELF=$(X86_PADLOCK_FILES_ELF) >> $@.tmp
+	echo X86_PADLOCK_FILES_COFF=$(X86_PADLOCK_FILES_COFF) >> $@.tmp
+	echo X86_PADLOCK_FILES_MACOSX=$(X86_PADLOCK_FILES_MACOSX) >> $@.tmp
+	echo X86_64_PADLOCK_FILES_ELF=$(X86_64_PADLOCK_FILES_ELF) >> $@.tmp
+	echo X86_64_PADLOCK_FILES_COFF=$(X86_64_PADLOCK_FILES_COFF) >> $@.tmp
+	echo X86_64_PADLOCK_FILES_MACOSX=$(X86_64_PADLOCK_FILES_MACOSX) >> $@.tmp
 	mv $@.tmp $@
 
 # Appro's code
-lib/accelerated/x86/elf/%.s: devel/perlasm/%.pl
-	cat $^.license > $@
+lib/accelerated/x86/elf/%.s: devel/perlasm/%.pl .submodule.stamp 
+	cat $<.license > $@
 	perl $< elf >> $@
 	echo "" >> $@
 	echo ".section .note.GNU-stack,\"\",%progbits" >> $@
 	sed -i 's/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g' $@
 
-lib/accelerated/x86/coff/%-x86.s: devel/perlasm/%-x86.pl
-	cat $^.license > $@
+lib/accelerated/x86/coff/%-x86.s: devel/perlasm/%-x86.pl .submodule.stamp 
+	cat $<.license > $@
 	perl $< coff >> $@
 	echo "" >> $@
 	sed -i 's/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g' $@
 
-lib/accelerated/x86/coff/%-x86_64.s: devel/perlasm/%-x86_64.pl
-	cat $^.license > $@
+lib/accelerated/x86/coff/%-x86_64.s: devel/perlasm/%-x86_64.pl .submodule.stamp 
+	cat $<.license > $@
 	perl $< mingw64 >> $@
 	echo "" >> $@
 	sed -i 's/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g' $@
 
-lib/accelerated/x86/macosx/%.s: devel/perlasm/%.pl
-	cat $^.license > $@
+lib/accelerated/x86/macosx/%.s: devel/perlasm/%.pl .submodule.stamp 
+	cat $<.license > $@
 	perl $< macosx >> $@
 	echo "" >> $@
 	sed -i 's/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g' $@

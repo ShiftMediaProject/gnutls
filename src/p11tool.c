@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2010-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2010-2014 Free Software Foundation, Inc.
+ * Copyright (C) 2013-2014 Nikos Mavrogiannopoulos
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -66,6 +67,39 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+static
+unsigned opt_to_flags(void)
+{
+	unsigned flags = 0;
+
+	if (HAVE_OPT(MARK_PRIVATE)) {
+		if (ENABLED_OPT(MARK_PRIVATE)) {
+			flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_PRIVATE;
+		} else {
+			flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_NOT_PRIVATE;
+		}
+	}
+
+	if (ENABLED_OPT(MARK_TRUSTED))
+		flags |=
+		    GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED;
+
+	if (ENABLED_OPT(MARK_CA))
+		flags |=
+		    GNUTLS_PKCS11_OBJ_FLAG_MARK_CA;
+
+	if (ENABLED_OPT(MARK_WRAP))
+		flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_KEY_WRAP;
+
+	if (ENABLED_OPT(LOGIN))
+		flags |= GNUTLS_PKCS11_OBJ_FLAG_LOGIN;
+
+	if (ENABLED_OPT(SO_LOGIN))
+		flags |= GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO;
+
+	return flags;
+}
+
 static void cmd_parser(int argc, char **argv)
 {
 	int ret, debug = 0;
@@ -73,8 +107,9 @@ static void cmd_parser(int argc, char **argv)
 	unsigned int pkcs11_type = -1, key_type = GNUTLS_PK_UNKNOWN;
 	const char *url = NULL;
 	unsigned int detailed_url = 0, optct;
-	unsigned int login = 0, bits = 0;
+	unsigned int bits = 0;
 	const char *label = NULL, *sec_param = NULL;
+	unsigned flags;
 
 	optct = optionProcess(&p11toolOptions, argc, argv);
 	argc += optct;
@@ -93,6 +128,11 @@ static void cmd_parser(int argc, char **argv)
 	if (debug > 1)
 		printf("Setting log level to %d\n", debug);
 
+	if ((ret = gnutls_global_init()) < 0) {
+		fprintf(stderr, "global_init: %s\n", gnutls_strerror(ret));
+		exit(1);
+	}
+
 	if (HAVE_OPT(PROVIDER)) {
 		ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_MANUAL, NULL);
 		if (ret < 0)
@@ -108,11 +148,11 @@ static void cmd_parser(int argc, char **argv)
 				exit(1);
 			}
 		}
-	}
-
-	if ((ret = gnutls_global_init()) < 0) {
-		fprintf(stderr, "global_init: %s\n", gnutls_strerror(ret));
-		exit(1);
+	} else {
+		ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_AUTO, NULL);
+		if (ret < 0)
+			fprintf(stderr, "pkcs11_init: %s\n",
+				gnutls_strerror(ret));
 	}
 
 	if (HAVE_OPT(OUTFILE)) {
@@ -126,6 +166,8 @@ static void cmd_parser(int argc, char **argv)
 
 	memset(&cinfo, 0, sizeof(cinfo));
 
+	flags = opt_to_flags();
+
 	if (HAVE_OPT(SECRET_KEY))
 		cinfo.secret_key = OPT_ARG(SECRET_KEY);
 
@@ -134,6 +176,10 @@ static void cmd_parser(int argc, char **argv)
 
 	if (HAVE_OPT(PKCS8))
 		cinfo.pkcs8 = 1;
+
+	if (HAVE_OPT(BATCH)) {
+		batch = cinfo.batch = 1;
+	}
 
 	if (ENABLED_OPT(INDER) || ENABLED_OPT(INRAW))
 		cinfo.incert_format = GNUTLS_X509_FMT_DER;
@@ -145,6 +191,12 @@ static void cmd_parser(int argc, char **argv)
 	else
 		cinfo.outcert_format = GNUTLS_X509_FMT_PEM;
 
+	if (HAVE_OPT(SET_PIN))
+		cinfo.pin = OPT_ARG(SET_PIN);
+
+	if (HAVE_OPT(SET_SO_PIN))
+		cinfo.so_pin = OPT_ARG(SET_SO_PIN);
+
 	if (HAVE_OPT(LOAD_CERTIFICATE))
 		cinfo.cert = OPT_ARG(LOAD_CERTIFICATE);
 
@@ -154,12 +206,6 @@ static void cmd_parser(int argc, char **argv)
 	if (ENABLED_OPT(DETAILED_URL))
 		detailed_url = 1;
 
-	if (ENABLED_OPT(LOGIN))
-		login = GNUTLS_PKCS11_OBJ_FLAG_LOGIN;
-
-	if (ENABLED_OPT(SO_LOGIN))
-		login = GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO;
-
 	if (HAVE_OPT(LABEL)) {
 		label = OPT_ARG(LABEL);
 	}
@@ -168,18 +214,28 @@ static void cmd_parser(int argc, char **argv)
 		bits = OPT_VALUE_BITS;
 	}
 
+	if (HAVE_OPT(CURVE)) {
+		bits = GNUTLS_CURVE_TO_BITS(str_to_curve(OPT_ARG(CURVE)));
+	}
+
 	if (HAVE_OPT(SEC_PARAM)) {
 		sec_param = OPT_ARG(SEC_PARAM);
 	}
 
-	if (debug > 0) {
-		if (HAVE_OPT(PRIVATE))
+	if (debug > 4) {
+		if (HAVE_OPT(MARK_PRIVATE))
 			fprintf(stderr, "Private: %s\n",
-				ENABLED_OPT(PRIVATE) ? "yes" : "no");
+				ENABLED_OPT(MARK_PRIVATE) ? "yes" : "no");
 		fprintf(stderr, "Trusted: %s\n",
-			ENABLED_OPT(TRUSTED) ? "yes" : "no");
+			ENABLED_OPT(MARK_TRUSTED) ? "yes" : "no");
+		fprintf(stderr, "Wrap: %s\n",
+			ENABLED_OPT(MARK_WRAP) ? "yes" : "no");
+		fprintf(stderr, "CA: %s\n",
+			ENABLED_OPT(MARK_CA) ? "yes" : "no");
 		fprintf(stderr, "Login: %s\n",
 			ENABLED_OPT(LOGIN) ? "yes" : "no");
+		fprintf(stderr, "SO Login: %s\n",
+			ENABLED_OPT(SO_LOGIN) ? "yes" : "no");
 		fprintf(stderr, "Detailed URLs: %s\n",
 			ENABLED_OPT(DETAILED_URL) ? "yes" : "no");
 		fprintf(stderr, "\n");
@@ -187,68 +243,68 @@ static void cmd_parser(int argc, char **argv)
 
 	/* handle actions 
 	 */
-	if (HAVE_OPT(LIST_TOKENS))
-		pkcs11_token_list(outfile, detailed_url, &cinfo);
-	else if (HAVE_OPT(LIST_MECHANISMS))
-		pkcs11_mechanism_list(outfile, url, login, &cinfo);
-	else if (HAVE_OPT(GENERATE_RANDOM))
+	if (HAVE_OPT(LIST_TOKENS)) {
+		pkcs11_token_list(outfile, detailed_url, &cinfo, 0);
+	} else if (HAVE_OPT(LIST_MECHANISMS)) {
+		pkcs11_mechanism_list(outfile, url, flags, &cinfo);
+	} else if (HAVE_OPT(GENERATE_RANDOM)) {
 		pkcs11_get_random(outfile, url, OPT_VALUE_GENERATE_RANDOM,
 				  &cinfo);
-	else if (HAVE_OPT(LIST_ALL)) {
+	} else if (HAVE_OPT(INFO)) {
+		pkcs11_type = PKCS11_TYPE_INFO;
+		pkcs11_list(outfile, url, pkcs11_type,
+			    flags, detailed_url, &cinfo);
+	} else if (HAVE_OPT(LIST_ALL)) {
 		pkcs11_type = PKCS11_TYPE_ALL;
 		pkcs11_list(outfile, url, pkcs11_type,
-			    login, detailed_url, &cinfo);
+			    flags, detailed_url, &cinfo);
 	} else if (HAVE_OPT(LIST_ALL_CERTS)) {
 		pkcs11_type = PKCS11_TYPE_CRT_ALL;
 		pkcs11_list(outfile, url, pkcs11_type,
-			    login, detailed_url, &cinfo);
+			    flags, detailed_url, &cinfo);
 	} else if (HAVE_OPT(LIST_CERTS)) {
 		pkcs11_type = PKCS11_TYPE_PK;
 		pkcs11_list(outfile, url, pkcs11_type,
-			    login, detailed_url, &cinfo);
+			    flags, detailed_url, &cinfo);
 	} else if (HAVE_OPT(LIST_ALL_PRIVKEYS)) {
 		pkcs11_type = PKCS11_TYPE_PRIVKEY;
 		pkcs11_list(outfile, url, pkcs11_type,
-			    login, detailed_url, &cinfo);
+			    flags, detailed_url, &cinfo);
 	} else if (HAVE_OPT(LIST_ALL_TRUSTED)) {
 		pkcs11_type = PKCS11_TYPE_TRUSTED;
 		pkcs11_list(outfile, url, pkcs11_type,
-			    login, detailed_url, &cinfo);
+			    flags, detailed_url, &cinfo);
 	} else if (HAVE_OPT(EXPORT)) {
-		pkcs11_export(outfile, url, login, &cinfo);
+		pkcs11_export(outfile, url, flags, &cinfo);
 	} else if (HAVE_OPT(EXPORT_CHAIN)) {
-		pkcs11_export_chain(outfile, url, login, &cinfo);
+		pkcs11_export_chain(outfile, url, flags, &cinfo);
 	} else if (HAVE_OPT(WRITE)) {
-		int priv;
-
-		if (HAVE_OPT(PRIVATE))
-			priv = ENABLED_OPT(PRIVATE);
-		else
-			priv = -1;
 		pkcs11_write(outfile, url, label,
-			     ENABLED_OPT(TRUSTED), priv, login, &cinfo);
+			     flags, &cinfo);
 	} else if (HAVE_OPT(INITIALIZE))
 		pkcs11_init(outfile, url, label, &cinfo);
 	else if (HAVE_OPT(DELETE))
-		pkcs11_delete(outfile, url, 0, login, &cinfo);
+		pkcs11_delete(outfile, url, flags, &cinfo);
 	else if (HAVE_OPT(GENERATE_ECC)) {
 		key_type = GNUTLS_PK_EC;
 		pkcs11_generate(outfile, url, key_type,
 				get_bits(key_type, bits, sec_param, 0),
-				label, ENABLED_OPT(PRIVATE), detailed_url,
-				login, &cinfo);
+				label, detailed_url,
+				flags, &cinfo);
 	} else if (HAVE_OPT(GENERATE_RSA)) {
 		key_type = GNUTLS_PK_RSA;
 		pkcs11_generate(outfile, url, key_type,
 				get_bits(key_type, bits, sec_param, 0),
-				label, ENABLED_OPT(PRIVATE), detailed_url,
-				login, &cinfo);
+				label, detailed_url,
+				flags, &cinfo);
 	} else if (HAVE_OPT(GENERATE_DSA)) {
 		key_type = GNUTLS_PK_DSA;
 		pkcs11_generate(outfile, url, key_type,
 				get_bits(key_type, bits, sec_param, 0),
-				label, ENABLED_OPT(PRIVATE), detailed_url,
-				login, &cinfo);
+				label, detailed_url,
+				flags, &cinfo);
+	} else if (HAVE_OPT(EXPORT_PUBKEY)) {
+		pkcs11_export_pubkey(outfile, url, detailed_url, flags, &cinfo);
 	} else {
 		USAGE(1);
 	}

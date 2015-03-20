@@ -115,6 +115,7 @@ static void aes_deinit(void *_ctx)
 {
 	struct aes_ctx *ctx = _ctx;
 	
+	zeroize_temp_key(ctx, sizeof(*ctx));
 	gnutls_free(ctx);
 }
 

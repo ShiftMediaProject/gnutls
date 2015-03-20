@@ -30,6 +30,9 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/tests/suite/ecore/src/include \
 	-I$(top_srcdir)/tests/suite/ecore/src/lib
 
+EXTRA_DIST = crl/long.crl crl/long.pem
+
+check_PROGRAMS = rng
 AM_LDFLAGS = -no-install
 LDADD = ../../lib/libgnutls.la \
 	../../gl/libgnu.la \
@@ -82,13 +85,23 @@ nodist_libecore_la_SOURCES = ecore/src/lib/ecore_anim.c			\
 
 
 
-nodist_check_SCRIPTS = eagain testsrn testcompat chain invalid-cert testrandom
+nodist_check_SCRIPTS = eagain testsrn testcompat chain invalid-cert testrandom \
+	testpkcs11 testpkcs11.pkcs15 testpkcs11.softhsm testpkcs11.sc-hsm \
+	testrng
 
-TESTS = ciphersuite/test-ciphersuites.sh eagain testsrn testcompat chain invalid-cert
+TESTS = ciphersuite/test-ciphersuites.sh eagain testsrn testcompat chain invalid-cert \
+	testpkcs11 testrng
+
+if ENABLE_PKCS11
+check_PROGRAMS += pkcs11-chainverify pkcs11-get-issuer pkcs11-is-known pkcs11-combo
+TESTS += pkcs11-chainverify pkcs11-get-issuer crl-test pkcs11-is-known pkcs11-combo
+endif
 
 TESTS_ENVIRONMENT = EXEEXT=$(EXEEXT) \
-	LC_ALL="C"						\
-	top_builddir="$(top_builddir)"				\
+	LC_ALL="C"					\
+	VALGRIND="$(VALGRIND)"				\
+	LIBTOOL="$(LIBTOOL)"				\
+	top_builddir="$(top_builddir)"			\
 	srcdir="$(srcdir)"
 
 if ENABLE_DANE
@@ -108,3 +121,9 @@ noinst_PROGRAMS = eagain-cli mini-record-timing
 TESTS += eagain
 endif
 endif
+
+#pkcs11-chainverify cannot run under valgrind (or hell breaks loose)
+
+#if WANT_TEST_SUITE
+#LOG_COMPILER = $(VALGRIND)
+#endif

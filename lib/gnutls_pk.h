@@ -30,10 +30,13 @@ extern gnutls_crypto_pk_st _gnutls_pk_ops;
 #define _gnutls_pk_decrypt( algo, ciphertext, plaintext, params) _gnutls_pk_ops.decrypt( algo, ciphertext, plaintext, params)
 #define _gnutls_pk_sign( algo, sig, data, params) _gnutls_pk_ops.sign( algo, sig, data, params)
 #define _gnutls_pk_verify( algo, data, sig, params) _gnutls_pk_ops.verify( algo, data, sig, params)
-#define _gnutls_pk_verify_params( algo, params) _gnutls_pk_ops.verify_params( algo, params)
+#define _gnutls_pk_verify_priv_params( algo, params) _gnutls_pk_ops.verify_priv_params( algo, params)
+#define _gnutls_pk_verify_pub_params( algo, params) _gnutls_pk_ops.verify_pub_params( algo, params)
 #define _gnutls_pk_derive( algo, out, pub, priv) _gnutls_pk_ops.derive( algo, out, pub, priv)
-#define _gnutls_pk_generate( algo, bits, priv) _gnutls_pk_ops.generate( algo, bits, priv)
+#define _gnutls_pk_generate_keys( algo, bits, priv) _gnutls_pk_ops.generate_keys( algo, bits, priv)
+#define _gnutls_pk_generate_params( algo, bits, priv) _gnutls_pk_ops.generate_params( algo, bits, priv)
 #define _gnutls_pk_hash_algorithm( pk, sig, params, hash) _gnutls_pk_ops.hash_algorithm(pk, sig, params, hash)
+#define _gnutls_pk_curve_exists( curve) _gnutls_pk_ops.curve_exists(curve)
 
 inline static int
 _gnutls_pk_fixup(gnutls_pk_algorithm_t algo, gnutls_direction_t direction,
@@ -75,5 +78,25 @@ int _gnutls_pk_get_hash_algorithm(gnutls_pk_algorithm_t pk,
 				  gnutls_pk_params_st *,
 				  gnutls_digest_algorithm_t * dig,
 				  unsigned int *mand);
+
+int
+_gnutls_params_get_rsa_raw(const gnutls_pk_params_st* params,
+				    gnutls_datum_t * m, gnutls_datum_t * e,
+				    gnutls_datum_t * d, gnutls_datum_t * p,
+				    gnutls_datum_t * q, gnutls_datum_t * u,
+				    gnutls_datum_t * e1,
+				    gnutls_datum_t * e2);
+
+int
+_gnutls_params_get_dsa_raw(const gnutls_pk_params_st* params,
+			     gnutls_datum_t * p, gnutls_datum_t * q,
+			     gnutls_datum_t * g, gnutls_datum_t * y,
+			     gnutls_datum_t * x);
+
+int _gnutls_params_get_ecc_raw(const gnutls_pk_params_st* params,
+				       gnutls_ecc_curve_t * curve,
+				       gnutls_datum_t * x,
+				       gnutls_datum_t * y,
+				       gnutls_datum_t * k);
 
 #endif				/* GNUTLS_PK_H */

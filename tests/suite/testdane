@@ -19,7 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 srcdir="${srcdir:-.}"
-CLI="${CLI:-../../src/gnutls-cli$EXEEXT}"
 DANETOOL="${DANETOOL:-../../src/danetool$EXEEXT}"
 unset RETCODE
 
@@ -31,47 +30,35 @@ unset RETCODE
 
 . $srcdir/../scripts/common.sh
 
-echo "*** Testing bad hosts"
-# Not ok
-HOSTS="bad-hash.dane.verisignlabs.com dane-broken.rd.nic.fr bad-params.dane.verisignlabs.com"
-HOSTS="$HOSTS bad-sig.dane.verisignlabs.com"
+# Fine hosts
+
+echo ""
+echo "*** Testing good hosts ***"
+HOSTS="good.dane.verisignlabs.com www.kumari.net torproject.org"
+HOSTS="$HOSTS nohats.ca"
+# used to work: dane.nox.su torproject.org jhcloos.com
 for i in $HOSTS;do
 echo -n "$i: "
-rm -f tmp
-$CLI $i -p 443 --print-cert --insecure >tmp 2>&1 </dev/null
-if [ $? != 0 ];then
-	echo "Error connecting to $i"
-	exit 1
-fi
 
-$DANETOOL --load-certificate tmp --check $i >/dev/null 2>&1
-if [ $? = 0 ];then
-	echo "Checking $i should have failed"
+$DANETOOL --check $i >/dev/null 2>&1
+if [ $? != 0 ];then
+	echo "Error checking $i"
 	exit 1
 fi
 echo "ok"
 done
 
-# Fine hosts
 
-echo ""
-echo "*** Testing good hosts"
-HOSTS="torproject.org jhcloos.com good.dane.verisignlabs.com \
-www.kumari.net"
-HOSTS="$HOSTS nohats.ca"
-# dane.nox.su
+echo "*** Testing bad hosts ***"
+# Not ok
+# used to work: dane-broken.rd.nic.fr 
+HOSTS="bad-hash.dane.verisignlabs.com bad-params.dane.verisignlabs.com"
+HOSTS="$HOSTS bad-sig.dane.verisignlabs.com"
 for i in $HOSTS;do
 echo -n "$i: "
-rm -f tmp
-$CLI $i -p 443 --print-cert --insecure >tmp 2>&1 </dev/null
-if [ $? != 0 ];then
-	echo "Error connecting to $i"
-	exit 1
-fi
-
-$DANETOOL --load-certificate tmp --check $i >/dev/null 2>&1
-if [ $? != 0 ];then
-	echo "Error checking $i"
+$DANETOOL --check $i >/dev/null 2>&1
+if [ $? = 0 ];then
+	echo "Checking $i should have failed"
 	exit 1
 fi
 echo "ok"

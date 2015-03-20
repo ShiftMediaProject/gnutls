@@ -107,7 +107,7 @@ _gnutls_set_psk_session_key(gnutls_session_t session,
 	ret = 0;
 
       error:
-	_gnutls_free_datum(&pwd_psk);
+	_gnutls_free_temp_key_datum(&pwd_psk);
 	return ret;
 }
 
@@ -166,7 +166,7 @@ _gnutls_gen_psk_client_kx(gnutls_session_t session,
 	gnutls_psk_client_credentials_t cred;
 
 	cred = (gnutls_psk_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -193,7 +193,7 @@ _gnutls_gen_psk_client_kx(gnutls_session_t session,
       cleanup:
 	if (free) {
 		gnutls_free(username.data);
-		gnutls_free(key.data);
+		_gnutls_free_temp_key_datum(&key);
 	}
 
 	return ret;
@@ -213,7 +213,7 @@ _gnutls_proc_psk_client_kx(gnutls_session_t session, uint8_t * data,
 	psk_auth_info_t info;
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -237,7 +237,11 @@ _gnutls_proc_psk_client_kx(gnutls_session_t session, uint8_t * data,
 
 	/* copy the username to the auth info structures
 	 */
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
+	if (info == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INTERNAL_ERROR;
+	}
 
 	if (username.size > MAX_USERNAME_SIZE) {
 		gnutls_assert();
@@ -261,7 +265,7 @@ _gnutls_proc_psk_client_kx(gnutls_session_t session, uint8_t * data,
 	ret = 0;
 
       error:
-	_gnutls_free_datum(&psk_key);
+	_gnutls_free_key_datum(&psk_key);
 
 	return ret;
 }
@@ -286,7 +290,7 @@ _gnutls_gen_psk_server_kx(gnutls_session_t session,
 	gnutls_datum_t hint;
 
 	cred = (gnutls_psk_server_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -320,7 +324,7 @@ _gnutls_proc_psk_server_kx(gnutls_session_t session, uint8_t * data,
 	psk_auth_info_t info;
 
 	cred = (gnutls_psk_client_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_PSK, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_PSK);
 
 	if (cred == NULL) {
 		gnutls_assert();
@@ -343,7 +347,11 @@ _gnutls_proc_psk_server_kx(gnutls_session_t session, uint8_t * data,
 
 	/* copy the hint to the auth info structures
 	 */
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
+	if (info == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INTERNAL_ERROR;
+	}
 
 	if (hint.size > MAX_USERNAME_SIZE) {
 		gnutls_assert();

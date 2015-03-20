@@ -45,6 +45,7 @@
 #include <gnutls_extensions.h>
 #include <system.h>
 #include <random.h>
+#include <fips.h>
 #include <gnutls/dtls.h>
 
 /* These should really be static, but src/tests.c calls them.  Make
@@ -183,14 +184,14 @@ _gnutls_session_cert_type_supported(gnutls_session_t session,
 
 	if (session->security_parameters.entity == GNUTLS_SERVER) {
 		cred = (gnutls_certificate_credentials_t)
-		    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE,
-				     NULL);
+		    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE);
 
 		if (cred == NULL)
 			return GNUTLS_E_UNSUPPORTED_CERTIFICATE_TYPE;
 
 		if (cred->server_get_cert_callback == NULL
-		    && cred->get_cert_callback == NULL) {
+		    && cred->get_cert_callback == NULL
+		    && cred->get_cert_callback2 == NULL) {
 			for (i = 0; i < cred->ncerts; i++) {
 				if (cred->certs[i].cert_list[0].type ==
 				    cert_type) {
@@ -275,6 +276,7 @@ void _gnutls_handshake_internal_state_clear(gnutls_session_t session)
 	_gnutls_epoch_gc(session);
 
 	session->internals.handshake_endtime = 0;
+	session->internals.handshake_in_progress = 0;
 }
 
 /**
@@ -307,6 +309,8 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 {
 	int ret;
 	record_parameters_st *epoch;
+	
+	FAIL_IF_LIB_ERROR;
 
 	*session = gnutls_calloc(1, sizeof(struct gnutls_session_int));
 	if (*session == NULL)
@@ -401,9 +405,13 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 
 	/* Enable useful extensions */
 	if ((flags & GNUTLS_CLIENT) && !(flags & GNUTLS_NO_EXTENSIONS)) {
+#ifdef ENABLE_SESSION_TICKETS
 		gnutls_session_ticket_enable_client(*session);
+#endif
+#ifdef ENABLE_OCSP
 		gnutls_ocsp_status_request_enable_client(*session, NULL, 0,
 							 NULL);
+#endif
 	}
 
 	if (flags & GNUTLS_NO_REPLAY_PROTECTION)
@@ -462,26 +470,28 @@ void gnutls_deinit(gnutls_session_t session)
 	_gnutls_selected_certs_deinit(session);
 
 	gnutls_pk_params_release(&session->key.ecdh_params);
-	_gnutls_mpi_release(&session->key.ecdh_x);
-	_gnutls_mpi_release(&session->key.ecdh_y);
+	gnutls_pk_params_release(&session->key.dh_params);
+	zrelease_temp_mpi_key(&session->key.ecdh_x);
+	zrelease_temp_mpi_key(&session->key.ecdh_y);
 
-	_gnutls_mpi_release(&session->key.KEY);
-	_gnutls_mpi_release(&session->key.client_Y);
-	_gnutls_mpi_release(&session->key.client_p);
-	_gnutls_mpi_release(&session->key.client_g);
+	zrelease_temp_mpi_key(&session->key.client_Y);
 
-	_gnutls_mpi_release(&session->key.u);
-	_gnutls_mpi_release(&session->key.a);
-	_gnutls_mpi_release(&session->key.x);
-	_gnutls_mpi_release(&session->key.A);
-	_gnutls_mpi_release(&session->key.B);
-	_gnutls_mpi_release(&session->key.b);
+	zrelease_temp_mpi_key(&session->key.srp_p);
+	zrelease_temp_mpi_key(&session->key.srp_g);
+	zrelease_temp_mpi_key(&session->key.srp_key);
+
+	zrelease_temp_mpi_key(&session->key.u);
+	zrelease_temp_mpi_key(&session->key.a);
+	zrelease_temp_mpi_key(&session->key.x);
+	zrelease_temp_mpi_key(&session->key.A);
+	zrelease_temp_mpi_key(&session->key.B);
+	zrelease_temp_mpi_key(&session->key.b);
 
 	/* RSA */
-	_gnutls_mpi_release(&session->key.rsa[0]);
-	_gnutls_mpi_release(&session->key.rsa[1]);
+	zrelease_temp_mpi_key(&session->key.rsa[0]);
+	zrelease_temp_mpi_key(&session->key.rsa[1]);
 
-	_gnutls_mpi_release(&session->key.dh_secret);
+	_gnutls_free_temp_key_datum(&session->key.key);
 
 	gnutls_free(session);
 }
@@ -497,7 +507,7 @@ int _gnutls_dh_set_peer_public(gnutls_session_t session, bigint_t public)
 	case GNUTLS_CRD_ANON:
 		{
 			anon_auth_info_t info;
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -507,7 +517,7 @@ int _gnutls_dh_set_peer_public(gnutls_session_t session, bigint_t public)
 	case GNUTLS_CRD_PSK:
 		{
 			psk_auth_info_t info;
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -518,7 +528,7 @@ int _gnutls_dh_set_peer_public(gnutls_session_t session, bigint_t public)
 		{
 			cert_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -548,7 +558,7 @@ int _gnutls_dh_set_secret_bits(gnutls_session_t session, unsigned bits)
 	case GNUTLS_CRD_ANON:
 		{
 			anon_auth_info_t info;
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			info->dh.secret_bits = bits;
@@ -557,7 +567,7 @@ int _gnutls_dh_set_secret_bits(gnutls_session_t session, unsigned bits)
 	case GNUTLS_CRD_PSK:
 		{
 			psk_auth_info_t info;
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 			info->dh.secret_bits = bits;
@@ -567,7 +577,7 @@ int _gnutls_dh_set_secret_bits(gnutls_session_t session, unsigned bits)
 		{
 			cert_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -595,7 +605,7 @@ _gnutls_dh_set_group(gnutls_session_t session, bigint_t gen,
 	case GNUTLS_CRD_ANON:
 		{
 			anon_auth_info_t info;
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_ANON);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -605,7 +615,7 @@ _gnutls_dh_set_group(gnutls_session_t session, bigint_t gen,
 	case GNUTLS_CRD_PSK:
 		{
 			psk_auth_info_t info;
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_PSK);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -616,7 +626,7 @@ _gnutls_dh_set_group(gnutls_session_t session, bigint_t gen,
 		{
 			cert_auth_info_t info;
 
-			info = _gnutls_get_auth_info(session);
+			info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 			if (info == NULL)
 				return GNUTLS_E_INTERNAL_ERROR;
 
@@ -833,22 +843,22 @@ P_hash(gnutls_mac_algorithm_t algorithm,
 
 #define MAX_PRF_BYTES 200
 
-/* The PRF function expands a given secret 
- * needed by the TLS specification. ret must have a least total_bytes
- * available.
+/* This function operates as _gnutls_PRF(), but does not require
+ * a pointer to the current session. It takes the @mac algorithm
+ * explicitly. For legacy TLS/SSL sessions before TLS 1.2 the MAC
+ * must be set to %GNUTLS_MAC_UNKNOWN.
  */
-int
-_gnutls_PRF(gnutls_session_t session,
-	    const uint8_t * secret, unsigned int secret_size,
-	    const char *label, int label_size, const uint8_t * seed,
-	    int seed_size, int total_bytes, void *ret)
+static int
+_gnutls_PRF_raw(gnutls_mac_algorithm_t mac,
+	    	const uint8_t * secret, unsigned int secret_size,
+	    	const char *label, int label_size, const uint8_t * seed,
+	    	int seed_size, int total_bytes, void *ret)
 {
 	int l_s, s_seed_size;
 	const uint8_t *s1, *s2;
 	uint8_t s_seed[MAX_SEED_SIZE];
 	uint8_t o1[MAX_PRF_BYTES], o2[MAX_PRF_BYTES];
 	int result;
-	const version_entry_st *ver = get_version(session);
 
 	if (total_bytes > MAX_PRF_BYTES) {
 		gnutls_assert();
@@ -865,11 +875,10 @@ _gnutls_PRF(gnutls_session_t session,
 	memcpy(s_seed, label, label_size);
 	memcpy(&s_seed[label_size], seed, seed_size);
 
-	if (_gnutls_version_has_selectable_prf(ver)) {
+	if (mac != GNUTLS_MAC_UNKNOWN) {
 		result =
-		    P_hash(_gnutls_cipher_suite_get_prf
-			   (session->security_parameters.cipher_suite),
-			   secret, secret_size, s_seed, s_seed_size,
+		    P_hash(mac, secret, secret_size,
+		    	   s_seed, s_seed_size,
 			   total_bytes, ret);
 		if (result < 0) {
 			gnutls_assert();
@@ -907,8 +916,79 @@ _gnutls_PRF(gnutls_session_t session,
 	}
 
 	return 0;		/* ok */
+}
+
+/* The PRF function expands a given secret 
+ * needed by the TLS specification. ret must have a least total_bytes
+ * available.
+ */
+int
+_gnutls_PRF(gnutls_session_t session,
+	    const uint8_t * secret, unsigned int secret_size,
+	    const char *label, int label_size, const uint8_t * seed,
+	    int seed_size, int total_bytes, void *ret)
+{
+	const version_entry_st *ver = get_version(session);
+
+	if (_gnutls_version_has_selectable_prf(ver)) {
+		return _gnutls_PRF_raw(
+			_gnutls_cipher_suite_get_prf(session->security_parameters.cipher_suite),
+			secret, secret_size,
+			label, label_size,
+			seed, seed_size,
+			total_bytes,
+			ret);
+	} else {
+		return _gnutls_PRF_raw(
+			GNUTLS_MAC_UNKNOWN,
+			secret, secret_size,
+			label, label_size,
+			seed, seed_size,
+			total_bytes,
+			ret);
+	}
+}
+
+#ifdef ENABLE_FIPS140
+int
+_gnutls_prf_raw(gnutls_mac_algorithm_t mac,
+	        size_t master_size, const void *master,
+	        size_t label_size, const char *label,
+	        size_t seed_size, const char *seed, size_t outsize,
+	        char *out);
+
+/*-
+ * _gnutls_prf_raw:
+ * @mac: the MAC algorithm to use, set to %GNUTLS_MAC_UNKNOWN for the TLS1.0 mac
+ * @master_size: length of the @master variable.
+ * @master: the master secret used in PRF computation
+ * @label_size: length of the @label variable.
+ * @label: label used in PRF computation, typically a short string.
+ * @seed_size: length of the @seed variable.
+ * @seed: optional extra data to seed the PRF with.
+ * @outsize: size of pre-allocated output buffer to hold the output.
+ * @out: pre-allocated buffer to hold the generated data.
+ *
+ * Apply the TLS Pseudo-Random-Function (PRF) on the master secret
+ * and the provided data.
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, or an error code.
+ -*/
+int
+_gnutls_prf_raw(gnutls_mac_algorithm_t mac,
+	        size_t master_size, const void *master,
+	        size_t label_size, const char *label,
+	        size_t seed_size, const char *seed, size_t outsize,
+	        char *out)
+{
+	return _gnutls_PRF_raw(mac,
+			  master, master_size,
+			  label, label_size,
+			  (uint8_t *) seed, seed_size,
+			  outsize, out);
 
 }
+#endif
 
 /**
  * gnutls_prf_raw:
@@ -963,7 +1043,7 @@ gnutls_prf_raw(gnutls_session_t session,
  * @session: is a #gnutls_session_t structure.
  * @label_size: length of the @label variable.
  * @label: label used in PRF computation, typically a short string.
- * @server_random_first: non-0 if server random field should be first in seed
+ * @server_random_first: non-zero if server random field should be first in seed
  * @extra_size: length of the @extra variable.
  * @extra: optional extra data to seed the PRF with.
  * @outsize: size of pre-allocated output buffer to hold the output.
@@ -976,7 +1056,7 @@ gnutls_prf_raw(gnutls_session_t session,
  * The @label variable usually contains a string denoting the purpose
  * for the generated data.  The @server_random_first indicates whether
  * the client random field or the server random field should be first
- * in the seed.  Non-0 indicates that the server random field is first,
+ * in the seed.  Non-zero indicates that the server random field is first,
  * 0 that the client random field is first.
  *
  * The @extra variable can be used to add more data to the seed, after
@@ -1161,6 +1241,9 @@ void gnutls_session_set_ptr(gnutls_session_t session, void *ptr)
  * interrupted function was trying to read data, and 1 if it was
  * trying to write data.
  *
+ * This function's output is unreliable if you are using the
+ * @session in different threads, for sending and receiving.
+ *
  * Returns: 0 if trying to read data, 1 if trying to write data.
  **/
 int gnutls_record_get_direction(gnutls_session_t session)
@@ -1201,6 +1284,11 @@ _gnutls_rsa_pms_set_version(gnutls_session_t session,
  *
  * This callback must return 0 on success or a gnutls error code to
  * terminate the handshake.
+ *
+ * Since GnuTLS 3.3.5 the callback is
+ * allowed to return %GNUTLS_E_AGAIN or %GNUTLS_E_INTERRUPTED to
+ * put the handshake on hold. In that case gnutls_handshake()
+ * will return %GNUTLS_E_INTERRUPTED and can be resumed when needed.
  *
  * Warning: You should not use this function to terminate the
  * handshake based on client input unless you know what you are

@@ -39,14 +39,22 @@ typedef struct {
 
 static const gnutls_sec_params_entry sec_params[] = {
 	{"Insecure", GNUTLS_SEC_PARAM_INSECURE, 0, 0, 0, 0, 0},
-	{"Export", GNUTLS_SEC_PARAM_EXPORT, 42, 512, 0, 150, 0},
-	{"Very weak", GNUTLS_SEC_PARAM_VERY_WEAK, 64, 767, 0, 160, 0},
-	{"Weak", GNUTLS_SEC_PARAM_WEAK, 72, 1008, 1024, 160, 160},
-	{"Low", GNUTLS_SEC_PARAM_LOW, 80, 1248, 2048, 160, 160},
+	{"Export", GNUTLS_SEC_PARAM_EXPORT, 42, 512, 0, 84, 0},
+	{"Very weak", GNUTLS_SEC_PARAM_VERY_WEAK, 64, 767, 0, 128, 0},
+	{"Weak", GNUTLS_SEC_PARAM_WEAK, 72, 1008, 1008, 160, 160},
+#ifdef ENABLE_FIPS140
+	{"Low", GNUTLS_SEC_PARAM_LOW, 80, 1024, 1024, 160, 160},
+	{"Legacy", GNUTLS_SEC_PARAM_LEGACY, 96, 1024, 1024, 192, 192},
+	{"Medium", GNUTLS_SEC_PARAM_MEDIUM, 112, 2048, 2048, 224, 224},
+	{"High", GNUTLS_SEC_PARAM_HIGH, 128, 3072, 3072, 256, 256},
+	{"Ultra", GNUTLS_SEC_PARAM_ULTRA, 256, 15360, 15360, 512, 512},
+#else
+	{"Low", GNUTLS_SEC_PARAM_LOW, 80, 1024, 1024, 160, 160}, /* ENISA-LEGACY */
 	{"Legacy", GNUTLS_SEC_PARAM_LEGACY, 96, 1776, 2048, 192, 192},
-	{"Normal", GNUTLS_SEC_PARAM_NORMAL, 112, 2432, 3072, 224, 224},
-	{"High", GNUTLS_SEC_PARAM_HIGH, 128, 3248, 3072, 256, 256},
+	{"Medium", GNUTLS_SEC_PARAM_MEDIUM, 112, 2048, 2048, 256, 224},
+	{"High", GNUTLS_SEC_PARAM_HIGH, 128, 3072, 3072, 256, 256},
 	{"Ultra", GNUTLS_SEC_PARAM_ULTRA, 256, 15424, 3072, 512, 512},
+#endif
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -89,6 +97,32 @@ gnutls_sec_param_to_pk_bits(gnutls_pk_algorithm_t algo,
 	return ret;
 }
 
+/**
+ * gnutls_sec_param_to_symmetric_bits:
+ * @algo: is a public key algorithm
+ * @param: is a security parameter
+ *
+ * This function will return the number of bits that correspond to
+ * symmetric cipher strength for the given security parameter.
+ *
+ * Returns: The number of bits, or (0).
+ *
+ * Since: 3.3.0
+ **/
+unsigned int
+gnutls_sec_param_to_symmetric_bits(gnutls_sec_param_t param)
+{
+	unsigned int ret = 0;
+
+	/* handle DSA differently */
+	GNUTLS_SEC_PARAM_LOOP(
+	if (p->sec_param == param) {
+		ret = p->bits; break;
+	}
+	);
+	return ret;
+}
+
 /* Returns the corresponding size for subgroup bits (q),
  * given the group bits (p).
  */
@@ -102,7 +136,6 @@ unsigned int _gnutls_pk_bits_to_subgroup_bits(unsigned int pk_bits)
 			break;
 		}
 	);
-
 	return ret;
 }
 

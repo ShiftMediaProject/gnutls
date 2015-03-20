@@ -37,6 +37,7 @@
 #include <gnutls_auth.h>
 #include <gnutls_x509.h>
 #include <gnutls_str_array.h>
+#include <x509/verify-high.h>
 #include "x509/x509_int.h"
 #ifdef ENABLE_OPENPGP
 #include "openpgp/gnutls_openpgp.h"
@@ -98,9 +99,12 @@ void gnutls_certificate_free_cas(gnutls_certificate_credentials_t sc)
  * @sc: is a #gnutls_certificate_credentials_t structure.
  * @cert: is the certificate to find issuer for
  * @issuer: Will hold the issuer if any. Should be treated as constant.
- * @flags: Use zero.
+ * @flags: Use zero or %GNUTLS_TL_GET_COPY
  *
  * This function will return the issuer of a given certificate.
+ * As with gnutls_x509_trust_list_get_issuer() this function requires
+ * the %GNUTLS_TL_GET_COPY flag in order to operate with PKCS #11 trust
+ * lists. In that case the issuer must be freed using gnutls_x509_crt_deinit().
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -172,7 +176,7 @@ gnutls_certificate_get_crt_raw(gnutls_certificate_credentials_t sc,
  **/
 void gnutls_certificate_free_ca_names(gnutls_certificate_credentials_t sc)
 {
-	_gnutls_free_datum(&sc->x509_rdn_sequence);
+	_gnutls_free_datum(&sc->tlist->x509_rdn_sequence);
 }
 
 
@@ -192,7 +196,6 @@ gnutls_certificate_free_credentials(gnutls_certificate_credentials_t sc)
 {
 	gnutls_x509_trust_list_deinit(sc->tlist, 1);
 	gnutls_certificate_free_keys(sc);
-	gnutls_certificate_free_ca_names(sc);
 	gnutls_free(sc->ocsp_response_file);
 	memset(sc->pin_tmp, 0, sizeof(sc->pin_tmp));
 #ifdef ENABLE_OPENPGP
@@ -247,7 +250,7 @@ _gnutls_selected_cert_supported_kx(gnutls_session_t session,
 				   gnutls_kx_algorithm_t * alg,
 				   int *alg_size)
 {
-	gnutls_kx_algorithm_t kx;
+	unsigned kx;
 	gnutls_pk_algorithm_t pk, cert_pk;
 	gnutls_pcert_st *cert;
 	int i;
@@ -447,6 +450,8 @@ void gnutls_certificate_set_retrieve_function
  *
  * If the callback function is provided then gnutls will call it, in the
  * handshake, after the certificate request message has been received.
+ * All the provided by the callback values will not be released or
+ * modified by gnutls.
  *
  * In server side pk_algos and req_ca_dn are NULL.
  *
@@ -575,15 +580,16 @@ _gnutls_openpgp_crt_verify_peers(gnutls_session_t session,
 	cert_auth_info_t info;
 	gnutls_certificate_credentials_t cred;
 	int peer_certificate_list_size, ret;
+	unsigned int verify_flags;
 
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, GNUTLS_E_INVALID_REQUEST);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 	if (info == NULL)
 		return GNUTLS_E_INVALID_REQUEST;
 
 	cred = (gnutls_certificate_credentials_t)
-	    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE, NULL);
+	    _gnutls_get_cred(session, GNUTLS_CRD_CERTIFICATE);
 	if (cred == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INSUFFICIENT_CREDENTIALS;
@@ -593,6 +599,8 @@ _gnutls_openpgp_crt_verify_peers(gnutls_session_t session,
 		gnutls_assert();
 		return GNUTLS_E_NO_CERTIFICATE_FOUND;
 	}
+
+	verify_flags = cred->verify_flags | session->internals.priorities.additional_verify_flags;
 
 	/* generate a list of gnutls_certs based on the auth info
 	 * raw certs.
@@ -609,7 +617,9 @@ _gnutls_openpgp_crt_verify_peers(gnutls_session_t session,
 	ret =
 	    _gnutls_openpgp_verify_key(cred, hostname,
 				       &info->raw_certificate_list[0],
-				       peer_certificate_list_size, status);
+				       peer_certificate_list_size,
+				       verify_flags,
+				       status);
 
 	if (ret < 0) {
 		gnutls_assert();
@@ -630,9 +640,12 @@ _gnutls_openpgp_crt_verify_peers(gnutls_session_t session,
  * values or zero if the certificate is trusted. Note that value in @status
  * is set only when the return value of this function is success (i.e, failure 
  * to trust a certificate does not imply a negative return value).
+ * The default verification flags used by this function can be overridden
+ * using gnutls_certificate_set_verify_flags().
  *
- * If available the OCSP Certificate Status extension will be
- * utilized by this function.
+ * This function will take into account the OCSP Certificate Status TLS extension,
+ * as well as the following X.509 certificate extensions: Name Constraints,
+ * Key Usage, and Basic Constraints (pathlen).
  * 
  * To avoid denial of service attacks some
  * default upper limits regarding the certificate key size and chain
@@ -648,30 +661,7 @@ int
 gnutls_certificate_verify_peers2(gnutls_session_t session,
 				 unsigned int *status)
 {
-	cert_auth_info_t info;
-
-	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, GNUTLS_E_INVALID_REQUEST);
-
-	info = _gnutls_get_auth_info(session);
-	if (info == NULL) {
-		return GNUTLS_E_NO_CERTIFICATE_FOUND;
-	}
-
-	if (info->raw_certificate_list == NULL || info->ncerts == 0)
-		return GNUTLS_E_NO_CERTIFICATE_FOUND;
-
-	switch (gnutls_certificate_type_get(session)) {
-	case GNUTLS_CRT_X509:
-		return _gnutls_x509_cert_verify_peers(session, NULL,
-						      status);
-#ifdef ENABLE_OPENPGP
-	case GNUTLS_CRT_OPENPGP:
-		return _gnutls_openpgp_crt_verify_peers(session, NULL,
-							status);
-#endif
-	default:
-		return GNUTLS_E_INVALID_REQUEST;
-	}
+	return gnutls_certificate_verify_peers(session, NULL, 0, status);
 }
 
 /**
@@ -685,17 +675,17 @@ gnutls_certificate_verify_peers2(gnutls_session_t session,
  * values or zero if the certificate is trusted. Note that value in @status
  * is set only when the return value of this function is success (i.e, failure 
  * to trust a certificate does not imply a negative return value).
+ * The default verification flags used by this function can be overridden
+ * using gnutls_certificate_set_verify_flags(). See the documentation
+ * of gnutls_certificate_verify_peers2() for details in the verification process.
  *
  * If the @hostname provided is non-NULL then this function will compare
- * the hostname in the certificate against the given. If they do not match 
- * the %GNUTLS_CERT_UNEXPECTED_OWNER status flag will be set.
+ * the hostname in the certificate against the given. The comparison will
+ * be accurate for ascii names; non-ascii names are compared byte-by-byte. 
+ * If names do not match the %GNUTLS_CERT_UNEXPECTED_OWNER status flag will be set.
  *
- * If available the OCSP Certificate Status extension will be
- * utilized by this function.
- * 
- * To avoid denial of service attacks some
- * default upper limits regarding the certificate key size and chain
- * size are set. To override them use gnutls_certificate_set_verify_limits().
+ * In order to verify the purpose of the end-certificate (by checking the extended
+ * key usage), use gnutls_certificate_verify_peers().
  *
  * Returns: a negative error code on error and %GNUTLS_E_SUCCESS (0) on success.
  *
@@ -706,11 +696,58 @@ gnutls_certificate_verify_peers3(gnutls_session_t session,
 				 const char *hostname,
 				 unsigned int *status)
 {
+gnutls_typed_vdata_st data;
+
+	data.type = GNUTLS_DT_DNS_HOSTNAME;
+	data.size = 0;
+	data.data = (void*)hostname;
+
+	return gnutls_certificate_verify_peers(session, &data, 1, status);
+}
+
+/**
+ * gnutls_certificate_verify_peers:
+ * @session: is a gnutls session
+ * @data: an array of typed data
+ * @elements: the number of data elements
+ * @status: is the output of the verification
+ *
+ * This function will verify the peer's certificate and store the
+ * status in the @status variable as a bitwise or'd gnutls_certificate_status_t
+ * values or zero if the certificate is trusted. Note that value in @status
+ * is set only when the return value of this function is success (i.e, failure 
+ * to trust a certificate does not imply a negative return value).
+ * The default verification flags used by this function can be overridden
+ * using gnutls_certificate_set_verify_flags(). See the documentation
+ * of gnutls_certificate_verify_peers2() for details in the verification process.
+ *
+ * The acceptable @data types are %GNUTLS_DT_DNS_HOSTNAME and %GNUTLS_DT_KEY_PURPOSE_OID.
+ * The former accepts as data a null-terminated hostname, and the latter a null-terminated
+ * object identifier (e.g., %GNUTLS_KP_TLS_WWW_SERVER).
+ * If a DNS hostname is provided then this function will compare
+ * the hostname in the certificate against the given. If names do not match the 
+ * %GNUTLS_CERT_UNEXPECTED_OWNER status flag will be set.
+ * If a key purpose OID is provided and the end-certificate contains the extended key
+ * usage PKIX extension, it will be required to be have the provided key purpose 
+ * or be marked for any purpose, otherwise verification will fail with %GNUTLS_CERT_SIGNER_CONSTRAINTS_FAILURE status.
+ *
+ * Returns: a negative error code on error and %GNUTLS_E_SUCCESS (0) on success.
+ *
+ * Since: 3.3.0
+ **/
+int
+gnutls_certificate_verify_peers(gnutls_session_t session,
+				gnutls_typed_vdata_st * data,
+				unsigned int elements,
+				unsigned int *status)
+{
 	cert_auth_info_t info;
+	const char *hostname = NULL;
+	unsigned i;
 
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, GNUTLS_E_INVALID_REQUEST);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 	if (info == NULL) {
 		return GNUTLS_E_NO_CERTIFICATE_FOUND;
 	}
@@ -718,12 +755,19 @@ gnutls_certificate_verify_peers3(gnutls_session_t session,
 	if (info->raw_certificate_list == NULL || info->ncerts == 0)
 		return GNUTLS_E_NO_CERTIFICATE_FOUND;
 
+
 	switch (gnutls_certificate_type_get(session)) {
 	case GNUTLS_CRT_X509:
-		return _gnutls_x509_cert_verify_peers(session, hostname,
+		return _gnutls_x509_cert_verify_peers(session, data, elements,
 						      status);
 #ifdef ENABLE_OPENPGP
 	case GNUTLS_CRT_OPENPGP:
+		for (i=0;i<elements;i++) {
+			if (data[i].type == GNUTLS_DT_DNS_HOSTNAME) {
+				hostname = (void*)data[i].data;
+				break;
+			}
+		}
 		return _gnutls_openpgp_crt_verify_peers(session, hostname,
 							status);
 #endif
@@ -748,7 +792,7 @@ time_t gnutls_certificate_expiration_time_peers(gnutls_session_t session)
 
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, GNUTLS_E_INVALID_REQUEST);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 	if (info == NULL) {
 		return (time_t) - 1;
 	}
@@ -792,7 +836,7 @@ time_t gnutls_certificate_activation_time_peers(gnutls_session_t session)
 
 	CHECK_AUTH(GNUTLS_CRD_CERTIFICATE, GNUTLS_E_INVALID_REQUEST);
 
-	info = _gnutls_get_auth_info(session);
+	info = _gnutls_get_auth_info(session, GNUTLS_CRD_CERTIFICATE);
 	if (info == NULL) {
 		return (time_t) - 1;
 	}
@@ -869,15 +913,20 @@ gnutls_sign_callback_get(gnutls_session_t session, void **userdata)
 	return session->internals.sign_func;
 }
 
+#define TEST_TEXT "test text"
 /* returns error if the certificate has different algorithm than
  * the given key parameters.
  */
 int _gnutls_check_key_cert_match(gnutls_certificate_credentials_t res)
 {
-	int pk =
+	gnutls_datum_t test = {(void*)TEST_TEXT, sizeof(TEST_TEXT)-1};
+	gnutls_datum_t sig = {NULL, 0};
+	int pk, pk2, ret;
+
+	pk =
 	    gnutls_pubkey_get_pk_algorithm(res->certs[res->ncerts - 1].
 					   cert_list[0].pubkey, NULL);
-	int pk2 =
+	pk2 =
 	    gnutls_privkey_get_pk_algorithm(res->pkey[res->ncerts - 1],
 					    NULL);
 
@@ -886,6 +935,29 @@ int _gnutls_check_key_cert_match(gnutls_certificate_credentials_t res)
 		return GNUTLS_E_CERTIFICATE_KEY_MISMATCH;
 	}
 
+	/* now check if keys really match. We use the sign/verify approach
+	 * because we cannot always obtain the parameters from the abstract
+	 * keys (e.g. PKCS #11). */
+	ret = gnutls_privkey_sign_data(res->pkey[res->ncerts - 1],
+		GNUTLS_DIG_SHA256, 0, &test, &sig);
+	if (ret < 0) {
+		/* for some reason we couldn't sign that. That shouldn't have
+		 * happened, but since it did, report the issue and do not
+		 * try the key matching test */
+		_gnutls_debug_log("%s: failed signing\n", __func__);
+		goto finish;
+	}
+
+	ret = gnutls_pubkey_verify_data2(res->certs[res->ncerts - 1].cert_list[0].pubkey,
+		gnutls_pk_to_sign(pk, GNUTLS_DIG_SHA256),
+		0, &test, &sig);
+
+	gnutls_free(sig.data);
+
+	if (ret < 0)
+		return gnutls_assert_val(GNUTLS_E_CERTIFICATE_KEY_MISMATCH);
+
+ finish:
 	return 0;
 }
 

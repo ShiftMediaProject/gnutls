@@ -36,6 +36,7 @@
 #include <nettle/cbc.h>
 #include <nettle/gcm.h>
 #include <gcm-camellia.h>
+#include <fips.h>
 
 /* Functions that refer to the nettle library.
  */
@@ -87,8 +88,6 @@ struct nettle_cipher_ctx {
 	int enc;
 };
 
-#define GCM_DEFAULT_NONCE_SIZE 12
-
 static void _aes_gcm_encrypt(void *_ctx, nettle_crypt_func f,
 			     unsigned block_size, uint8_t * iv,
 			     unsigned length, uint8_t * dst,
@@ -126,22 +125,26 @@ static int wrap_nettle_cipher_exists(gnutls_cipher_algorithm_t algo)
 	switch (algo) {
 	case GNUTLS_CIPHER_AES_128_GCM:
 	case GNUTLS_CIPHER_AES_256_GCM:
+	case GNUTLS_CIPHER_AES_128_CBC:
+	case GNUTLS_CIPHER_AES_192_CBC:
+	case GNUTLS_CIPHER_AES_256_CBC:
+	case GNUTLS_CIPHER_3DES_CBC:
+		return 1;
 	case GNUTLS_CIPHER_CAMELLIA_128_GCM:
 	case GNUTLS_CIPHER_CAMELLIA_256_GCM:
 	case GNUTLS_CIPHER_CAMELLIA_128_CBC:
 	case GNUTLS_CIPHER_CAMELLIA_192_CBC:
 	case GNUTLS_CIPHER_CAMELLIA_256_CBC:
-	case GNUTLS_CIPHER_AES_128_CBC:
-	case GNUTLS_CIPHER_AES_192_CBC:
-	case GNUTLS_CIPHER_AES_256_CBC:
-	case GNUTLS_CIPHER_3DES_CBC:
 	case GNUTLS_CIPHER_DES_CBC:
 	case GNUTLS_CIPHER_ARCFOUR_128:
 	case GNUTLS_CIPHER_SALSA20_256:
 	case GNUTLS_CIPHER_ESTREAM_SALSA20_256:
 	case GNUTLS_CIPHER_ARCFOUR_40:
 	case GNUTLS_CIPHER_RC2_40_CBC:
-		return 1;
+		if (_gnutls_fips_mode_enabled() != 0)
+			return 0;
+		else
+			return 1;
 	default:
 		return 0;
 	}
@@ -173,26 +176,6 @@ wrap_nettle_cipher_init(gnutls_cipher_algorithm_t algo, void **_ctx,
 		ctx->ctx_ptr = &ctx->ctx.aes_gcm;
 		ctx->block_size = AES_BLOCK_SIZE;
 		break;
-	case GNUTLS_CIPHER_CAMELLIA_128_GCM:
-	case GNUTLS_CIPHER_CAMELLIA_256_GCM:
-		ctx->encrypt = _camellia_gcm_encrypt;
-		ctx->decrypt = _camellia_gcm_decrypt;
-		ctx->i_encrypt = (nettle_crypt_func *) camellia_crypt;
-		ctx->auth = (auth_func) _gcm_camellia_update;
-		ctx->tag = (tag_func) _gcm_camellia_digest;
-		ctx->ctx_ptr = &ctx->ctx.camellia_gcm;
-		ctx->block_size = CAMELLIA_BLOCK_SIZE;
-		break;
-	case GNUTLS_CIPHER_CAMELLIA_128_CBC:
-	case GNUTLS_CIPHER_CAMELLIA_192_CBC:
-	case GNUTLS_CIPHER_CAMELLIA_256_CBC:
-		ctx->encrypt = cbc_encrypt;
-		ctx->decrypt = cbc_decrypt;
-		ctx->i_encrypt = (nettle_crypt_func *) camellia_crypt;
-		ctx->i_decrypt = (nettle_crypt_func *) camellia_crypt;
-		ctx->ctx_ptr = &ctx->ctx.camellia;
-		ctx->block_size = CAMELLIA_BLOCK_SIZE;
-		break;
 	case GNUTLS_CIPHER_AES_128_CBC:
 	case GNUTLS_CIPHER_AES_192_CBC:
 	case GNUTLS_CIPHER_AES_256_CBC:
@@ -211,7 +194,36 @@ wrap_nettle_cipher_init(gnutls_cipher_algorithm_t algo, void **_ctx,
 		ctx->ctx_ptr = &ctx->ctx.des3;
 		ctx->block_size = DES3_BLOCK_SIZE;
 		break;
+	case GNUTLS_CIPHER_CAMELLIA_128_GCM:
+	case GNUTLS_CIPHER_CAMELLIA_256_GCM:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+		ctx->encrypt = _camellia_gcm_encrypt;
+		ctx->decrypt = _camellia_gcm_decrypt;
+		ctx->i_encrypt = (nettle_crypt_func *) camellia_crypt;
+		ctx->auth = (auth_func) _gcm_camellia_update;
+		ctx->tag = (tag_func) _gcm_camellia_digest;
+		ctx->ctx_ptr = &ctx->ctx.camellia_gcm;
+		ctx->block_size = CAMELLIA_BLOCK_SIZE;
+		break;
+	case GNUTLS_CIPHER_CAMELLIA_128_CBC:
+	case GNUTLS_CIPHER_CAMELLIA_192_CBC:
+	case GNUTLS_CIPHER_CAMELLIA_256_CBC:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+		ctx->encrypt = cbc_encrypt;
+		ctx->decrypt = cbc_decrypt;
+		ctx->i_encrypt = (nettle_crypt_func *) camellia_crypt;
+		ctx->i_decrypt = (nettle_crypt_func *) camellia_crypt;
+		ctx->ctx_ptr = &ctx->ctx.camellia;
+		ctx->block_size = CAMELLIA_BLOCK_SIZE;
+		break;
 	case GNUTLS_CIPHER_DES_CBC:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		ctx->encrypt = cbc_encrypt;
 		ctx->decrypt = cbc_decrypt;
 		ctx->i_encrypt = (nettle_crypt_func *) des_encrypt;
@@ -221,6 +233,9 @@ wrap_nettle_cipher_init(gnutls_cipher_algorithm_t algo, void **_ctx,
 		break;
 	case GNUTLS_CIPHER_ARCFOUR_128:
 	case GNUTLS_CIPHER_ARCFOUR_40:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		ctx->encrypt = stream_encrypt;
 		ctx->decrypt = stream_encrypt;
 		ctx->i_encrypt = (nettle_crypt_func *) arcfour_crypt;
@@ -229,6 +244,9 @@ wrap_nettle_cipher_init(gnutls_cipher_algorithm_t algo, void **_ctx,
 		ctx->block_size = 1;
 		break;
 	case GNUTLS_CIPHER_SALSA20_256:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		ctx->encrypt = stream_encrypt;
 		ctx->decrypt = stream_encrypt;
 		ctx->i_encrypt = (nettle_crypt_func *) salsa20_crypt;
@@ -237,6 +255,9 @@ wrap_nettle_cipher_init(gnutls_cipher_algorithm_t algo, void **_ctx,
 		ctx->block_size = 1;
 		break;
 	case GNUTLS_CIPHER_ESTREAM_SALSA20_256:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		ctx->encrypt = stream_encrypt;
 		ctx->decrypt = stream_encrypt;
 		ctx->i_encrypt = (nettle_crypt_func *) salsa20r12_crypt;
@@ -245,6 +266,9 @@ wrap_nettle_cipher_init(gnutls_cipher_algorithm_t algo, void **_ctx,
 		ctx->block_size = 1;
 		break;
 	case GNUTLS_CIPHER_RC2_40_CBC:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		ctx->encrypt = cbc_encrypt;
 		ctx->decrypt = cbc_decrypt;
 		ctx->i_encrypt = (nettle_crypt_func *) arctwo_encrypt;
@@ -274,11 +298,6 @@ wrap_nettle_cipher_setkey(void *_ctx, const void *key, size_t keysize)
 	case GNUTLS_CIPHER_AES_256_GCM:
 		gcm_aes_set_key(&ctx->ctx.aes_gcm, keysize, key);
 		break;
-	case GNUTLS_CIPHER_CAMELLIA_128_GCM:
-	case GNUTLS_CIPHER_CAMELLIA_256_GCM:
-		_gcm_camellia_set_key(&ctx->ctx.camellia_gcm, keysize,
-				      key);
-		break;
 	case GNUTLS_CIPHER_AES_128_CBC:
 	case GNUTLS_CIPHER_AES_192_CBC:
 	case GNUTLS_CIPHER_AES_256_CBC:
@@ -305,13 +324,24 @@ wrap_nettle_cipher_setkey(void *_ctx, const void *key, size_t keysize)
 
 		des_fix_parity(keysize, des_key, key);
 
-		/* this fails on weak keys */
 		if (des3_set_key(ctx->ctx_ptr, des_key) != 1) {
 			gnutls_assert();
-			return GNUTLS_E_INTERNAL_ERROR;
 		}
+		zeroize_temp_key(des_key, sizeof(des_key));
+
+		break;
+	case GNUTLS_CIPHER_CAMELLIA_128_GCM:
+	case GNUTLS_CIPHER_CAMELLIA_256_GCM:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+		_gcm_camellia_set_key(&ctx->ctx.camellia_gcm, keysize,
+				      key);
 		break;
 	case GNUTLS_CIPHER_DES_CBC:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		if (keysize != DES_KEY_SIZE) {
 			gnutls_assert();
 			return GNUTLS_E_INTERNAL_ERROR;
@@ -323,16 +353,26 @@ wrap_nettle_cipher_setkey(void *_ctx, const void *key, size_t keysize)
 			gnutls_assert();
 			return GNUTLS_E_INTERNAL_ERROR;
 		}
+		zeroize_temp_key(des_key, sizeof(des_key));
 		break;
 	case GNUTLS_CIPHER_ARCFOUR_128:
 	case GNUTLS_CIPHER_ARCFOUR_40:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		arcfour_set_key(ctx->ctx_ptr, keysize, key);
 		break;
 	case GNUTLS_CIPHER_SALSA20_256:
 	case GNUTLS_CIPHER_ESTREAM_SALSA20_256:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		salsa20_set_key(ctx->ctx_ptr, keysize, key);
 		break;
 	case GNUTLS_CIPHER_RC2_40_CBC:
+		if (_gnutls_fips_mode_enabled() != 0)
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 		arctwo_set_key(ctx->ctx_ptr, keysize, key);
 		break;
 	default:
@@ -351,19 +391,15 @@ wrap_nettle_cipher_setiv(void *_ctx, const void *iv, size_t ivsize)
 	switch (ctx->algo) {
 	case GNUTLS_CIPHER_AES_128_GCM:
 	case GNUTLS_CIPHER_AES_256_GCM:
-		if (ivsize != GCM_DEFAULT_NONCE_SIZE)
+		if (_gnutls_fips_mode_enabled() != 0 && ivsize < GCM_IV_SIZE)
 			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
-
-		gcm_aes_set_iv(&ctx->ctx.aes_gcm, GCM_DEFAULT_NONCE_SIZE,
-			       iv);
+		gcm_aes_set_iv(&ctx->ctx.aes_gcm, 
+				ivsize, iv);
 		break;
 	case GNUTLS_CIPHER_CAMELLIA_128_GCM:
 	case GNUTLS_CIPHER_CAMELLIA_256_GCM:
-		if (ivsize != GCM_DEFAULT_NONCE_SIZE)
-			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
-
 		_gcm_camellia_set_iv(&ctx->ctx.camellia_gcm,
-				     GCM_DEFAULT_NONCE_SIZE, iv);
+				     ivsize, iv);
 		break;
 	case GNUTLS_CIPHER_SALSA20_256:
 	case GNUTLS_CIPHER_ESTREAM_SALSA20_256:
@@ -424,9 +460,12 @@ static void wrap_nettle_cipher_tag(void *_ctx, void *tag, size_t tagsize)
 
 }
 
-static void wrap_nettle_cipher_close(void *h)
+static void wrap_nettle_cipher_close(void *_ctx)
 {
-	gnutls_free(h);
+	struct nettle_cipher_ctx *ctx = _ctx;
+
+	zeroize_temp_key(ctx, sizeof(*ctx));
+	gnutls_free(ctx);
 }
 
 gnutls_crypto_cipher_st _gnutls_cipher_ops = {

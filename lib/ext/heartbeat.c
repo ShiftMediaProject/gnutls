@@ -41,8 +41,11 @@
   * @type: one of the GNUTLS_HB_* flags
   *
   * If this function is called with the %GNUTLS_HB_PEER_ALLOWED_TO_SEND
-  * GnuTLS will allow heartbeat messages to be received. Moreover it also
+  * @type, GnuTLS will allow heartbeat messages to be received. Moreover it also
   * request the peer to accept heartbeat messages.
+  *
+  * If the @type used is %GNUTLS_HB_LOCAL_ALLOWED_TO_SEND, then the peer
+  * will be asked to accept heartbeat messages but not send ones.
   *
   * The function gnutls_heartbeat_allowed() can be used to test Whether
   * locally generated heartbeat messages can be accepted by the peer.
@@ -74,6 +77,9 @@ int gnutls_heartbeat_allowed(gnutls_session_t session, unsigned int type)
 {
 	extension_priv_data_t epriv;
 
+	if (session->internals.handshake_in_progress != 0)
+		return 0; /* not allowed */
+
 	if (_gnutls_ext_get_session_data
 	    (session, GNUTLS_EXTENSION_HEARTBEAT, &epriv) < 0)
 		return 0;	/* Not enabled */
@@ -87,7 +93,7 @@ int gnutls_heartbeat_allowed(gnutls_session_t session, unsigned int type)
 	return 0;
 }
 
-#define DEFAULT_PAYLOAD_SIZE 16
+#define DEFAULT_PADDING_SIZE 16
 
 /*
  * Sends heartbeat data.
@@ -99,7 +105,7 @@ heartbeat_send_data(gnutls_session_t session, const void *data,
 	int ret, pos;
 	uint8_t *response;
 
-	response = gnutls_malloc(1 + 2 + data_size + DEFAULT_PAYLOAD_SIZE);
+	response = gnutls_malloc(1 + 2 + data_size + DEFAULT_PADDING_SIZE);
 	if (response == NULL)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
@@ -114,12 +120,12 @@ heartbeat_send_data(gnutls_session_t session, const void *data,
 
 	ret =
 	    gnutls_rnd(GNUTLS_RND_NONCE, &response[pos],
-		       DEFAULT_PAYLOAD_SIZE);
+		       DEFAULT_PADDING_SIZE);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
 	}
-	pos += DEFAULT_PAYLOAD_SIZE;
+	pos += DEFAULT_PADDING_SIZE;
 
 	ret =
 	    _gnutls_send_int(session, GNUTLS_HEARTBEAT, -1,
@@ -174,8 +180,8 @@ gnutls_heartbeat_ping(gnutls_session_t session, size_t data_size,
 
 	switch (session->internals.hb_state) {
 	case SHB_SEND1:
-		if (data_size > DEFAULT_PAYLOAD_SIZE)
-			data_size -= DEFAULT_PAYLOAD_SIZE;
+		if (data_size > DEFAULT_PADDING_SIZE)
+			data_size -= DEFAULT_PADDING_SIZE;
 		else
 			data_size = 0;
 
@@ -224,7 +230,7 @@ gnutls_heartbeat_ping(gnutls_session_t session, size_t data_size,
 	case SHB_RECV:
 		ret =
 		    _gnutls_recv_int(session, GNUTLS_HEARTBEAT, -1, NULL,
-				     0, NULL,
+				     NULL, 0, NULL,
 				     session->internals.
 				     hb_actual_retrans_timeout_ms);
 		if (ret == GNUTLS_E_HEARTBEAT_PONG_RECEIVED) {
@@ -317,7 +323,7 @@ int _gnutls_heartbeat_handle(gnutls_session_t session, mbuffer_st * bufel)
 	    (session, GNUTLS_HB_PEER_ALLOWED_TO_SEND) == 0)
 		return gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
 
-	if (len < 4)
+	if (len < 3 + DEFAULT_PADDING_SIZE)
 		return
 		    gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
 
@@ -325,7 +331,7 @@ int _gnutls_heartbeat_handle(gnutls_session_t session, mbuffer_st * bufel)
 	type = msg[pos++];
 
 	hb_len = _gnutls_read_uint16(&msg[pos]);
-	if (hb_len > len - 3)
+	if (hb_len > len - 3 - DEFAULT_PADDING_SIZE)
 		return
 		    gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
 

@@ -92,9 +92,13 @@ int main(void)
         gnutls_priority_t priorities_cache;
         char buffer[MAX_BUF + 1];
         gnutls_certificate_credentials_t xcred;
-        /* Allow connections to servers that have OpenPGP keys as well.
-         */
+        
+        if (gnutls_check_version("3.1.4") == NULL) {
+                fprintf(stderr, "GnuTLS 3.1.4 or later is required for this example\n");
+                exit(1);
+        }
 
+        /* for backwards compatibility with gnutls < 3.3.0 */
         gnutls_global_init();
 
         load_keys();
@@ -103,8 +107,8 @@ int main(void)
         gnutls_certificate_allocate_credentials(&xcred);
 
         /* priorities */
-        gnutls_priority_init(&priorities_cache, "NORMAL", NULL);
-
+        gnutls_priority_init(&priorities_cache, 
+                             "NORMAL", NULL);
 
         /* sets the trusted cas file
          */

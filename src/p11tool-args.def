@@ -2,15 +2,16 @@ AutoGen Definitions options;
 prog-name     = p11tool;
 prog-title    = "GnuTLS PKCS #11 tool";
 prog-desc     = "Program to handle PKCS #11 smart cards and security modules.\n";
-detail    = "Program that allows handling data from PKCS #11 smart cards
+detail    = "Program that allows operations on PKCS #11 smart cards
 and security modules. 
 
-To use PKCS #11 tokens with gnutls the configuration file 
-/etc/gnutls/pkcs11.conf has to exist and contain a number of lines of the form 'load=/usr/lib/opensc-pkcs11.so'.
-Alternatively the p11-kit configuration files have to be setup.
+To use PKCS #11 tokens with GnuTLS the p11-kit configuration files need to be setup.
+That is create a .module file in /etc/pkcs11/modules with the contents 'module: /path/to/pkcs11.so'.
+Alternatively the configuration file /etc/gnutls/pkcs11.conf has to exist and contain a number
+of lines of the form 'load=/usr/lib/opensc-pkcs11.so'.
 
-To provide the PIN for all the operations below use the environment variable
-GNUTLS_PIN.
+You can provide the PIN to be used for the PKCS #11 operations with the environment variables
+GNUTLS_PIN and GNUTLS_SO_PIN.
 ";
 
 short-usage   = "p11tool [options] [url]\np11tool --help for usage instructions.\n";
@@ -42,6 +43,12 @@ flag = {
 flag = {
     name      = list-mechanisms;
     descrip   = "List all available mechanisms in a token";
+    doc = "";
+};
+
+flag = {
+    name      = info;
+    descrip   = "List information on an available object in a token";
     doc = "";
 };
 
@@ -86,12 +93,6 @@ flag = {
 };
 
 flag = {
-    name      = initialize;
-    descrip   = "Initializes a PKCS #11 token";
-    doc = "";
-};
-
-flag = {
     name      = write;
     descrip   = "Writes the loaded objects to a PKCS #11 token";
     doc = "It can be used to write private keys, certificates or secret keys to a token.";
@@ -127,6 +128,13 @@ flag = {
     doc = "Generates an RSA private-public key pair on the specified token.";
 };
 
+
+flag = {
+    name      = export-pubkey;
+    descrip   = "Export the public key for a private key";
+    doc = "Exports the public key for the specified private key";
+};
+
 flag = {
     name      = label;
     arg-type  = string;
@@ -135,19 +143,50 @@ flag = {
 };
 
 flag = {
-    name      = trusted;
+    name      = mark-wrap;
+    disable   = "no";
+    disabled;
+    descrip   = "Marks the generated key to be a wrapping key";
+    doc = "Marks the generated key with the CKA_WRAP flag.";
+};
+
+flag = {
+    name      = mark-trusted;
     disable   = "no";
     disabled;
     descrip   = "Marks the object to be written as trusted";
-    doc = "";
+    doc = "Marks the object to be generated/copied with the CKA_TRUST flag.";
+};
+
+flag = {
+    name      = mark-ca;
+    disable   = "no";
+    disabled;
+    descrip   = "Marks the object to be written as a CA";
+    doc = "Marks the object to be generated/copied with the CKA_CERTIFICATE_CATEGORY as CA.";
+};
+
+flag = {
+    name      = mark-private;
+    disable   = "no";
+    enabled;
+    descrip   = "Marks the object to be written as private";
+    doc = "Marks the object to be generated/copied with the CKA_PRIVATE flag. The written object will require a PIN to be used.";
+};
+
+flag = {
+    name      = trusted;
+    aliases   = mark-trusted;
+};
+
+flag = {
+    name      = ca;
+    aliases   = mark-ca;
 };
 
 flag = {
     name      = private;
-    disable   = "no";
-    enabled;
-    descrip   = "Marks the object to be written as private";
-    doc = "The written object will require a PIN to be used.";
+    aliases   = mark-private;
 };
 
 flag = {
@@ -225,11 +264,18 @@ flag = {
 };
 
 flag = {
+    name      = curve;
+    arg-type  = string;
+    descrip   = "Specify the curve used for EC key generation";
+    doc      = "Supported values are secp192r1, secp224r1, secp256r1, secp384r1 and secp521r1.";
+};
+
+flag = {
     name      = sec-param;
     arg-type  = string;
     arg-name  = "Security parameter";
     descrip   = "Specify the security level";
-    doc      = "This is alternative to the bits option. Available options are [low, legacy, normal, high, ultra].";
+    doc      = "This is alternative to the bits option. Available options are [low, legacy, medium, high, ultra].";
 };
 
 
@@ -260,11 +306,37 @@ flag = {
 };
 
 flag = {
+    name      = initialize;
+    descrip   = "Initializes a PKCS #11 token";
+    doc = "";
+};
+
+flag = {
+    name      = set-pin;
+    arg-type  = string;
+    descrip   = "Specify the PIN to use on token initialization";
+    doc      = "Alternatively the GNUTLS_PIN environment variable may be used.";
+};
+
+flag = {
+    name      = set-so-pin;
+    arg-type  = string;
+    descrip   = "Specify the Security Officer's PIN to use on token initialization";
+    doc      = "Alternatively the GNUTLS_SO_PIN environment variable may be used.";
+};
+
+flag = {
     name      = provider;
     arg-type  = file;
     file-exists = yes;
     descrip   = "Specify the PKCS #11 provider library";
     doc      = "This will override the default options in /etc/gnutls/pkcs11.conf";
+};
+
+flag = {
+    name      = batch;
+    descrip   = "Disable all interaction with the tool. All parameters need to be specified on command line.";
+    doc = "";
 };
 
 
@@ -306,7 +378,7 @@ $ p11tool --login --generate-rsa --bits 1024 --label "MyNewKey" \
           --outfile MyNewKey.pub "pkcs11:TOKEN-URL"
 @end example
 The bits parameter in the above example is explicitly set because some
-tokens only support a limited number of bits. The output file is the
+tokens only support limited choices in the bit length. The output file is the
 corresponding public key. This key can be used to general a certificate
 request with certtool.
 @example

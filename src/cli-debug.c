@@ -42,9 +42,6 @@
 
 static void cmd_parser(int argc, char **argv);
 
-#define ERR(err,s) if (err==-1) {perror(s);return(1);}
-#define MAX_BUF 4096
-
 /* global stuff here */
 int resume;
 const char *hostname = NULL;
@@ -65,6 +62,7 @@ extern int tls1_ok;
 extern int tls1_1_ok;
 extern int tls1_2_ok;
 extern int ssl3_ok;
+extern const char *ext_text;
 
 static void tls_log_func(int level, const char *str)
 {
@@ -79,59 +77,53 @@ typedef struct {
 	const char *suc_str;
 	const char *fail_str;
 	const char *unsure_str;
+	unsigned https_only;
 } TLS_TEST;
 
 static const TLS_TEST tls_tests[] = {
-	{"for SSL 3.0 support", test_ssl3, "yes", "no", "dunno"},
+	{"for SSL 3.0 (RFC6101) support", test_ssl3, "yes", "no", "dunno"},
+	{"whether \%NO_EXTENSIONS is required", test_no_extensions, "no", "yes",
+	 "dunno"},
 	{"whether \%COMPAT is required", test_record_padding, "no", "yes",
 	 "dunno"},
-	{"for TLS 1.0 support", test_tls1, "yes", "no", "dunno"},
-	{"for TLS 1.1 support", test_tls1_1, "yes", "no", "dunno"},
+	{"for TLS 1.0 (RFC2246) support", test_tls1, "yes", "no", "dunno"},
+	{"for TLS 1.0 (RFC2246) support with TLS 1.0 record version", test_tls1_nossl3, "yes", "no", "dunno"},
+	{"for TLS 1.1 (RFC4346) support", test_tls1_1, "yes", "no", "dunno"},
 	{"fallback from TLS 1.1 to", test_tls1_1_fallback, "TLS 1.0",
 	 "failed",
 	 "SSL 3.0"},
-	{"for TLS 1.2 support", test_tls1_2, "yes", "no", "dunno"},
+	{"for TLS 1.2 (RFC5246) support", test_tls1_2, "yes", "no", "dunno"},
 	/* The following tests will disable TLS 1.x if the server is
 	 * buggy */
 	{"whether we need to disable TLS 1.2", test_tls_disable2, "no",
-	 "yes",
-	 "dunno"},
+	 "yes", "dunno"},
 	{"whether we need to disable TLS 1.1", test_tls_disable1, "no",
-	 "yes",
-	 "dunno"},
+	 "yes", "dunno"},
 	{"whether we need to disable TLS 1.0", test_tls_disable0, "no",
-	 "yes",
-	 "dunno"},
-	{"for Safe renegotiation support", test_safe_renegotiation, "yes",
-	 "no",
-	 "dunno"},
+	 "yes", "dunno"},
+	{"for HTTPS server name", test_server, NULL, "failed", "not checked", 1},
+	{"for certificate information", test_certificate, NULL, "", ""},
+	{"for certificate chain order", test_chain_order, "sorted", "unsorted", "unknown"},
+	{"for trusted CAs", test_server_cas, NULL, "", ""},
+	{"for safe renegotiation (RFC5746) support", test_safe_renegotiation, "yes",
+	 "no", "dunno"},
 	{"for Safe renegotiation support (SCSV)",
 	 test_safe_renegotiation_scsv,
 	 "yes", "no", "dunno"},
-	{"for HTTPS server name", test_server, "", "failed",
-	 "not checked"},
+	{"for heartbeat (RFC6520) support", test_heartbeat_extension, "yes", "no", "dunno"},
 	{"for version rollback bug in RSA PMS", test_rsa_pms, "no", "yes",
 	 "dunno"},
 	{"for version rollback bug in Client Hello", test_version_rollback,
 	 "no", "yes", "dunno"},
-
-
 	{"whether the server ignores the RSA PMS version",
 	 test_rsa_pms_version_check, "yes", "no", "dunno"},
-	{"whether the server can accept Hello Extensions",
-	 test_hello_extension, "yes", "no", "dunno"},
-	{"whether the server can accept HeartBeat Extension",
-	 test_heartbeat_extension, "yes", "no", "dunno"},
-	{"whether the server can accept small records (512 bytes)",
+	{"whether small records (512 bytes) are accepted",
 	 test_small_records, "yes", "no", "dunno"},
-	{"whether the server can accept cipher suites not in SSL 3.0 spec",
+	{"whether cipher suites not in SSL 3.0 spec are accepted",
 	 test_unknown_ciphersuites, "yes", "no", "dunno"},
-	{"whether the server can accept a bogus TLS record version in the client hello", test_version_oob, "yes", "no", "dunno"},
-	{"for certificate information", test_certificate, "", "", ""},
-	{"for trusted CAs", test_server_cas, "", "", ""},
+	{"whether a bogus TLS record version in the client hello is accepted", test_version_oob, "yes", "no", "dunno"},
 	{"whether the server understands TLS closure alerts", test_bye,
-	 "yes",
-	 "no", "partially"},
+	 "yes", "no", "partially"},
 	/* the fact that is after the closure alert test does matter.
 	 */
 	{"whether the server supports session resumption",
@@ -140,29 +132,29 @@ static const TLS_TEST tls_tests[] = {
 	{"for anonymous authentication support", test_anonymous, "yes",
 	 "no",
 	 "dunno"},
-	{"anonymous Diffie-Hellman group info", test_dhe_group, "", "N/A",
+	{"anonymous Diffie-Hellman group info", test_dhe_group, NULL, "N/A",
 	 "N/A"},
 #endif
 	{"for ephemeral Diffie-Hellman support", test_dhe, "yes", "no",
 	 "dunno"},
-	{"ephemeral Diffie-Hellman group info", test_dhe_group, "", "N/A",
+	{"ephemeral Diffie-Hellman group info", test_dhe_group, NULL, "N/A",
 	 "N/A"},
 	{"for ephemeral EC Diffie-Hellman support", test_ecdhe, "yes",
 	 "no",
 	 "dunno"},
-	{"ephemeral EC Diffie-Hellman group info", test_ecdhe_curve, "",
+	{"ephemeral EC Diffie-Hellman group info", test_ecdhe_curve, NULL,
 	 "N/A",
 	 "N/A"},
-	{"for AES-128-GCM cipher support", test_aes_gcm, "yes", "no",
+	{"for AES-128-GCM cipher (RFC5288) support", test_aes_gcm, "yes", "no",
 	 "dunno"},
-	{"for AES-128-CBC cipher support", test_aes, "yes", "no",
+	{"for AES-128-CBC cipher (RFC3268) support", test_aes, "yes", "no",
 	 "dunno"},
-	{"for CAMELLIA-128-GCM cipher support", test_camellia_gcm, "yes", "no",
+	{"for CAMELLIA-128-GCM cipher (RFC6367) support", test_camellia_gcm, "yes", "no",
 	 "dunno"},
-	{"for CAMELLIA-128-CBC cipher support", test_camellia_cbc, "yes", "no",
+	{"for CAMELLIA-128-CBC cipher (RFC5932) support", test_camellia_cbc, "yes", "no",
 	 "dunno"},
-	{"for 3DES-CBC cipher support", test_3des, "yes", "no", "dunno"},
-	{"for ARCFOUR 128 cipher support", test_arcfour, "yes", "no",
+	{"for 3DES-CBC cipher (RFC2246) support", test_3des, "yes", "no", "dunno"},
+	{"for ARCFOUR 128 cipher (RFC2246) support", test_arcfour, "yes", "no",
 	 "dunno"},
 	{"for MD5 MAC support", test_md5, "yes", "no", "dunno"},
 	{"for SHA1 MAC support", test_sha, "yes", "no", "dunno"},
@@ -171,24 +163,27 @@ static const TLS_TEST tls_tests[] = {
 	{"for ZLIB compression support", test_zlib, "yes",
 	 "no", "dunno"},
 #endif
-	{"for max record size", test_max_record_size, "yes",
+	{"for max record size (RFC6066) support", test_max_record_size, "yes",
 	 "no", "dunno"},
-	{"for OpenPGP authentication support", test_openpgp1,
+#ifdef ENABLE_OCSP
+	{"for OCSP status response (RFC6066) support", test_ocsp_status, "yes",
+	 "no", "dunno"},
+#endif
+	{"for OpenPGP authentication (RFC6091) support", test_openpgp1,
 	 "yes", "no", "dunno"},
 	{NULL, NULL, NULL, NULL, NULL}
 };
 
-static int tt = 0;
 const char *ip;
 
 int main(int argc, char **argv)
 {
-	int err, ret;
-	int sd, i;
+	int ret;
+	int i;
 	gnutls_session_t state;
-	char buffer[MAX_BUF + 1];
 	char portname[6];
-	struct addrinfo hints, *res, *ptr;
+	socket_st hd;
+	const char *app_proto = NULL;
 
 	cmd_parser(argc, argv);
 
@@ -206,17 +201,8 @@ int main(int argc, char **argv)
 	gnutls_global_set_log_function(tls_log_func);
 	gnutls_global_set_log_level(debug);
 
-	printf("Resolving '%s'...\n", hostname);
 	/* get server name */
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = 0;
 	snprintf(portname, sizeof(portname), "%d", port);
-	if ((err = getaddrinfo(hostname, portname, &hints, &res)) != 0) {
-		fprintf(stderr, "Cannot resolve %s: %s\n", hostname,
-			gai_strerror(err));
-		exit(1);
-	}
 
 	/* X509 stuff */
 	if (gnutls_certificate_allocate_credentials(&xcred) < 0) {	/* space for 2 certificates */
@@ -240,8 +226,20 @@ int main(int argc, char **argv)
 	}
 #endif
 
+	if (HAVE_OPT(APP_PROTO)) {
+		app_proto = OPT_ARG(APP_PROTO);
+	}
+
+	if (app_proto == NULL) {
+		app_proto = port_to_service(portname, "tcp");
+	}
+
+	sockets_init();
+
 	i = 0;
 
+	printf("GnuTLS debug client %s\n", gnutls_check_version(NULL));
+	printf("Checking %s:%s\n", hostname, portname);
 	do {
 
 		if (tls_tests[i].test_name == NULL)
@@ -256,57 +254,45 @@ int main(int argc, char **argv)
 			break;
 		}
 
-		sd = -1;
-		for (ptr = res; ptr != NULL; ptr = ptr->ai_next) {
-			sd = socket(ptr->ai_family, ptr->ai_socktype,
-				    ptr->ai_protocol);
-			if (sd == -1) {
-				continue;
-			}
-
-			getnameinfo(ptr->ai_addr, ptr->ai_addrlen, buffer,
-				    MAX_BUF, NULL, 0, NI_NUMERICHOST);
-			if (tt == 0) {
-				printf("Connecting to '%s:%d'...\n",
-				       buffer, port);
-				tt = 1;
-			}
-			if ((err =
-			     connect(sd, ptr->ai_addr,
-				     ptr->ai_addrlen)) != 0) {
-				close(sd);
-				sd = -1;
-				continue;
-			} else
-				break;
-		}
-		ERR(err, "connect");
+		socket_open(&hd, hostname, portname, 0, NULL);
+		socket_starttls(&hd, app_proto);
 
 		gnutls_init(&state, GNUTLS_CLIENT | GNUTLS_NO_EXTENSIONS);
 
 		gnutls_transport_set_ptr(state, (gnutls_transport_ptr_t)
-					 gl_fd_to_handle(sd));
+					 gl_fd_to_handle(hd.fd));
 		set_read_funcs(state);
-		if (hostname && !isdigit(hostname[0])
-		    && strchr(hostname, ':') == 0)
+		if (hostname && is_ip(hostname) == 0)
 			gnutls_server_name_set(state, GNUTLS_NAME_DNS,
 					       hostname, strlen(hostname));
 
 		do {
-			printf("Checking %s...", tls_tests[i].test_name);
-			fflush(stdout);
+			if (strcmp(app_proto, "https") != 0 && tls_tests[i].https_only != 0) {
+				i++;
+				break;
+			}
 
 			ret = tls_tests[i].func(state);
 
-			if (ret == TEST_SUCCEED)
-				printf(" %s\n", tls_tests[i].suc_str);
-			else if (ret == TEST_FAILED)
+			if (ret != TEST_IGNORE) {
+				printf("%58s...", tls_tests[i].test_name);
+				fflush(stdout);
+			}
+
+			if (ret == TEST_SUCCEED) {
+				if (tls_tests[i].suc_str == NULL)
+					printf(" %s\n", ext_text);
+				else
+					printf(" %s\n", tls_tests[i].suc_str);
+			} else if (ret == TEST_FAILED)
 				printf(" %s\n", tls_tests[i].fail_str);
 			else if (ret == TEST_UNSURE)
 				printf(" %s\n", tls_tests[i].unsure_str);
 			else if (ret == TEST_IGNORE) {
-				printf(" N/A\n");
-				i++;
+				if (tls_tests[i+1].test_name)
+					i++;
+				else
+					break;
 			}
 		}
 		while (ret == TEST_IGNORE
@@ -314,14 +300,11 @@ int main(int argc, char **argv)
 
 		gnutls_deinit(state);
 
-		shutdown(sd, SHUT_RDWR);	/* no more receptions */
-		close(sd);
+		socket_bye(&hd);
 
 		i++;
 	}
 	while (1);
-
-	freeaddrinfo(res);
 
 #ifdef ENABLE_SRP
 	gnutls_srp_free_client_credentials(srp_cred);
