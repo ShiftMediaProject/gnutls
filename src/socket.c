@@ -51,6 +51,7 @@
 #include <signal.h>
 #endif
 #include <socket.h>
+#include <c-ctype.h>
 #include "sockets.h"
 
 #define MAX_BUF 4096
@@ -205,9 +206,22 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		wait_for_text(socket->fd, "a OK", 4);
 		send_line(socket->fd, "a STARTTLS\r\n");
 		wait_for_text(socket->fd, "a OK", 4);
-	} else {
+	} else if (strcasecmp(app_proto, "ftp") == 0 || strcasecmp(app_proto, "ftps") == 0) {
 		if (socket->verbose)
-			fprintf(stderr, "unknown protocol %s\n", app_proto);
+			printf("Negotiating FTP STARTTLS\n");
+
+		send_line(socket->fd, "FEAT\n");
+		wait_for_text(socket->fd, "211 End", 7);
+		send_line(socket->fd, "AUTH TLS\n");
+		wait_for_text(socket->fd, "234", 3);
+	} else {
+		if (!c_isdigit(app_proto[0])) {
+			static int warned = 0;
+			if (warned == 0) {
+				fprintf(stderr, "unknown protocol %s\n", app_proto);
+				warned = 1;
+			}
+		}
 	}
 
 	return;
@@ -357,6 +371,9 @@ const char *port_to_service(const char *sport, const char *proto)
 	unsigned int port;
 	struct servent *sr;
 
+	if (!c_isdigit(sport[0]))
+		return sport;
+
 	port = atoi(sport);
 	if (port == 0)
 		return sport;
@@ -366,7 +383,7 @@ const char *port_to_service(const char *sport, const char *proto)
 	sr = getservbyport(port, proto);
 	if (sr == NULL) {
 		fprintf(stderr,
-			"Warning: getservbyport() failed. Using port number as service.\n");
+			"Warning: getservbyport(%s) failed. Using port number as service.\n", sport);
 		return sport;
 	}
 

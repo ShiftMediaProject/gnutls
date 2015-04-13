@@ -614,7 +614,7 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 	struct pkcs11_session_info sinfo;
 	struct p11_kit_uri *info = NULL;
 	ck_rv_t rv;
-	struct ck_attribute a[10], p[10];
+	struct ck_attribute a[20], p[20];
 	ck_object_handle_t pub, priv;
 	unsigned long _bits = bits;
 	int a_val, p_val;
@@ -624,6 +624,7 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 	gnutls_datum_t der = {NULL, 0};
 	ck_key_type_t key_type;
 	char pubEx[3] = { 1,0,1 }; // 65537 = 0x10001
+	uint8_t id[20];
 
 	PKCS11_CHECK_INIT;
 
@@ -652,6 +653,22 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 	mech.parameter = NULL;
 	mech.parameter_len = 0;
 	mech.mechanism = pk_to_genmech(pk, &key_type);
+
+	ret = gnutls_rnd(GNUTLS_RND_NONCE, id, sizeof(id));
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	a[a_val].type = CKA_ID;
+	a[a_val].value = (void *) id;
+	a[a_val].value_len = sizeof(id);
+	a_val++;
+
+	p[p_val].type = CKA_ID;
+	p[p_val].value = (void *) id;
+	p[p_val].value_len = sizeof(id);
+	p_val++;
 
 	switch (pk) {
 	case GNUTLS_PK_RSA:
@@ -804,6 +821,7 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 
 	/* extract the public key */
 	if (pubkey) {
+
 		ret = gnutls_pubkey_init(&pkey);
 		if (ret < 0) {
 			gnutls_assert();
@@ -838,7 +856,6 @@ gnutls_pkcs11_privkey_generate2(const char *url, gnutls_pk_algorithm_t pk,
 			goto cleanup;
 		}
 	}
-
 
       cleanup:
 	if (obj != NULL)

@@ -2491,7 +2491,7 @@ static int _gnutls_recv_supplemental(gnutls_session_t session)
  *
  * The non-fatal errors expected by this function are:
  * %GNUTLS_E_INTERRUPTED, %GNUTLS_E_AGAIN, 
- * %GNUTLS_E_WARNING_ALERT_RECEIVED, and %GNUTLS_GOT_APPLICATION_DATA,
+ * %GNUTLS_E_WARNING_ALERT_RECEIVED, and %GNUTLS_E_GOT_APPLICATION_DATA,
  * the latter only in a case of rehandshake.
  *
  * The former two interrupt the handshake procedure due to the lower
@@ -2973,7 +2973,7 @@ static int send_handshake_final(gnutls_session_t session, int init)
 static int recv_handshake_final(gnutls_session_t session, int init)
 {
 	int ret = 0;
-	uint8_t ch;
+	uint8_t ccs[3];
 	unsigned int ccs_len = 1;
 	unsigned int tleft;
 	const version_entry_st *vers;
@@ -3008,7 +3008,7 @@ static int recv_handshake_final(gnutls_session_t session, int init)
 
 		ret =
 		    _gnutls_recv_int(session, GNUTLS_CHANGE_CIPHER_SPEC,
-				     -1, NULL, &ch, ccs_len, NULL, tleft);
+				     -1, NULL, ccs, ccs_len, NULL, tleft);
 		if (ret <= 0) {
 			ERR("recv ChangeCipherSpec", ret);
 			gnutls_assert();

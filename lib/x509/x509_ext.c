@@ -184,7 +184,7 @@ int gnutls_subject_alt_names_set(gnutls_subject_alt_names_t sans,
 	gnutls_datum_t copy;
 	char *ooc;
 
-	ret = _gnutls_set_datum(&copy, san->data, san->size);
+	ret = _gnutls_set_strdatum(&copy, san->data, san->size);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
@@ -766,7 +766,7 @@ int gnutls_x509_aki_set_cert_issuer(gnutls_x509_aki_t aki,
 
 	aki->cert_issuer.names[aki->cert_issuer.size].type = san_type;
 
-	ret = _gnutls_set_datum(&t_san, san->data, san->size);
+	ret = _gnutls_set_strdatum(&t_san, san->data, san->size);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
@@ -1853,7 +1853,7 @@ int gnutls_x509_ext_import_policies(const gnutls_datum_t * ext,
 
 				ret =
 				    _gnutls_x509_read_string(c2, tmpstr, &td,
-							     ASN1_ETYPE_IA5_STRING);
+							     ASN1_ETYPE_IA5_STRING, 0);
 				if (ret < 0) {
 					gnutls_assert();
 					goto full_cleanup;
@@ -2287,7 +2287,7 @@ int gnutls_x509_ext_import_crl_dist_points(const gnutls_datum_t * ext,
 	int len, ret;
 	uint8_t reasons[2];
 	unsigned i, type, rflags, j;
-	gnutls_datum_t san;
+	gnutls_datum_t san = {NULL, 0};
 
 	result = asn1_create_element
 	    (_gnutls_get_pkix(), "PKIX1.CRLDistributionPoints", &c2);
@@ -2310,9 +2310,6 @@ int gnutls_x509_ext_import_crl_dist_points(const gnutls_datum_t * ext,
 
 	i = 0;
 	do {
-		san.data = NULL;
-		san.size = 0;
-
 		snprintf(name, sizeof(name), "?%u.reasons", (unsigned)i + 1);
 
 		len = sizeof(reasons);
@@ -2337,6 +2334,9 @@ int gnutls_x509_ext_import_crl_dist_points(const gnutls_datum_t * ext,
 
 		j = 0;
 		do {
+			san.data = NULL;
+			san.size = 0;
+
 			ret =
 			    _gnutls_parse_general_name2(c2, name, j, &san,
 							&type, 0);
@@ -2351,6 +2351,7 @@ int gnutls_x509_ext_import_crl_dist_points(const gnutls_datum_t * ext,
 			ret = crl_dist_points_set(cdp, type, &san, rflags);
 			if (ret < 0)
 				break;
+			san.data = NULL; /* it is now in cdp */
 
 			j++;
 		} while (ret >= 0);
@@ -3154,7 +3155,7 @@ int gnutls_x509_othername_to_virtual(const char *oid,
 		case GNUTLS_SAN_OTHERNAME_XMPP:
 			ret = _gnutls_x509_decode_string
 				    (ASN1_ETYPE_UTF8_STRING, othername->data,
-				     othername->size, virt);
+				     othername->size, virt, 0);
 			if (ret < 0) {
 				gnutls_assert();
 				return ret;

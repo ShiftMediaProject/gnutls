@@ -543,7 +543,7 @@ _asn1_delete_list_and_nodes (void)
 
 
 char *
-_asn1_ltostr (long v, char *str)
+_asn1_ltostr (long v, char str[LTOSTR_MAX_SIZE])
 {
   long d, r;
   char temp[LTOSTR_MAX_SIZE];
@@ -567,7 +567,7 @@ _asn1_ltostr (long v, char *str)
       count++;
       v = d;
     }
-  while (v);
+  while (v && ((start+count) < LTOSTR_MAX_SIZE-1));
 
   for (k = 0; k < count; k++)
     str[k + start] = temp[start + count - k - 1];
@@ -701,9 +701,12 @@ _asn1_expand_object_id (asn1_node node)
 			      p5 =
 				_asn1_add_single_node (ASN1_ETYPE_CONSTANT);
 			      _asn1_set_name (p5, p4->name);
-			      tlen = _asn1_strlen (p4->value);
-			      if (tlen > 0)
-				_asn1_set_value (p5, p4->value, tlen + 1);
+			      if (p4->value)
+			        {
+			          tlen = _asn1_strlen (p4->value);
+			          if (tlen > 0)
+			            _asn1_set_value (p5, p4->value, tlen + 1);
+			        }
 			      if (p2 == p)
 				{
 				  _asn1_set_right (p5, p->down);

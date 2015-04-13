@@ -849,17 +849,8 @@ test_code_t test_tls_disable1(gnutls_session_t session)
 
 	ret = do_handshake(session);
 	if (ret == TEST_FAILED) {
-		protocol_str[0] = 0;
 		/* disable TLS 1.1 */
-		if (tls1_ok != 0) {
-			strcat(protocol_str, "+VERS-TLS1.0");
-		}
-		if (ssl3_ok != 0) {
-			if (protocol_str[0] != 0)
-				strcat(protocol_str, ":+VERS-SSL3.0");
-			else
-				strcat(protocol_str, "+VERS-SSL3.0");
-		}
+		snprintf(protocol_str, sizeof(protocol_str), "+VERS-TLS1.0:+VERS-SSL3.0");
 	}
 	return ret;
 }
@@ -881,22 +872,7 @@ test_code_t test_tls_disable2(gnutls_session_t session)
 	ret = do_handshake(session);
 	if (ret == TEST_FAILED) {
 		/* disable TLS 1.2 */
-		protocol_str[0] = 0;
-		if (tls1_1_ok != 0) {
-			strcat(protocol_str, "+VERS-TLS1.1");
-		}
-		if (tls1_ok != 0) {
-			if (protocol_str[0] != 0)
-				strcat(protocol_str, ":+VERS-TLS1.0");
-			else
-				strcat(protocol_str, "+VERS-TLS1.0");
-		}
-		if (ssl3_ok != 0) {
-			if (protocol_str[0] != 0)
-				strcat(protocol_str, ":+VERS-SSL3.0");
-			else
-				strcat(protocol_str, "+VERS-SSL3.0");
-		}
+		snprintf(protocol_str, sizeof(protocol_str), "+VERS-TLS1.1:+VERS-TLS1.0:+VERS-SSL3.0");
 	}
 	return ret;
 }
@@ -1193,6 +1169,9 @@ test_code_t test_chain_order(gnutls_session_t session)
 		return TEST_IGNORE;
 	}
 
+	if (cert_list_size == 1)
+		return TEST_SUCCEED;
+
 	p = 0;
 	p_size = 0;
 	pos = NULL;
@@ -1208,6 +1187,7 @@ test_code_t test_chain_order(gnutls_session_t session)
 
 		memcpy(pos, t.data, t.size);
 		p_size += t.size;
+		pos += t.size;
 
 		gnutls_free(t.data);
 	}

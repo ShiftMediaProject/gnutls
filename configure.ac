@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.3.13], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.3.14], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -389,7 +389,11 @@ else
     if test -f /var/lib/unbound/root.key;then
     	unbound_root_key_file="/var/lib/unbound/root.key"
     else
-        unbound_root_key_file="/etc/unbound/root.key"
+        if test -f /usr/share/dns/root.key;then
+	    unbound_root_key_file="/usr/share/dns/root.key"
+        else
+            unbound_root_key_file="/etc/unbound/root.key"
+        fi
     fi
 fi
 )
