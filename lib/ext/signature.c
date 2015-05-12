@@ -282,7 +282,10 @@ _gnutls_session_get_sign_algo(gnutls_session_t session,
 	    || priv->sign_algorithms_size == 0)
 		/* none set, allow SHA-1 only */
 	{
-		return gnutls_pk_to_sign(cert_algo, GNUTLS_DIG_SHA1);
+		ret = gnutls_pk_to_sign(cert_algo, GNUTLS_DIG_SHA1);
+		if (_gnutls_session_sign_algo_enabled(session, ret) < 0)
+			goto fail;
+		return ret;
 	}
 
 	for (i = 0; i < priv->sign_algorithms_size; i++) {
@@ -301,6 +304,7 @@ _gnutls_session_get_sign_algo(gnutls_session_t session,
 		}
 	}
 
+ fail:
 	return GNUTLS_SIGN_UNKNOWN;
 }
 
@@ -313,28 +317,12 @@ _gnutls_session_sign_algo_enabled(gnutls_session_t session,
 				  gnutls_sign_algorithm_t sig)
 {
 	unsigned i;
-	int ret;
 	const version_entry_st *ver = get_version(session);
-	sig_ext_st *priv;
-	extension_priv_data_t epriv;
 
 	if (unlikely(ver == NULL))
 		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 
-	ret =
-	    _gnutls_ext_get_session_data(session,
-					 GNUTLS_EXTENSION_SIGNATURE_ALGORITHMS,
-					 &epriv);
-	if (ret < 0) {
-		gnutls_assert();
-		return 0;
-	}
-	priv = epriv.ptr;
-
-	if (!_gnutls_version_has_selectable_sighash(ver)
-	    || priv->sign_algorithms_size == 0)
-		/* none set, allow all */
-	{
+	if (!_gnutls_version_has_selectable_sighash(ver)) {
 		return 0;
 	}
 
