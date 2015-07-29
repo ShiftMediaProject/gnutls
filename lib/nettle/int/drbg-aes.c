@@ -22,6 +22,7 @@
 
 #include <config.h>
 #include <drbg-aes.h>
+#include <gnutls_errors.h>
 #include <nettle/memxor.h>
 #include <nettle/aes.h>
 #include <minmax.h>
@@ -67,7 +68,6 @@ drbg_aes_update(struct drbg_aes_ctx *ctx,
 
 	memcpy(ctx->v, &tmp[DRBG_AES_KEY_SIZE], AES_BLOCK_SIZE);
 
-	ctx->reseed_counter = 1;
 	ctx->seeded = 1;
 }
 
@@ -93,6 +93,27 @@ drbg_aes_reseed(struct drbg_aes_ctx *ctx,
 	memxor(tmp, entropy, entropy_size);
 
 	drbg_aes_update(ctx, tmp);
+	ctx->reseed_counter = 1;
+
+	return 1;
+}
+
+int drbg_aes_random(struct drbg_aes_ctx *ctx, unsigned length, uint8_t * dst)
+{
+	unsigned p_len;
+	int left = length;
+	uint8_t *p = dst;
+	int ret;
+
+	while(left > 0) {
+		p_len = MIN(MAX_DRBG_AES_GENERATE_SIZE, left);
+		ret = drbg_aes_generate(ctx, p_len, p, 0, 0);
+		if (ret == 0)
+			return ret;
+
+		p += p_len;
+		left -= p_len;
+	}
 
 	return 1;
 }
@@ -106,11 +127,14 @@ int drbg_aes_generate(struct drbg_aes_ctx *ctx, unsigned length, uint8_t * dst,
 	unsigned left;
 
 	if (ctx->seeded == 0)
-		return 0;
+		return gnutls_assert_val(0);
+
+	if (length > MAX_DRBG_AES_GENERATE_SIZE)
+		return gnutls_assert_val(0);
 
 	if (add_size > 0) {
 		if (add_size > DRBG_AES_SEED_SIZE)
-			return 0;
+			return gnutls_assert_val(0);
 		memcpy(seed, add, add_size);
 		if (add_size != DRBG_AES_SEED_SIZE)
 			memset(&seed[add_size], 0, DRBG_AES_SEED_SIZE - add_size);
@@ -140,7 +164,7 @@ int drbg_aes_generate(struct drbg_aes_ctx *ctx, unsigned length, uint8_t * dst,
 		/* if detected loop */
 		if (memcmp(dst, ctx->prev_block, AES_BLOCK_SIZE) == 0) {
 			_gnutls_switch_lib_state(LIB_STATE_ERROR);
-			return 0;
+			return gnutls_assert_val(0);
 		}
 
 		memcpy(ctx->prev_block, dst, AES_BLOCK_SIZE);
@@ -154,7 +178,7 @@ int drbg_aes_generate(struct drbg_aes_ctx *ctx, unsigned length, uint8_t * dst,
 		/* if detected loop */
 		if (memcmp(tmp, ctx->prev_block, AES_BLOCK_SIZE) == 0) {
 			_gnutls_switch_lib_state(LIB_STATE_ERROR);
-			return 0;
+			return gnutls_assert_val(0);
 		}
 
 		memcpy(ctx->prev_block, tmp, AES_BLOCK_SIZE);
@@ -162,7 +186,7 @@ int drbg_aes_generate(struct drbg_aes_ctx *ctx, unsigned length, uint8_t * dst,
 	}
 
 	if (ctx->reseed_counter > DRBG_AES_RESEED_TIME)
-		return 0;
+		return gnutls_assert_val(0);
 	ctx->reseed_counter++;
 
 	drbg_aes_update(ctx, seed);

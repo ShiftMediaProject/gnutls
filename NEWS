@@ -3,6 +3,23 @@ Copyright (C) 2000-2015 Free Software Foundation, Inc.
 Copyright (C) 2013, 2014 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.3.16 (released 2015-07-12)
+
+** libgnutls: Allow compilation with nettle 3.0 or later
+
+** libgnutls: corrected failure when importing plain files 
+   with gnutls_x509_privkey_import2(), and a password was provided.
+
+** libgnutls: Don't reject certificates if a CA has the URI or IP address
+   name constraints, and the end certificate doesn't have an IP address 
+   name or a URI set.
+
+** libgnutls: set and read the hint in DHE-PSK and ECDHE-PSK ciphersuites.
+
+** API and ABI modifications:
+   No changes since last version.
+
+
 * Version 3.3.15 (released 2015-05-03)
 
 ** libgnutls: gnutls_certificate_get_ours: will return the certificate even

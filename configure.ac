@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.3.15], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.3.16], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -837,6 +837,7 @@ AC_MSG_NOTICE([summary of build options:
   Local libopts:        ${enable_local_libopts}
   Local libtasn1:       ${included_libtasn1}
   Use nettle-mini:      ${mini_nettle}
+  nettle-version:       ${nettle_version}
 ])
 
 AC_MSG_NOTICE([External hardware support:
