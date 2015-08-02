@@ -664,6 +664,9 @@
 /* nettle is enabled */
 #define HAVE_LIBNETTLE 1
 
+/* nettle 3.0 or later */
+#define USE_NETTLE3 1
+
 /* Define if you have the libpthread library. */
 /* #undef HAVE_LIBPTHREAD */
 

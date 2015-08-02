@@ -145,7 +145,6 @@
     <ClInclude Include="..\lib\minitasn1\structure.h" />
     <ClInclude Include="..\lib\nettle\egd.h" />
     <ClInclude Include="..\lib\nettle\gnettle.h" />
-    <ClInclude Include="..\lib\nettle\int\gcm-camellia.h" />
     <ClInclude Include="..\lib\nettle\rnd-common.h" />
     <ClInclude Include="..\lib\opencdk\context.h" />
     <ClInclude Include="..\lib\opencdk\filters.h" />
@@ -459,7 +458,6 @@
     <ClCompile Include="..\lib\nettle\cipher.c" />
     <ClCompile Include="..\lib\nettle\egd.c" />
     <ClCompile Include="..\lib\nettle\init.c" />
-    <ClCompile Include="..\lib\nettle\int\gcm-camellia.c" />
     <ClCompile Include="..\lib\nettle\mac.c">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)\net_%(Filename).obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|Win32'">$(IntDir)\net_%(Filename).obj</ObjectFileName>

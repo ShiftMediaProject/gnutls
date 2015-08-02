@@ -82,12 +82,6 @@
     <Filter Include="Source Files\gl">
       <UniqueIdentifier>{f35f5731-aedc-4518-a473-6d2cb214104d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\lib\nettle\int">
-      <UniqueIdentifier>{b255bc80-88bb-41e0-bdef-dfec060c0a87}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\lib\nettle\int">
-      <UniqueIdentifier>{5d10befb-ac39-43dd-a011-e8710001dee9}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -416,9 +410,6 @@
     </ClInclude>
     <ClInclude Include="..\lib\nettle\rnd-common.h">
       <Filter>Header Files\lib\nettle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\nettle\int\gcm-camellia.h">
-      <Filter>Header Files\lib\nettle\int</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -940,9 +931,6 @@
     </ClCompile>
     <ClCompile Include="..\lib\nettle\rnd.c">
       <Filter>Source Files\lib\nettle</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\nettle\int\gcm-camellia.c">
-      <Filter>Source Files\lib\nettle\int</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\x509\name_constraints.c">
       <Filter>Source Files\lib\x509</Filter>
