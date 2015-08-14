@@ -60,6 +60,10 @@ _gnutls_ext_sr_finished(gnutls_session_t session, void *vdata,
 					   &epriv);
 	if (ret < 0) {
 		gnutls_assert();
+		/* if a client didn't advertise safe renegotiation, we treat
+		 * it as disabled. */
+		if (session->security_parameters.entity == GNUTLS_SERVER)
+			return 0;
 		return ret;
 	}
 	priv = epriv.ptr;
@@ -215,6 +219,7 @@ int _gnutls_ext_sr_recv_cs(gnutls_session_t session)
 
 	priv->safe_renegotiation_received = 1;
 	priv->connection_using_safe_renegotiation = 1;
+	_gnutls_extension_list_add(session, GNUTLS_EXTENSION_SAFE_RENEGOTIATION);
 
 	if (set != 0)
 		_gnutls_ext_set_session_data(session,
