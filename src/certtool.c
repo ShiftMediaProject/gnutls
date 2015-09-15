@@ -627,7 +627,9 @@ generate_crl(gnutls_x509_crt_t ca_crt, common_info_st * cinfo)
 				gnutls_strerror(result));
 			exit(1);
 		}
+		gnutls_x509_crt_deinit(crts[i]);
 	}
+	gnutls_free(crts);
 
 	result = gnutls_x509_crl_set_this_update(crl, now);
 	if (result < 0) {
@@ -901,6 +903,7 @@ static void generate_signed_crl(common_info_st * cinfo)
 
 	gnutls_privkey_deinit(ca_key);
 	gnutls_x509_crl_deinit(crl);
+	gnutls_x509_crt_deinit(ca_crt);
 }
 
 static void update_signed_certificate(common_info_st * cinfo)
@@ -1222,10 +1225,9 @@ static void cmd_parser(int argc, char **argv)
 	gnutls_global_deinit();
 }
 
-#define MAX_CRTS 500
 void certificate_info(int pubkey, common_info_st * cinfo)
 {
-	gnutls_x509_crt_t crt[MAX_CRTS];
+	gnutls_x509_crt_t *crts = NULL;
 	size_t size;
 	int ret, i, count;
 	gnutls_datum_t pem;
@@ -1234,17 +1236,8 @@ void certificate_info(int pubkey, common_info_st * cinfo)
 	pem.data = (void *) fread_file(infile, &size);
 	pem.size = size;
 
-	crt_num = MAX_CRTS;
 	ret =
-	    gnutls_x509_crt_list_import(crt, &crt_num, &pem, incert_format,
-					GNUTLS_X509_CRT_LIST_IMPORT_FAIL_IF_EXCEED);
-	if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		fprintf(stderr, "too many certificates (%d); "
-			"will only read the first %d", crt_num, MAX_CRTS);
-		crt_num = MAX_CRTS;
-		ret = gnutls_x509_crt_list_import(crt, &crt_num, &pem,
-						  incert_format, 0);
-	}
+	    gnutls_x509_crt_list_import2(&crts, &crt_num, &pem, incert_format, 0);
 	if (ret < 0) {
 		fprintf(stderr, "import error: %s\n", gnutls_strerror(ret));
 		exit(1);
@@ -1252,7 +1245,7 @@ void certificate_info(int pubkey, common_info_st * cinfo)
 
 	free(pem.data);
 
-	count = ret;
+	count = crt_num;
 
 	if (count > 1 && outcert_format == GNUTLS_X509_FMT_DER) {
 		fprintf(stderr,
@@ -1266,14 +1259,14 @@ void certificate_info(int pubkey, common_info_st * cinfo)
 			fprintf(outfile, "\n");
 
 		if (outcert_format == GNUTLS_X509_FMT_PEM)
-			print_certificate_info(crt[i], outfile, 1);
+			print_certificate_info(crts[i], outfile, 1);
 
 		if (pubkey)
-			pubkey_info(crt[i], cinfo);
+			pubkey_info(crts[i], cinfo);
 		else {
 			size = lbuffer_size;
 			ret =
-			    gnutls_x509_crt_export(crt[i], outcert_format,
+			    gnutls_x509_crt_export(crts[i], outcert_format,
 						   lbuffer, &size);
 			if (ret < 0) {
 				fprintf(stderr, "export error: %s\n",
@@ -1284,8 +1277,9 @@ void certificate_info(int pubkey, common_info_st * cinfo)
 			fwrite(lbuffer, 1, size, outfile);
 		}
 
-		gnutls_x509_crt_deinit(crt[i]);
+		gnutls_x509_crt_deinit(crts[i]);
 	}
+	gnutls_free(crts);
 }
 
 #ifdef ENABLE_OPENPGP
@@ -1626,8 +1620,8 @@ print_certificate_info(gnutls_x509_crt_t crt, FILE * out, unsigned int all)
 static void print_crl_info(gnutls_x509_crl_t crl, FILE * out)
 {
 	gnutls_datum_t data;
+	gnutls_datum_t cout;
 	int ret;
-	size_t size;
 
 	if (outcert_format == GNUTLS_X509_FMT_PEM) {
 		ret = gnutls_x509_crl_print(crl, full_format, &data);
@@ -1640,16 +1634,15 @@ static void print_crl_info(gnutls_x509_crl_t crl, FILE * out)
 		gnutls_free(data.data);
 	}
 
-	size = lbuffer_size;
 	ret =
-	    gnutls_x509_crl_export(crl, outcert_format, lbuffer,
-				   &size);
+	    gnutls_x509_crl_export2(crl, outcert_format, &cout);
 	if (ret < 0) {
 		fprintf(stderr, "crl_export: %s\n", gnutls_strerror(ret));
 		exit(1);
 	}
 
-	fwrite(lbuffer, 1, size, outfile);
+	fwrite(cout.data, 1, cout.size, outfile);
+	gnutls_free(cout.data);
 }
 
 void crl_info(void)
@@ -2542,8 +2535,6 @@ void verify_crl(common_info_st * cinfo)
 	fprintf(outfile, "\n");
 }
 
-
-
 void generate_pkcs8(common_info_st * cinfo)
 {
 	gnutls_x509_privkey_t key;
@@ -2805,7 +2796,7 @@ void generate_pkcs12(common_info_st * cinfo)
 	}
 
 	fwrite(lbuffer, 1, size, outfile);
-
+	gnutls_free(crts);
 }
 
 static const char *BAGTYPE(gnutls_pkcs12_bag_type_t x)
