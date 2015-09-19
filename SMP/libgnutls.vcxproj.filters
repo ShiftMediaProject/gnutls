@@ -82,6 +82,15 @@
     <Filter Include="Source Files\gl">
       <UniqueIdentifier>{f35f5731-aedc-4518-a473-6d2cb214104d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\lib\accelerated\x86">
+      <UniqueIdentifier>{075c40f2-5cd7-4fd6-8eed-4d712901d635}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\accelerated\x86\nasm">
+      <UniqueIdentifier>{514b70ce-1fad-4147-adbc-f8c13ff26975}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\accelerated\x86">
+      <UniqueIdentifier>{c5ee836d-4b0b-49bc-873a-28ceb87a5faa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -411,6 +420,21 @@
     <ClInclude Include="..\lib\nettle\rnd-common.h">
       <Filter>Header Files\lib\nettle</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\accelerated\x86\aes-padlock.h">
+      <Filter>Header Files\lib\accelerated\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\accelerated\x86\aes-x86.h">
+      <Filter>Header Files\lib\accelerated\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\accelerated\x86\sha-padlock.h">
+      <Filter>Header Files\lib\accelerated\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\accelerated\x86\sha-x86.h">
+      <Filter>Header Files\lib\accelerated\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\accelerated\x86\x86-common.h">
+      <Filter>Header Files\lib\accelerated\x86</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -722,83 +746,35 @@
     <ClCompile Include="..\lib\nettle\init.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_psk.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\gl\c-ctype.c">
+      <Filter>Source Files\gl</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_pubkey.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\gl\read-file.c">
+      <Filter>Source Files\gl</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_range.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\gl\base64.c">
+      <Filter>Source Files\gl</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_record.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\gl\hash-pjw-bare.c">
+      <Filter>Source Files\gl</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_rsa_export.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\gl\msvc-nothrow.c">
+      <Filter>Source Files\gl</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_session.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\gl\msvc-inval.c">
+      <Filter>Source Files\gl</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_session_pack.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\lib\nettle\rnd-common.c">
+      <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_sig.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\lib\nettle\rnd.c">
+      <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_srp.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\lib\x509\name_constraints.c">
+      <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_state.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_str.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_supplemental.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_ui.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_v2_compat.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_x509.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\inet_pton.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\locks.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\pin.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\pkix_asn1_tab.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\random.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system_override.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\tpm.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\vasprintf.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\verify-tofu.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509_b64.c">
-      <Filter>Source Files\lib</Filter>
+    <ClCompile Include="..\lib\x509\x509_ext.c">
+      <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\crypto-api.c">
       <Filter>Source Files\lib</Filter>
@@ -807,6 +783,9 @@
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\debug.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\fips.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\gnutls_alert.c">
@@ -899,49 +878,171 @@
     <ClCompile Include="..\lib\gnutls_privkey.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\gl\c-ctype.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\read-file.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\base64.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\hash-pjw-bare.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\msvc-nothrow.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\msvc-inval.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\gnutls_privkey_raw.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\fips.c">
+    <ClCompile Include="..\lib\gnutls_psk.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_pubkey.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_range.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_record.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_rsa_export.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_session.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_session_pack.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_sig.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_srp.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_state.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_str.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_supplemental.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_ui.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_v2_compat.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_x509.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\inet_pton.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\locks.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pin.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pkix_asn1_tab.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\random.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\safe-memset.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\nettle\rnd-common.c">
-      <Filter>Source Files\lib\nettle</Filter>
+    <ClCompile Include="..\lib\system.c">
+      <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\nettle\rnd.c">
-      <Filter>Source Files\lib\nettle</Filter>
+    <ClCompile Include="..\lib\system_override.c">
+      <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\x509\name_constraints.c">
-      <Filter>Source Files\lib\x509</Filter>
+    <ClCompile Include="..\lib\tpm.c">
+      <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\x509\x509_ext.c">
-      <Filter>Source Files\lib\x509</Filter>
+    <ClCompile Include="..\lib\vasprintf.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\verify-tofu.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509_b64.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\x86-common.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-pclmul.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-ssse3.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-padlock.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\hmac-padlock.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\hmac-x86-ssse3.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\sha-padlock.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\sha-x86-ssse3.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-cbc-x86-aesni.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-cbc-x86-ssse3.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-gcm-padlock.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-aesni.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">
       <Filter>Resource Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <YASM Include="lib\accelerated\x86\nasm\aesni-x86.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\aesni-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\aes-ssse3-x86.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\cpuid-x86.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\cpuid-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\e_padlock-x86.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\e_padlock-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\sha1-ssse3-x86.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\sha256-ssse3-x86.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\nasm\ghash-x86_64.asm">
+      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    </YASM>
   </ItemGroup>
 </Project>

@@ -1,4 +1,7 @@
 
+/* Define if building universal (internal helper macro) */
+/* #undef AC_APPLE_UNIVERSAL_BUILD */
+
 /* Define to the number of bits in type 'ptrdiff_t'. */
 /* #undef BITSIZEOF_PTRDIFF_T */
 
@@ -38,6 +41,9 @@
 /* use the given CRL file */
 /* #undef DEFAULT_CRL_FILE */
 
+/* use the given directory as default trust store */
+/* #undef DEFAULT_TRUST_STORE_DIR */
+
 /* use the given file default trust store */
 /* #undef DEFAULT_TRUST_STORE_FILE */
 
@@ -62,6 +68,9 @@
 /* enable DHE */
 #define ENABLE_ECDHE 1
 
+/* Enable FIPS140-2 mode */
+/* #undef ENABLE_FIPS140 */
+
 /* enable heartbeat support */
 #define ENABLE_HEARTBEAT 1
 
@@ -77,6 +86,9 @@
 /* use openpgp authentication */
 #define ENABLE_OPENPGP 1
 
+/* Enable padlock acceleration */
+#define ENABLE_PADLOCK 1
+
 /* Build PKCS#11 support */
 /* #undef ENABLE_PKCS11 */
 
@@ -85,6 +97,12 @@
 
 /* enable RSA-EXPORT */
 #define ENABLE_RSA_EXPORT 1
+
+/* Self checks are included in the library */
+/* #undef ENABLE_SELF_CHECKS */
+
+/* enable session tickets support */
+#define ENABLE_SESSION_TICKETS 1
 
 /* enable SRP authentication */
 #define ENABLE_SRP 1
@@ -111,10 +129,6 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module fscanf shall be considered present. */
 #define GNULIB_FSCANF 1
-
-/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
-   whether the gnulib module lock shall be considered present. */
-#define GNULIB_LOCK IN_GNUTLS_GNULIB_TESTS
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module scanf shall be considered present. */
@@ -164,20 +178,11 @@
 /* Define to 1 when the gnulib module ftello should be tested. */
 #define GNULIB_TEST_FTELLO 1
 
-/* Define to 1 when the gnulib module ftruncate should be tested. */
-#define GNULIB_TEST_FTRUNCATE 1
-
 /* Define to 1 when the gnulib module getaddrinfo should be tested. */
 #define GNULIB_TEST_GETADDRINFO 1
 
-/* Define to 1 when the gnulib module getcwd should be tested. */
-#define GNULIB_TEST_GETCWD 1
-
 /* Define to 1 when the gnulib module getdelim should be tested. */
 #define GNULIB_TEST_GETDELIM 1
-
-/* Define to 1 when the gnulib module getdtablesize should be tested. */
-#define GNULIB_TEST_GETDTABLESIZE 1
 
 /* Define to 1 when the gnulib module getline should be tested. */
 #define GNULIB_TEST_GETLINE 1
@@ -191,17 +196,11 @@
 /* Define to 1 when the gnulib module gettimeofday should be tested. */
 #define GNULIB_TEST_GETTIMEOFDAY 1
 
-/* Define to 1 when the gnulib module ioctl should be tested. */
-#define GNULIB_TEST_IOCTL 1
-
 /* Define to 1 when the gnulib module listen should be tested. */
 #define GNULIB_TEST_LISTEN 1
 
 /* Define to 1 when the gnulib module lseek should be tested. */
 #define GNULIB_TEST_LSEEK 1
-
-/* Define to 1 when the gnulib module lstat should be tested. */
-#define GNULIB_TEST_LSTAT 1
 
 /* Define to 1 when the gnulib module malloc-posix should be tested. */
 #define GNULIB_TEST_MALLOC_POSIX 1
@@ -214,15 +213,6 @@
 
 /* Define to 1 when the gnulib module mktime should be tested. */
 #define GNULIB_TEST_MKTIME 1
-
-/* Define to 1 when the gnulib module open should be tested. */
-#define GNULIB_TEST_OPEN 1
-
-/* Define to 1 when the gnulib module perror should be tested. */
-#define GNULIB_TEST_PERROR 1
-
-/* Define to 1 when the gnulib module pipe should be tested. */
-#define GNULIB_TEST_PIPE 1
 
 /* Define to 1 when the gnulib module realloc-posix should be tested. */
 #define GNULIB_TEST_REALLOC_POSIX 1
@@ -257,17 +247,11 @@
 /* Define to 1 when the gnulib module socket should be tested. */
 #define GNULIB_TEST_SOCKET 1
 
-/* Define to 1 when the gnulib module stat should be tested. */
-#define GNULIB_TEST_STAT 1
-
 /* Define to 1 when the gnulib module strdup should be tested. */
 #define GNULIB_TEST_STRDUP 1
 
 /* Define to 1 when the gnulib module strerror should be tested. */
 #define GNULIB_TEST_STRERROR 1
-
-/* Define to 1 when the gnulib module strerror_r should be tested. */
-#define GNULIB_TEST_STRERROR_R 1
 
 /* Define to 1 when the gnulib module strndup should be tested. */
 #define GNULIB_TEST_STRNDUP 1
@@ -280,9 +264,6 @@
 
 /* Define to 1 when the gnulib module strverscmp should be tested. */
 #define GNULIB_TEST_STRVERSCMP 1
-
-/* Define to 1 when the gnulib module symlink should be tested. */
-#define GNULIB_TEST_SYMLINK 1
 
 /* Define to 1 when the gnulib module time_r should be tested. */
 #define GNULIB_TEST_TIME_R 1
@@ -304,7 +285,7 @@
 #define GNUTLS_INTERNAL_BUILD 1
 
 /* Additional cast to bring void* to a type castable to int. */
-#define GNUTLS_POINTER_TO_INT_CAST (long)
+#define GNUTLS_POINTER_TO_INT_CAST (long long)
 
 /* Define to 1 if you have the `alarm' function. */
 /* #undef HAVE_ALARM */
@@ -323,6 +304,9 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 /* #undef HAVE_ARPA_INET_H */
 
+/* Have this function */
+#define HAVE_ASN1_DECODE_SIMPLE_BER 1
+
 /* Define to 1 if you have the `atexit' function. */
 /* #undef HAVE_ATEXIT */
 
@@ -335,22 +319,16 @@
 /* Define to 1 if you have the `canonicalize_file_name' function. */
 /* #undef HAVE_CANONICALIZE_FILE_NAME */
 
-/* Define to 1 if you have the `catgets' function. */
-/* #undef HAVE_CATGETS */
-
-/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
+/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
 /* #undef HAVE_CFLOCALECOPYCURRENT */
 
-/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
+/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define to 1 if you have the `chmod' function. */
 #define HAVE_CHMOD 1
-
-/* Define to 1 if you have the `chsize' function. */
-#define HAVE_CHSIZE 1
 
 /* Define to 1 if you have the `clock_gettime' function. */
 /* #undef HAVE_CLOCK_GETTIME */
@@ -564,9 +542,6 @@
 /* Define to 1 if you have the `fstat' function. */
 #define HAVE_FSTAT 1
 
-/* Define to 1 if you have the `ftruncate' function. */
-#define HAVE_FTRUNCATE 1
-
 /* Define to 1 if you have the `funlockfile' function. */
 /* #undef HAVE_FUNLOCKFILE */
 
@@ -634,9 +609,6 @@
    declares uintmax_t. */
 #define HAVE_INTTYPES_H_WITH_UINTMAX 1
 
-/* Define to 1 if you have the `ioctl' function. */
-/* #undef HAVE_IOCTL */
-
 /* Define to 1 if <sys/socket.h> defines AF_INET. */
 #define HAVE_IPV4 1
 
@@ -645,6 +617,9 @@
 
 /* Define to 1 if you have the `kqueue' function. */
 /* #undef HAVE_KQUEUE */
+
+/* Define if you have the libdl library. */
+/* #undef HAVE_LIBDL */
 
 /* Define to 1 if you have the `gen' library (-lgen). */
 /* #undef HAVE_LIBGEN */
@@ -664,8 +639,8 @@
 /* nettle is enabled */
 #define HAVE_LIBNETTLE 1
 
-/* nettle 3.0 or later */
-#define USE_NETTLE3 1
+/* Define if you have the libnsl library. */
+/* #undef HAVE_LIBNSL */
 
 /* Define if you have the libpthread library. */
 /* #undef HAVE_LIBPTHREAD */
@@ -685,11 +660,8 @@
 /* Define to 1 if you have the `localtime_r' function. */
 /* #undef HAVE_LOCALTIME_R */
 
-/* Define to 1 if the system has the type `long long int'. */
+/* Define to 1 if the system has the type 'long long int'. */
 #define HAVE_LONG_LONG_INT 1
-
-/* Define to 1 if you have the `lstat' function. */
-/* #undef HAVE_LSTAT */
 
 /* Define if the 'malloc' function is POSIX compliant. */
 /* #undef HAVE_MALLOC_POSIX */
@@ -756,17 +728,8 @@
 /* Define to 1 if the system has the type `pid_t'. */
 #define HAVE_PID_T 1
 
-/* Define to 1 if you have the `pipe' function. */
-/* #undef HAVE_PIPE */
-
 /* Define to 1 if you have the `pthread_mutex_lock' function. */
 /* #undef HAVE_PTHREAD_MUTEX_LOCK */
-
-/* Define if the <pthread.h> defines PTHREAD_MUTEX_RECURSIVE. */
-/* #undef HAVE_PTHREAD_MUTEX_RECURSIVE */
-
-/* Define if the POSIX multithreading library has read/write locks. */
-/* #undef HAVE_PTHREAD_RWLOCK */
 
 /* Define to 1 if the system has the type `ptrdiff_t'. */
 #define HAVE_PTRDIFF_T 1
@@ -963,9 +926,6 @@
 
 /* Define to 1 if initstate_r is declared even after undefining macros. */
 /* #undef HAVE_RAW_DECL_INITSTATE_R */
-
-/* Define to 1 if ioctl is declared even after undefining macros. */
-/* #undef HAVE_RAW_DECL_IOCTL */
 
 /* Define to 1 if isatty is declared even after undefining macros. */
 #define HAVE_RAW_DECL_ISATTY 1
@@ -1540,9 +1500,6 @@
 /* Define to 1 if you have the `strverscmp' function. */
 /* #undef HAVE_STRVERSCMP */
 
-/* Define to 1 if you have the `symlink' function. */
-/* #undef HAVE_SYMLINK */
-
 /* Define to 1 if you have the <sysexits.h> header file. */
 /* #undef HAVE_SYSEXITS_H */
 
@@ -1555,9 +1512,6 @@
 
 /* Define to 1 if you have the <sys/inttypes.h> header file. */
 /* #undef HAVE_SYS_INTTYPES_H */
-
-/* Define to 1 if you have the <sys/ioctl.h> header file. */
-/* #undef HAVE_SYS_IOCTL_H */
 
 /* Define to 1 if you have the <sys/limits.h> header file. */
 /* #undef HAVE_SYS_LIMITS_H */
@@ -1658,7 +1612,7 @@
 /* Define to 1 if you have the `unsetenv' function. */
 /* #undef HAVE_UNSETENV */
 
-/* Define to 1 if the system has the type `unsigned long long int'. */
+/* Define to 1 if the system has the type 'unsigned long long int'. */
 #define HAVE_UNSIGNED_LONG_LONG_INT 1
 
 /* Define to 1 if you have the <utime.h> header file. */
@@ -1748,18 +1702,11 @@
 /* Have __va_copy() */
 /* #undef HAVE___VA_COPY */
 
-/* Define to 1 if you have the `__xpg_strerror_r' function. */
-/* #undef HAVE___XPG_STRERROR_R */
-
 /* Define as const if the declaration of iconv() needs const. */
 #define ICONV_CONST 
 
 /* Define to 1 if lseek does not detect pipes. */
 #define LSEEK_PIPE_BROKEN 1
-
-/* Define to 1 if 'lstat' dereferences a symlink specified with a trailing
-   slash. */
-/* #undef LSTAT_FOLLOWS_SLASHED_SYMLINK */
 
 /* If malloc(0) is != NULL, define this to 1. Otherwise define this to 0. */
 #define MALLOC_0_IS_NONNULL 1
@@ -1773,21 +1720,11 @@
 /* no ssize_t type was found */
 /* #undef NO_SSIZE_T */
 
-/* Define to 1 if open() fails to recognize a trailing slash. */
-/* #undef OPEN_TRAILING_SLASH_BUG */
-
 /* Name of package */
 #define PACKAGE "gnutls"
 
 /* Define if <inttypes.h> exists and defines unusable PRI* macros. */
 /* #undef PRI_MACROS_BROKEN */
-
-/* Define to the type that is the result of default argument promotions of
-   type mode_t. */
-#define PROMOTED_MODE_T int
-
-/* Define if the pthread_in_use() detection is hard. */
-/* #undef PTHREAD_IN_USE_DETECTION_HARD */
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'ptrdiff_t'. */
@@ -1795,14 +1732,6 @@
 
 /* name of regex header file */
 #define REGEX_HEADER <regex.h>
-
-/* Define to 1 if stat needs help when passed a directory name with a trailing
-   slash */
-#define REPLACE_FUNC_STAT_DIR 1
-
-/* Define to 1 if stat needs help when passed a file name with a trailing
-   slash */
-/* #undef REPLACE_FUNC_STAT_FILE */
 
 /* Define to 1 if strerror(0) does not return a message implying success. */
 /* #undef REPLACE_STRERROR_0 */
@@ -1827,7 +1756,11 @@
 /* #undef SIG_ATOMIC_T_SUFFIX */
 
 /* The size of `char*', as computed by sizeof. */
+#if defined(__x86_64) || defined(_M_X64)
+#define SIZEOF_CHARP 8
+#else
 #define SIZEOF_CHARP 4
+#endif
 
 /* The size of `int', as computed by sizeof. */
 #define SIZEOF_INT 4
@@ -1881,36 +1814,56 @@
 /* Define to 1 if strerror_r returns char *. */
 /* #undef STRERROR_R_CHAR_P */
 
+/* The system priority file */
+#define SYSTEM_PRIORITY_FILE "/etc/gnutls/default-priorities"
+
 /* Define to 1 if all 'time_t' values fit in a 'long int'. */
 #define TIME_T_FITS_IN_LONG_INT 1
 
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */
 
-/* Define if the POSIX multithreading library can be used. */
-/* #undef USE_POSIX_THREADS */
+/* The DNSSEC root key file */
+#define UNBOUND_ROOT_KEY_FILE "C:\Program Files\Unbound\root.key"
 
-/* Define if references to the POSIX multithreading library should be made
-   weak. */
-/* #undef USE_POSIX_THREADS_WEAK */
+/* nettle 3.0 or later */
+#define USE_NETTLE3 1
 
-/* Define if the GNU Pth multithreading library can be used. */
-/* #undef USE_PTH_THREADS */
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# define _ALL_SOURCE 1
+#endif
+/* Enable general extensions on OS X.  */
+#ifndef _DARWIN_C_SOURCE
+# define _DARWIN_C_SOURCE 1
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
+/* Use GNU style printf and scanf.  */
+#ifndef __USE_MINGW_ANSI_STDIO
+# define __USE_MINGW_ANSI_STDIO 1
+#endif
+/* Enable threading extensions on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# define _POSIX_PTHREAD_SEMANTICS 1
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# define _TANDEM_SOURCE 1
+#endif
+/* Enable X/Open extensions if necessary.  HP-UX 11.11 defines
+   mbstate_t only if _XOPEN_SOURCE is defined to 500, regardless of
+   whether compiling with -Ae or -D_HPUX_SOURCE=1.  */
+#ifndef _XOPEN_SOURCE
+/* # undef _XOPEN_SOURCE */
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# define __EXTENSIONS__ 1
+#endif
 
-/* Define if references to the GNU Pth multithreading library should be made
-   weak. */
-/* #undef USE_PTH_THREADS_WEAK */
-
-/* Define if the old Solaris multithreading library can be used. */
-/* #undef USE_SOLARIS_THREADS */
-
-/* Define if references to the old Solaris multithreading library should be
-   made weak. */
-/* #undef USE_SOLARIS_THREADS_WEAK */
-
-
-/* Define if the Win32 multithreading API can be used. */
-#define USE_WIN32_THREADS 1
 
 #include "version.h"
 
@@ -1924,8 +1877,6 @@
 /* Define if WSAStartup is needed. */
 #define WINDOWS_SOCKETS 1
 
-#define  SYSTEM_PRIORITY_FILE "gnutls/default-priorities"
-
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wint_t'. */
 /* #undef WINT_T_SUFFIX */
@@ -1933,9 +1884,39 @@
 /* Define this if a working libregex can be found */
 /* #undef WITH_LIBREGEX */
 
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+/* #  undef WORDS_BIGENDIAN */
+# endif
+#endif
+
+/* Enable large inode numbers on Mac OS X 10.5. */
+#define _DARWIN_USE_64_BIT_INODE 1
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#define _FILE_OFFSET_BITS 64
+
 /* Define to 1 if Gnulib overrides 'struct stat' on Windows so that struct
    stat.st_size becomes 64-bit. */
 #define _GL_WINDOWS_64_BIT_ST_SIZE 1
+
+/* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
+/* #undef _LARGEFILE_SOURCE */
+
+/* Define for large files, on AIX-style hosts. */
+/* #undef _LARGE_FILES */
+
+/* Define to 1 if on MINIX. */
+/* #undef _MINIX */
+
+/* Define to 1 to make NetBSD features available. MINIX 3 needs this. */
+/* #undef _NETBSD_SOURCE */
 
 /* The _Noreturn keyword of C11.  */
 #if ! (defined _Noreturn \
@@ -1949,6 +1930,18 @@
 #  define _Noreturn
 # endif
 #endif
+
+
+/* Define to 2 if the system does not provide POSIX.1 features except with
+   this defined. */
+/* #undef _POSIX_1_SOURCE */
+
+/* Define to 1 in order to get the POSIX compatible declarations of socket
+   functions. */
+/* #undef _POSIX_PII_SOCKET */
+
+/* Define to 1 if you need to in order for 'stat' and other things to work. */
+/* #undef _POSIX_SOURCE */
 
 /* Define as a replacement for the ISO C99 __func__ variable. */
 /* #undef __func__ */
@@ -1964,13 +1957,28 @@
    'reference to static identifier "f" in extern inline function'.
    This bug was observed with Sun C 5.12 SunOS_i386 2011/11/16.
 
-   Suppress the use of extern inline on problematic Apple configurations.
-   OS X 10.8 and earlier mishandle it; see, e.g.,
-   <http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html>.
+   Suppress extern inline (with or without __attribute__ ((__gnu_inline__)))
+   on configurations that mistakenly use 'static inline' to implement
+   functions or macros in standard C headers like <ctype.h>.  For example,
+   if isdigit is mistakenly implemented via a static inline function,
+   a program containing an extern inline function that calls isdigit
+   may not work since the C standard prohibits extern inline functions
+   from calling static functions.  This bug is known to occur on:
+
+     OS X 10.8 and earlier; see:
+     http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html
+
+     DragonFly; see
+     http://muscles.dragonflybsd.org/bulk/bleeding-edge-potential/latest-per-pkg/ah-tty-0.3.12.log
+
+     FreeBSD; see:
+     http://lists.gnu.org/archive/html/bug-gnulib/2014-07/msg00104.html
+
    OS X 10.9 has a macro __header_inline indicating the bug is fixed for C and
    for clang but remains for g++; see <http://trac.macports.org/ticket/41033>.
-   Perhaps Apple will fix this some day.  */
-#if (defined __APPLE__ \
+   Assume DragonFly and FreeBSD will be similar.  */
+#if (((defined __APPLE__ && defined __MACH__) \
+      || defined __DragonFly__ || defined __FreeBSD__) \
      && (defined __header_inline \
          ? (defined __cplusplus && defined __GNUC_STDC_INLINE__ \
             && ! defined __clang__) \
@@ -1978,19 +1986,19 @@
              && (defined __GNUC__ || defined __cplusplus)) \
             || (defined _FORTIFY_SOURCE && 0 < _FORTIFY_SOURCE \
                 && defined __GNUC__ && ! defined __cplusplus))))
-# define _GL_EXTERN_INLINE_APPLE_BUG
+# define _GL_EXTERN_INLINE_STDHEADER_BUG
 #endif
 #if ((__GNUC__ \
       ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
       : (199901L <= __STDC_VERSION__ \
          && !defined __HP_cc \
          && !(defined __SUNPRO_C && __STDC__))) \
-     && !defined _GL_EXTERN_INLINE_APPLE_BUG)
+     && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
 # define _GL_EXTERN_INLINE_IN_USE
 #elif (2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __STRICT_ANSI__ \
-       && !defined _GL_EXTERN_INLINE_APPLE_BUG)
+       && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)
 # if defined __GNUC_GNU_INLINE__ && __GNUC_GNU_INLINE__
    /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
 #  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
@@ -2004,6 +2012,11 @@
 # define _GL_EXTERN_INLINE static _GL_UNUSED
 #endif
 
+/* In GCC, suppress bogus "no previous prototype for 'FOO'"
+   and "no previous declaration for 'FOO'" diagnostics,
+   when FOO is an inline function in the header; see
+   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113> and
+   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63877>.  */
 #if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
 # if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__
 #  define _GL_INLINE_HEADER_CONST_PRAGMA
@@ -2011,10 +2024,6 @@
 #  define _GL_INLINE_HEADER_CONST_PRAGMA \
      _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=const\"")
 # endif
-  /* Suppress GCC's bogus "no previous prototype for 'FOO'"
-     and "no previous declaration for 'FOO'"  diagnostics,
-     when FOO is an inline function in the header; see
-     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.  */
 # define _GL_INLINE_HEADER_BEGIN \
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \
@@ -2033,8 +2042,37 @@
 /* Define to `int' if <sys/types.h> doesn't define. */
 #define gid_t int
 
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
+/* #undef inline */
+#endif
+
+/* Define to long or long long if <stdint.h> and <inttypes.h> don't define. */
+/* #undef intmax_t */
+
+/* Work around a bug in Apple GCC 4.0.1 build 5465: In C99 mode, it supports
+   the ISO C 99 semantics of 'extern inline' (unlike the GNU C semantics of
+   earlier versions), but does not display it by setting __GNUC_STDC_INLINE__.
+   __APPLE__ && __MACH__ test for Mac OS X.
+   __APPLE_CC__ tests for the Apple compiler and its version.
+   __STDC_VERSION__ tests for the C99 mode.  */
+#if defined __APPLE__ && defined __MACH__ && __APPLE_CC__ >= 5465 && !defined __cplusplus && __STDC_VERSION__ >= 199901L && !defined __GNUC_STDC_INLINE__
+# define __GNUC_STDC_INLINE__ 1
+#endif
+
+/* Define to `int' if <sys/types.h> does not define. */
+/* #undef mode_t */
+
 /* Define to the type of st_nlink in struct stat, or a supertype. */
 #define nlink_t int
+
+/* Define to `int' if <sys/types.h> does not define. */
+/* #undef pid_t */
+
+/* Define as the type of the result of subtracting two pointers, if the system
+   doesn't define it. */
+/* #undef ptrdiff_t */
 
 /* static lib rename */
 #define read_binary_file _gnutls_read_binary_file
@@ -2046,6 +2084,24 @@
    nothing if this is not supported.  Do not define if restrict is
    supported directly.  */
 #define restrict //__restrict
+/* Work around a bug in Sun C++: it does not support _Restrict or
+   __restrict__, even though the corresponding Sun C compiler ends up with
+   "#define restrict _Restrict" or "#define restrict __restrict__" in the
+   previous line.  Perhaps some future version of Sun C++ will work with
+   restrict; if so, hopefully it defines __RESTRICT like Sun C does.  */
+#if defined __SUNPRO_CC && !defined __RESTRICT
+# define _Restrict
+# define __restrict__
+#endif
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+/* #undef size_t */
+
+/* type to use in place of socklen_t if not defined */
+/* #undef socklen_t */
+
+/* Define as a signed type of the same size as size_t. */
+/* #undef ssize_t */
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #define uid_t int
