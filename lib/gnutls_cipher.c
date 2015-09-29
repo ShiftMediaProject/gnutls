@@ -514,7 +514,7 @@ ciphertext_to_compressed(gnutls_session_t session,
 		if (explicit_iv
 		    && _gnutls_auth_cipher_is_aead(&params->read.
 						   cipher_state)) {
-#if defined(_MSC_VER) && (_MSC_VER <= 1800)
+#if defined(_MSC_VER) && (_MSC_VER <= 1900)
             uint8_t * nonce = (uint8_t *)_alloca( blocksize*sizeof( uint8_t ) );
 #else
             uint8_t nonce[blocksize];
