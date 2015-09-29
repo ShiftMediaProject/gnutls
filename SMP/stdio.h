@@ -1,11 +1,37 @@
+/*
+ * MSVC stdio.h compatibility header.
+ * Copyright (c) 2015 Matthew Oliver
+ *
+ * This file is part of Shift Media Project.
+ *
+ * Shift Media Project is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * Shift Media Project is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with the code; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
-#ifndef _STDIO_H_
-#define _STDIO_H_
+#ifndef _SMP_STDIO_H_
+#define _SMP_STDIO_H_
 
-#if defined(_MSC_VER)
-#   include <../include/stdio.h>
+#ifndef _MSC_VER
+#   include_next <stdio.h>
 #else
-#error "Use this header only with Microsoft Visual C++ compilers!"
+
+#include <crtversion.h>
+#if _VC_CRT_MAJOR_VERSION >= 14
+#   include <../ucrt/stdio.h>
+#else
+#   include <../include/stdio.h>
+#   define snprintf _snprintf
 #endif
 
 #include <unistd.h>
@@ -81,8 +107,8 @@ __inline ssize_t getline (char **lineptr, size_t *n, FILE *stream)
     return getdelim (lineptr, n, '\n', stream);
 }
 
-__inline int vasprintf(char **res, char const *fmt, va_list args) 
-{ 
+__inline int vasprintf(char **res, char const *fmt, va_list args)
+{
     int	sz, r;
     sz = _vscprintf(fmt, args);
     if (sz < 0)
@@ -113,8 +139,9 @@ __inline int vasprintf(char **res, char const *fmt, va_list args)
         return -1;
 }
 
-#define snprintf _snprintf
 #define fseeko _fseeki64
 #define ftello _ftelli64
 
-#endif
+#endif /* _MSC_VER */
+
+#endif /* _SMP_STDIO_H_ */

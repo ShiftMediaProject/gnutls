@@ -1,11 +1,37 @@
+/*
+ * MSVC string.h compatibility header.
+ * Copyright (c) 2015 Matthew Oliver
+ *
+ * This file is part of Shift Media Project.
+ *
+ * Shift Media Project is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * Shift Media Project is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with the code; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
-#ifndef _STRING_H_
-#define _STRING_H_
+#ifndef _SMP_STRING_H_
+#define _SMP_STRING_H_
 
-#if defined(_MSC_VER)
-#   include <../include/string.h>
+#ifndef _MSC_VER
+#   include_next <string.h>
 #else
-#error "Use this header only with Microsoft Visual C++ compilers!"
+
+#include <crtversion.h>
+#if _VC_CRT_MAJOR_VERSION >= 14
+#   include <../ucrt/string.h>
+#else
+#   include <../include/string.h>
+#   define strtoll _strtoi64
 #endif
 
 __inline void *memmem(const void *haystack, size_t haystack_len, const void *needle, size_t needle_len)
@@ -72,7 +98,7 @@ __inline int strverscmp (const char *s1, const char *s2)
     while ((diff = c1 - c2) == 0)
     {
         if (c1 == '\0')
-	        return diff;
+            return diff;
         state = next_state[state];
         c1 = *p1++;
         c2 = *p2++;
@@ -85,8 +111,8 @@ __inline int strverscmp (const char *s1, const char *s2)
         return diff;
     case LEN:
         while (isdigit (*p1++))
-	    if (!isdigit (*p2++))
-	        return 1;
+        if (!isdigit (*p2++))
+            return 1;
         return isdigit (*p2) ? -1 : diff;
     default:
         return state;
@@ -96,6 +122,7 @@ __inline int strverscmp (const char *s1, const char *s2)
 #define strtok_r strtok_s
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
-#define strtoll _strtoi64
 
-#endif
+#endif /* _MSC_VER */
+
+#endif /* _SMP_STRING_H_ */
