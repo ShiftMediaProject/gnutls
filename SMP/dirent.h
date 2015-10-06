@@ -97,6 +97,7 @@
 #endif
 #include <stdio.h>
 #include <stdarg.h>
+#include <wtypes.h>
 #include <windef.h>
 #include <winbase.h>
 #include <wchar.h>
