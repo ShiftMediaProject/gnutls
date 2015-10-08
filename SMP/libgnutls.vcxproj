@@ -1616,7 +1616,7 @@ del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
       <OutputFile>$(OutDir)\lib\x86\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libz.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;libhogweed.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libz.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -1902,7 +1902,7 @@ del ..\devel\perlasm\sha256-ssse3-x86.pl.new
       <OutputFile>$(OutDir)\lib\x64\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libz.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;libhogweed.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libz.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
