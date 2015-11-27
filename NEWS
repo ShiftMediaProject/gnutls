@@ -3,10 +3,38 @@ Copyright (C) 2000-2015 Free Software Foundation, Inc.
 Copyright (C) 2013, 2014 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.3.19 (released 2015-11-22)
+
+** libgnutls: Properly require TLS 1.2 to all the CBC-SHA256 and CBC-SHA384
+   ciphersuites. This solves an interoperability issue with openssl.
+   Reported by Viktor Dukhovni.
+
+** libgnutls: Fixed memory leak in gnutls_pubkey_get_preferred_hash_algorithm(),
+   patch by Lennert Buytenhek.
+
+** libgnutls: When writing a certificate into a PKCS #11 token, ensure
+   that CKA_SERIAL_NUMBER and CKA_ISSUER are written.
+
+** libgnutls: Allow the presence of legacy ciphers and key exchanges in
+   priority strings and consider them a no-op.
+
+** libgnutls: On a rehandshake allow switching from anonymous to ECDHE and
+   DHE ciphersuites.
+
+** libgnutls: Added GNUTLS_SKIP_GLOBAL_INIT macro to allow programs skipping
+   the implicit global initialization.
+
+** gnutls.pc: Don't include libtool specific options to link flags.
+   Reported by Dan Kegel.
+
+** API and ABI modifications:
+GNUTLS_SKIP_GLOBAL_INIT: Added
+
+
 * Version 3.3.18 (released 2015-09-12)
 
 ** libgnutls: When re-importing CRLs to a trust list ensure that there
-   no duplicate entries.
+   are no duplicate entries.
 
 ** certtool: Removed any arbitrary limits imposed on input file sizes
    and maximum number of certificates imported.

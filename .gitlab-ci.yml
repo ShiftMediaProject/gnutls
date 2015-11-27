@@ -1,0 +1,41 @@
+Build and Check with valgrind:
+  script:
+  - git submodule update --init && make autoreconf && ./configure
+    --disable-non-suiteb-curves --with-included-libtasn1 --disable-doc && make -j4 && make check -j4
+  - cat tests/test-suite.log
+  tags:
+  - x86-64
+  - nettle2
+  except:
+  - tags
+Build and Check with asan:
+  script:
+  - git submodule update --init && make autoreconf &&CFLAGS="-fsanitize=address -g
+    -O2" LDFLAGS="-static-libasan" ./configure --disable-doc --with-included-libtasn1 --disable-valgrind-tests --disable-non-suiteb-curves --disable-guile
+    && make -j4 && make check -j4
+  - cat tests/test-suite.log
+  tags:
+  - x86-64
+  - nettle2
+  except:
+  - tags
+Build and Check - separate build dir (x86-64):
+  script:
+  - git submodule update --init && make autoreconf && mkdir -p build && cd build && ../configure
+    --disable-non-suiteb-curves --with-included-libtasn1 --enable-seccomp-tests --disable-valgrind-tests --disable-doc && make -j4 && make check -j4
+  - cat tests/test-suite.log
+  tags:
+  - x86-64
+  - nettle2
+  except:
+  - tags
+Build and Check - FIPS140-2 (x86-64):
+  script:
+  - git submodule update --init && make autoreconf && mkdir -p build && cd build && ../configure
+    --disable-non-suiteb-curves --enable-fips140-mode --with-included-libtasn1 --enable-seccomp-tests --disable-valgrind-tests --disable-doc && make -j4 && make check -j4
+  - cat tests/test-suite.log
+  tags:
+  - x86-64
+  - nettle2
+  except:
+  - tags

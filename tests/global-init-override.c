@@ -33,51 +33,31 @@
 #include <unistd.h>
 
 #include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
 
 #include "utils.h"
+
+/* We test whether implicit global initialization can be overriden */
+
+GNUTLS_SKIP_GLOBAL_INIT
 
 void doit(void)
 {
 	int ret;
+	gnutls_x509_crt_t crt;
 
-	ret = gnutls_global_init();
-	if (ret < 0) {
-		fail("Could not initialize\n");
+	ret = gnutls_x509_crt_init(&crt);
+	if (ret >= 0) {
+		fail("Library is already initialized\n");
 	}
 
-	/* That shouldn't crash */
-	gnutls_global_deinit();
-	gnutls_global_deinit();
-	gnutls_global_deinit();
-	gnutls_global_deinit();
+	gnutls_global_init();
 
-	ret = gnutls_global_init();
+	ret = gnutls_x509_crt_init(&crt);
 	if (ret < 0) {
-		fail("Could not initialize: %d\n", __LINE__);
+		fail("Could not init certificate!\n");
 	}
-	
-	/* the rest shouldn't cause a leak */
-	ret = gnutls_global_init();
-	if (ret < 0) {
-		fail("Could not initialize: %d\n", __LINE__);
-	}
+	gnutls_x509_crt_deinit(crt);
 
-	ret = gnutls_global_init();
-	if (ret < 0) {
-		fail("Could not initialize: %d\n", __LINE__);
-	}
-
-	gnutls_global_deinit();
-	gnutls_global_deinit();
-	gnutls_global_deinit();
-	gnutls_global_deinit();
-	gnutls_global_deinit();
-
-	/* This should fail */
-	ret = gnutls_global_init();
-	if (ret < 0) {
-		fail("Could not initialize: %d\n", __LINE__);
-	}
-	
 	gnutls_global_deinit();
 }
