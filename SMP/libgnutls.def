@@ -922,3 +922,4 @@ EXPORTS
     gnutls_x509_ext_deinit
     gnutls_x509_ext_print
     gnutls_x509_othername_to_virtual
+    _gnutls_global_init_skip

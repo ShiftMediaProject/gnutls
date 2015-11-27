@@ -56,18 +56,23 @@ extern "C" {
 #endif
 /* *INDENT-ON* */
 
-#define GNUTLS_VERSION "3.3.18"
+#define GNUTLS_VERSION "3.3.19"
 
 #define GNUTLS_VERSION_MAJOR 3
 #define GNUTLS_VERSION_MINOR 3
-#define GNUTLS_VERSION_PATCH 18
+#define GNUTLS_VERSION_PATCH 19
 
-#define GNUTLS_VERSION_NUMBER 0x030312
+#define GNUTLS_VERSION_NUMBER 0x030313
 
 #define GNUTLS_CIPHER_RIJNDAEL_128_CBC GNUTLS_CIPHER_AES_128_CBC
 #define GNUTLS_CIPHER_RIJNDAEL_256_CBC GNUTLS_CIPHER_AES_256_CBC
 #define GNUTLS_CIPHER_RIJNDAEL_CBC GNUTLS_CIPHER_AES_128_CBC
 #define GNUTLS_CIPHER_ARCFOUR GNUTLS_CIPHER_ARCFOUR_128
+
+/* Use the following definition globally in your program to disable
+ * implicit initialization of gnutls. */
+#define GNUTLS_SKIP_GLOBAL_INIT int _gnutls_global_init_skip(void); \
+    int _gnutls_global_init_skip(void) {return 1;}
 
 /**
  * gnutls_cipher_algorithm_t:
