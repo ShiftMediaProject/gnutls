@@ -40,7 +40,6 @@
 #endif
 
 int system_errno(gnutls_transport_ptr_t);
-int system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms);
 
 #ifdef _WIN32
 ssize_t system_write(gnutls_transport_ptr_t ptr, const void *data,
@@ -48,6 +47,8 @@ ssize_t system_write(gnutls_transport_ptr_t ptr, const void *data,
 #else
 #define HAVE_WRITEV
 ssize_t system_writev(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
+		      int iovec_cnt);
+ssize_t system_writev_nosignal(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
 		      int iovec_cnt);
 #endif
 ssize_t system_read(gnutls_transport_ptr_t ptr, void *data,
@@ -93,7 +94,7 @@ inline static void gettime(struct timespec *t)
 
 int _gnutls_find_config_path(char *path, size_t max_size);
 int _gnutls_ucs2_to_utf8(const void *data, size_t size,
-			 gnutls_datum_t * output);
+			 gnutls_datum_t * output, unsigned bigendian);
 
 int gnutls_system_global_init(void);
 void gnutls_system_global_deinit(void);
@@ -111,6 +112,12 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #ifndef HAVE_INET_PTON
 # define inet_pton _gnutls_inet_pton
 int inet_pton(int af, const char *src, void *dst);
+#endif
+
+#ifndef HAVE_INET_NTOP
+# define inet_ntop _gnutls_inet_ntop
+const char *inet_ntop(int af, const void *src,
+		      char *dst, unsigned size);
 #endif
 
 #endif				/* SYSTEM_H */

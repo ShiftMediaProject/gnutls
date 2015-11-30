@@ -298,7 +298,6 @@ void doit(void)
 	signal(SIGCHLD, ch_handler);
 	signal(SIGPIPE, SIG_IGN);
 
-#if 0
 	for (;tries>=0;tries--) {
 		tstart = time(0);
 		start(2, 0);
@@ -314,7 +313,6 @@ void doit(void)
 				success("Client wait time difference: %u\n", (unsigned) tstop);
 		} else break;
 	}
-#endif
 
 	for (;tries>=0;tries--) {
 		tstart = time(0);

@@ -30,7 +30,6 @@
 
 #include "../lib/gnutls_int.h"
 #include "../lib/gnutls_hash_int.h"
-#include "../lib/x509/pbkdf2-sha1.h"
 #include "../lib/debug.h"
 
 static void tls_log_func(int level, const char *str)
@@ -79,23 +78,6 @@ void doit(void)
 		} else {
 			hexprint(digest, 20);
 			fail("gnutls_hmac_fast(SHA1) failure\n");
-		}
-	}
-
-	err =
-	    _gnutls_pbkdf2_sha1("password", 8, (unsigned char *) "salt", 4,
-				4711, digest, 16);
-	if (err < 0)
-		fail("_gnutls_pkcs5_pbkdf2_sha1() failed: %d\n", err);
-	else {
-		if (memcmp(digest, "\x09\xb7\x85\x57\xdd\xf6\x07\x15"
-			   "\x1c\x52\x34\xde\xba\x5c\xdc\x59", 16) == 0) {
-			if (debug)
-				success
-				    ("_gnutls_pkcs5_pbkdf2_sha1() OK\n");
-		} else {
-			hexprint(digest, 16);
-			fail("_gnutls_pkcs5_pbkdf2_sha1() failure\n");
 		}
 	}
 

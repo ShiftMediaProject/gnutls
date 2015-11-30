@@ -40,8 +40,10 @@ pkcs11_export_chain(FILE * outfile, const char *url, unsigned int flags,
 
 void pkcs11_token_list(FILE * outfile, unsigned int detailed,
 		       common_info_st *, unsigned brief);
+void pkcs11_test_sign(FILE * outfile, const char *pkcs11_url,
+		  unsigned int flags, common_info_st *);
 void pkcs11_write(FILE * outfile, const char *pkcs11_url,
-		  const char *label,
+		  const char *label, const char *id,
 		  unsigned int flags, common_info_st *);
 void pkcs11_delete(FILE * outfile, const char *pkcs11_url,
 		   unsigned int flags, common_info_st *);
@@ -49,10 +51,18 @@ void pkcs11_init(FILE * outfile, const char *pkcs11_url, const char *label,
 		 common_info_st *);
 void pkcs11_generate(FILE * outfile, const char *url,
 		     gnutls_pk_algorithm_t type, unsigned int bits,
-		     const char *label, int detailed,
+		     const char *label, const char *id, int detailed,
 		     unsigned int flags, common_info_st * info);
 void pkcs11_export_pubkey(FILE * outfile, const char *url, int detailed,
 		     unsigned int flags, common_info_st * info);
+
+void pkcs11_set_id(FILE * outfile, const char *url, int detailed,
+		   unsigned int flags, common_info_st * info,
+		   const char *id);
+
+void pkcs11_set_label(FILE * outfile, const char *url, int detailed,
+		   unsigned int flags, common_info_st * info,
+		   const char *label);
 
 #define PKCS11_TYPE_CRT_ALL 1
 #define PKCS11_TYPE_TRUSTED 2

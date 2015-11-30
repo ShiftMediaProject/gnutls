@@ -75,3 +75,4 @@ gnutls_have_cpuid:
 
 .section .note.GNU-stack,"",%progbits
 
+

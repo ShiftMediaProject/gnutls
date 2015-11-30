@@ -16,20 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
- * In addition, as a special exception, the copyright holders give
- * permission to link the code of portions of this program with the
- * OpenSSL library under certain conditions as described in each
- * individual source file, and distribute linked combinations including
- * the two.
- * 
- * You must obey the GNU General Public License in all respects for all
- * of the code used other than OpenSSL. If you modify file(s) with this
- * exception, you may extend this exception to your version of the
- * file(s), but you are not obligated to do so. If you do not wish to do
- * so, delete this exception statement from your version. If you delete
- * this exception statement from all source files in the program, then
- * also delete it here.
  */
 
 #include <config.h>
@@ -172,8 +158,12 @@ static void cmd_parser(int argc, char **argv)
 	if (HAVE_OPT(LOAD_CERTIFICATE))
 		cinfo.cert = OPT_ARG(LOAD_CERTIFICATE);
 
-	if (HAVE_OPT(PORT))
+	if (HAVE_OPT(PORT)) {
 		port = OPT_VALUE_PORT;
+	} else {
+		if (HAVE_OPT(STARTTLS_PROTO))
+			port = starttls_proto_to_port(OPT_ARG(STARTTLS_PROTO));
+	}
 	if (HAVE_OPT(PROTO))
 		proto = OPT_ARG(PROTO);
 
@@ -208,7 +198,8 @@ static void dane_check(const char *host, const char *proto,
 	size_t size;
 	unsigned del = 0;
 	unsigned vflags = DANE_VFLAG_FAIL_IF_NOT_CHECKED;
-	const char *str;
+	const char *cstr;
+	char *str;
 	gnutls_x509_crt_t *clist = NULL;
 	unsigned int clist_size = 0;
 	gnutls_datum_t certs[MAX_CLIST_SIZE];
@@ -263,7 +254,6 @@ static void dane_check(const char *host, const char *proto,
 	}
 
 	if (ENABLED_OPT(PRINT_RAW)) {
-		unsigned entries;
 		gnutls_datum_t t;
 		char **dane_data;
 		int *dane_data_len;
@@ -280,7 +270,6 @@ static void dane_check(const char *host, const char *proto,
 		}
 
 		for (i=0;i<entries;i++) {
-			char *str;
 			size_t str_size;
 			t.data = (void*)dane_data[i];
 			t.size = dane_data_len[i];
@@ -371,17 +360,17 @@ static void dane_check(const char *host, const char *proto,
 			port, proto, host, usage, type, match, lbuffer);
 
 		if (!HAVE_OPT(QUIET)) {
-			str = dane_cert_usage_name(usage);
-			if (str == NULL) str= "Unknown";
-			fprintf(outfile, "Certificate usage: %s (%.2x)\n", str, usage);
+			cstr = dane_cert_usage_name(usage);
+			if (cstr == NULL) cstr= "Unknown";
+			fprintf(outfile, "Certificate usage: %s (%.2x)\n", cstr, usage);
 
-			str = dane_cert_type_name(type);
-			if (str == NULL) str= "Unknown";
-			fprintf(outfile, "Certificate type:  %s (%.2x)\n", str, type);
+			cstr = dane_cert_type_name(type);
+			if (cstr == NULL) cstr= "Unknown";
+			fprintf(outfile, "Certificate type:  %s (%.2x)\n", cstr, type);
 
-			str = dane_match_type_name(match);
-			if (str == NULL) str= "Unknown";
-			fprintf(outfile, "Contents:          %s (%.2x)\n", str, match);
+			cstr = dane_match_type_name(match);
+			if (cstr == NULL) cstr= "Unknown";
+			fprintf(outfile, "Contents:          %s (%.2x)\n", cstr, match);
 			fprintf(outfile, "Data:              %s\n", lbuffer);
 		}
 

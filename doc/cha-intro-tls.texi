@@ -32,7 +32,7 @@ noted otherwise.
 @end menu
 
 @node TLS layers
-@section TLS layers
+@section TLS Layers
 @cindex TLS layers
 
 @acronym{TLS} is a layered protocol, and consists of the record
@@ -56,7 +56,7 @@ protocol.  The protocol layering in TLS is shown in @ref{fig-tls-layers}.
 @end float
 
 @node The transport layer
-@section The transport layer
+@section The Transport Layer
 @cindex transport protocol
 @cindex transport layer
 
@@ -116,14 +116,6 @@ The supported in @acronym{GnuTLS} ciphers and MAC algorithms are shown in @ref{t
 @float Table,tab:ciphers
 @multitable @columnfractions .20 .70
 @headitem Algorithm @tab Description
-@item 3DES_@-CBC @tab
-This is the DES block cipher algorithm used with triple
-encryption (EDE). Has 64 bits block size and is used in CBC mode.
-
-@item ARCFOUR_@-128 @tab
-ARCFOUR_128 is a compatible algorithm with RSA's RC4 algorithm, which is considered to be a trade
-secret. It is a fast cipher but considered weak today.
-
 @item AES_@-CBC @tab
 AES or RIJNDAEL is the block cipher algorithm that replaces the old
 DES algorithm.  Has 128 bits block size and is used in CBC mode.
@@ -133,10 +125,35 @@ This is the AES algorithm in the authenticated encryption GCM mode.
 This mode combines message authentication and encryption and can
 be extremely fast on CPUs that support hardware acceleration.
 
+@item AES_@-CCM @tab
+This is the AES algorithm in the authenticated encryption CCM mode.
+This mode combines message authentication and encryption and is
+often used by systems without AES or GCM acceleration support.
+
+@item AES_@-CCM_@-8 @tab
+This is the AES algorithm in the authenticated encryption CCM mode
+with a truncated to 64-bit authentication tag. This mode is for
+communication with restricted systems.
+
 @item CAMELLIA_@-CBC @tab
 This is an 128-bit block cipher developed by Mitsubishi and NTT. It
 is one of the approved ciphers of the European NESSIE and Japanese
 CRYPTREC projects.
+
+@item CHACHA20_@-POLY1305 @tab
+CHACHA20-POLY1305 is an authenticated encryption algorithm based on CHACHA20 cipher and
+POLY1305 MAC. CHACHA20 is a refinement of SALSA20 algorithm, an approved cipher by
+the European ESTREAM project. POLY1305 is Wegman-Carter, one-time authenticator. The
+combination provides a fast stream cipher suitable for systems where a hardware AES
+accelerator is not available.
+
+@item 3DES_@-CBC @tab
+This is the DES block cipher algorithm used with triple
+encryption (EDE). Has 64 bits block size and is used in CBC mode.
+
+@item ARCFOUR_@-128 @tab
+ARCFOUR-128 is a compatible algorithm with RSA's RC4 algorithm, which is considered to be a trade
+secret. It is a fast cipher but considered weak today, and thus it is not enabled by default.
 
 @end multitable
 @caption{Supported ciphers.}
@@ -391,6 +408,7 @@ in @acronym{GnuTLS} are discussed in the subsections that follow.
 * OCSP status request::
 * SRTP::
 * Application Layer Protocol Negotiation (ALPN)::
+* Extensions and Supplemental Data::
 @end menu
 
 @node Maximum fragment length negotiation
@@ -443,7 +461,8 @@ the secrecy of all sessions on a server using tickets depends on the ticket
 key being kept secret. For that reason server keys should be rotated and discarded
 regularly.
 
-Since version 3.1.3 GnuTLS clients transparently support session tickets.
+Since version 3.1.3 GnuTLS clients transparently support session tickets,
+unless forward secrecy is explicitly requested (with the PFS priority string).
 
 @node HeartBeat
 @subsection HeartBeat
@@ -455,7 +474,7 @@ and is described in @xcite{RFC6520}. The extension is disabled by default and
 @funcref{gnutls_heartbeat_enable} can be used to enable it. A policy
 may be negotiated to only allow sending heartbeat messages or sending and receiving.
 The current session policy can be checked with @funcref{gnutls_heartbeat_allowed}. 
-The requests coming from the peer result to @code{GNUTLS_@-E_@-HERTBEAT_@-PING_@-RECEIVED}
+The requests coming from the peer result to @code{GNUTLS_@-E_@-HEARTBEAT_@-PING_@-RECEIVED}
 being returned from the receive function. Ping requests to peer can be send via
 @funcref{gnutls_heartbeat_ping}. 
 
@@ -620,7 +639,7 @@ Other helper functions are listed below.
 @cindex ALPN
 @cindex Application Layer Protocol Negotiation
 
-The TLS protocol was extended in @code{draft-ietf-tls-applayerprotoneg-00} 
+The TLS protocol was extended in @code{RFC7301} 
 to provide the application layer a method of
 negotiating the application protocol version. This allows for negotiation
 of the application protocol during the TLS handshake, thus reducing
@@ -633,6 +652,16 @@ Note that these functions are intended to be used with protocols that are
 registered in the Application Layer Protocol Negotiation IANA registry. While
 you can use them for other protocols (at the risk of collisions), it is preferable
 to register them.
+
+@node Extensions and Supplemental Data
+@subsection Extensions and Supplemental Data
+@cindex Supplemental data
+
+It is possible to transfer supplemental data during the TLS handshake, following
+@xcite{RFC4680}. This is for "custom" protocol modifications for applications which
+may want to transfer additional data (e.g. additional authentication messages). Such
+an exchange requires a custom extension to be registered. 
+The provided API for this functionality is low-level and described in @ref{TLS Extension Handling}.
 
 @include sec-tls-app.texi
 

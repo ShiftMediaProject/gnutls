@@ -39,8 +39,6 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h test-chains.h \
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/gl			\
-	-I$(top_builddir)/gl			\
 	-I$(top_srcdir)/lib/includes		\
 	-I$(top_builddir)/lib/includes		\
 	-I$(top_srcdir)/libdane/includes	\
@@ -52,9 +50,7 @@ AM_CPPFLAGS = \
 
 AM_LDFLAGS = -no-install
 LDADD = ../lib/libgnutls.la \
-	../gl/libgnu.la \
 	libutils.la \
-	$(LTLIBGCRYPT)	\
 	$(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB)
 
 dane_LDADD = $(LDADD) ../libdane/libgnutls-dane.la
@@ -65,7 +61,6 @@ endif
 
 noinst_LTLIBRARIES = libutils.la
 libutils_la_SOURCES = utils.h utils.c
-libutils_la_LIBADD = ../gl/libgnu.la
 
 ctests = mini-record-2 simple gc set_pkcs12_cred certder certuniqueid	\
 	 mpi certificate_set_x509_crl dn parse_ca moredn record-sizes \
@@ -83,8 +78,19 @@ ctests = mini-record-2 simple gc set_pkcs12_cred certder certuniqueid	\
 	 mini-record mini-dtls-record mini-handshake-timeout mini-record-range \
 	 mini-cert-status mini-rsa-psk global-init sec-params \
 	 fips-test mini-global-load name-constraints x509-extensions \
-	 long-session-id mini-x509-callbacks-intr \
-	 crlverify init_fds mini-rehandshake-2 sign-md5-rep global-init-override
+	 long-session-id mini-x509-callbacks-intr mini-dtls-lowmtu \
+	 crlverify mini-dtls-discard init_fds mini-record-failure \
+	 mini-rehandshake-2 custom-urls set_x509_key_mem set_x509_key_file \
+	 mini-chain-unsorted x509-verify-with-crl mini-dtls-mtu \
+	 mini-dtls-record-asym openpgp-callback key-import-export \
+	 mini-dtls-fork mini-dtls-pthread mini-key-material x509cert-invalid \
+	 strict-der mini-extension mini-supplementaldata mini-dtls0-9 \
+	 mini-record-retvals mini-server-name mini-etm mini-x509-cert-callback \
+	 sign-md5-rep keygen mini-tls-nonblock no-signal pkcs7-gen \
+	 x509sign-verify2 mini-alignment oids atfork prf \
+	 status-request status-request-ok fallback-scsv pkcs8-key-decode \
+	 mini-session-verify-function auto-verify mini-x509-default-prio \
+	global-init-override
 
 mini_dtls_pthread_LDADD = $(LDADD) -lpthread
 
@@ -95,6 +101,8 @@ endif
 if ENABLE_DANE
 ctests += dane
 endif
+
+mini_alignment_LDADD = $(LDADD) $(NETTLE_LIBS)
 
 if ENABLE_OPENSSL
 if !ENABLE_FIPS140
@@ -116,6 +124,38 @@ ctests += openpgpself
 endif
 
 endif
+
+gc_CPPFLAGS = $(CPPFLAGS) \
+	-I$(top_srcdir)/lib/includes		\
+	-I$(top_builddir)/lib/includes		\
+	-I$(top_srcdir)/lib/minitasn1		\
+	-I$(top_srcdir)/lib			\
+	-I$(top_srcdir)/gl	\
+	-I$(top_builddir)/gl
+
+mpi_CPPFLAGS = $(CPPFLAGS) \
+	-I$(top_srcdir)/lib/includes		\
+	-I$(top_builddir)/lib/includes		\
+	-I$(top_srcdir)/lib/minitasn1		\
+	-I$(top_srcdir)/lib			\
+	-I$(top_srcdir)/gl	\
+	-I$(top_builddir)/gl
+
+atfork_CPPFLAGS = $(CPPFLAGS) \
+	-I$(top_srcdir)/lib/includes		\
+	-I$(top_builddir)/lib/includes		\
+	-I$(top_srcdir)/lib/minitasn1		\
+	-I$(top_srcdir)/lib			\
+	-I$(top_srcdir)/gl	\
+	-I$(top_builddir)/gl
+
+pkcs12_s2k_CPPFLAGS = $(CPPFLAGS) \
+	-I$(top_srcdir)/lib/includes		\
+	-I$(top_builddir)/lib/includes		\
+	-I$(top_srcdir)/lib/minitasn1		\
+	-I$(top_srcdir)/lib			\
+	-I$(top_srcdir)/gl	\
+	-I$(top_builddir)/gl
 
 check_PROGRAMS = $(ctests)
 dist_check_SCRIPTS = rfc2253-escape-test

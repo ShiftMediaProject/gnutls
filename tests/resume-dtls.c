@@ -120,15 +120,17 @@ static void client(int sds[], struct params_res *params)
 		/* Initialize TLS session
 		 */
 		gnutls_init(&session,
-			    GNUTLS_CLIENT | GNUTLS_DATAGRAM | GNUTLS_NO_EXTENSIONS);
+			    GNUTLS_CLIENT | GNUTLS_DATAGRAM);
 
 		/* Use default priorities */
-		gnutls_priority_set_direct(session,
-				   "NONE:+VERS-DTLS1.0:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH",
-				   NULL);
-
 		if (params->enable_session_ticket_client)
-			gnutls_session_ticket_enable_client(session);
+			gnutls_priority_set_direct(session,
+					   "NONE:+VERS-DTLS1.0:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH",
+					   NULL);
+		else
+			gnutls_priority_set_direct(session,
+					   "NONE:+VERS-DTLS1.0:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH:%NO_TICKETS",
+					   NULL);
 
 		/* put the anonymous credentials to the current session
 		 */
@@ -175,9 +177,8 @@ static void client(int sds[], struct params_res *params)
 					if (debug)
 						success
 						    ("- Previous session was resumed\n");
-				} else {
+				} else
 					fail("- Previous session was resumed\n");
-				}
 			} else {
 				if (params->expect_resume) {
 					fail("*** Previous session was NOT resumed\n");

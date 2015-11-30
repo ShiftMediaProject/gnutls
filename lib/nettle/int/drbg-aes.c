@@ -22,7 +22,6 @@
 
 #include <config.h>
 #include <drbg-aes.h>
-#include <gnutls_errors.h>
 #include <nettle/memxor.h>
 #include <nettle/aes.h>
 #include <minmax.h>

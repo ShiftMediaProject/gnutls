@@ -23,13 +23,7 @@
 #ifndef GNUTLS_EXTENSIONS_H
 #define GNUTLS_EXTENSIONS_H
 
-#include <gnutls_str.h>
-
-typedef int (*gnutls_ext_recv_func) (gnutls_session_t session,
-				     const unsigned char *data,
-				     size_t len);
-typedef int (*gnutls_ext_send_func) (gnutls_session_t session,
-				     gnutls_buffer_st * extdata);
+#include <gnutls/gnutls.h>
 
 int _gnutls_parse_extensions(gnutls_session_t session,
 			     gnutls_ext_parse_type_t parse_type,
@@ -42,13 +36,6 @@ void _gnutls_ext_deinit(void);
 
 void _gnutls_extension_list_add(gnutls_session_t session, uint16_t type);
 
-typedef void (*gnutls_ext_deinit_data_func) (extension_priv_data_t data);
-typedef int (*gnutls_ext_pack_func) (extension_priv_data_t data,
-				     gnutls_buffer_st * packed_data);
-typedef int (*gnutls_ext_unpack_func) (gnutls_buffer_st * packed_data,
-				       extension_priv_data_t * data);
-typedef int (*gnutls_ext_epoch_func) (gnutls_session_t session);
-
 void _gnutls_ext_free_session_data(gnutls_session_t session);
 
 /* functions to be used by extensions internally
@@ -56,23 +43,26 @@ void _gnutls_ext_free_session_data(gnutls_session_t session);
 void _gnutls_ext_unset_session_data(gnutls_session_t session,
 				    uint16_t type);
 void _gnutls_ext_set_session_data(gnutls_session_t session, uint16_t type,
-				  extension_priv_data_t);
+				  gnutls_ext_priv_data_t);
 int _gnutls_ext_get_session_data(gnutls_session_t session, uint16_t type,
-				 extension_priv_data_t *);
+				 gnutls_ext_priv_data_t *);
 int _gnutls_ext_get_resumed_session_data(gnutls_session_t session,
 					 uint16_t type,
-					 extension_priv_data_t * data);
+					 gnutls_ext_priv_data_t * data);
 
 void _gnutls_ext_restore_resumed_session(gnutls_session_t session);
-int _gnutls_ext_before_epoch_change(gnutls_session_t session);
 
 /* for session packing */
 int _gnutls_ext_pack(gnutls_session_t session, gnutls_buffer_st * packed);
 int _gnutls_ext_unpack(gnutls_session_t session,
 		       gnutls_buffer_st * packed);
 
+typedef gnutls_ext_priv_data_t extension_priv_data_t;
+
 typedef struct {
-	const char *name;
+	const char *name; /* const overriden when free_name is set */
+	unsigned free_name;
+
 	uint16_t type;
 	gnutls_ext_parse_type_t parse_type;
 
@@ -94,7 +84,6 @@ typedef struct {
 							 */
 	gnutls_ext_pack_func pack_func;	/* packs internal data to machine independent format */
 	gnutls_ext_unpack_func unpack_func;	/* unpacks internal data */
-	gnutls_ext_epoch_func epoch_func;	/* called after the handshake is finished */
 } extension_entry_st;
 
 int _gnutls_ext_register(extension_entry_st *);

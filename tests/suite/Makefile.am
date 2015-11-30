@@ -37,7 +37,6 @@ AM_LDFLAGS = -no-install
 LDADD = ../../lib/libgnutls.la \
 	../../gl/libgnu.la \
 	../libutils.la \
-	$(LTLIBGCRYPT)	\
 	$(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB)
 
 
@@ -84,28 +83,25 @@ nodist_libecore_la_SOURCES = ecore/src/lib/ecore_anim.c			\
 	ecore/src/lib/eina_ustringshare.c ecore/src/lib/eina_value.c
 
 
-
-nodist_check_SCRIPTS = eagain testsrn testcompat chain invalid-cert testrandom \
-	testpkcs11 testpkcs11.pkcs15 testpkcs11.softhsm testpkcs11.sc-hsm \
-	testrng test-ciphersuite-names
-
-TESTS = test-ciphersuite-names eagain testsrn testcompat chain invalid-cert \
-	testpkcs11 testrng test-ciphersuite-names
+EXTRA_DIST += testcompat-main-polarssl testcompat-main-openssl testcompat-common \
+	testpkcs11.pkcs15 testpkcs11.softhsm testpkcs11.sc-hsm
+nodist_check_SCRIPTS = testsrn.sh chain.sh invalid-cert.sh \
+	testpkcs11.sh testrng.sh testcompat-polarssl.sh testcompat-openssl.sh \
+	testrandom.sh
 
 if ENABLE_PKCS11
-check_PROGRAMS += pkcs11-chainverify pkcs11-get-issuer pkcs11-is-known pkcs11-combo
-TESTS += pkcs11-chainverify pkcs11-get-issuer crl-test pkcs11-is-known pkcs11-combo
+check_PROGRAMS += pkcs11-chainverify pkcs11-get-issuer pkcs11-is-known pkcs11-combo pkcs11-privkey
+nodist_check_SCRIPTS += testpkcs11.sh pkcs11-chainverify pkcs11-get-issuer crl-test pkcs11-is-known pkcs11-combo pkcs11-privkey
 endif
 
 TESTS_ENVIRONMENT = EXEEXT=$(EXEEXT) \
 	LC_ALL="C"					\
 	VALGRIND="$(VALGRIND)"				\
-	LIBTOOL="$(LIBTOOL)"				\
 	top_builddir="$(top_builddir)"			\
 	srcdir="$(srcdir)"
 
 if ENABLE_DANE
-TESTS += testdane
+nodist_check_SCRIPTS += testdane.sh
 endif
 
 if !MACOSX
@@ -118,12 +114,15 @@ nodist_eagain_cli_SOURCES = mini-eagain2.c
 
 noinst_PROGRAMS = eagain-cli mini-record-timing
 
-TESTS += eagain
+nodist_check_SCRIPTS += eagain.sh
 endif
 endif
 
-#pkcs11-chainverify cannot run under valgrind (or hell breaks loose)
+TESTS = $(nodist_check_SCRIPTS)
 
-#if WANT_TEST_SUITE
-#LOG_COMPILER = $(VALGRIND)
-#endif
+TEST_EXTENSIONS = .sh
+
+if WANT_TEST_SUITE
+LOG_COMPILER = $(VALGRIND)
+SH_LOG_COMPILER =
+endif

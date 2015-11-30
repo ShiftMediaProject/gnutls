@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 Free Software Foundation, Inc.
+ * Copyright (C) 2012-2015 Nikos Mavrogiannopoulos
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -40,7 +41,7 @@ void doit(void)
 #else
 
 static void
-try_prio(const char *prio, unsigned expected_cs, unsigned expected_ciphers)
+try_prio(const char *prio, unsigned expected_cs, unsigned expected_ciphers, unsigned line)
 {
 	int ret;
 	gnutls_priority_t p;
@@ -79,7 +80,7 @@ try_prio(const char *prio, unsigned expected_cs, unsigned expected_ciphers)
 			fprintf(stderr, "%s\n",
 				gnutls_cipher_get_name(t[i]));
 #endif
-		fail("expected %d ciphers, found %d\n", expected_ciphers,
+		fail("%s:%d: expected %d ciphers, found %d\n", prio, line, expected_ciphers,
 		     ret);
 		exit(1);
 	}
@@ -92,7 +93,7 @@ try_prio(const char *prio, unsigned expected_cs, unsigned expected_ciphers)
 		success("finished: %s\n", prio);
 
 	if (count != expected_cs) {
-		fail("expected %d ciphersuites, found %d\n", expected_cs,
+		fail("%s:%d: expected %d ciphersuites, found %d\n", prio, line, expected_cs,
 		     count);
 		exit(1);
 	}
@@ -100,22 +101,22 @@ try_prio(const char *prio, unsigned expected_cs, unsigned expected_ciphers)
 
 void doit(void)
 {
-	const int normal = 66;
+	const int normal = 54;
 	const int null = 5;
-	const int sec128 = 56;
+	const int sec128 = 50;
 
-	try_prio("NORMAL", normal, 10);
-	try_prio("NORMAL:-MAC-ALL:+MD5:+MAC-ALL", normal, 10);
-	try_prio("NORMAL:+CIPHER-ALL", normal, 10);	/* all (except null) */
-	try_prio("NORMAL:-CIPHER-ALL:+NULL", null, 1);	/* null */
-	try_prio("NORMAL:-CIPHER-ALL:+NULL:+CIPHER-ALL", normal + null, 11);	/* should be null + all */
-	try_prio("NORMAL:-CIPHER-ALL:+NULL:+CIPHER-ALL:-CIPHER-ALL:+AES-128-CBC", 10, 1);	/* should be null + all */
-	try_prio("PERFORMANCE", normal, 10);
-	try_prio("SECURE256", 20, 4);
-	try_prio("SECURE128", sec128, 8);
-	try_prio("SECURE128:+SECURE256", sec128, 8);	/* should be the same as SECURE128 */
-	try_prio("SECURE128:+SECURE256:+NORMAL", normal, 10);	/* should be the same as NORMAL */
-	try_prio("SUITEB192", 1, 1);
+	try_prio("NORMAL", normal, 11, __LINE__);
+	try_prio("NORMAL:-MAC-ALL:+MD5:+MAC-ALL", normal, 11, __LINE__);
+	try_prio("NORMAL:+CIPHER-ALL", normal, 11, __LINE__);	/* all (except null) */
+	try_prio("NORMAL:-CIPHER-ALL:+NULL", null, 1, __LINE__);	/* null */
+	try_prio("NORMAL:-CIPHER-ALL:+NULL:+CIPHER-ALL", normal + null, 12, __LINE__);	/* should be null + all */
+	try_prio("NORMAL:-CIPHER-ALL:+NULL:+CIPHER-ALL:-CIPHER-ALL:+AES-128-CBC", 8, 1, __LINE__);	/* should be null + all */
+	try_prio("PERFORMANCE", normal, 11, __LINE__);
+	try_prio("SECURE256", 19, 5, __LINE__);
+	try_prio("SECURE128", sec128, 10, __LINE__);
+	try_prio("SECURE128:+SECURE256", sec128, 10, __LINE__);	/* should be the same as SECURE128 */
+	try_prio("SECURE128:+SECURE256:+NORMAL", normal, 11, __LINE__);	/* should be the same as NORMAL */
+	try_prio("SUITEB192", 1, 1, __LINE__);
 }
 
 #endif

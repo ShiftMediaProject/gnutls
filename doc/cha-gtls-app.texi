@@ -30,6 +30,7 @@ and the manpages is recommended.
 * Common types::
 * Debugging and auditing::
 * Thread safety::
+* Running in a sandbox::
 * Sessions and fork::
 * Callback functions::
 @end menu
@@ -232,6 +233,44 @@ int main()
 @end example
 
 @showfuncdesc{gnutls_global_set_mutex}
+
+@node Running in a sandbox
+@subsection Running in a sandbox
+@cindex seccomp
+@cindex isolated mode
+
+Given that TLS protocol handling as well as X.509 certificate
+parsing are complicated processes involving several thousands lines of code,
+it is often desirable (and recommended) to run the TLS session handling in
+a sandbox like seccomp. That has to be allowed by the overall software design,
+but if available, it adds an additional layer of protection by
+preventing parsing errors from becoming vessels for further security issues such
+as code execution.
+
+GnuTLS requires the following system calls to be available for its proper
+operation.
+
+@itemize
+@item nanosleep
+@item time
+@item gettimeofday
+@item clock_gettime
+@item getrusage
+@item send
+@item recv
+@item writev
+@item read (to read from /dev/urandom)
+@item getrandom (this is Linux-kernel specific)
+@item select
+@end itemize
+
+As well as an calls needed for memory allocation to work. Note however, that GnuTLS
+depends on libc for the system calls, and there is no guarrantee that libc will
+call the expected system call. For that it is recommended to test your
+program in all the targetted platforms when filters like seccomp are in place.
+
+An example with a seccomp filter from GnuTLS' test suite is at:
+@url{http://gitlab.com/gnutls/gnutls/blob/master/tests/seccomp.c}.
 
 @node Sessions and fork
 @subsection Sessions and fork
@@ -491,15 +530,16 @@ certificate certifies the one before it. The trusted authority's
 certificate need not to be included since the peer should possess it
 already.
 
-@showfuncC{gnutls_certificate_set_x509_key_mem2,gnutls_certificate_set_x509_key,gnutls_certificate_set_x509_key_file2}
+@showfuncC{gnutls_certificate_set_x509_key_file2,gnutls_certificate_set_x509_key_mem2,gnutls_certificate_set_x509_key}
 
-@showfuncC{gnutls_certificate_set_openpgp_key_mem,gnutls_certificate_set_openpgp_key,gnutls_certificate_set_openpgp_key_file}
+@showfuncC{gnutls_certificate_set_openpgp_key_file,gnutls_certificate_set_openpgp_key_mem,gnutls_certificate_set_openpgp_key}
 
-Note however, that since functions like @funcref{gnutls_certificate_set_x509_key_file2}
-may accept URLs that specify objects stored in token, another important 
-function is @funcref{gnutls_certificate_set_pin_function}. That
+It is recommended to use the higher level functions such as @funcref{gnutls_certificate_set_x509_key_file2}
+which accept not only file names but URLs that specify objects stored in token,
+or system certificates and keys (see @ref{Application-specific keys}). For these cases, another important 
+function is @funcref{gnutls_certificate_set_pin_function}, that
 allows setting a callback function to retrieve a PIN if the input keys are
-protected by PIN by the token.
+protected by PIN.
 
 @showfuncdesc{gnutls_certificate_set_pin_function}
 
@@ -576,23 +616,25 @@ the following functions, applicable to X.509 and OpenPGP certificates.
 
 @showfuncC{gnutls_certificate_set_x509_system_trust,gnutls_certificate_set_x509_trust_file,gnutls_certificate_set_openpgp_keyring_file}
 
-The peer's certificate is not automatically verified and one 
-must call @funcref{gnutls_certificate_verify_peers3}
-after a successful handshake to verify the certificate's signature and the owner 
-of the certificate. The verification status returned can be printed using
-@funcref{gnutls_certificate_verification_status_print}.
+The peer's certificate will be automatically verified if
+@funcref{gnutls_session_set_verify_cert} is called prior to handshake.
 
-Alternatively the verification can occur during the handshake
-by using @funcref{gnutls_certificate_set_verify_function}.
-
-The functions above provide a brief verification output. If a
+Alternatively, one must set a callback function during the handshake
+using @funcref{gnutls_certificate_set_verify_function}, which
+will verify the peer's certificate once received. The verification
+should happen using @funcref{gnutls_certificate_verify_peers3} within
+the callback. It will verify the certificate's signature and the owner 
+of the certificate. That will provide a brief verification output. If a
 detailed output is required one should call @funcref{gnutls_certificate_get_peers}
 to obtain the raw certificate of the peer and verify it using the
 functions discussed in @ref{X.509 certificates}.
 
-@showfuncdesc{gnutls_certificate_verify_peers3}
+In both the automatic and the manual cases, the verification status returned
+can be printed using @funcref{gnutls_certificate_verification_status_print}.
 
-@showfuncdesc{gnutls_certificate_set_verify_function}
+@showfuncdesc{gnutls_session_set_verify_cert}
+
+@showfuncB{gnutls_certificate_verify_peers3,gnutls_certificate_set_verify_function}
 
 
 @node SRP credentials
@@ -741,6 +783,7 @@ remaining until the next retransmission, or better the time until
 
 @node Asynchronous operation
 @subsection Asynchronous operation
+
 @acronym{GnuTLS} can be used with asynchronous socket or event-driven programming.
 The approach is similar to using Berkeley sockets under such an environment.
 The blocking, due to network interaction, calls such as
@@ -757,17 +800,33 @@ The only exception is @funcref{gnutls_record_send},
 which if interrupted subsequent calls need not to include the data to be
 sent (can be called with NULL argument).
 
-The @funcintref{select} system call can also be used in combination with the
-@acronym{GnuTLS} functions. @funcintref{select} allows monitoring of sockets
-and notifies on them being ready for reading or writing data. Note however
-that this system call cannot notify on data present in @acronym{GnuTLS}
-read buffers, it is only applicable to the kernel sockets API. Thus if
-you are using it for reading from a @acronym{GnuTLS} session, make sure
-that any cached data are read completely. That can be achieved by checking there 
-are no data waiting to be read (using @funcref{gnutls_record_check_pending}), 
+When using the @funcintref{select} system call though, one should remember
+that it is only applicable to the kernel sockets API. To check for any
+available buffers in a @acronym{GnuTLS} session, 
+utilize @funcref{gnutls_record_check_pending},
 either before the @funcintref{select} system call, or after a call to
 @funcref{gnutls_record_recv}. @acronym{GnuTLS} does not keep a write buffer,
 thus when writing no additional actions are required.
+
+The following paragraphs describe the detailed requirements for non-blocking
+operation when using the TLS or DTLS protocols.
+
+@subsubsection TLS protocol
+There are no special requirements for the TLS protocol operation in non-blocking
+mode if a non-blocking socket is used.
+
+It is recommended, however, for future compatibility, when in non-blocking mode, to
+call the @funcref{gnutls_init} function with the
+@code{GNUTLS_NONBLOCK} flag set (see @ref{Session initialization}).
+
+@subsubsection Datagram TLS protocol
+When in non-blocking mode the function, the @funcref{gnutls_init} function 
+must be called with the @code{GNUTLS_NONBLOCK} flag set (see @ref{Session initialization}). 
+
+In constrast with the TLS protocol, the pull timeout function is required,
+but will only be called with a timeout of zero. In that case it should indicate
+whether there are data to be received or not. When not using the default pull function,
+then @funcref{gnutls_transport_set_pull_timeout_function} should be called.
 
 Although in the TLS protocol implementation each call to receive or send
 function implies to restoring the same function that was interrupted, in
@@ -777,13 +836,11 @@ a received message and thus @funcref{gnutls_record_get_direction} must be called
 to decide which direction to check prior to restoring a function call.
 @showfuncdesc{gnutls_record_get_direction}
 
-Moreover, to prevent blocking from DTLS' retransmission timers to block a
-handshake, the @funcref{gnutls_init} function should be called with the
-@code{GNUTLS_NONBLOCK} flag set (see @ref{Session initialization}). In that
-case, in order to be able to use the DTLS handshake timers, the function
-@funcref{gnutls_dtls_get_timeout} should be used to estimate when to call
-@funcref{gnutls_handshake} if no packets have been received.
-
+When calling @funcref{gnutls_handshake} through a multi-plexer,
+to be able to handle properly the DTLS handshake retransmission timers,
+the function @funcref{gnutls_dtls_get_timeout}
+should be used to estimate when to call @funcref{gnutls_handshake} if
+no data have been received.
 
 @node DTLS sessions
 @subsection DTLS sessions
@@ -826,15 +883,15 @@ exchange.
 
 @showfuncdesc{gnutls_handshake_set_timeout}
 
-The handshake process doesn't ensure the verification
-of the peer's identity. When certificates are in use,
-this can be done, either after the handshake is complete, or during 
-the handshake if @funcref{gnutls_certificate_set_verify_function}
-has been used. In both cases the @funcref{gnutls_certificate_verify_peers2} function can be
-used to verify the peer's certificate (see @ref{Certificate authentication}
-for more information).
+In GnuTLS 3.5.0 and later it is recommended to use @funcref{gnutls_session_set_verify_cert}
+for the handshake process to ensure the verification of the peer's identity.
 
-@showfuncA{gnutls_certificate_verify_peers2}
+In older GnuTLS versions it is required to manually verify the peer's certificate
+during the handshake by using @funcref{gnutls_certificate_set_verify_function}, and
+@funcref{gnutls_certificate_verify_peers2}. See @ref{Certificate authentication}
+for more information.
+
+@showfuncB{gnutls_session_set_verify_cert,gnutls_certificate_verify_peers2}
 
 @node Data transfer and termination
 @section Data transfer and termination
@@ -943,7 +1000,7 @@ Means that a compile-time specified system configuration file@footnote{The defau
 will be used to expand the provided keyword. That is used to impose system-specific policies.
 It may be followed by additional options that will be appended to the
 system string (e.g., "@@SYSTEM:+SRP"). The system file should have the
-format 'KEYWORD=VALUE', e.g., 'SYSTEM=NORMAL:-ARCFOUR-128'.
+format 'KEYWORD=VALUE', e.g., 'SYSTEM=NORMAL:+ARCFOUR-128'.
 
 @item PERFORMANCE @tab
 All the known to be secure ciphersuites are enabled,
@@ -1002,10 +1059,6 @@ Means all the NSA Suite B cryptography (RFC5430) ciphersuites
 with an 192 bit security level, as well as the enabling of the corresponding
 verification profile.
 
-@item EXPORT @tab
-This priority string should be treated as deprecated. 
-GnuTLS no longer negotiates 40-bit ciphers.
-
 @item NONE @tab
 Means nothing is enabled.  This disables even protocols and
 compression methods. It should be followed by the
@@ -1016,7 +1069,7 @@ algorithms to be enabled.
 @end float
 
 Unless the initial keyword is "NONE" the defaults (in preference
-order) are for TLS protocols TLS 1.2, TLS1.1, TLS1.0, SSL3.0; for
+order) are for TLS protocols TLS 1.2, TLS1.1, TLS1.0; for
 compression NULL; for certificate types X.509.
 In key exchange algorithms when in NORMAL or SECURE levels the
 perfect forward secrecy algorithms take precedence of the other
@@ -1058,7 +1111,7 @@ appended with an algorithm will add this algorithm.
 @headitem Type @tab Keywords
 @item Ciphers @tab
 AES-128-CBC, AES-256-CBC, AES-128-GCM, CAMELLIA-128-CBC,
-CAMELLIA-256-CBC, ARCFOUR-128, 3DES-CBC ARCFOUR-40. Catch all
+CAMELLIA-256-CBC, ARCFOUR-128, 3DES-CBC. Catch all
 name is CIPHER-ALL which will add all the algorithms from NORMAL
 priority.
 
@@ -1078,9 +1131,9 @@ GCM ciphers only). All algorithms from NORMAL priority can be accessed with MAC-
 COMP-NULL, COMP-DEFLATE. Catch all is COMP-ALL.
 
 @item TLS versions @tab
-VERS-SSL3.0, VERS-TLS1.0, VERS-TLS1.1,
-VERS-TLS1.2, VERS-DTLS1.2, VERS-DTLS1.0. 
-Catch all is VERS-TLS-ALL and VERS-DTLS-ALL.
+VERS-TLS1.0, VERS-TLS1.1, VERS-TLS1.2,
+VERS-DTLS1.0, VERS-DTLS1.2. 
+Catch all are VERS-ALL, VERS-TLS-ALL and VERS-DTLS-ALL.
 
 @item Signature algorithms @tab
 SIGN-RSA-SHA1, SIGN-RSA-SHA224, 
@@ -1090,6 +1143,9 @@ is SIGN-ALL. This is only valid for TLS 1.2 and later.
 
 @item Elliptic curves @tab
 CURVE-SECP192R1, CURVE-SECP224R1, CURVE-SECP256R1, CURVE-SECP384R1, CURVE-SECP521R1. Catch all is CURVE-ALL.
+
+@item Certificate type @tab
+CTYPE-OPENPGP, CTYPE-X509. Catch all is CTYPE-ALL.
 
 @end multitable
 @caption{The supported algorithm keywords in priority strings.}
@@ -1129,6 +1185,14 @@ will prevent the sending of any TLS extensions in client side. Note
 that TLS 1.2 requires extensions to be used, as well as safe
 renegotiation thus this option must be used with care.
 
+@item %NO_TICKETS @tab
+will prevent the advertizing of the TLS session ticket extension.
+This is implied by the PFS keyword.
+
+@item %NO_SESSION_HASH @tab
+will prevent the advertizing the TLS extended master secret (session hash)
+extension.
+
 @item %SERVER_PRECEDENCE @tab
 The ciphersuite will be selected according to server priorities
 and not the client's.
@@ -1159,6 +1223,10 @@ separate records.
 will disable matching wildcards when comparing hostnames
 in certificates.
 
+@item %NO_ETM @tab
+will disable the encrypt-then-mac TLS extension (RFC7366). This is
+implied by the %COMPAT keyword.
+
 @item %DISABLE_SAFE_RENEGOTIATION @tab
 will completely disable safe renegotiation
 completely.  Do not use unless you know what you are doing.
@@ -1182,6 +1250,12 @@ servers, for compatibility reasons.
 will enforce safe renegotiation.  Clients and
 servers will refuse to talk to an insecure peer.  Currently this
 causes interoperability problems, but is required for full protection.
+
+@item %FALLBACK_SCSV @tab
+will enable the use of the fallback signaling cipher suite value in the
+client hello.  Note that this should be set only by applications that
+try to reconnect with a downgraded protocol version. See RFC7507 for
+details.
 
 @item %VERIFY_ALLOW_SIGN_RSA_MD5 @tab
 will allow RSA-MD5 signatures in certificate chains.
@@ -1220,11 +1294,11 @@ The default priority without the HMAC-MD5:
 Specifying RSA with AES-128-CBC:
     "NONE:+VERS-TLS-ALL:+MAC-ALL:+RSA:+AES-128-CBC:+SIGN-ALL:+COMP-NULL"
 
-Specifying the defaults except ARCFOUR-128:
-    "NORMAL:-ARCFOUR-128"
+Specifying the defaults plus ARCFOUR-128:
+    "NORMAL:+ARCFOUR-128"
 
-Enabling the 128-bit secure ciphers, while disabling SSL 3.0 and enabling compression:
-    "SECURE128:-VERS-SSL3.0:+COMP-DEFLATE"
+Enabling the 128-bit secure ciphers, while disabling TLS 1.0 and enabling compression:
+    "SECURE128:-VERS-TLS1.0:+COMP-DEFLATE"
 
 Enabling the 128-bit and 192-bit secure ciphers, while disabling all TLS versions 
 except TLS 1.2:
@@ -1246,7 +1320,7 @@ authentication.
 @float Table,tab:key-sizes
 @multitable @columnfractions .10 .12 .10 .20 .32
 
-@headitem Security bits @tab RSA, DH and SRP parameter size @tab ECC key size @tab Security parameter @tab Description
+@headitem Security bits @tab RSA, DH and SRP parameter size @tab ECC key size @tab Security parameter (profile) @tab Description
 
 @item <64
 @tab <768
@@ -1288,12 +1362,18 @@ authentication.
 @tab 3072
 @tab 256
 @tab @code{HIGH}
-@tab Long term protection
+@tab Long term protection (corresponds to ENISA future level)
+
+@item 192
+@tab 8192
+@tab 384
+@tab @code{ULTRA}
+@tab Even longer term protection
 
 @item 256
 @tab 15424
 @tab 512
-@tab @code{ULTRA}
+@tab @code{FUTURE}
 @tab Foreseeable future
 
 @end multitable
@@ -1347,6 +1427,7 @@ and SRP authentication.
 @menu
 * Session resumption::
 * Certificate verification::
+* Re-authentication::
 * Parameter generation::
 * Deriving keys for other applications/protocols::
 * Channel Bindings::
@@ -1477,6 +1558,46 @@ In order to generate a DANE TLSA entry to use in a DNS server
 you may use danetool (see @ref{danetool Invocation}).
 
 
+
+@node Re-authentication
+@subsection Re-authentication
+@cindex renegotiation
+@cindex reauthentication
+
+In TLS there is no distinction between rekey, re-authentication, and re-negotiation.
+All of these use cases are handled by the TLS' rehandshake process. For that reason
+in GnuTLS rehandshake is not transparent to the application, and the application
+must take control of that process. The following paragraphs explain how to safely
+use the rehandshake process.
+
+@subsubsection Client side
+
+According to the TLS specification a client may initiate a rehandshake at any
+time. That can be achieved by calling @funcref{gnutls_handshake} and rely on its
+return value for the outcome of the handshake (the server may deny a rehandshake).
+If a server requests a re-handshake, then a call to @funcref{gnutls_record_recv} will
+return GNUTLS_E_REHANDSHAKE in the client, instructing it to call @funcref{gnutls_handshake}.
+To deny a rehandshake request by the server it is recommended to send a warning alert
+of type GNUTLS_A_NO_RENEGOTIATION.
+
+Due to limitations of early protocol versions, it is required to check whether
+safe renegotiation is in place, i.e., using @funcref{gnutls_safe_renegotiation_status},
+which ensures that the server remains the same as the initial. For older servers,
+which do not support renegotiation, it is required on the second handshake
+to verify that their certificate/credentials remained the same as in the initial
+session.
+
+@showfuncdesc{gnutls_safe_renegotiation_status}
+
+@subsubsection Server side
+
+A server which wants to instruct the client to re-authenticate, should call
+@funcref{gnutls_rehandshake} and wait for the client to re-authenticate.
+It is recommended to only request re-handshake when safe renegotiation is
+enabled for that session (see @funcref{gnutls_safe_renegotiation_status} and
+the discussion in @ref{Safe renegotiation}).
+
+@showfuncdesc{gnutls_rehandshake}
 
 @node Parameter generation
 @subsection Parameter generation
@@ -1617,7 +1738,7 @@ options that are known to cause compatibility problems, is shown below.
 NORMAL:%COMPAT
 @end verbatim
 
-For broken peers that do not tolerate TLS version numbers over TLS 1.0
+For very old broken peers that do not tolerate TLS version numbers over TLS 1.0
 another priority string is:
 @verbatim
 NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:%COMPAT

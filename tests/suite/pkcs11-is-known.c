@@ -38,7 +38,7 @@
 
 #define MAX_CHAIN 16
 
-#define URL "pkcs11:model=SoftHSM;manufacturer=SoftHSM;serial=1;token=test"
+#define OBJ_URL SOFTHSM_URL";object=test-ca0;object-type=cert"
 #define CONFIG "softhsm-issuer2.config"
 
 /* These CAs have the same DN */
@@ -256,7 +256,6 @@ void doit(void)
 	int exit_val = 0;
 	int ret;
 	unsigned j;
-	FILE *fp;
 	const char *lib, *bin;
 	gnutls_x509_crt_t issuer = NULL;
 	gnutls_x509_trust_list_t tl;
@@ -264,7 +263,6 @@ void doit(void)
 	gnutls_x509_crt_t intermediate;
 	gnutls_datum_t tmp;
 
-	unsetenv("SOFTHSM_CONF");
 	/* The overloading of time() seems to work in linux (ELF?)
 	 * systems only. Disable it on windows.
 	 */
@@ -287,18 +285,7 @@ void doit(void)
 	if (debug)
 		gnutls_global_set_log_level(4711);
 
-	/* write softhsm.config */
-	fp = fopen(CONFIG, "w");
-	if (fp == NULL) {
-		fprintf(stderr, "error writing %s\n", CONFIG);
-		exit(1);
-	}
-	remove("./softhsm-issuer2.db");
-	fputs("0:./softhsm-issuer2.db\n", fp);
-	fclose(fp);
-
-	setenv("SOFTHSM_CONF", CONFIG, 0);
-
+	set_softhsm_conf(CONFIG);
 	snprintf(buf, sizeof(buf), "%s --init-token --slot 0 --label test --so-pin "PIN" --pin "PIN, bin);
 	system(buf);
 
@@ -382,7 +369,7 @@ void doit(void)
 		printf("\tVerifying...");
 
 	/* initialize softhsm token */
-	ret = gnutls_pkcs11_token_init(URL, PIN, "test");
+	ret = gnutls_pkcs11_token_init(SOFTHSM_URL, PIN, "test");
 	if (ret < 0) {
 		fail("gnutls_pkcs11_token_init\n");
 		exit(1);
@@ -392,16 +379,41 @@ void doit(void)
 	for (j = 0; ca_list[j]; j++) {
 		char name[64];
 		snprintf(name, sizeof(name), "test-ca%d", j);
-		ret = gnutls_pkcs11_copy_x509_crt(URL, certs[j], name, GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED|GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO);
+		ret = gnutls_pkcs11_copy_x509_crt(SOFTHSM_URL, certs[j], name, GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED|GNUTLS_PKCS11_OBJ_FLAG_MARK_CA|GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO);
 		if (ret < 0) {
 			fail("gnutls_pkcs11_copy_x509_crt: %s\n", gnutls_strerror(ret));
 			exit(1);
 		}
 	}
 
+
+	/* try to extract an issuer when using an object URL 
+	 */
 	gnutls_x509_trust_list_init(&tl, 0);
 
-	ret = gnutls_x509_trust_list_add_trust_file(tl, URL, NULL, 0, 0, 0);
+	ret = gnutls_x509_trust_list_add_trust_file(tl, OBJ_URL, NULL, 0, 0, 0);
+	if (ret != 1) {
+		fail("gnutls_x509_trust_list_add_trust_file (with expl. object 0): %d\n", ret);
+		exit(1);
+	}
+
+	/* extract the issuer of the certificate */
+	ret = gnutls_x509_trust_list_get_issuer(tl, intermediate, &issuer, GNUTLS_TL_GET_COPY);
+	if (ret < 0) {
+		fail("gnutls_x509_trust_list_get_issuer (with expl. object) should have succeeded\n");
+		exit(1);
+	}
+	gnutls_x509_crt_deinit(issuer);
+
+	gnutls_x509_trust_list_deinit(tl, 1);
+
+
+
+	/* Try to extract issuers using PKCS #11 token URL
+	 */
+	gnutls_x509_trust_list_init(&tl, 0);
+
+	ret = gnutls_x509_trust_list_add_trust_file(tl, SOFTHSM_URL, NULL, 0, 0, 0);
 	if (ret < 0) {
 		fail("gnutls_x509_trust_list_add_trust_file\n");
 		exit(1);
@@ -415,28 +427,31 @@ void doit(void)
 	}
 	gnutls_x509_crt_deinit(issuer);
 
-	ret = gnutls_pkcs11_crt_is_known(URL, certs[2], GNUTLS_PKCS11_OBJ_FLAG_COMPARE_KEY|GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED);
+	ret = gnutls_pkcs11_crt_is_known(SOFTHSM_URL, certs[2], GNUTLS_PKCS11_OBJ_FLAG_COMPARE_KEY|GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED);
 	if (ret == 0) {
 		fail("error in gnutls_pkcs11_crt_is_known - 0\n");
 		exit(1);
 	}
 
-	ret = gnutls_pkcs11_crt_is_known(URL, certs[0], GNUTLS_PKCS11_OBJ_FLAG_COMPARE|GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED);
+	ret = gnutls_pkcs11_crt_is_known(SOFTHSM_URL, certs[0], GNUTLS_PKCS11_OBJ_FLAG_COMPARE|GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED);
 	if (ret == 0) {
 		fail("error in gnutls_pkcs11_crt_is_known - 0\n");
 		exit(1);
 	}
 
-	ret = gnutls_pkcs11_crt_is_known(URL, certs[1], GNUTLS_PKCS11_OBJ_FLAG_COMPARE|GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED);
+	ret = gnutls_pkcs11_crt_is_known(SOFTHSM_URL, certs[1], GNUTLS_PKCS11_OBJ_FLAG_COMPARE|GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED);
 	if (ret == 0) {
 		fail("error in gnutls_pkcs11_crt_is_known - 0\n");
 		exit(1);
 	}
 
+
+	gnutls_x509_trust_list_deinit(tl, 1);
+
+	/* deinit */
 	if (debug)
 		printf("\tCleanup...");
 
-	gnutls_x509_trust_list_deinit(tl, 0);
 	gnutls_x509_crt_deinit(intermediate);
 	for (j = 0; ca_list[j]; j++) {
 		gnutls_x509_crt_deinit(certs[j]);

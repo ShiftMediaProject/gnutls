@@ -68,6 +68,23 @@ struct cipher_aead_vectors_st {
 	unsigned int iv_size;
 	const uint8_t *iv;
 	const uint8_t *tag;
+	unsigned tag_size;
+};
+
+const struct cipher_aead_vectors_st chacha_poly1305_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80\x09\x9d\xca\x5c\xbc\x20\x70\x75\xc0"),
+	 .auth = (void*)"\xf3\x33\x88\x86\x00\x00\x00\x00\x00\x00\x4e\x91",
+	 .auth_size = 12,
+	 .plaintext = (void*)"\x49\x6e\x74\x65\x72\x6e\x65\x74\x2d\x44\x72\x61\x66\x74\x73\x20\x61\x72\x65\x20\x64\x72\x61\x66\x74\x20\x64\x6f\x63\x75\x6d\x65\x6e\x74\x73\x20\x76\x61\x6c\x69\x64\x20\x66\x6f\x72\x20\x61\x20\x6d\x61\x78\x69\x6d\x75\x6d\x20\x6f\x66\x20\x73\x69\x78\x20\x6d\x6f\x6e\x74\x68\x73\x20\x61\x6e\x64\x20\x6d\x61\x79\x20\x62\x65\x20\x75\x70\x64\x61\x74\x65\x64\x2c\x20\x72\x65\x70\x6c\x61\x63\x65\x64\x2c\x20\x6f\x72\x20\x6f\x62\x73\x6f\x6c\x65\x74\x65\x64\x20\x62\x79\x20\x6f\x74\x68\x65\x72\x20\x64\x6f\x63\x75\x6d\x65\x6e\x74\x73\x20\x61\x74\x20\x61\x6e\x79\x20\x74\x69\x6d\x65\x2e\x20\x49\x74\x20\x69\x73\x20\x69\x6e\x61\x70\x70\x72\x6f\x70\x72\x69\x61\x74\x65\x20\x74\x6f\x20\x75\x73\x65\x20\x49\x6e\x74\x65\x72\x6e\x65\x74\x2d\x44\x72\x61\x66\x74\x73\x20\x61\x73\x20\x72\x65\x66\x65\x72\x65\x6e\x63\x65\x20\x6d\x61\x74\x65\x72\x69\x61\x6c\x20\x6f\x72\x20\x74\x6f\x20\x63\x69\x74\x65\x20\x74\x68\x65\x6d\x20\x6f\x74\x68\x65\x72\x20\x74\x68\x61\x6e\x20\x61\x73\x20\x2f\xe2\x80\x9c\x77\x6f\x72\x6b\x20\x69\x6e\x20\x70\x72\x6f\x67\x72\x65\x73\x73\x2e\x2f\xe2\x80\x9d",
+	 .plaintext_size = 265,
+	 .ciphertext = (void*)"\x64\xa0\x86\x15\x75\x86\x1a\xf4\x60\xf0\x62\xc7\x9b\xe6\x43\xbd\x5e\x80\x5c\xfd\x34\x5c\xf3\x89\xf1\x08\x67\x0a\xc7\x6c\x8c\xb2\x4c\x6c\xfc\x18\x75\x5d\x43\xee\xa0\x9e\xe9\x4e\x38\x2d\x26\xb0\xbd\xb7\xb7\x3c\x32\x1b\x01\x00\xd4\xf0\x3b\x7f\x35\x58\x94\xcf\x33\x2f\x83\x0e\x71\x0b\x97\xce\x98\xc8\xa8\x4a\xbd\x0b\x94\x81\x14\xad\x17\x6e\x00\x8d\x33\xbd\x60\xf9\x82\xb1\xff\x37\xc8\x55\x97\x97\xa0\x6e\xf4\xf0\xef\x61\xc1\x86\x32\x4e\x2b\x35\x06\x38\x36\x06\x90\x7b\x6a\x7c\x02\xb0\xf9\xf6\x15\x7b\x53\xc8\x67\xe4\xb9\x16\x6c\x76\x7b\x80\x4d\x46\xa5\x9b\x52\x16\xcd\xe7\xa4\xe9\x90\x40\xc5\xa4\x04\x33\x22\x5e\xe2\x82\xa1\xb0\xa0\x6c\x52\x3e\xaf\x45\x34\xd7\xf8\x3f\xa1\x15\x5b\x00\x47\x71\x8c\xbc\x54\x6a\x0d\x07\x2b\x04\xb3\x56\x4e\xea\x1b\x42\x22\x73\xf5\x48\x27\x1a\x0b\xb2\x31\x60\x53\xfa\x76\x99\x19\x55\xeb\xd6\x31\x59\x43\x4e\xce\xbb\x4e\x46\x6d\xae\x5a\x10\x73\xa6\x72\x76\x27\x09\x7a\x10\x49\xe6\x17\xd9\x1d\x36\x10\x94\xfa\x68\xf0\xff\x77\x98\x71\x30\x30\x5b\xea\xba\x2e\xda\x04\xdf\x99\x7b\x71\x4d\x6c\x6f\x2c\x29\xa6\xad\x5c\xb4\x02\x2b\x02\x70\x9b",
+	 STR(iv, iv_size,
+	     "\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08"),
+	 .tag_size = 16,
+	 .tag = (void *)
+	 "\xee\xad\x9d\x67\x89\x0c\xbb\x22\x39\x23\x36\xfe\xa1\x85\x1f\x38"},
 };
 
 const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
@@ -81,6 +98,7 @@ const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 	 .ciphertext = NULL,
 	 STR(iv, iv_size,
 	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+	 .tag_size = 16,
 	 .tag = (void *)
 	 "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57\xa4\xe7\x45\x5a"},
 	{
@@ -94,6 +112,7 @@ const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 	 "\x03\x88\xda\xce\x60\xb6\xa3\x92\xf3\x28\xc2\xb9\x71\xb2\xfe\x78",
 	 STR(iv, iv_size,
 	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+	 .tag_size = 16,
 	 .tag = (void *)
 	 "\xab\x6e\x47\xd4\x2c\xec\x13\xbd\xf5\x3a\x67\xb2\x12\x57\xbd\xdf"},
 	{
@@ -108,6 +127,7 @@ const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 	 "\x42\x83\x1e\xc2\x21\x77\x74\x24\x4b\x72\x21\xb7\x84\xd0\xd4\x9c\xe3\xaa\x21\x2f\x2c\x02\xa4\xe0\x35\xc1\x7e\x23\x29\xac\xa1\x2e\x21\xd5\x14\xb2\x54\x66\x93\x1c\x7d\x8f\x6a\x5a\xac\x84\xaa\x05\x1b\xa3\x0b\x39\x6a\x0a\xac\x97\x3d\x58\xe0\x91",
 	 STR(iv, iv_size,
 	     "\xca\xfe\xba\xbe\xfa\xce\xdb\xad\xde\xca\xf8\x88"),
+	 .tag_size = 16,
 	 .tag = (void *)
 	 "\x5b\xc9\x4f\xbc\x32\x21\xa5\xdb\x94\xfa\xe9\x5a\xe7\x12\x1a\x47"}
 };
@@ -125,10 +145,94 @@ const struct cipher_aead_vectors_st aes256_gcm_vectors[] = {
 	 "\x52\x2d\xc1\xf0\x99\x56\x7d\x07\xf4\x7f\x37\xa3\x2a\x84\x42\x7d\x64\x3a\x8c\xdc\xbf\xe5\xc0\xc9\x75\x98\xa2\xbd\x25\x55\xd1\xaa\x8c\xb0\x8e\x48\x59\x0d\xbb\x3d\xa7\xb0\x8b\x10\x56\x82\x88\x38\xc5\xf6\x1e\x63\x93\xba\x7a\x0a\xbc\xc9\xf6\x62\x89\x80\x15\xad",
 	 STR(iv, iv_size,
 	     "\xca\xfe\xba\xbe\xfa\xce\xdb\xad\xde\xca\xf8\x88"),
+	 .tag_size = 16,
 	 .tag =
 	 (void *)
 	 "\xb0\x94\xda\xc5\xd9\x34\x71\xbd\xec\x1a\x50\x22\x70\xe3\xcc\x6c"},
 
+};
+
+const struct cipher_aead_vectors_st aes256_ccm_vectors[] = {
+	{ STR(key, key_size,
+	     "\xfb\x76\x15\xb2\x3d\x80\x89\x1d\xd4\x70\x98\x0b\xc7\x95\x84\xc8\xb2\xfb\x64\xce\x60\x97\x8f\x4d\x17\xfc\xe4\x5a\x49\xe8\x30\xb7"),
+	 .auth = NULL,
+	 .auth_size = 0,
+	 STR(plaintext, plaintext_size,
+	     "\xa8\x45\x34\x8e\xc8\xc5\xb5\xf1\x26\xf5\x0e\x76\xfe\xfd\x1b\x1e"),
+	 .ciphertext = (void *)
+	     "\xcc\x88\x12\x61\xc6\xa7\xfa\x72\xb9\x6a\x17\x39\x17\x6b\x27\x7f",
+	 STR(iv, iv_size,
+	     "\xdb\xd1\xa3\x63\x60\x24\xb7\xb4\x02\xda\x7d\x6f"),
+	 .tag_size = 16,
+	 .tag = (void *)
+	     "\x34\x72\xe1\x14\x5f\x2c\x0c\xbe\x14\x63\x49\x06\x2c\xf0\xe4\x23"},
+	{
+	 STR(key, key_size,
+	     "\xfb\x76\x15\xb2\x3d\x80\x89\x1d\xd4\x70\x98\x0b\xc7\x95\x84\xc8\xb2\xfb\x64\xce\x60\x97\x87\x8d\x17\xfc\xe4\x5a\x49\xe8\x30\xb7"),
+	 STR(auth, auth_size, "\x36"),
+	 STR(plaintext, plaintext_size,
+	     "\xa9"),
+	 .ciphertext = (void *)
+	     "\x9d",
+	 STR(iv, iv_size,
+	     "\xdb\xd1\xa3\x63\x60\x24\xb7\xb4\x02\xda\x7d\x6f"),
+	 .tag_size = 16,
+	 .tag = (void *)
+	     "\x32\x61\xb1\xcf\x93\x14\x31\xe9\x9a\x32\x80\x67\x38\xec\xbd\x2a"},
+};
+
+const struct cipher_aead_vectors_st aes128_ccm_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF"),
+	 STR(auth, auth_size, "\x08\xD0\x84\x21\x43\x01\x00\x00\x00\x00\x48\xDE\xAC\x02\x05\x00\x00\x00\x55\xCF\x00\x00\x51\x52\x53\x54"),
+	 .plaintext = NULL,
+	 .plaintext_size = 0,
+	 STR(iv, iv_size,
+	     "\xAC\xDE\x48\x00\x00\x00\x00\x01\x00\x00\x00\x05\x02"),
+	 .tag_size = 8,
+	 .tag = (void *)
+	     "\x22\x3B\xC1\xEC\x84\x1A\xB5\x53"},
+	{
+	 STR(key, key_size,
+	     "\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f"),
+	 STR(auth, auth_size, "\x00\x01\x02\x03\x04\x05\x06\x07"),
+	 STR(plaintext, plaintext_size,
+	     "\x20\x21\x22\x23"),
+	 .ciphertext = (void *)
+	     "\x71\x62\x01\x5b",
+	 STR(iv, iv_size,
+	     "\x10\x11\x12\x13\x14\x15\x16"),
+	 .tag_size = 4,
+	 .tag = (void *)
+	     "\x4d\xac\x25\x5d"},
+	/* from rfc3610 */
+	{
+	 STR(key, key_size,
+	     "\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF"),
+	 STR(auth, auth_size, "\x00\x01\x02\x03\x04\x05\x06\x07"),
+	 STR(plaintext, plaintext_size,
+	     "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E"),
+	 .ciphertext = (void *)
+	     "\x01\x35\xD1\xB2\xC9\x5F\x41\xD5\xD1\xD4\xFE\xC1\x85\xD1\x66\xB8\x09\x4E\x99\x9D\xFE\xD9\x6C",
+	 STR(iv, iv_size,
+	     "\x00\x00\x00\x09\x08\x07\x06\xA0\xA1\xA2\xA3\xA4\xA5"),
+	 .tag_size = 10,
+	 .tag = (void *)
+	     "\x04\x8C\x56\x60\x2C\x97\xAC\xBB\x74\x90"},
+	{
+	 STR(key, key_size,
+	     "\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF"),
+	 STR(auth, auth_size, "\x00\x01\x02\x03\x04\x05\x06\x07"),
+	 STR(plaintext, plaintext_size,
+	     "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E"),
+	 .ciphertext = (void *)
+	     "\x58\x8C\x97\x9A\x61\xC6\x63\xD2\xF0\x66\xD0\xC2\xC0\xF9\x89\x80\x6D\x5F\x6B\x61\xDA\xC3\x84",
+	 STR(iv, iv_size,
+	     "\x00\x00\x00\x03\x02\x01\x00\xA0\xA1\xA2\xA3\xA4\xA5"),
+	 .tag_size = 8,
+	 .tag = (void *)
+	     "\x17\xE8\xD1\x2C\xFD\xF9\x26\xE0"},
 };
 
 const struct cipher_vectors_st aes128_cbc_vectors[] = {
@@ -226,6 +330,26 @@ const struct cipher_vectors_st tdes_cbc_vectors[] = {
 const struct cipher_vectors_st arcfour_vectors[] = { /* RFC6229 */
 	{
 	 STR(key, key_size,
+	     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18"),
+	 STR(plaintext, plaintext_size,
+	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+	 .ciphertext = (uint8_t *)
+	     "\x05\x95\xe5\x7f\xe5\xf0\xbb\x3c\x70\x6e\xda\xc8\xa4\xb2\xdb\x11",
+	 .iv = NULL,
+	 .iv_size = 0
+	},
+	{
+	 STR(key, key_size,
+	     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20"),
+	 STR(plaintext, plaintext_size,
+	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+	 .ciphertext = (uint8_t *)
+	     "\xea\xa6\xbd\x25\x88\x0b\xf9\x3d\x3f\x5d\x1e\x4c\xa2\x61\x1d\x91",
+	 .iv = NULL,
+	 .iv_size = 0
+	},
+	{
+	 STR(key, key_size,
 	     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"),
 	 STR(plaintext, plaintext_size,
 	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
@@ -243,7 +367,7 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 	gnutls_cipher_hd_t hd;
 	int ret;
 	unsigned int i;
-	uint8_t tmp[128];
+	uint8_t tmp[384];
 	gnutls_datum_t key, iv = {NULL, 0};
 
 	for (i = 0; i < vectors_size; i++) {
@@ -326,7 +450,6 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 	     gnutls_cipher_get_name(cipher));
 
 	return 0;
-
 }
 
 /* AEAD modes */
@@ -334,11 +457,14 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 			    const struct cipher_aead_vectors_st *vectors,
 			    size_t vectors_size)
 {
-	gnutls_cipher_hd_t hd;
+	gnutls_aead_cipher_hd_t hd;
 	int ret;
 	unsigned int i;
-	uint8_t tmp[128];
+	uint8_t tmp[384];
+	uint8_t tmp2[384];
 	gnutls_datum_t key, iv;
+	size_t s, s2;
+	unsigned tag_size;
 
 	for (i = 0; i < vectors_size; i++) {
 		memset(tmp, 0, sizeof(tmp));
@@ -346,65 +472,112 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 		key.size = vectors[i].key_size;
 
 		iv.data = (void *) vectors[i].iv;
-		iv.size = gnutls_cipher_get_iv_size(cipher);
+		iv.size = vectors[i].iv_size;
+		tag_size = vectors[i].tag_size;
 
+		if ((int)tag_size > gnutls_cipher_get_tag_size(cipher)) {
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+#if 0
 		if (iv.size != vectors[i].iv_size)
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
-
-		ret = gnutls_cipher_init(&hd, cipher, &key, &iv);
+#endif
+		ret = gnutls_aead_cipher_init(&hd, cipher, &key);
 		if (ret < 0) {
 			_gnutls_debug_log("error initializing: %s\n",
 					  gnutls_cipher_get_name(cipher));
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
+		_gnutls_debug_log("initialized: %s\n",
+					  gnutls_cipher_get_name(cipher));
 
-		if (vectors[i].auth_size > 0) {
-			ret =
-			    gnutls_cipher_add_auth(hd,
-						   vectors[i].auth,
-						   vectors[i].auth_size);
+		s = sizeof(tmp);
 
-			if (ret < 0)
-				return
-				    gnutls_assert_val
-				    (GNUTLS_E_SELF_TEST_ERROR);
+		ret =
+		    gnutls_aead_cipher_encrypt(hd,
+					   iv.data, iv.size,
+					   vectors[i].auth, vectors[i].auth_size,
+					   vectors[i].tag_size,
+					   vectors[i].plaintext,
+					   vectors[i].plaintext_size,
+					   tmp, &s);
+		if (ret < 0)
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+
+		if (s != vectors[i].plaintext_size + tag_size) {
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
 		}
 
-		if (vectors[i].plaintext_size > 0) {
-			ret =
-			    gnutls_cipher_encrypt2(hd,
-						   vectors[i].plaintext,
-						   vectors
-						   [i].plaintext_size, tmp,
-						   sizeof(tmp));
-			if (ret < 0)
-				return
-				    gnutls_assert_val
-				    (GNUTLS_E_SELF_TEST_ERROR);
-		}
-
-
-		if (vectors[i].plaintext_size > 0)
-			if (memcmp
-			    (tmp, vectors[i].ciphertext,
-			     vectors[i].plaintext_size) != 0) {
-				_gnutls_debug_log
-				    ("%s test vector %d failed!\n",
-				     gnutls_cipher_get_name(cipher), i);
-				return
-				    gnutls_assert_val
-				    (GNUTLS_E_SELF_TEST_ERROR);
-			}
-
-		gnutls_cipher_tag(hd, tmp, 16);
-		if (memcmp(tmp, vectors[i].tag, 16) != 0) {
+		if (memcmp(tmp+vectors[i].plaintext_size, vectors[i].tag, tag_size) != 0) {
 			_gnutls_debug_log
 			    ("%s test vector %d failed (tag)!\n",
 			     gnutls_cipher_get_name(cipher), i);
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
 
-		gnutls_cipher_deinit(hd);
+		if (vectors[i].plaintext_size > 0) {
+			
+			if (memcmp
+			    (tmp, vectors[i].ciphertext,
+			     vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log
+				    ("%s test vector %d failed!\n",
+				     gnutls_cipher_get_name(cipher), i);
+
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+		/* check decryption */
+		{
+			s2 = sizeof(tmp2);
+			ret =
+			    gnutls_aead_cipher_decrypt(hd,
+						   iv.data, iv.size,
+						   vectors[i].auth, vectors[i].auth_size,
+						   vectors[i].tag_size,
+						   tmp, s,
+						   tmp2, &s2);
+			if (ret < 0)
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+
+			if (s2 != vectors[i].tag_size+vectors[i].plaintext_size && memcmp(tmp, vectors[i].plaintext, vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log("%s test vector %d failed (decryption)!\n",
+					gnutls_cipher_get_name(cipher), i);
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+
+			/* test tag verification */
+			if (s > 0) {
+				tmp[0]++;
+
+				s2 = sizeof(tmp2);
+				ret =
+				    gnutls_aead_cipher_decrypt(hd,
+							   iv.data, iv.size,
+							   vectors[i].auth, vectors[i].auth_size,
+							   vectors[i].tag_size,
+							   tmp, s,
+							   tmp2, &s2);
+
+				if (ret >= 0) {
+					_gnutls_debug_log("%s: tag check failed\n", gnutls_cipher_get_name(cipher));
+					return
+					    gnutls_assert_val
+					    (GNUTLS_E_SELF_TEST_ERROR);
+				}
+			}
+		}
+
+		gnutls_aead_cipher_deinit(hd);
 	}
 
 	_gnutls_debug_log
@@ -691,6 +864,10 @@ int gnutls_cipher_self_test(unsigned all, gnutls_cipher_algorithm_t cipher)
 
 	switch (cipher) {
 	case GNUTLS_CIPHER_UNKNOWN:
+		CASE(GNUTLS_CIPHER_AES_128_CCM, test_cipher_aead,
+		     aes128_ccm_vectors);
+		CASE(GNUTLS_CIPHER_AES_256_CCM, test_cipher_aead,
+		     aes256_ccm_vectors);
 		CASE(GNUTLS_CIPHER_AES_128_CBC, test_cipher,
 		     aes128_cbc_vectors);
 		CASE(GNUTLS_CIPHER_AES_192_CBC, test_cipher,
@@ -705,6 +882,8 @@ int gnutls_cipher_self_test(unsigned all, gnutls_cipher_algorithm_t cipher)
 		     aes128_gcm_vectors);
 		CASE(GNUTLS_CIPHER_AES_256_GCM, test_cipher_aead,
 		     aes256_gcm_vectors);
+		CASE(GNUTLS_CIPHER_CHACHA20_POLY1305, test_cipher_aead,
+		     chacha_poly1305_vectors);
 		break;
 	default:
 		return gnutls_assert_val(GNUTLS_E_NO_SELF_TEST);

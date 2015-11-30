@@ -46,13 +46,6 @@ sign_tls_hash(gnutls_session_t session, const mac_entry_st * hash_algo,
 	      gnutls_datum_t * signature);
 
 
-/* While this is currently equal to the length of RSA/SHA512
- * signature, it should also be sufficient for DSS signature and any
- * other RSA signatures including one with the old MD5/SHA1-combined
- * format.
- */
-#define MAX_SIG_SIZE 19 + MAX_HASH_SIZE
-
 /* Generates a signature of all the random data and the parameters.
  * Used in DHE_* ciphersuites.
  */
@@ -182,57 +175,11 @@ sign_tls_hash(gnutls_session_t session, const mac_entry_st * hash_algo,
 	if (cert != NULL) {
 		gnutls_pubkey_get_key_usage(cert->pubkey, &key_usage);
 
-		if (key_usage != 0)
+		if (key_usage != 0) {
 			if (!(key_usage & GNUTLS_KEY_DIGITAL_SIGNATURE)) {
 				gnutls_assert();
 				_gnutls_audit_log(session,
 						  "Peer's certificate does not allow digital signatures. Key usage violation detected (ignored).\n");
-			}
-
-		/* External signing. Deprecated. To be removed. */
-		if (!pkey) {
-			int ret;
-
-			if (!session->internals.sign_func)
-				return
-				    gnutls_assert_val
-				    (GNUTLS_E_INSUFFICIENT_CREDENTIALS);
-
-			if (!_gnutls_version_has_selectable_sighash(ver))
-				return (*session->internals.sign_func)
-				    (session,
-				     session->internals.sign_func_userdata,
-				     cert->type, &cert->cert, hash_concat,
-				     signature);
-			else {
-				gnutls_datum_t digest;
-
-				ret =
-				    _gnutls_set_datum(&digest,
-						      hash_concat->data,
-						      hash_concat->size);
-				if (ret < 0)
-					return gnutls_assert_val(ret);
-
-				ret =
-				    pk_prepare_hash
-				    (gnutls_pubkey_get_pk_algorithm
-				     (cert->pubkey, NULL), hash_algo,
-				     &digest);
-				if (ret < 0) {
-					gnutls_assert();
-					goto es_cleanup;
-				}
-
-				ret = (*session->internals.sign_func)
-				    (session,
-				     session->internals.sign_func_userdata,
-				     cert->type, &cert->cert, &digest,
-				     signature);
-			      es_cleanup:
-				gnutls_free(digest.data);
-
-				return ret;
 			}
 		}
 	}
@@ -570,10 +517,15 @@ _gnutls_handshake_sign_crt_vrfy12(gnutls_session_t session,
 	gnutls_sign_algorithm_t sign_algo;
 	const mac_entry_st *me;
 
-	sign_algo = _gnutls_session_get_sign_algo(session, cert);
-	if (sign_algo == GNUTLS_SIGN_UNKNOWN) {
-		gnutls_assert();
-		return GNUTLS_E_UNKNOWN_PK_ALGORITHM;
+	sign_algo = _gnutls_privkey_get_preferred_sign_algo(pkey);
+	if (sign_algo == GNUTLS_SIGN_UNKNOWN || 
+	    _gnutls_session_sign_algo_enabled(session, sign_algo) < 0) {
+
+		sign_algo = _gnutls_session_get_sign_algo(session, cert);
+		if (sign_algo == GNUTLS_SIGN_UNKNOWN) {
+			gnutls_assert();
+			return GNUTLS_E_UNKNOWN_PK_ALGORITHM;
+		}
 	}
 
 	gnutls_sign_algorithm_set_client(session, sign_algo);

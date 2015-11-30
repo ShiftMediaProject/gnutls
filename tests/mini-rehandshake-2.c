@@ -432,7 +432,7 @@ static void start(unsigned test)
 
 static void ch_handler(int sig)
 {
-	int status;
+	int status = 0;
 	wait(&status);
 	if (WEXITSTATUS(status) != 0 ||
 	    (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)) {
@@ -452,6 +452,7 @@ void doit(void)
 	signal(SIGPIPE, SIG_IGN);
 
 	start(0);
+	start(1);
 }
 
 #endif				/* _WIN32 */

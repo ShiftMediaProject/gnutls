@@ -31,6 +31,7 @@
 #include <gnutls_errors.h>
 #include <aes-x86.h>
 #include <x86-common.h>
+#include <nettle/memxor.h>
 #include <byteswap.h>
 
 #define GCM_BLOCK_SIZE 16
@@ -58,10 +59,10 @@ struct aes_gcm_ctx {
 	struct gcm128_context gcm;
 };
 
-void gcm_init_clmul(u128 Htable[16], const u64 Xi[2]);
+void gcm_init_clmul(u128 Htable[16], const uint64_t Xi[2]);
 void gcm_ghash_clmul(uint64_t Xi[2], const u128 Htable[16],
 		     const uint8_t * inp, size_t len);
-void gcm_gmult_clmul(u64 Xi[2], const u128 Htable[16]);
+void gcm_gmult_clmul(uint64_t Xi[2], const u128 Htable[16]);
 
 static void aes_gcm_deinit(void *_ctx)
 {
@@ -258,10 +259,14 @@ static void aes_gcm_tag(void *_ctx, void *tag, size_t tagsize)
 	memcpy(tag, ctx->gcm.Xi.c, MIN(GCM_BLOCK_SIZE, tagsize));
 }
 
+#include "aes-gcm-aead.h"
+
 const gnutls_crypto_cipher_st _gnutls_aes_gcm_pclmul = {
 	.init = aes_gcm_cipher_init,
 	.setkey = aes_gcm_cipher_setkey,
 	.setiv = aes_gcm_setiv,
+	.aead_encrypt = aes_gcm_aead_encrypt,
+	.aead_decrypt = aes_gcm_aead_decrypt,
 	.encrypt = aes_gcm_encrypt,
 	.decrypt = aes_gcm_decrypt,
 	.deinit = aes_gcm_deinit,

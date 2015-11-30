@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2000-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2000-2015 Free Software Foundation, Inc.
+ * Copyright (C) 2015 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -56,7 +57,6 @@ typedef int ssize_t;
 #include <ws2tcpip.h>
 #endif
 #include <time.h>
-#include <u64.h>		/* gnulib for uint64_t */
 
 #ifdef HAVE_LIBNETTLE
 #include <nettle/memxor.h>
@@ -65,9 +65,7 @@ typedef int ssize_t;
 #define memxor gl_memxor
 #endif
 
-#ifdef ENABLE_CRYPTODEV
-# define ENABLE_ALIGN16
-#endif
+#define ENABLE_ALIGN16
 
 #ifdef __GNUC__
 #ifndef _GNUTLS_GCC_VERSION
@@ -113,8 +111,6 @@ typedef struct {
  */
 #define MAX_HANDSHAKE_PACKET_SIZE 48*1024
 
-#define TLS_MAX_SESSION_ID_SIZE 32
-
 /* The maximum digest size of hash algorithms. 
  */
 #define MAX_FILENAME 512
@@ -136,37 +132,16 @@ typedef struct {
 
 /* DTLS */
 #define DTLS_RECORD_WINDOW_SIZE 64
+#define DTLS_RETRANS_TIMEOUT 1000
 
 /* TLS Extensions */
 /* we can receive up to MAX_EXT_TYPES extensions.
  */
 #define MAX_EXT_TYPES 32
 
-  /**
-   * gnutls_ext_parse_type_t:
-   * @GNUTLS_EXT_NONE: Never parsed
-   * @GNUTLS_EXT_ANY: Any extension type.
-   * @GNUTLS_EXT_APPLICATION: Application extension.
-   * @GNUTLS_EXT_TLS: TLS-internal extension.
-   * @GNUTLS_EXT_MANDATORY: Extension parsed even if resuming (or extensions are disabled).
-   *
-   * Enumeration of different TLS extension types.  This flag
-   * indicates for an extension whether it is useful to application
-   * level or TLS level only.  This is (only) used to parse the
-   * application level extensions before the "client_hello" callback
-   * is called.
-   */
-typedef enum {
-	GNUTLS_EXT_ANY = 0,
-	GNUTLS_EXT_APPLICATION = 1,
-	GNUTLS_EXT_TLS = 2,
-	GNUTLS_EXT_MANDATORY = 3,
-	GNUTLS_EXT_NONE = 4
-} gnutls_ext_parse_type_t;
-
-
 /* expire time for resuming sessions */
 #define DEFAULT_EXPIRE_TIME 3600
+#define DEFAULT_HANDSHAKE_TIMEOUT_MS 40*1000
 
 typedef enum transport_t {
 	GNUTLS_STREAM,
@@ -286,12 +261,13 @@ typedef enum extensions_t {
 	GNUTLS_EXTENSION_HEARTBEAT = 15,
 	GNUTLS_EXTENSION_ALPN = 16,
 	GNUTLS_EXTENSION_DUMBFW = 21,
+	GNUTLS_EXTENSION_ETM = 22,
+	GNUTLS_EXTENSION_EXT_MASTER_SECRET = 23,
 	GNUTLS_EXTENSION_SESSION_TICKET = 35,
-	GNUTLS_EXTENSION_NEW_RECORD_PADDING = 48015,	/* aka: 0xbeaf */
 	GNUTLS_EXTENSION_SAFE_RENEGOTIATION = 65281	/* aka: 0xff01 */
 } extensions_t;
 
-typedef enum { CIPHER_STREAM, CIPHER_BLOCK } cipher_type_t;
+typedef enum { CIPHER_STREAM, CIPHER_BLOCK, CIPHER_AEAD } cipher_type_t;
 
 #define RESUME_TRUE 1
 #define RESUME_FALSE 0
@@ -464,12 +440,31 @@ typedef struct cipher_entry_st {
 	gnutls_cipher_algorithm_t id;
 	uint16_t blocksize;
 	uint16_t keysize;
-	bool block;
+	cipher_type_t type;
 	uint16_t implicit_iv;	/* the size of implicit IV - the IV generated but not sent */
 	uint16_t explicit_iv;	/* the size of explicit IV - the IV stored in record */
 	uint16_t cipher_iv;	/* the size of IV needed by the cipher */
-	bool aead;	/* Whether it is authenc cipher */
+	uint16_t tagsize;
 } cipher_entry_st;
+
+typedef enum nonce_type_t {
+	NONCE_IS_SENT,
+	NONCE_IS_COUNTER,
+} nonce_type_t;
+
+typedef struct gnutls_cipher_suite_entry_st {
+	const char *name;
+	const uint8_t id[2];
+	gnutls_cipher_algorithm_t block_algorithm;
+	gnutls_kx_algorithm_t kx_algorithm;
+	gnutls_mac_algorithm_t mac_algorithm;
+	gnutls_protocol_t min_version;	/* this cipher suite is supported
+					 * from 'version' and above;
+					 */
+	gnutls_protocol_t min_dtls_version;	/* DTLS min version */
+	gnutls_mac_algorithm_t prf;
+	nonce_type_t nonce_type;
+} gnutls_cipher_suite_entry_st;
 
 /* This structure is used both for MACs and digests
  */
@@ -532,10 +527,6 @@ typedef struct {
  * session.
  */
 
-/* if you add anything in Security_Parameters struct, then
- * also modify CPY_COMMON in gnutls_constate.c. 
- */
-
 /* Note that the security parameters structure is set up after the
  * handshake has finished. The only value you may depend on while
  * the handshake is in progress is the cipher suite value.
@@ -563,7 +554,7 @@ typedef struct {
 	uint8_t master_secret[GNUTLS_MASTER_SIZE];
 	uint8_t client_random[GNUTLS_RANDOM_SIZE];
 	uint8_t server_random[GNUTLS_RANDOM_SIZE];
-	uint8_t session_id[TLS_MAX_SESSION_ID_SIZE];
+	uint8_t session_id[GNUTLS_MAX_SESSION_ID_SIZE];
 	uint8_t session_id_size;
 	time_t timestamp;
 
@@ -579,9 +570,17 @@ typedef struct {
 	/* Holds the signature algorithm used in this session - If any */
 	gnutls_sign_algorithm_t server_sign_algo;
 	gnutls_sign_algorithm_t client_sign_algo;
-	
-	/* FIXME: The following are not saved in the session storage
-	 * for session resumption.
+
+	/* Whether the master secret negotiation will be according to
+	 * draft-ietf-tls-session-hash-01
+	 */
+	uint8_t ext_master_secret;
+	/* encrypt-then-mac -> rfc7366 */
+	uint8_t etm;
+
+	/* Note: if you add anything in Security_Parameters struct, then
+	 * also modify CPY_COMMON in gnutls_constate.c, and gnutls_session_pack.c,
+	 * in order to save it in the session storage.
 	 */
 
 	/* Used by extensions that enable supplemental data: Which ones
@@ -616,6 +615,7 @@ struct record_parameters_st {
 	gnutls_compression_method_t compression_algorithm;
 
 	const cipher_entry_st *cipher;
+	bool etm;
 	const mac_entry_st *mac;
 
 	/* for DTLS */
@@ -625,6 +625,7 @@ struct record_parameters_st {
 
 	record_state_st read;
 	record_state_st write;
+	unsigned send_nonce; /* whether explicit nonce is sent (in AEAD ciphers) */
 
 	/* Whether this state is in use, i.e., if there is
 	   a pending handshake message waiting to be encrypted
@@ -658,13 +659,16 @@ struct gnutls_priority_st {
 
 	/* to disable record padding */
 	bool no_extensions;
+	bool no_ext_master_secret;
 	bool allow_large_records;
-	unsigned int max_empty_records;
 	unsigned int dumbfw;
 	safe_renegotiation_t sr;
 	bool min_record_version;
 	bool server_precedence;
 	bool allow_wrong_pms;
+	bool no_tickets;
+	bool no_etm;
+	bool have_cbc;
 	/* Whether stateless compression will be used */
 	bool stateless_compression;
 	unsigned int additional_verify_flags;
@@ -675,6 +679,9 @@ struct gnutls_priority_st {
 	 */
 	gnutls_sec_param_t level;
 	unsigned int dh_prime_bits;	/* old (deprecated) variable */
+
+	/* TLS_FALLBACK_SCSV */
+	bool fallback;
 };
 
 /* Allow around 50KB of length-hiding padding
@@ -684,6 +691,8 @@ struct gnutls_priority_st {
 
 #define ENABLE_COMPAT(x) \
               (x)->allow_large_records = 1; \
+              (x)->no_etm = 1; \
+              (x)->no_ext_master_secret = 1; \
               (x)->allow_wrong_pms = 1; \
               (x)->dumbfw = 1
 
@@ -722,15 +731,8 @@ typedef struct {
 
 	/* the retransmission timeout in milliseconds */
 	unsigned int retrans_timeout_ms;
-	/* the connection timeout in milliseconds */
-	unsigned int total_timeout_ms;
 
 	unsigned int hsk_hello_verify_requests;
-
-	/* non blocking stuff variables */
-	bool blocking;
-	/* starting time of current handshake */
-	struct timespec handshake_start_time;
 
 	/* The actual retrans_timeout for the next message (e.g. doubled or so) 
 	 */
@@ -746,17 +748,14 @@ typedef struct {
 	unsigned int packets_dropped;
 } dtls_st;
 
-typedef union {
-	void *ptr;
-	uint32_t num;
-} extension_priv_data_t;
-
 typedef struct {
 	/* holds all the parsed data received by the record layer */
 	mbuffer_head_st record_buffer;
 
 	int handshake_hash_buffer_prev_len;	/* keeps the length of handshake_hash_buffer, excluding
 						 * the last received message */
+	unsigned handshake_hash_buffer_client_kx_len;/* if non-zero it is the length of data until the
+						 * the client key exchange message */
 	gnutls_buffer_st handshake_hash_buffer;	/* used to keep the last received handshake 
 						 * message */
 	bool resumable;	/* TRUE or FALSE - if we can resume that session */
@@ -890,6 +889,7 @@ typedef struct {
 	/* This holds the default version that our first
 	 * record packet will have. */
 	uint8_t default_record_version[2];
+	uint8_t default_hello_version[2];
 
 	void *user_ptr;
 
@@ -935,12 +935,6 @@ typedef struct {
 	 */
 	int errnum;
 
-	/* Function used to perform public-key signing operation during
-	   handshake.  Used by gnutls_sig.c:_gnutls_tls_sign(), see also
-	   gnutls_sign_callback_set(). */
-	gnutls_sign_func sign_func;
-	void *sign_func_userdata;
-
 	/* minimum bits to allow for SRP
 	 * use gnutls_srp_set_prime_bits() to adjust it.
 	 */
@@ -951,13 +945,13 @@ typedef struct {
 
 	struct {
 		uint16_t type;
-		extension_priv_data_t priv;
+		gnutls_ext_priv_data_t priv;
 		bool set;
 	} extension_int_data[MAX_EXT_TYPES];
 
 	struct {
 		uint16_t type;
-		extension_priv_data_t priv;
+		gnutls_ext_priv_data_t priv;
 		bool set;
 	} resumed_extension_int_data[MAX_EXT_TYPES];
 	/* The type of transport protocol; stream or datagram */
@@ -977,6 +971,9 @@ typedef struct {
 
 	unsigned int cb_tls_unique_len;
 	unsigned char cb_tls_unique[MAX_VERIFY_DATA_SIZE];
+
+	/* starting time of current handshake */
+	struct timespec handshake_start_time;
 
 	time_t handshake_endtime;	/* end time in seconds */
 	unsigned int handshake_timeout_ms;	/* timeout in milliseconds */
@@ -999,6 +996,19 @@ typedef struct {
 
 	bool sc_random_set;
 	bool no_replay_protection;	/* DTLS replay protection */
+	bool try_ext_master_secret;	/* whether to try negotiating the ext master secret */
+
+	/* a verify callback to override the verify callback from the credentials
+	 * structure */
+	gnutls_certificate_verify_function *verify_callback;
+	gnutls_typed_vdata_st *vc_data;
+	gnutls_typed_vdata_st vc_sdata;
+	unsigned vc_elements;
+	unsigned vc_status;
+	unsigned int additional_verify_flags; /* may be set by priorities or the vc functions */
+
+	/* whether this session uses non-blocking sockets */
+	bool blocking;
 
 	/* If you add anything here, check _gnutls_handshake_internal_state_clear().
 	 */

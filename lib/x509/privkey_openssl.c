@@ -32,7 +32,6 @@
 #include <algorithms.h>
 #include <gnutls_num.h>
 #include <random.h>
-#include <pbkdf2-sha1.h>
 
 static int
 openssl_hash_password(const char *pass, gnutls_datum_t * key,
@@ -103,7 +102,7 @@ static const struct pem_cipher pem_ciphers[] = {
 
 /**
  * gnutls_x509_privkey_import_openssl:
- * @key: The structure to store the parsed key
+ * @key: The data to store the parsed key
  * @data: The DER or PEM encoded key.
  * @password: the password to decrypt the key (if it is encrypted).
  *

@@ -101,6 +101,9 @@ static const TLS_TEST tls_tests[] = {
 	 "failed",
 	 "SSL 3.0"},
 	{"for TLS 1.2 (RFC5246) support", test_tls1_2, "yes", "no", "dunno"},
+	{"fallback from TLS 1.6 to", test_tls1_6_fallback, NULL,
+	 "failed (server requires fallback dance)", "dunno"},
+	{"for RFC7507 inappropriate fallback", test_rfc7507, "yes", "no", "dunno"},
 	{"for HTTPS server name", test_server, NULL, "failed", "not checked", 1},
 	{"for certificate information", test_certificate, NULL, "", ""},
 	{"for certificate chain order", test_chain_order, "sorted", "unsorted", "unknown"},
@@ -110,6 +113,8 @@ static const TLS_TEST tls_tests[] = {
 	{"for Safe renegotiation support (SCSV)",
 	 test_safe_renegotiation_scsv,
 	 "yes", "no", "dunno"},
+	{"for encrypt-then-MAC (RFC7366) support", test_etm, "yes", "no", "dunno"},
+	{"for ext master secret (RFC7627) support", test_ext_master_secret, "yes", "no", "dunno"},
 	{"for heartbeat (RFC6520) support", test_heartbeat_extension, "yes", "no", "dunno"},
 	{"for version rollback bug in RSA PMS", test_rsa_pms, "no", "yes",
 	 "dunno"},
@@ -117,7 +122,7 @@ static const TLS_TEST tls_tests[] = {
 	 "no", "yes", "dunno"},
 	{"whether the server ignores the RSA PMS version",
 	 test_rsa_pms_version_check, "yes", "no", "dunno"},
-	{"whether small records (512 bytes) are accepted",
+	{"whether small records (512 bytes) are tolerated on handshake",
 	 test_small_records, "yes", "no", "dunno"},
 	{"whether cipher suites not in SSL 3.0 spec are accepted",
 	 test_unknown_ciphersuites, "yes", "no", "dunno"},
@@ -146,6 +151,10 @@ static const TLS_TEST tls_tests[] = {
 	 "N/A",
 	 "N/A"},
 	{"for AES-128-GCM cipher (RFC5288) support", test_aes_gcm, "yes", "no",
+	 "dunno"},
+	{"for AES-128-CCM cipher (RFC6655) support", test_aes_ccm, "yes", "no",
+	 "dunno"},
+	{"for AES-128-CCM-8 cipher (RFC6655) support", test_aes_ccm_8, "yes", "no",
 	 "dunno"},
 	{"for AES-128-CBC cipher (RFC3268) support", test_aes, "yes", "no",
 	 "dunno"},
@@ -330,8 +339,12 @@ static void cmd_parser(int argc, char **argv)
 
 	if (HAVE_OPT(PORT))
 		port = OPT_VALUE_PORT;
-	else
-		port = 443;
+	else {
+		if (HAVE_OPT(APP_PROTO))
+			port = starttls_proto_to_port(OPT_ARG(STARTTLS_PROTO));
+		else
+			port = 443;
+	}
 
 	if (rest == NULL)
 		hostname = "localhost";

@@ -77,12 +77,19 @@ COBJECTS = gnutls_range.c gnutls_record.c \
 	pkix_asn1_tab.c gnutls_asn1_tab.c				\
 	gnutls_mem.c gnutls_ui.c vasprintf.c vasprintf.h		\
 	gnutls_sig.c gnutls_ecc.c gnutls_alert.c gnutls_privkey_raw.c	\
-	system.c gnutls_str.c gnutls_state.c gnutls_x509.c		\
-	gnutls_rsa_export.c gnutls_helper.c gnutls_supplemental.c	\
+	system.c inet_ntop.c gnutls_str.c gnutls_state.c gnutls_x509.c \
+	gnutls_helper.c gnutls_supplemental.c	\
 	random.c crypto-api.c gnutls_privkey.c gnutls_pcert.c		\
 	gnutls_pubkey.c locks.c gnutls_dtls.c system_override.c	\
 	crypto-backend.c verify-tofu.c pin.c tpm.c fips.c \
-	safe-memset.c inet_pton.c
+	safe-memfuncs.c inet_pton.c atfork.c atfork.h \
+	system-keys.h urls.c urls.h auto-verify.c
+
+if WINDOWS
+COBJECTS += system-keys-win.c
+else
+COBJECTS += system-keys-dummy.c
+endif
 
 if ENABLE_SELF_CHECKS
 COBJECTS += crypto-selftests.c crypto-selftests-pk.c
@@ -130,7 +137,11 @@ libgnutls_la_LIBADD = ../gl/libgnu.la x509/libgnutls_x509.la \
 	auth/libgnutls_auth.la algorithms/libgnutls_alg.la \
 	extras/libgnutls_extras.la
 thirdparty_libadd = $(LTLIBZ) $(LTLIBINTL) $(LIBSOCKET) $(LTLIBNSL) \
-	$(LTLIBICONV) $(P11_KIT_LIBS) $(LIB_SELECT) $(TSS_LIBS)
+	$(LTLIBICONV) $(P11_KIT_LIBS) $(LIB_SELECT)
+
+if HAVE_LIBIDN
+thirdparty_libadd += $(LIBIDN_LIBS)
+endif
 
 if ENABLE_NETTLE
 libgnutls_la_LIBADD += accelerated/libaccelerated.la
@@ -146,6 +157,10 @@ endif
 
 if ENABLE_FIPS140
 thirdparty_libadd += $(FIPS140_LIBS)
+endif
+
+if ENABLE_TROUSERS
+thirdparty_libadd += $(LIBDL)
 endif
 
 if ENABLE_OPENPGP
@@ -211,5 +226,5 @@ gnutls_asn1_tab.c: $(srcdir)/gnutls.asn
 	-asn1Parser $(srcdir)/gnutls.asn gnutls_asn1_tab.c
 
 priority_options.h: $(srcdir)/priority_options.gperf
-	-gperf -t $^ > $@-tmp && mv $@-tmp $@
+	-gperf --global-table -t $^ > $@-tmp && mv $@-tmp $@
 

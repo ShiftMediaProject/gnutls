@@ -123,7 +123,9 @@ Adding support for a new TLS extension is done from time to time, and
 the process to do so is not difficult.  Here are the steps you need to
 follow if you wish to do this yourself.  For sake of discussion, let's
 consider adding support for the hypothetical TLS extension
-@code{foobar}.
+@code{foobar}. The following section is about adding an extension to GnuTLS,
+for custom application extensions you should check the exported function
+@funcref{gnutls_ext_register}.
 
 @subsubheading Add @code{configure} option like @code{--enable-foobar} or @code{--disable-foobar}.
 
@@ -354,12 +356,8 @@ TLS handshake extensions allow to send so called supplemental data
 handshake messages @xcite{RFC4680}. This short section explains how to 
 implement a supplemental data handshake message for a given TLS extension.
 
-First of all, modify your extension @code{foobar} in the way, the that
-flags
-@code{session->security_parameters.@-do_send_supplemental}
-and
-@code{session->security_parameters.@-do_recv_supplemental}
-are set:
+First of all, modify your extension @code{foobar} in the way, to instruct
+the handshake process to send and receive supplemental data, as shown below.
 
 @example
 int
@@ -367,7 +365,7 @@ _gnutls_foobar_recv_params (gnutls_session_t session, const opaque * data,
                                  size_t _data_size)
 @{
    ...
-   session->security_parameters.do_recv_supplemental=1;
+   gnutls_supplemental_recv(session, 1);
    ...
 @}
 
@@ -375,15 +373,25 @@ int
 _gnutls_foobar_send_params (gnutls_session_t session, gnutls_buffer_st *extdata)
 @{
    ...
-   session->security_parameters.do_send_supplemental=1;
+   gnutls_supplemental_send(session, 1);
    ...
 @}
 @end example
 
-Furthermore add the functions @funcintref{_foobar_supp_recv_params}
-and @funcintref{_foobar_supp_send_params} to @code{_foobar.h} and
-@code{_foobar.c}. The following example code shows how to send a
-``Hello World'' string in the supplemental data handshake message:
+Furthermore you'll need two new functions @funcintref{_foobar_supp_recv_params}
+and @funcintref{_foobar_supp_send_params}, which must conform to the following 
+prototypes.
+
+@example
+typedef int (*gnutls_supp_recv_func)(gnutls_session_t session,
+                                     const unsigned char *data,
+                                     size_t data_size);
+typedef int (*gnutls_supp_send_func)(gnutls_session_t session,
+                                     gnutls_buffer_t buf);
+@end example
+
+The following example code shows how to send a
+``Hello World'' string in the supplemental data handshake message.
 
 @example
 int 
@@ -405,49 +413,20 @@ _foobar_supp_recv_params(gnutls_session_t session, const opaque *data, size_t _d
 @}
 
 int 
-_foobar_supp_send_params(gnutls_session_t session, gnutls_buffer_st *buf)
+_foobar_supp_send_params(gnutls_session_t session, gnutls_buffer_t buf)
 @{
    unsigned char *msg = "hello world";
    int len = strlen(msg);
 
-   _gnutls_buffer_append_data_prefix(buf, 8, msg, len);
+   if (gnutls_buffer_append_data(buf, msg, len) < 0)
+       abort();
 
    return len;
 @}
 @end example
 
-Afterwards, add the new supplemental data handshake message to
-@code{lib/gnutls_supplemental.c} by adding a new entry to the
-@code{_gnutls_supplemental[]} structure:
-
-@example
-gnutls_supplemental_entry _gnutls_supplemental[] = 
-@{
-  @{"foobar",
-   GNUTLS_SUPPLEMENTAL_FOOBAR_DATA,
-   _foobar_supp_recv_params,
-   _foobar_supp_send_params@},
-  @{0, 0, 0, 0@}
-@};
-@end example
-
-You have to include your @code{foobar.h} header file as well:
-
-@example
-#include "foobar.h"
-@end example
-
-Lastly, add the new supplemental data type to
-@code{lib/includes/gnutls/gnutls.h}:
-
-@example
-typedef enum
-@{
-    GNUTLS_SUPPLEMENTAL_USER_MAPPING_DATA = 0,
-    GNUTLS_SUPPLEMENTAL_FOOBAR_DATA = 1
-@} gnutls_supplemental_data_format_type_t;
-@end example
-
+Afterwards, register the new supplemental data using @funcref{gnutls_supplemental_register},
+at some point in your program.
 
 @node Cryptographic Backend
 @section Cryptographic Backend
@@ -455,9 +434,8 @@ Today most new processors, either for embedded or desktop systems
 include either instructions  intended to speed up cryptographic operations,
 or a co-processor with cryptographic capabilities. Taking advantage of 
 those is a challenging task for every cryptographic  application or 
-library. Unfortunately the cryptographic library that GnuTLS is based 
-on takes no advantage of these capabilities. For this reason GnuTLS handles 
-this internally by following a layered approach to accessing
+library. GnuTLS handles the cryptographic provider in a modular
+way, following a layered approach to access
 cryptographic operations as in @ref{fig-crypto-layers}.
 
 @float Figure,fig-crypto-layers
@@ -508,44 +486,26 @@ source code in @code{lib/accelerated/}.
 @subsubheading Overriding specific algorithms
 When an optimized implementation of a single algorithm is available,
 say a hardware assisted version of @acronym{AES-CBC} then the
-following (internal) functions, from @code{crypto-backend.h}, can 
+following functions, from @code{crypto.h}, can 
 be used to register those algorithms.
 
 @itemize
 
-@item @code{gnutls_crypto_single_cipher_register}:
+@item @funcref{gnutls_crypto_register_cipher}:
 To register a cipher algorithm.
 
-@item @code{gnutls_crypto_single_digest_register}:
-To register a hash (digest) or MAC algorithm.
+@item @funcref{gnutls_crypto_register_aead_cipher}:
+To register an AEAD cipher algorithm.
+
+@item @funcref{gnutls_crypto_register_mac}:
+To register a MAC algorithm.
+
+@item @funcref{gnutls_crypto_register_digest}:
+To register a hash algorithm.
 
 @end itemize
 
 Those registration functions will only replace the specified algorithm
 and leave the rest of subsystem intact.
 
-@subsubheading Overriding the cryptographic library
-In some systems, that might contain a broad acceleration engine, it 
-might be desirable to override big parts of the cryptographic back-end, 
-or even all of them. The following functions are provided for this reason.
-
-@itemize
-
-@item @code{gnutls_crypto_cipher_register}:
-To override the cryptographic algorithms back-end.
-
-@item @code{gnutls_crypto_digest_register}:
-To override the digest algorithms back-end.
-
-@item @code{gnutls_crypto_rnd_register}:
-To override the random number generator back-end.
-
-@item @code{gnutls_crypto_bigint_register}:
-To override the big number number operations back-end.
-
-@item @code{gnutls_crypto_pk_register}:
-To override the public key encryption back-end. This is tied to the
-big number operations so either none or both of them should be overridden.
-
-@end itemize
 

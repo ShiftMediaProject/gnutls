@@ -52,6 +52,12 @@
 #include <getpass.h>
 #include "certtool-common.h"
 
+/* to print uint64_t */
+#if SIZEOF_LONG < 8
+# define __STDC_FORMAT_MACROS
+# include <inttypes.h>
+#endif
+
 extern int batch;
 extern int ask_pass;
 
@@ -91,12 +97,17 @@ static struct cfg_options available_options[] = {
 	{ .name = "dn", .type = OPTION_STRING },
 	{ .name = "cn", .type = OPTION_STRING },
 	{ .name = "uid", .type = OPTION_STRING },
+	{ .name = "subject_unique_id", .type = OPTION_STRING },
+	{ .name = "issuer_unique_id", .type = OPTION_STRING },
 	{ .name = "challenge_password", .type = OPTION_STRING },
 	{ .name = "password", .type = OPTION_STRING },
 	{ .name = "pkcs9_email", .type = OPTION_STRING },
 	{ .name = "country", .type = OPTION_STRING },
 	{ .name = "expiration_date", .type = OPTION_STRING },
 	{ .name = "activation_date", .type = OPTION_STRING },
+	{ .name = "crl_revocation_date", .type = OPTION_STRING },
+	{ .name = "crl_this_update_date", .type = OPTION_STRING },
+	{ .name = "crl_next_update_date", .type = OPTION_STRING },
 	{ .name = "policy*", .type = OPTION_MULTI_LINE }, /* not a multi-line but there are multi as it is a wildcard */
 	{ .name = "pkcs12_key_name", .type = OPTION_STRING },
 	{ .name = "proxy_policy_language", .type = OPTION_STRING },
@@ -117,6 +128,9 @@ static struct cfg_options available_options[] = {
 	{ .name = "ocsp_signing_key", .type = OPTION_BOOLEAN },
 	{ .name = "time_stamping_key", .type = OPTION_BOOLEAN },
 	{ .name = "ipsec_ike_key", .type = OPTION_BOOLEAN },
+	{ .name = "key_agreement", .type = OPTION_BOOLEAN },
+	{ .name = "data_encipherment", .type = OPTION_BOOLEAN },
+	{ .name = "non_repudiation", .type = OPTION_BOOLEAN },
 };
 
 typedef struct _cfg_ctx {
@@ -127,6 +141,10 @@ typedef struct _cfg_ctx {
 	char *dn;
 	char *cn;
 	char *uid;
+	uint8_t *subject_unique_id;
+	unsigned subject_unique_id_size;
+	uint8_t *issuer_unique_id;
+	unsigned issuer_unique_id_size;
 	char *challenge_password;
 	char *pkcs9_email;
 	char *country;
@@ -148,6 +166,9 @@ typedef struct _cfg_ctx {
 	char *pkcs12_key_name;
 	char *expiration_date;
 	char *activation_date;
+	char *revocation_date;
+	char *this_update_date;
+	char *next_update_date;
 	int64_t serial;
 	int expiration_days;
 	int ca;
@@ -158,6 +179,9 @@ typedef struct _cfg_ctx {
 	int encryption_key;
 	int cert_sign_key;
 	int crl_sign_key;
+	int non_repudiation;
+	int data_encipherment;
+	int key_agreement;
 	int code_sign_key;
 	int ocsp_sign_key;
 	int time_stamping_key;
@@ -259,6 +283,18 @@ void cfg_init(void)
         s_name = strtol(val->v.strVal, NULL, 10); \
     }
 
+#define HEX_DECODE(hex, output, output_size) \
+	{ \
+		gnutls_datum_t _input = {(void*)hex, strlen(hex)}; \
+		gnutls_datum_t _output; \
+		ret = gnutls_hex_decode2(&_input, &_output); \
+		if (ret < 0) { \
+			fprintf(stderr, "error in hex ID: %s\n", hex); \
+			exit(1); \
+		} \
+		output = _output.data; \
+		output_size = _output.size; \
+	}
 
 static int handle_option(const tOptionValue* val)
 {
@@ -289,6 +325,7 @@ int template_parse(const char *template)
 {
 	/* Parsing return code */
 	unsigned int i;
+	int ret;
 	tOptionValue const *pov;
 	const tOptionValue *val, *prev;
 	char tmpstr[256];
@@ -340,6 +377,14 @@ int template_parse(const char *template)
 	if (val != NULL && val->valType == OPARG_TYPE_STRING)
 		cfg.uid = strdup(val->v.strVal);
 
+	val = optionGetValue(pov, "issuer_unique_id");
+	if (val != NULL && val->valType == OPARG_TYPE_STRING)
+		HEX_DECODE(val->v.strVal, cfg.issuer_unique_id, cfg.issuer_unique_id_size);
+
+	val = optionGetValue(pov, "subject_unique_id");
+	if (val != NULL && val->valType == OPARG_TYPE_STRING)
+		HEX_DECODE(val->v.strVal, cfg.subject_unique_id, cfg.subject_unique_id_size);
+
 	val = optionGetValue(pov, "challenge_password");
 	if (val != NULL && val->valType == OPARG_TYPE_STRING)
 		cfg.challenge_password = strdup(val->v.strVal);
@@ -363,6 +408,18 @@ int template_parse(const char *template)
 	val = optionGetValue(pov, "activation_date");
 	if (val != NULL && val->valType == OPARG_TYPE_STRING)
 		cfg.activation_date = strdup(val->v.strVal);
+
+	val = optionGetValue(pov, "crl_revocation_date");
+	if (val != NULL && val->valType == OPARG_TYPE_STRING)
+		cfg.revocation_date = strdup(val->v.strVal);
+
+	val = optionGetValue(pov, "crl_this_update_date");
+	if (val != NULL && val->valType == OPARG_TYPE_STRING)
+		cfg.this_update_date = strdup(val->v.strVal);
+
+	val = optionGetValue(pov, "crl_next_update_date");
+	if (val != NULL && val->valType == OPARG_TYPE_STRING)
+		cfg.next_update_date = strdup(val->v.strVal);
 
 	for (i = 0; i < MAX_POLICIES; i++) {
 		snprintf(tmpstr, sizeof(tmpstr), "policy%d", i + 1);
@@ -439,6 +496,10 @@ int template_parse(const char *template)
 	READ_BOOLEAN("ocsp_signing_key", cfg.ocsp_sign_key);
 	READ_BOOLEAN("time_stamping_key", cfg.time_stamping_key);
 	READ_BOOLEAN("ipsec_ike_key", cfg.ipsec_ike_key);
+
+	READ_BOOLEAN("data_encipherment", cfg.data_encipherment);
+	READ_BOOLEAN("key_agreement", cfg.key_agreement);
+	READ_BOOLEAN("non_repudiation", cfg.non_repudiation);
 
 	optionUnloadNested(pov);
 
@@ -928,6 +989,32 @@ void crt_constraints_set(gnutls_x509_crt_t crt)
 	}
 }
 
+void crt_unique_ids_set(gnutls_x509_crt_t crt)
+{
+	int ret;
+
+	if (batch) {
+		if (cfg.subject_unique_id == NULL && cfg.issuer_unique_id == NULL)
+			return; /* nothing to do */
+
+		if (cfg.subject_unique_id) {
+			ret = gnutls_x509_crt_set_subject_unique_id(crt, cfg.subject_unique_id, cfg.subject_unique_id_size);
+			if (ret < 0) {
+				fprintf(stderr, "error setting subject unique ID: %s\n", gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+
+		if (cfg.issuer_unique_id) {
+			ret = gnutls_x509_crt_set_issuer_unique_id(crt, cfg.issuer_unique_id, cfg.issuer_unique_id_size);
+			if (ret < 0) {
+				fprintf(stderr, "error setting issuer unique ID: %s\n", gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+	}
+}
+
 void get_uid_crt_set(gnutls_x509_crt_t crt)
 {
 	int ret;
@@ -1127,10 +1214,11 @@ void get_rand_int_value(unsigned char* serial, size_t * size, int64_t cfg_val, c
 
 #if SIZEOF_LONG < 8
 		default_serial_int = ts.tv_sec;
+		snprintf(tmsg, sizeof(tmsg), "%s (default: %" PRIu64"): ", msg, default_serial_int);
 #else
 		default_serial_int = (ts.tv_sec << 32) | ts.tv_nsec;
-#endif
 		snprintf(tmsg, sizeof(tmsg), "%s (default: %lu): ", msg, default_serial_int);
+#endif
 		default_serial_int = read_int_with_default(tmsg, (long)default_serial_int);
 
 		default_serial[0] = default_serial_int >> 32;
@@ -1170,11 +1258,31 @@ time_t get_date(const char* date)
         return r.tv_sec;
 }
 
-time_t get_activation_date()
+time_t get_activation_date(void)
 {
 
 	if (batch && cfg.activation_date != NULL) {
        		return get_date(cfg.activation_date);
+	}
+
+	return time(NULL);
+}
+
+time_t get_crl_revocation_date(void)
+{
+
+	if (batch && cfg.revocation_date != NULL) {
+       		return get_date(cfg.revocation_date);
+	}
+
+	return time(NULL);
+}
+
+time_t get_crl_this_update_date(void)
+{
+
+	if (batch && cfg.this_update_date != NULL) {
+       		return get_date(cfg.this_update_date);
 	}
 
 	return time(NULL);
@@ -1188,7 +1296,7 @@ time_t now = time(NULL);
 
        	if (secs != (time_t)-1) {
       	        if (INT_MULTIPLY_OVERFLOW(secs, 24*60*60)) {
-       	                secs = -1;
+                        goto overflow;
 	        } else {
     	                secs *= 24*60*60;
       	        }
@@ -1196,13 +1304,16 @@ time_t now = time(NULL);
                                 
         if (secs != (time_t)-1) {
                 if (INT_ADD_OVERFLOW(secs, now)) {
-                        secs = -1;
+                        goto overflow;
                 } else {
                         secs += now;
                 }
         }
         
         return secs;
+ overflow:
+ 	fprintf(stderr, "Overflow while parsing days\n");
+ 	exit(1);
 }
 
 static
@@ -1234,7 +1345,7 @@ time_t get_int_date(const char *txt_val, int int_val, const char *msg)
 	}
 }
 
-time_t get_expiration_date()
+time_t get_expiration_date(void)
 {
 	return get_int_date(cfg.expiration_date, cfg.expiration_days, "The certificate will expire in (days): ");
 }
@@ -1753,6 +1864,36 @@ int get_crl_sign_status(void)
 	}
 }
 
+int get_key_agreement_status(void)
+{
+	if (batch) {
+		return cfg.key_agreement;
+	} else {
+		/* this option is not asked in interactive mode */
+		return 0;
+	}
+}
+
+int get_non_repudiation_status(void)
+{
+	if (batch) {
+		return cfg.non_repudiation;
+	} else {
+		/* this option is not asked in interactive mode */
+		return 0;
+	}
+}
+
+int get_data_encipherment_status(void)
+{
+	if (batch) {
+		return cfg.data_encipherment;
+	} else {
+		/* this option is not asked in interactive mode */
+		return 0;
+	}
+}
+
 int get_code_sign_status(void)
 {
 	if (batch) {
@@ -1801,9 +1942,9 @@ int get_ipsec_ike_status(void)
 	}
 }
 
-time_t get_crl_next_update()
+time_t get_crl_next_update(void)
 {
-	return get_int_date(NULL, cfg.crl_next_update, "The next CRL will be issued in (days): ");
+	return get_int_date(cfg.next_update_date, cfg.crl_next_update, "The next CRL will be issued in (days): ");
 }
 
 const char *get_proxy_policy(char **policy, size_t * policylen)

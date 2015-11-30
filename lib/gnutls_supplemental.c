@@ -44,25 +44,20 @@
  */
 
 #include "gnutls_int.h"
+#include <gnutls/gnutls.h>
 #include "gnutls_supplemental.h"
 #include "gnutls_errors.h"
 #include "gnutls_num.h"
 
-typedef int (*supp_recv_func) (gnutls_session_t session,
-			       const uint8_t * data, size_t data_size);
-typedef int (*supp_send_func) (gnutls_session_t session,
-			       gnutls_buffer_st * buf);
-
 typedef struct {
-	const char *name;
+	char *name;
 	gnutls_supplemental_data_format_type_t type;
-	supp_recv_func supp_recv_func;
-	supp_send_func supp_send_func;
+	gnutls_supp_recv_func supp_recv_func;
+	gnutls_supp_send_func supp_send_func;
 } gnutls_supplemental_entry;
 
-gnutls_supplemental_entry _gnutls_supplemental[] = {
-	{0, 0, 0, 0}
-};
+static size_t suppfunc_size = 0;
+static gnutls_supplemental_entry *suppfunc = NULL;
 
 /**
  * gnutls_supplemental_get_name:
@@ -78,23 +73,38 @@ const char
     *gnutls_supplemental_get_name(gnutls_supplemental_data_format_type_t
 				  type)
 {
-	gnutls_supplemental_entry *p;
+	size_t i;
 
-	for (p = _gnutls_supplemental; p->name != NULL; p++)
-		if (p->type == type)
-			return p->name;
+	for (i = 0; i < suppfunc_size; i++) {
+		if (suppfunc[i].type == type)
+			return suppfunc[i].name;
+	}
 
 	return NULL;
 }
 
-static supp_recv_func
+void _gnutls_supplemental_deinit(void)
+{
+	unsigned i;
+
+	for (i = 0; i < suppfunc_size; i++) {
+		gnutls_free(suppfunc[i].name);
+	}
+	gnutls_free(suppfunc);
+
+	suppfunc = NULL;
+	suppfunc_size = 0;
+}
+
+static gnutls_supp_recv_func
 get_supp_func_recv(gnutls_supplemental_data_format_type_t type)
 {
-	gnutls_supplemental_entry *p;
+	size_t i;
 
-	for (p = _gnutls_supplemental; p->name != NULL; p++)
-		if (p->type == type)
-			return p->supp_recv_func;
+	for (i = 0; i < suppfunc_size; i++) {
+		if (suppfunc[i].type == type)
+			return suppfunc[i].supp_recv_func;
+	}
 
 	return NULL;
 }
@@ -102,6 +112,7 @@ get_supp_func_recv(gnutls_supplemental_data_format_type_t type)
 int
 _gnutls_gen_supplemental(gnutls_session_t session, gnutls_buffer_st * buf)
 {
+	size_t i;
 	gnutls_supplemental_entry *p;
 	int ret;
 
@@ -112,8 +123,9 @@ _gnutls_gen_supplemental(gnutls_session_t session, gnutls_buffer_st * buf)
 		return ret;
 	}
 
-	for (p = _gnutls_supplemental; p->name; p++) {
-		supp_send_func supp_send = p->supp_send_func;
+	for (i = 0; i < suppfunc_size; i++) {
+		p = &suppfunc[i];
+		gnutls_supp_send_func supp_send = p->supp_send_func;
 		size_t sizepos = buf->length;
 
 		/* Make room for supplement type and length byte length field. */
@@ -172,7 +184,7 @@ _gnutls_parse_supplemental(gnutls_session_t session,
 	do {
 		uint16_t supp_data_type;
 		uint16_t supp_data_length;
-		supp_recv_func recv_func;
+		gnutls_supp_recv_func recv_func;
 
 		DECR_LEN(dsize, 2);
 		supp_data_type = _gnutls_read_uint16(p);
@@ -204,4 +216,103 @@ _gnutls_parse_supplemental(gnutls_session_t session,
 	while (dsize > 0);
 
 	return 0;
+}
+
+static int
+_gnutls_supplemental_register(gnutls_supplemental_entry *entry)
+{
+	gnutls_supplemental_entry *p;
+	unsigned i;
+
+	for (i = 0; i < suppfunc_size; i++) {
+		if (entry->type == suppfunc[i].type)
+			return gnutls_assert_val(GNUTLS_E_ALREADY_REGISTERED);
+	}
+
+	p = gnutls_realloc_fast(suppfunc,
+				sizeof(*suppfunc) * (suppfunc_size + 1));
+	if (!p) {
+		gnutls_assert();
+		return GNUTLS_E_MEMORY_ERROR;
+	}
+
+	suppfunc = p;
+
+	memcpy(&suppfunc[suppfunc_size], entry, sizeof(*entry));
+
+	suppfunc_size++;
+
+	return GNUTLS_E_SUCCESS;
+}
+
+/**
+ * gnutls_supplemental_register:
+ * @name: the name of the supplemental data to register
+ * @type: the type of the supplemental data format
+ * @recv_func: the function to receive the data
+ * @send_func: the function to send the data
+ *
+ * This function will register a new supplemental data type (rfc4680).
+ * The registered data will remain until gnutls_global_deinit()
+ * is called. The provided @type must be an unassigned type in
+ * %gnutls_supplemental_data_format_type_t. If the type is already
+ * registered or handled by GnuTLS internally %GNUTLS_E_ALREADY_REGISTERED
+ * will be returned.
+ *
+ * This function is not thread safe.
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
+ *
+ * Since: 3.4.0
+ **/
+int
+gnutls_supplemental_register(const char *name, gnutls_supplemental_data_format_type_t type,
+                             gnutls_supp_recv_func recv_func, gnutls_supp_send_func send_func)
+{
+	gnutls_supplemental_entry tmp_entry;
+	int ret;
+
+	tmp_entry.name = gnutls_strdup(name);
+	tmp_entry.type = type;
+	tmp_entry.supp_recv_func = recv_func;
+	tmp_entry.supp_send_func = send_func;
+	
+	ret = _gnutls_supplemental_register(&tmp_entry);
+	if (ret < 0) {
+		gnutls_free(tmp_entry.name);
+	}
+	return ret;
+}
+
+/**
+ * gnutls_supplemental_recv:
+ * @session: is a #gnutls_session_t type.
+ * @do_recv_supplemental: non-zero in order to expect supplemental data
+ *
+ * This function is to be called by an extension handler to
+ * instruct gnutls to attempt to receive supplemental data
+ * during the handshake process.
+ *
+ * Since: 3.4.0
+ **/
+void
+gnutls_supplemental_recv(gnutls_session_t session, unsigned do_recv_supplemental)
+{
+	session->security_parameters.do_recv_supplemental = do_recv_supplemental;
+}
+
+/**
+ * gnutls_supplemental_send:
+ * @session: is a #gnutls_session_t type.
+ * @do_recv_supplemental: non-zero in order to expect supplemental data
+ *
+ * This function is to be called by an extension handler to
+ * instruct gnutls to send supplemental data during the handshake process.
+ *
+ * Since: 3.4.0
+ **/
+void
+gnutls_supplemental_send(gnutls_session_t session, unsigned do_send_supplemental)
+{
+	session->security_parameters.do_send_supplemental = do_send_supplemental;
 }

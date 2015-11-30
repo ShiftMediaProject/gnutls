@@ -161,7 +161,7 @@ _gnutls_x509_crt_get_extension(gnutls_x509_crt_t cert,
 
 /**
  * gnutls_x509_crt_get_extension_data2:
- * @cert: should contain a #gnutls_x509_crt_t structure
+ * @cert: should contain a #gnutls_x509_crt_t type
  * @indx: Specifies which extension OID to read. Use (0) to get the first one.
  * @data: will contain the extension DER-encoded data
  *
@@ -197,7 +197,7 @@ _gnutls_x509_crl_get_extension(gnutls_x509_crl_t crl,
 
 /**
  * gnutls_x509_crl_get_extension_data2:
- * @crl: should contain a #gnutls_x509_crl_t structure
+ * @crl: should contain a #gnutls_x509_crl_t type
  * @indx: Specifies which extension OID to read. Use (0) to get the first one.
  * @data: will contain the extension DER-encoded data
  *
@@ -565,7 +565,7 @@ _gnutls_x509_crq_set_extension(gnutls_x509_crq_t crq,
 
 	if (extensions_size > 0) {
 		result =
-		    asn1_der_decoding(&c2, extensions, extensions_size,
+		    _asn1_strict_der_decode(&c2, extensions, extensions_size,
 				      NULL);
 		gnutls_free(extensions);
 		if (result != ASN1_SUCCESS) {
@@ -626,7 +626,7 @@ _gnutls_x509_ext_extract_number(uint8_t * number,
 		return _gnutls_asn2err(result);
 	}
 
-	result = asn1_der_decoding(&ext, extnValue, extnValueLen, NULL);
+	result = _asn1_strict_der_decode(&ext, extnValue, extnValueLen, NULL);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		asn1_delete_structure(&ext);

@@ -20,30 +20,23 @@
  *
  */
 
-#include <config.h>
 #include <gnutls_int.h>
 #include <algorithms.h>
 #include <gnutls_errors.h>
+#include <gnutls_dh.h>
+#include <gnutls_state.h>
 #include <x509/common.h>
+#include <auth/cert.h>
+#include <auth/anon.h>
+#include <auth/psk.h>
 
 /* Cipher SUITES */
 #define ENTRY( name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version ) \
-	{ #name, name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version, GNUTLS_MAC_SHA256}
+	{ #name, name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version, GNUTLS_MAC_SHA256, NONCE_IS_SENT}
 #define ENTRY_PRF( name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version, prf ) \
-	{ #name, name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version, prf}
-
-typedef struct {
-	const char *name;
-	const uint8_t id[2];
-	gnutls_cipher_algorithm_t block_algorithm;
-	gnutls_kx_algorithm_t kx_algorithm;
-	gnutls_mac_algorithm_t mac_algorithm;
-	gnutls_protocol_t min_version;	/* this cipher suite is supported
-					 * from 'version' and above;
-					 */
-	gnutls_protocol_t min_dtls_version;	/* DTLS min version */
-	gnutls_mac_algorithm_t prf;
-} gnutls_cipher_suite_entry;
+	{ #name, name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version, prf, NONCE_IS_SENT}
+#define ENTRY_CNONCE( name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version ) \
+	{ #name, name, block_algorithm, kx_algorithm, mac_algorithm, min_version, dtls_version, GNUTLS_MAC_SHA256, NONCE_IS_COUNTER}
 
 /* RSA with NULL cipher and MD5 MAC
  * for test purposes.
@@ -111,6 +104,16 @@ typedef struct {
 
 #define GNUTLS_DH_ANON_AES_128_CBC_SHA256 { 0x00, 0x6C }
 #define GNUTLS_DH_ANON_AES_256_CBC_SHA256 { 0x00, 0x6D }
+
+/* draft-mavrogiannopoulos-chacha-tls-04 */
+#define GNUTLS_RSA_CHACHA20_POLY1305          	{ 0xCC, 0xA0 }
+#define GNUTLS_ECDHE_RSA_CHACHA20_POLY1305      { 0xCC, 0xA1 }
+#define GNUTLS_ECDHE_ECDSA_CHACHA20_POLY1305	{ 0xCC, 0xA2 }
+#define GNUTLS_DHE_RSA_CHACHA20_POLY1305	{ 0xCC, 0xA3 }
+#define GNUTLS_DHE_PSK_CHACHA20_POLY1305	{ 0xCC, 0xA4 }
+#define GNUTLS_PSK_CHACHA20_POLY1305		{ 0xCC, 0xA5 }
+#define GNUTLS_ECDHE_PSK_CHACHA20_POLY1305	{ 0xCC, 0xA6 }
+#define GNUTLS_RSA_PSK_CHACHA20_POLY1305	{ 0xCC, 0xA7 }
 
 /* PSK (not in TLS 1.0)
  * draft-ietf-tls-psk:
@@ -210,6 +213,34 @@ typedef struct {
 #define GNUTLS_DHE_DSS_AES_256_GCM_SHA384 {0x00,0xA3}
 #define GNUTLS_DH_ANON_AES_256_GCM_SHA384 {0x00,0xA7}
 
+/* CCM: RFC6655/7251 */
+#define GNUTLS_RSA_AES_128_CCM { 0xC0, 0x9C }
+#define GNUTLS_RSA_AES_256_CCM { 0xC0, 0x9D }
+#define GNUTLS_DHE_RSA_AES_128_CCM {0xC0,0x9E}
+#define GNUTLS_DHE_RSA_AES_256_CCM {0xC0,0x9F}
+
+#define GNUTLS_ECDHE_ECDSA_AES_128_CCM {0xC0,0xAC}
+#define GNUTLS_ECDHE_ECDSA_AES_256_CCM {0xC0,0xAD}
+
+#define GNUTLS_PSK_AES_128_CCM { 0xC0, 0xA4 }
+#define GNUTLS_PSK_AES_256_CCM { 0xC0, 0xA5 }
+#define GNUTLS_DHE_PSK_AES_128_CCM {0xC0,0xA6}
+#define GNUTLS_DHE_PSK_AES_256_CCM {0xC0,0xA7}
+
+/* CCM-8: RFC6655/7251 */
+#define GNUTLS_RSA_AES_128_CCM_8 { 0xC0, 0xA0 }
+#define GNUTLS_RSA_AES_256_CCM_8 { 0xC0, 0xA1 }
+#define GNUTLS_DHE_RSA_AES_128_CCM_8 {0xC0,0xA2}
+#define GNUTLS_DHE_RSA_AES_256_CCM_8 {0xC0,0xA3}
+
+#define GNUTLS_ECDHE_ECDSA_AES_128_CCM_8 {0xC0,0xAE}
+#define GNUTLS_ECDHE_ECDSA_AES_256_CCM_8 {0xC0,0xAF}
+
+#define GNUTLS_PSK_AES_128_CCM_8 { 0xC0, 0xA8 }
+#define GNUTLS_PSK_AES_256_CCM_8 { 0xC0, 0xA9 }
+#define GNUTLS_DHE_PSK_AES_128_CCM_8 {0xC0,0xAA}
+#define GNUTLS_DHE_PSK_AES_256_CCM_8 {0xC0,0xAB}
+
 
 /* RFC 5487 */
 /* GCM-PSK */
@@ -290,24 +321,12 @@ typedef struct {
 #define GNUTLS_ECDHE_PSK_NULL_SHA256 { 0xC0, 0x3A }
 #define GNUTLS_ECDHE_PSK_NULL_SHA384 { 0xC0, 0x3B }
 
-/* Salsa 20 */
-#define GNUTLS_RSA_ESTREAM_SALSA20_256_SHA1      {0xE4, 0x10}
-#define GNUTLS_RSA_SALSA20_256_SHA1              {0xE4, 0x11}
-#define GNUTLS_ECDHE_RSA_ESTREAM_SALSA20_256_SHA1 {0xE4, 0x12}
-#define GNUTLS_ECDHE_RSA_SALSA20_256_SHA1        {0xE4, 0x13}
-#define GNUTLS_ECDHE_ECDSA_ESTREAM_SALSA20_256_SHA1 {0xE4, 0x14}
-#define GNUTLS_ECDHE_ECDSA_SALSA20_256_SHA1      {0xE4, 0x15}
-#define GNUTLS_PSK_ESTREAM_SALSA20_256_SHA1      {0xE4, 0x16}
-#define GNUTLS_PSK_SALSA20_256_SHA1              {0xE4, 0x17}
-#define GNUTLS_ECDHE_PSK_ESTREAM_SALSA20_256_SHA1 {0xE4, 0x18}
-#define GNUTLS_ECDHE_PSK_SALSA20_256_SHA1        {0xE4, 0x19}
-
-#define CIPHER_SUITES_COUNT (sizeof(cs_algorithms)/sizeof(gnutls_cipher_suite_entry)-1)
+#define CIPHER_SUITES_COUNT (sizeof(cs_algorithms)/sizeof(gnutls_cipher_suite_entry_st)-1)
 
 /* The following is a potential list of ciphersuites. For the options to be
  * available, the ciphers and MACs must be available to gnutls as well.
  */
-static const gnutls_cipher_suite_entry cs_algorithms[] = {
+static const gnutls_cipher_suite_entry_st cs_algorithms[] = {
 	/* RSA-NULL */
 	ENTRY(GNUTLS_RSA_NULL_MD5,
 	      GNUTLS_CIPHER_NULL,
@@ -385,17 +404,32 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 		  GNUTLS_CIPHER_CAMELLIA_256_GCM, GNUTLS_KX_RSA,
 		  GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
 		  GNUTLS_DTLS1_2, GNUTLS_MAC_SHA384),
+	ENTRY_CNONCE(GNUTLS_RSA_CHACHA20_POLY1305,
+		GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_RSA,
+		GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+		GNUTLS_DTLS1_2),
 
-/* Salsa20 */
-	ENTRY(GNUTLS_RSA_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_SALSA20_256, GNUTLS_KX_RSA,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
+/* CCM */
+	ENTRY(GNUTLS_RSA_AES_128_CCM,
+	      GNUTLS_CIPHER_AES_128_CCM, GNUTLS_KX_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_RSA_AES_256_CCM,
+	      GNUTLS_CIPHER_AES_256_CCM, GNUTLS_KX_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
 
-	ENTRY(GNUTLS_RSA_ESTREAM_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_ESTREAM_SALSA20_256, GNUTLS_KX_RSA,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
+
+/* CCM_8 */
+	ENTRY(GNUTLS_RSA_AES_128_CCM_8,
+	      GNUTLS_CIPHER_AES_128_CCM_8, GNUTLS_KX_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_RSA_AES_256_CCM_8,
+	      GNUTLS_CIPHER_AES_256_CCM_8, GNUTLS_KX_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+
 
 	/* DHE_DSS */
 #ifdef ENABLE_DHE
@@ -520,6 +554,29 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 		  GNUTLS_CIPHER_CAMELLIA_256_GCM, GNUTLS_KX_DHE_RSA,
 		  GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
 		  GNUTLS_DTLS1_2, GNUTLS_MAC_SHA384),
+
+	ENTRY_CNONCE(GNUTLS_DHE_RSA_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_DHE_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2, GNUTLS_DTLS1_2),
+
+/* CCM */
+	ENTRY(GNUTLS_DHE_RSA_AES_128_CCM,
+	      GNUTLS_CIPHER_AES_128_CCM, GNUTLS_KX_DHE_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_RSA_AES_256_CCM,
+	      GNUTLS_CIPHER_AES_256_CCM, GNUTLS_KX_DHE_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_RSA_AES_128_CCM_8,
+	      GNUTLS_CIPHER_AES_128_CCM_8, GNUTLS_KX_DHE_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_RSA_AES_256_CCM_8,
+	      GNUTLS_CIPHER_AES_256_CCM_8, GNUTLS_KX_DHE_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+
 #endif				/* DHE */
 #ifdef ENABLE_ECDHE
 /* ECC-RSA */
@@ -634,24 +691,32 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 		  GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
 		  GNUTLS_DTLS1_2, GNUTLS_MAC_SHA384),
 
-/* Salsa20 */
-	ENTRY(GNUTLS_ECDHE_RSA_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_SALSA20_256, GNUTLS_KX_ECDHE_RSA,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
-	ENTRY(GNUTLS_ECDHE_ECDSA_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_SALSA20_256, GNUTLS_KX_ECDHE_ECDSA,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
+	ENTRY_CNONCE(GNUTLS_ECDHE_RSA_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_ECDHE_RSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
 
-	ENTRY(GNUTLS_ECDHE_RSA_ESTREAM_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_ESTREAM_SALSA20_256, GNUTLS_KX_ECDHE_RSA,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
-	ENTRY(GNUTLS_ECDHE_ECDSA_ESTREAM_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_ESTREAM_SALSA20_256, GNUTLS_KX_ECDHE_ECDSA,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
+	ENTRY_CNONCE(GNUTLS_ECDHE_ECDSA_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_ECDHE_ECDSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+
+	ENTRY(GNUTLS_ECDHE_ECDSA_AES_128_CCM,
+	      GNUTLS_CIPHER_AES_128_CCM, GNUTLS_KX_ECDHE_ECDSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_ECDHE_ECDSA_AES_256_CCM,
+	      GNUTLS_CIPHER_AES_256_CCM, GNUTLS_KX_ECDHE_ECDSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_ECDHE_ECDSA_AES_128_CCM_8,
+	      GNUTLS_CIPHER_AES_128_CCM_8, GNUTLS_KX_ECDHE_ECDSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_ECDHE_ECDSA_AES_256_CCM_8,
+	      GNUTLS_CIPHER_AES_256_CCM_8, GNUTLS_KX_ECDHE_ECDSA,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
 #endif
 #ifdef ENABLE_PSK
 	/* ECC - PSK */
@@ -699,16 +764,6 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 		  GNUTLS_CIPHER_CAMELLIA_256_CBC, GNUTLS_KX_ECDHE_PSK,
 		  GNUTLS_MAC_SHA384, GNUTLS_TLS1_2,
 		  GNUTLS_DTLS1_2, GNUTLS_MAC_SHA384),
-
-	ENTRY(GNUTLS_ECDHE_PSK_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_SALSA20_256, GNUTLS_KX_ECDHE_PSK,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
-
-	ENTRY(GNUTLS_ECDHE_PSK_ESTREAM_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_ESTREAM_SALSA20_256, GNUTLS_KX_ECDHE_PSK,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
 
 	/* PSK */
 	ENTRY(GNUTLS_PSK_ARCFOUR_128_SHA1,
@@ -766,15 +821,6 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 		  GNUTLS_MAC_SHA384, GNUTLS_TLS1_2,
 		  GNUTLS_DTLS1_2, GNUTLS_MAC_SHA384),
 
-	ENTRY(GNUTLS_PSK_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_SALSA20_256, GNUTLS_KX_PSK,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
-
-	ENTRY(GNUTLS_PSK_ESTREAM_SALSA20_256_SHA1,
-	      GNUTLS_CIPHER_ESTREAM_SALSA20_256, GNUTLS_KX_PSK,
-	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
-	      GNUTLS_DTLS_VERSION_MIN),
 	ENTRY_PRF(GNUTLS_PSK_AES_256_CBC_SHA384,
 		  GNUTLS_CIPHER_AES_256_CBC, GNUTLS_KX_PSK,
 		  GNUTLS_MAC_SHA384, GNUTLS_TLS1_2,
@@ -910,6 +956,54 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 		  GNUTLS_CIPHER_CAMELLIA_256_GCM, GNUTLS_KX_DHE_PSK,
 		  GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
 		  GNUTLS_DTLS1_2, GNUTLS_MAC_SHA384),
+
+	ENTRY(GNUTLS_PSK_AES_128_CCM,
+	      GNUTLS_CIPHER_AES_128_CCM, GNUTLS_KX_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_PSK_AES_256_CCM,
+	      GNUTLS_CIPHER_AES_256_CCM, GNUTLS_KX_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_PSK_AES_128_CCM,
+	      GNUTLS_CIPHER_AES_128_CCM, GNUTLS_KX_DHE_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_PSK_AES_256_CCM,
+	      GNUTLS_CIPHER_AES_256_CCM, GNUTLS_KX_DHE_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_PSK_AES_128_CCM_8,
+	      GNUTLS_CIPHER_AES_128_CCM_8, GNUTLS_KX_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_PSK_AES_256_CCM_8,
+	      GNUTLS_CIPHER_AES_256_CCM_8, GNUTLS_KX_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_PSK_AES_128_CCM_8,
+	      GNUTLS_CIPHER_AES_128_CCM_8, GNUTLS_KX_DHE_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY(GNUTLS_DHE_PSK_AES_256_CCM_8,
+	      GNUTLS_CIPHER_AES_256_CCM_8, GNUTLS_KX_DHE_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2,
+	      GNUTLS_DTLS1_2),
+	ENTRY_CNONCE(GNUTLS_DHE_PSK_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_DHE_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2, GNUTLS_DTLS1_2),
+	ENTRY_CNONCE(GNUTLS_ECDHE_PSK_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_ECDHE_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2, GNUTLS_DTLS1_2),
+
+	ENTRY_CNONCE(GNUTLS_RSA_PSK_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_RSA_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2, GNUTLS_DTLS1_2),
+
+	ENTRY_CNONCE(GNUTLS_PSK_CHACHA20_POLY1305,
+	      GNUTLS_CIPHER_CHACHA20_POLY1305, GNUTLS_KX_PSK,
+	      GNUTLS_MAC_AEAD, GNUTLS_TLS1_2, GNUTLS_DTLS1_2),
+
 #endif
 #ifdef ENABLE_ANON
 	/* DH_ANON */
@@ -1041,23 +1135,31 @@ static const gnutls_cipher_suite_entry cs_algorithms[] = {
 	      GNUTLS_MAC_SHA1, GNUTLS_SSL3,
 	      GNUTLS_DTLS_VERSION_MIN),
 #endif
+
+
 	{0, {0, 0}, 0, 0, 0, 0, 0, 0}
 };
 
-#define CIPHER_SUITE_LOOP(b) \
-        const gnutls_cipher_suite_entry *p; \
-                for(p = cs_algorithms; p->name != NULL; p++) { b ; }
+#define CIPHER_SUITE_LOOP(b) { \
+        const gnutls_cipher_suite_entry_st *p; \
+                for(p = cs_algorithms; p->name != NULL; p++) { b ; } }
 
-#define CIPHER_SUITE_ALG_LOOP(a) \
+#define CIPHER_SUITE_ALG_LOOP(a, suite) \
         CIPHER_SUITE_LOOP( if( (p->id[0] == suite[0]) && (p->id[1] == suite[1])) { a; break; } )
 
 
 /* Cipher Suite's functions */
+const gnutls_cipher_suite_entry_st *ciphersuite_to_entry(const uint8_t suite[2])
+{
+	CIPHER_SUITE_ALG_LOOP(return p, suite);
+	return NULL;
+}
+
 const cipher_entry_st *_gnutls_cipher_suite_get_cipher_algo(const uint8_t
 							    suite[2])
 {
 	int ret = 0;
-	CIPHER_SUITE_ALG_LOOP(ret = p->block_algorithm);
+	CIPHER_SUITE_ALG_LOOP(ret = p->block_algorithm, suite);
 	return cipher_to_entry(ret);
 }
 
@@ -1066,7 +1168,7 @@ _gnutls_cipher_suite_get_kx_algo(const uint8_t suite[2])
 {
 	int ret = 0;
 
-	CIPHER_SUITE_ALG_LOOP(ret = p->kx_algorithm);
+	CIPHER_SUITE_ALG_LOOP(ret = p->kx_algorithm, suite);
 	return ret;
 
 }
@@ -1075,7 +1177,7 @@ gnutls_mac_algorithm_t _gnutls_cipher_suite_get_prf(const uint8_t suite[2])
 {
 	int ret = 0;
 
-	CIPHER_SUITE_ALG_LOOP(ret = p->prf);
+	CIPHER_SUITE_ALG_LOOP(ret = p->prf, suite);
 	return ret;
 
 }
@@ -1084,7 +1186,7 @@ const mac_entry_st *_gnutls_cipher_suite_get_mac_algo(const uint8_t
 						      suite[2])
 {				/* In bytes */
 	int ret = 0;
-	CIPHER_SUITE_ALG_LOOP(ret = p->mac_algorithm);
+	CIPHER_SUITE_ALG_LOOP(ret = p->mac_algorithm, suite);
 	return mac_to_entry(ret);
 
 }
@@ -1094,18 +1196,18 @@ const char *_gnutls_cipher_suite_get_name(const uint8_t suite[2])
 	const char *ret = NULL;
 
 	/* avoid prefix */
-	CIPHER_SUITE_ALG_LOOP(ret = p->name + sizeof("GNUTLS_") - 1);
+	CIPHER_SUITE_ALG_LOOP(ret = p->name + sizeof("GNUTLS_") - 1, suite);
 
 	return ret;
 }
 
 
-static const gnutls_cipher_suite_entry
+static const gnutls_cipher_suite_entry_st
     *cipher_suite_get(gnutls_kx_algorithm_t kx_algorithm,
 		      gnutls_cipher_algorithm_t cipher_algorithm,
 		      gnutls_mac_algorithm_t mac_algorithm)
 {
-	const gnutls_cipher_suite_entry *ret = NULL;
+	const gnutls_cipher_suite_entry_st *ret = NULL;
 
 	CIPHER_SUITE_LOOP(
 		if (kx_algorithm == p->kx_algorithm &&
@@ -1117,6 +1219,220 @@ static const gnutls_cipher_suite_entry
 	);
 
 	return ret;
+}
+
+/* Returns 1 if the given KX has not the corresponding parameters
+ * (DH or RSA) set up. Otherwise returns 0.
+ */
+inline static int
+check_server_params(gnutls_session_t session,
+		    gnutls_kx_algorithm_t kx,
+		    gnutls_kx_algorithm_t * alg, int alg_size)
+{
+	int cred_type;
+	gnutls_dh_params_t dh_params = NULL;
+	int j;
+
+	cred_type = _gnutls_map_kx_get_cred(kx, 1);
+
+	/* Read the Diffie-Hellman parameters, if any.
+	 */
+	if (cred_type == GNUTLS_CRD_CERTIFICATE) {
+		int delete;
+		gnutls_certificate_credentials_t x509_cred =
+		    (gnutls_certificate_credentials_t)
+		    _gnutls_get_cred(session, cred_type);
+
+		if (x509_cred != NULL) {
+			dh_params =
+			    _gnutls_get_dh_params(x509_cred->dh_params,
+						  x509_cred->params_func,
+						  session);
+		}
+
+		/* Check also if the certificate supports the
+		 * KX method.
+		 */
+		delete = 1;
+		for (j = 0; j < alg_size; j++) {
+			if (alg[j] == kx) {
+				delete = 0;
+				break;
+			}
+		}
+
+		if (delete == 1)
+			return 1;
+
+#ifdef ENABLE_ANON
+	} else if (cred_type == GNUTLS_CRD_ANON) {
+		gnutls_anon_server_credentials_t anon_cred =
+		    (gnutls_anon_server_credentials_t)
+		    _gnutls_get_cred(session, cred_type);
+
+		if (anon_cred != NULL) {
+			dh_params =
+			    _gnutls_get_dh_params(anon_cred->dh_params,
+						  anon_cred->params_func,
+						  session);
+		}
+#endif
+#ifdef ENABLE_PSK
+	} else if (cred_type == GNUTLS_CRD_PSK) {
+		gnutls_psk_server_credentials_t psk_cred =
+		    (gnutls_psk_server_credentials_t)
+		    _gnutls_get_cred(session, cred_type);
+
+		if (psk_cred != NULL) {
+			dh_params =
+			    _gnutls_get_dh_params(psk_cred->dh_params,
+						  psk_cred->params_func,
+						  session);
+		}
+#endif
+	} else
+		return 0;	/* no need for params */
+
+	/* If the key exchange method needs DH params,
+	 * but they are not set then remove it.
+	 */
+	if (_gnutls_kx_needs_dh_params(kx) != 0) {
+		/* needs DH params. */
+		if (_gnutls_dh_params_to_mpi(dh_params) == NULL) {
+			gnutls_assert();
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+/* This function will remove algorithms that are not supported by
+ * the requested authentication method. We remove an algorithm if
+ * we have a certificate with keyUsage bits set.
+ *
+ * This does a more elaborate check than gnutls_supported_ciphersuites(),
+ * by checking certificates etc.
+ */
+int
+_gnutls_remove_unwanted_ciphersuites(gnutls_session_t session,
+			     uint8_t * cipher_suites,
+			     int cipher_suites_size,
+			     gnutls_pk_algorithm_t * pk_algos,
+			     size_t pk_algos_size)
+{
+
+	int ret = 0;
+	gnutls_certificate_credentials_t cert_cred;
+	gnutls_kx_algorithm_t kx;
+	int server =
+	    session->security_parameters.entity == GNUTLS_SERVER ? 1 : 0;
+	gnutls_kx_algorithm_t alg[MAX_ALGOS];
+	int alg_size = MAX_ALGOS;
+	uint8_t new_list[cipher_suites_size]; /* it's safe to use that size because it's provided by _gnutls_supported_ciphersuites() */
+	int i, new_list_size = 0;
+	const gnutls_cipher_suite_entry_st *entry;
+	const uint8_t *cp;
+
+	/* if we should use a specific certificate, 
+	 * we should remove all algorithms that are not supported
+	 * by that certificate and are on the same authentication
+	 * method (CERTIFICATE).
+	 */
+	cert_cred =
+	    (gnutls_certificate_credentials_t) _gnutls_get_cred(session,
+								GNUTLS_CRD_CERTIFICATE);
+
+	/* If there are certificate credentials, find an appropriate certificate
+	 * or disable them;
+	 */
+	if (session->security_parameters.entity == GNUTLS_SERVER
+	    && cert_cred != NULL && pk_algos_size > 0) {
+		ret =
+		    _gnutls_server_select_cert(session, pk_algos,
+					       pk_algos_size);
+		if (ret < 0) {
+			gnutls_assert();
+			_gnutls_debug_log
+			    ("Could not find an appropriate certificate: %s\n",
+			     gnutls_strerror(ret));
+		}
+	}
+
+	/* get all the key exchange algorithms that are 
+	 * supported by the X509 certificate parameters.
+	 */
+	if ((ret =
+	     _gnutls_selected_cert_supported_kx(session, alg,
+						&alg_size)) < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	/* now remove ciphersuites based on the KX algorithm
+	 */
+	for (i = 0; i < cipher_suites_size; i += 2) {
+		entry = NULL;
+		cp = &cipher_suites[i];
+
+		CIPHER_SUITE_ALG_LOOP(entry = p, cp);
+
+		if (entry == NULL)
+			continue;
+		
+		/* finds the key exchange algorithm in
+		 * the ciphersuite
+		 */
+		kx = entry->kx_algorithm;
+
+		/* if it is defined but had no credentials 
+		 */
+		if (!session->internals.premaster_set &&
+		    _gnutls_get_kx_cred(session, kx) == NULL) {
+			continue;
+		} else {
+			if (server && check_server_params(session, kx, alg,
+							  alg_size) != 0)
+				continue;
+		}
+
+		/* If we have not agreed to a common curve with the peer don't bother
+		 * negotiating ECDH.
+		 */
+		if (server != 0 && _gnutls_kx_is_ecc(kx)) {
+			if (_gnutls_session_ecc_curve_get(session) ==
+			    GNUTLS_ECC_CURVE_INVALID) {
+				continue;
+			}
+		}
+
+		/* These two SRP kx's are marked to require a CRD_CERTIFICATE,
+		   (see cred_mappings in gnutls_algorithms.c), but it also
+		   requires a SRP credential.  Don't use SRP kx unless we have a
+		   SRP credential too.  */
+		if (kx == GNUTLS_KX_SRP_RSA || kx == GNUTLS_KX_SRP_DSS) {
+			if (!_gnutls_get_cred
+			    (session, GNUTLS_CRD_SRP)) {
+				continue;
+			}
+		}
+
+		_gnutls_handshake_log
+			    ("HSK[%p]: Keeping ciphersuite: %s (%.2X.%.2X)\n",
+			     session, entry->name,
+			     cipher_suites[i], cipher_suites[i + 1]);
+
+		memcpy(&new_list[new_list_size], &cipher_suites[i], 2);
+		new_list_size += 2;
+	}
+
+	if (new_list_size == 0) {
+		return gnutls_assert_val(GNUTLS_E_NO_CIPHER_SUITES);
+	}
+
+	memcpy(cipher_suites, new_list, new_list_size);
+
+	return new_list_size;
 }
 
 
@@ -1139,7 +1455,7 @@ const char *gnutls_cipher_suite_get_name(gnutls_kx_algorithm_t
 					 gnutls_mac_algorithm_t
 					 mac_algorithm)
 {
-	const gnutls_cipher_suite_entry *ce;
+	const gnutls_cipher_suite_entry_st *ce;
 
 	ce = cipher_suite_get(kx_algorithm, cipher_algorithm,
 			      mac_algorithm);
@@ -1166,7 +1482,7 @@ _gnutls_cipher_suite_get_id(gnutls_kx_algorithm_t kx_algorithm,
 			    gnutls_mac_algorithm_t mac_algorithm,
 			    uint8_t suite[2])
 {
-	const gnutls_cipher_suite_entry *ce;
+	const gnutls_cipher_suite_entry_st *ce;
 
 	ce = cipher_suite_get(kx_algorithm, cipher_algorithm,
 			      mac_algorithm);
@@ -1227,7 +1543,7 @@ static inline int _gnutls_cipher_suite_is_ok(const uint8_t suite[2])
 	size_t ret;
 	const char *name = NULL;
 
-	CIPHER_SUITE_ALG_LOOP(name = p->name);
+	CIPHER_SUITE_ALG_LOOP(name = p->name, suite);
 	if (name != NULL)
 		ret = 0;
 	else
@@ -1255,7 +1571,7 @@ _gnutls_supported_ciphersuites(gnutls_session_t session,
 {
 
 	unsigned int i, ret_count, j, z, k = 0;
-	const gnutls_cipher_suite_entry *ce;
+	const gnutls_cipher_suite_entry_st *ce;
 	const version_entry_st *version = get_version(session);
 	unsigned int is_dtls = IS_DTLS(session);
 
@@ -1314,7 +1630,7 @@ _gnutls_supported_ciphersuites(gnutls_session_t session,
 
 /**
  * gnutls_priority_get_cipher_suite:
- * @pcache: is a #gnutls_prioritity_t structure.
+ * @pcache: is a #gnutls_prioritity_t type.
  * @idx: is an index number.
  * @sidx: internal index of cipher suite to get information about.
  *
@@ -1327,6 +1643,8 @@ _gnutls_supported_ciphersuites(gnutls_session_t session,
  * %GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE will be returned.
  *
  * Returns: On success it returns %GNUTLS_E_SUCCESS (0), or a negative error value otherwise.
+ *
+ * Since: 3.0.9
  **/
 int
 gnutls_priority_get_cipher_suite_index(gnutls_priority_t pcache,

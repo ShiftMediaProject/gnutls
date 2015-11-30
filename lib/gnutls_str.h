@@ -23,17 +23,25 @@
 #ifndef GNUTLS_STR_H
 #define GNUTLS_STR_H
 
+#include <config.h>
 #include <gnutls_int.h>
 #include <gnutls_datum.h>
-#include "gettext.h"
-#define _(String) dgettext (PACKAGE, String)
+
+#ifdef HAVE_DCGETTEXT
+# include "gettext.h"
+# define _(String) dgettext (PACKAGE, String)
+# define N_(String) gettext_noop (String)
+#else
+# define _(String) String
+# define N_(String) String
+#endif
 
 void _gnutls_str_cpy(char *dest, size_t dest_tot_size, const char *src);
 void _gnutls_mem_cpy(char *dest, size_t dest_tot_size, const char *src,
 		     size_t src_size);
 void _gnutls_str_cat(char *dest, size_t dest_tot_size, const char *src);
 
-typedef struct {
+typedef struct gnutls_buffer_st {
 	uint8_t *allocd;	/* pointer to allocated data */
 	uint8_t *data;		/* API: pointer to data to copy from */
 	size_t max_length;
@@ -56,8 +64,8 @@ inline static void _gnutls_buffer_reset(gnutls_buffer_st * buf)
 int _gnutls_buffer_resize(gnutls_buffer_st *, size_t new_size);
 
 int _gnutls_buffer_append_str(gnutls_buffer_st *, const char *str);
-int _gnutls_buffer_append_data(gnutls_buffer_st *, const void *data,
-			       size_t data_size);
+
+#define _gnutls_buffer_append_data gnutls_buffer_append_data
 
 #include <gnutls_num.h>
 
@@ -84,10 +92,11 @@ int _gnutls_buffer_pop_data_prefix(gnutls_buffer_st * buf, void *data,
 
 int _gnutls_buffer_pop_datum_prefix(gnutls_buffer_st * buf,
 				    gnutls_datum_t * data);
-int _gnutls_buffer_to_datum(gnutls_buffer_st * str, gnutls_datum_t * data);
+int _gnutls_buffer_to_datum(gnutls_buffer_st * str, gnutls_datum_t * data, unsigned is_str);
 
-int _gnutls_buffer_escape(gnutls_buffer_st * dest, int all,
-			  const char *const invalid_chars);
+int
+_gnutls_buffer_append_escape(gnutls_buffer_st * dest, const void *data,
+			     size_t data_size, const char *invalid_chars);
 int _gnutls_buffer_unescape(gnutls_buffer_st * dest);
 
 #ifndef __attribute__
@@ -197,6 +206,16 @@ int _gnutls_hostname_compare(const char *certname, size_t certnamesize,
             goto error; \
         } \
         o = s; \
+    }
+
+#define BUFFER_POP_CAST_NUM(b, o) { \
+        size_t s; \
+        ret = _gnutls_buffer_pop_prefix(b, &s, 0); \
+        if (ret < 0) { \
+            gnutls_assert(); \
+            goto error; \
+        } \
+        o = (void *) (intptr_t)(s); \
     }
 
 #endif

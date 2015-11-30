@@ -39,7 +39,7 @@
 
 /**
  * gnutls_x509_crq_init:
- * @crq: The structure to be initialized
+ * @crq: A pointer to the type to be initialized
  *
  * This function will initialize a PKCS#10 certificate request
  * structure.
@@ -71,7 +71,7 @@ int gnutls_x509_crq_init(gnutls_x509_crq_t * crq)
 
 /**
  * gnutls_x509_crq_deinit:
- * @crq: The structure to be initialized
+ * @crq: the type to be deinitialized
  *
  * This function will deinitialize a PKCS#10 certificate request
  * structure.
@@ -92,12 +92,12 @@ void gnutls_x509_crq_deinit(gnutls_x509_crq_t crq)
 
 /**
  * gnutls_x509_crq_import:
- * @crq: The structure to store the parsed certificate request.
+ * @crq: The data to store the parsed certificate request.
  * @data: The DER or PEM encoded certificate.
  * @format: One of DER or PEM
  *
  * This function will convert the given DER or PEM encoded certificate
- * request to a #gnutls_x509_crq_t structure.  The output will be
+ * request to a #gnutls_x509_crq_t type.  The output will be
  * stored in @crq.
  *
  * If the Certificate is PEM encoded it should have a header of "NEW
@@ -144,7 +144,7 @@ gnutls_x509_crq_import(gnutls_x509_crq_t crq,
 	}
 
 	result =
-	    asn1_der_decoding(&crq->crq, _data.data, _data.size, NULL);
+	    _asn1_strict_der_decode(&crq->crq, _data.data, _data.size, NULL);
 	if (result != ASN1_SUCCESS) {
 		result = _gnutls_asn2err(result);
 		gnutls_assert();
@@ -160,8 +160,27 @@ gnutls_x509_crq_import(gnutls_x509_crq_t crq,
 }
 
 /**
+ * gnutls_x509_crq_get_signature_algorithm:
+ * @crq: should contain a #gnutls_x509_cr_t type
+ *
+ * This function will return a value of the #gnutls_sign_algorithm_t
+ * enumeration that is the signature algorithm that has been used to
+ * sign this certificate request.
+ *
+ * Returns: a #gnutls_sign_algorithm_t value, or a negative error code on
+ *   error.
+ *
+ * Since: 3.4.0
+ **/
+int gnutls_x509_crq_get_signature_algorithm(gnutls_x509_crq_t crq)
+{
+	return _gnutls_x509_get_signature_algorithm(crq->crq,
+						    "signatureAlgorithm.algorithm");
+}
+
+/**
  * gnutls_x509_crq_get_private_key_usage_period:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @activation: The activation time
  * @expiration: The expiration time
  * @critical: the extension status
@@ -202,7 +221,7 @@ gnutls_x509_crq_get_private_key_usage_period(gnutls_x509_crq_t crq,
 		goto cleanup;
 	}
 
-	result = asn1_der_decoding(&c2, buf, buf_size, NULL);
+	result = _asn1_strict_der_decode(&c2, buf, buf_size, NULL);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		ret = _gnutls_asn2err(result);
@@ -226,7 +245,7 @@ gnutls_x509_crq_get_private_key_usage_period(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_dn:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @buf: a pointer to a structure to hold the name (may be %NULL)
  * @buf_size: initially holds the size of @buf
  *
@@ -255,7 +274,7 @@ gnutls_x509_crq_get_dn(gnutls_x509_crq_t crq, char *buf, size_t * buf_size)
 
 /**
  * gnutls_x509_crq_get_dn2:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @dn: a pointer to a structure to hold the name
  *
  * This function will allocate buffer and copy the name of the Certificate 
@@ -282,7 +301,7 @@ int gnutls_x509_crq_get_dn2(gnutls_x509_crq_t crq, gnutls_datum_t * dn)
 
 /**
  * gnutls_x509_crq_get_dn_by_oid:
- * @crq: should contain a gnutls_x509_crq_t structure
+ * @crq: should contain a gnutls_x509_crq_t type
  * @oid: holds an Object Identifier in a null terminated string
  * @indx: In case multiple same OIDs exist in the RDN, this specifies
  *   which to get. Use (0) to get the first one.
@@ -330,7 +349,7 @@ gnutls_x509_crq_get_dn_by_oid(gnutls_x509_crq_t crq, const char *oid,
 
 /**
  * gnutls_x509_crq_get_dn_oid:
- * @crq: should contain a gnutls_x509_crq_t structure
+ * @crq: should contain a gnutls_x509_crq_t type
  * @indx: Specifies which DN OID to get. Use (0) to get the first one.
  * @oid: a pointer to a structure to hold the name (may be %NULL)
  * @sizeof_oid: initially holds the size of @oid
@@ -478,7 +497,7 @@ parse_attribute(ASN1_TYPE asn1_struct,
 
 /**
  * gnutls_x509_crq_get_challenge_password:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @pass: will hold a (0)-terminated password string
  * @pass_size: Initially holds the size of @pass.
  *
@@ -656,7 +675,7 @@ set_attribute(ASN1_TYPE asn, const char *root,
 
 /**
  * gnutls_x509_crq_set_attribute_by_oid:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @oid: holds an Object Identifier in a null-terminated string
  * @buf: a pointer to a structure that holds the attribute data
  * @buf_size: holds the size of @buf
@@ -693,7 +712,7 @@ gnutls_x509_crq_set_attribute_by_oid(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_attribute_by_oid:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @oid: holds an Object Identifier in null-terminated string
  * @indx: In case multiple same OIDs exist in the attribute list, this
  *   specifies which to get, use (0) to get the first one
@@ -735,7 +754,7 @@ gnutls_x509_crq_get_attribute_by_oid(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_set_dn_by_oid:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @oid: holds an Object Identifier in a (0)-terminated string
  * @raw_flag: must be 0, or 1 if the data are DER encoded
  * @data: a pointer to the input data
@@ -770,7 +789,7 @@ gnutls_x509_crq_set_dn_by_oid(gnutls_x509_crq_t crq, const char *oid,
 
 /**
  * gnutls_x509_crq_set_version:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @version: holds the version number, for v1 Requests must be 1
  *
  * This function will set the version of the certificate request.  For
@@ -806,7 +825,7 @@ gnutls_x509_crq_set_version(gnutls_x509_crq_t crq, unsigned int version)
 
 /**
  * gnutls_x509_crq_get_version:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  *
  * This function will return the version of the specified Certificate
  * request.
@@ -840,7 +859,7 @@ int gnutls_x509_crq_get_version(gnutls_x509_crq_t crq)
 
 /**
  * gnutls_x509_crq_set_key:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @key: holds a private key
  *
  * This function will set the public parameters from the given private
@@ -935,7 +954,7 @@ gnutls_x509_crq_get_key_rsa_raw(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_set_key_rsa_raw:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @m: holds the modulus
  * @e: holds the public exponent
  *
@@ -1001,7 +1020,7 @@ gnutls_x509_crq_set_key_rsa_raw(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_set_challenge_password:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @pass: holds a (0)-terminated password
  *
  * This function will set a challenge password to be used when
@@ -1046,7 +1065,7 @@ gnutls_x509_crq_set_challenge_password(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_sign2:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @key: holds a private key
  * @dig: The message digest to use, i.e., %GNUTLS_DIG_SHA1
  * @flags: must be 0
@@ -1105,7 +1124,7 @@ gnutls_x509_crq_sign2(gnutls_x509_crq_t crq, gnutls_x509_privkey_t key,
 
 /**
  * gnutls_x509_crq_sign:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @key: holds a private key
  *
  * This function is the same a gnutls_x509_crq_sign2() with no flags,
@@ -1123,7 +1142,7 @@ int gnutls_x509_crq_sign(gnutls_x509_crq_t crq, gnutls_x509_privkey_t key)
 
 /**
  * gnutls_x509_crq_export:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @format: the format of output params. One of PEM or DER.
  * @output_data: will contain a certificate request PEM or DER encoded
  * @output_data_size: holds the size of output_data (and will be
@@ -1158,7 +1177,7 @@ gnutls_x509_crq_export(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_export2:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @format: the format of output params. One of PEM or DER.
  * @out: will contain a certificate request PEM or DER encoded
  *
@@ -1189,7 +1208,7 @@ gnutls_x509_crq_export2(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_pk_algorithm:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @bits: if bits is non-%NULL it will hold the size of the parameters' in bits
  *
  * This function will return the public key algorithm of a PKCS#10
@@ -1223,7 +1242,7 @@ gnutls_x509_crq_get_pk_algorithm(gnutls_x509_crq_t crq, unsigned int *bits)
 
 /**
  * gnutls_x509_crq_get_attribute_info:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @indx: Specifies which attribute number to get. Use (0) to get the first one.
  * @oid: a pointer to a structure to hold the OID
  * @sizeof_oid: initially holds the maximum size of @oid, on return
@@ -1278,7 +1297,7 @@ gnutls_x509_crq_get_attribute_info(gnutls_x509_crq_t crq, int indx,
 
 /**
  * gnutls_x509_crq_get_attribute_data:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @indx: Specifies which attribute number to get. Use (0) to get the first one.
  * @data: a pointer to a structure to hold the data (may be null)
  * @sizeof_data: initially holds the size of @oid
@@ -1331,9 +1350,9 @@ gnutls_x509_crq_get_attribute_data(gnutls_x509_crq_t crq, int indx,
 
 /**
  * gnutls_x509_crq_get_extension_info:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @indx: Specifies which extension number to get. Use (0) to get the first one.
- * @oid: a pointer to a structure to hold the OID
+ * @oid: a pointer to store the OID
  * @sizeof_oid: initially holds the maximum size of @oid, on return
  *   holds actual size of @oid.
  * @critical: output variable with critical flag, may be NULL.
@@ -1405,7 +1424,7 @@ gnutls_x509_crq_get_extension_info(gnutls_x509_crq_t crq, int indx,
 		goto out;
 	}
 
-	result = asn1_der_decoding(&c2, extensions, extensions_size, NULL);
+	result = _asn1_strict_der_decode(&c2, extensions, extensions_size, NULL);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		asn1_delete_structure(&c2);
@@ -1458,7 +1477,7 @@ gnutls_x509_crq_get_extension_info(gnutls_x509_crq_t crq, int indx,
 
 /**
  * gnutls_x509_crq_get_extension_data:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @indx: Specifies which extension number to get. Use (0) to get the first one.
  * @data: a pointer to a structure to hold the data (may be null)
  * @sizeof_data: initially holds the size of @oid
@@ -1499,7 +1518,7 @@ gnutls_x509_crq_get_extension_data(gnutls_x509_crq_t crq, int indx,
 
 /**
  * gnutls_x509_crq_get_extension_data2:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @extension_id: An X.509 extension OID.
  * @indx: Specifies which extension OID to read. Use (0) to get the first one.
  * @data: will contain the extension DER-encoded data
@@ -1570,7 +1589,7 @@ gnutls_x509_crq_get_extension_data2(gnutls_x509_crq_t crq,
 		goto cleanup;
 	}
 
-	result = asn1_der_decoding(&c2, extensions, extensions_size, NULL);
+	result = _asn1_strict_der_decode(&c2, extensions, extensions_size, NULL);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		ret = _gnutls_asn2err(result);
@@ -1597,7 +1616,7 @@ gnutls_x509_crq_get_extension_data2(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_key_usage:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @key_usage: where the key usage bits will be stored
  * @critical: will be non-zero if the extension is marked as critical
  *
@@ -1652,7 +1671,7 @@ gnutls_x509_crq_get_key_usage(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_basic_constraints:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @critical: will be non-zero if the extension is marked as critical
  * @ca: pointer to output integer indicating CA status, may be NULL,
  *   value is 1 if the certificate CA flag is set, 0 otherwise.
@@ -1766,7 +1785,7 @@ get_subject_alt_name(gnutls_x509_crq_t crq,
 		return _gnutls_asn2err(result);
 	}
 
-	result = asn1_der_decoding(&c2, dnsname.data, dnsname.size, NULL);
+	result = _asn1_strict_der_decode(&c2, dnsname.data, dnsname.size, NULL);
 	gnutls_free(dnsname.data);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
@@ -1788,7 +1807,7 @@ get_subject_alt_name(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_subject_alt_name:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @seq: specifies the sequence number of the alt name, 0 for the
  *   first one, 1 for the second etc.
  * @ret: is the place where the alternative name will be copied to
@@ -1827,7 +1846,7 @@ gnutls_x509_crq_get_subject_alt_name(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_subject_alt_othername_oid:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @seq: specifies the sequence number of the alt name (0 for the first one, 1 for the second etc.)
  * @ret: is the place where the otherName OID will be copied to
  * @ret_size: holds the size of ret.
@@ -1864,7 +1883,7 @@ gnutls_x509_crq_get_subject_alt_othername_oid(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_extension_by_oid:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @oid: holds an Object Identifier in a null terminated string
  * @indx: In case multiple same OIDs exist in the extensions, this
  *   specifies which to get. Use (0) to get the first one.
@@ -1924,7 +1943,7 @@ gnutls_x509_crq_get_extension_by_oid(gnutls_x509_crq_t crq,
 
 /**
  * gnutls_x509_crq_get_extension_by_oid2:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @oid: holds an Object Identifier in a null terminated string
  * @indx: In case multiple same OIDs exist in the extensions, this
  *   specifies which to get. Use (0) to get the first one.
@@ -2192,9 +2211,9 @@ gnutls_x509_crq_set_key_usage(gnutls_x509_crq_t crq, unsigned int usage)
 
 /**
  * gnutls_x509_crq_get_key_purpose_oid:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @indx: This specifies which OID to return, use (0) to get the first one
- * @oid: a pointer to a buffer to hold the OID (may be %NULL)
+ * @oid: a pointer to store the OID (may be %NULL)
  * @sizeof_oid: initially holds the size of @oid
  * @critical: output variable with critical flag, may be %NULL.
  *
@@ -2262,7 +2281,7 @@ gnutls_x509_crq_get_key_purpose_oid(gnutls_x509_crq_t crq,
 		return _gnutls_asn2err(result);
 	}
 
-	result = asn1_der_decoding(&c2, prev.data, prev.size, NULL);
+	result = _asn1_strict_der_decode(&c2, prev.data, prev.size, NULL);
 	gnutls_free(prev.data);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
@@ -2298,7 +2317,7 @@ gnutls_x509_crq_get_key_purpose_oid(gnutls_x509_crq_t crq,
 /**
  * gnutls_x509_crq_set_key_purpose_oid:
  * @crq: a certificate of type #gnutls_x509_crq_t
- * @oid: a pointer to a (0)-terminated string that holds the OID
+ * @oid: a pointer to a null-terminated string that holds the OID
  * @critical: Whether this extension will be critical or not
  *
  * This function will set the key purpose OIDs of the Certificate.
@@ -2369,7 +2388,7 @@ gnutls_x509_crq_set_key_purpose_oid(gnutls_x509_crq_t crq,
 		/* decode it.
 		 */
 		result =
-		    asn1_der_decoding(&c2, prev.data, prev.size, NULL);
+		    _asn1_strict_der_decode(&c2, prev.data, prev.size, NULL);
 		gnutls_free(prev.data);
 		if (result != ASN1_SUCCESS) {
 			gnutls_assert();
@@ -2420,7 +2439,7 @@ gnutls_x509_crq_set_key_purpose_oid(gnutls_x509_crq_t crq,
 /**
  * gnutls_x509_crq_get_key_id:
  * @crq: a certificate of type #gnutls_x509_crq_t
- * @flags: should be 0 for now
+ * @flags: should be one of the flags from %gnutls_keyid_flags_t
  * @output_data: will contain the key ID
  * @output_data_size: holds the size of output_data (and will be
  *   replaced by the actual size of parameters)
@@ -2465,7 +2484,7 @@ gnutls_x509_crq_get_key_id(gnutls_x509_crq_t crq, unsigned int flags,
 	}
 
 	ret =
-	    _gnutls_get_key_id(pk, &params, output_data, output_data_size);
+	    _gnutls_get_key_id(pk, &params, output_data, output_data_size, flags);
 
 	gnutls_pk_params_release(&params);
 
@@ -2474,7 +2493,7 @@ gnutls_x509_crq_get_key_id(gnutls_x509_crq_t crq, unsigned int flags,
 
 /**
  * gnutls_x509_crq_privkey_sign:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @key: holds a private key
  * @dig: The message digest to use, i.e., %GNUTLS_DIG_SHA1
  * @flags: must be 0

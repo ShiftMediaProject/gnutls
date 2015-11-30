@@ -40,7 +40,7 @@ flag = {
 flag = {
     name      = generate-crl;
     descrip   = "Generate a CRL";
-    doc = "";
+    doc = "This option generates a CRL. When combined with --load-crl it would use the loaded CRL as base for the generated (i.e., all revoked certificates in the base will be copied to the new CRL).";
 };
 
 flag = {
@@ -69,14 +69,16 @@ flag = {
     name      = verify-chain;
     value     = e;
     descrip   = "Verify a PEM encoded certificate chain";
-    doc = "The last certificate in the chain must be a self signed one.";
+    doc = "The last certificate in the chain must be a self signed one. It can be combined with --verify-purpose or --verify-hostname.";
 };
 
 flag = {
     name      = verify;
     descrip   = "Verify a PEM encoded certificate chain using a trusted list";
     doc = "The trusted certificate list can be loaded with --load-ca-certificate. If no
-certificate list is provided, then the system's certificate list is used.";
+certificate list is provided, then the system's certificate list is used. Note that
+during verification multiple paths may be explored. On a successful verification
+the successful path will be the last one. It can be combined with --verify-purpose or --verify-hostname.";
 };
 
 flag = {
@@ -84,6 +86,28 @@ flag = {
     descrip   = "Verify a CRL using a trusted list";
     doc = "The trusted certificate list must be loaded with --load-ca-certificate.";
     flags-must = load-ca-certificate;
+};
+
+flag = {
+    name      = verify-hostname;
+    descrip   = "Specify a hostname to be used for certificate chain verification";
+    arg-type  = string;
+    doc = "This is to be combined with one of the verify certificate options.";
+};
+
+flag = {
+    name      = verify-email;
+    descrip   = "Specify a email to be used for certificate chain verification";
+    arg-type  = string;
+    doc = "This is to be combined with one of the verify certificate options.";
+    flags-cant = verify-hostname;
+};
+
+flag = {
+    name      = verify-purpose;
+    descrip   = "Specify a purpose OID to be used for certificate chain verification";
+    arg-type  = string;
+    doc = "This object identifier restricts the purpose of the certificates to be verified. Example purposes are 1.3.6.1.5.5.7.3.1 (TLS WWW), 1.3.6.1.5.5.7.3.4 (EMAIL) etc. Note that a CA certificate without a purpose set (extended key usage) is valid for any purpose.";
 };
 
 flag = {
@@ -148,6 +172,20 @@ flag = {
 };
 
 flag = {
+    name      = load-crl;
+    descrip   = "Loads the provided CRL";
+    arg-type  = string;
+    doc = "";
+};
+
+flag = {
+    name      = load-data;
+    descrip   = "Loads auxilary data";
+    arg-type  = string;
+    doc = "";
+};
+
+flag = {
     name      = password;
     arg-type  = string;
     descrip   = "Password to use";
@@ -184,6 +222,18 @@ flag = {
     value     = i;
     descrip   = "Print information on the given certificate";
     doc       = "";
+};
+
+flag = {
+    name      = fingerprint;
+    descrip   = "Print the fingerprint of the given certificate";
+    doc       = "This is a simple hash of the DER encoding of the certificate. It can be combined with the --hash parameter. However, it is recommended for identification to use the key-id which depends only on the certificate's key.";
+};
+
+flag = {
+    name      = key-id;
+    descrip   = "Print the key ID of the given certificate";
+    doc       = "This is a hash of the public key of the given certificate. It identifies the key uniquely, remains the same on a certificate renewal and depends only on signed fields of the certificate.";
 };
 
 flag = {
@@ -227,7 +277,7 @@ flag = {
 flag = {
     name      = p12-info;
     descrip   = "Print information on a PKCS #12 structure";
-    doc       = "";
+    doc       = "This option will dump the contents and print the metadata of the provided PKCS #12 structure.";
 };
 
 flag = {
@@ -238,9 +288,45 @@ flag = {
 };
 
 flag = {
+    name      = p7-generate;
+    descrip   = "Generate a PKCS #7 structure";
+    doc       = "This option generates a PKCS #7 certificate container structure. To add certificates in the structure use --load-certificate and --load-crl.";
+};
+
+flag = {
+    name      = p7-sign;
+    descrip   = "Signs using a PKCS #7 structure";
+    doc       = "This option generates a PKCS #7 structure containing a signature for the provided data. The data are stored within the structure. The signer certificate has to be specified using --load-certificate and --load-privkey.";
+};
+
+flag = {
+    name      = p7-detached-sign;
+    descrip   = "Signs using a detached PKCS #7 structure";
+    doc       = "This option generates a PKCS #7 structure containing a signature for the provided data. The signer certificate has to be specified using --load-certificate and --load-privkey.";
+};
+
+flag = {
+    name      = p7-time;
+    descrip   = "Will include a timestamp in the PKCS #7 structure";
+    doc       = "This option will include a timestamp in the generated signature";
+};
+
+flag = {
     name      = p7-info;
     descrip   = "Print information on a PKCS #7 structure";
     doc       = "";
+};
+
+flag = {
+    name      = p7-verify;
+    descrip   = "Verify the provided PKCS #7 structure";
+    doc       = "This option verifies the signed PKCS #7 structure. The certificate list to use for verification can be specified with --load-ca-certificate. When no certificate list is provided, then the system's certificate list is used. Alternatively a direct signer can be provided using --load-certificate. A key purpose can be enforced with the --verify-purpose option, and the --load-data option will utilize detached data.";
+};
+
+flag = {
+    name      = p8-info;
+    descrip   = "Print information on a PKCS #8 structure";
+    doc       = "This option will print information about encrypted PKCS #8 structures. That option does not require the decryption of the structure.";
 };
 
 flag = {
@@ -616,7 +702,7 @@ cn = "Cindy Lauper"
 # jurisdictionOfIncorporationStateOrProvinceName,
 # jurisdictionOfIncorporationCountryName, XmppAddr, and numeric OIDs.
 
-#dn = "cn=Nik,st=Attiki,C=GR,surName=Mavrogiannopoulos,2.5.4.9=Arkadias"
+#dn = "cn = Nikos,st = New\, Something,C=GR,surName=Mavrogiannopoulos,2.5.4.9=Arkadias"
 
 # The serial number of the certificate
 # Comment the field for a time-based serial number.
@@ -661,43 +747,94 @@ challenge_password = 123456
 # Whether this is a CA certificate or not
 #ca
 
-# for microsoft smart card logon
-# key_purpose_oid = 1.3.6.1.4.1.311.20.2.2
+# Subject Unique ID (in hex)
+#subject_unique_id = 00153224
 
-### Other predefined key purpose OIDs
+# Issuer Unique ID (in hex)
+#issuer_unique_id = 00153225
 
-# Whether this certificate will be used for a TLS client
-#tls_www_client
+#### Key usage
 
-# Whether this certificate will be used for a TLS server
-#tls_www_server
+# The following key usage flags are used by CAs and end certificates
 
 # Whether this certificate will be used to sign data (needed
-# in TLS DHE ciphersuites).
+# in TLS DHE ciphersuites). This is the digitalSignature flag
+# in RFC5280 terminology.
 signing_key
 
 # Whether this certificate will be used to encrypt data (needed
 # in TLS RSA ciphersuites). Note that it is preferred to use different
-# keys for encryption and signing.
+# keys for encryption and signing. This is the keyEncipherment flag
+# in RFC5280 terminology.
 encryption_key
 
-# Whether this key will be used to sign other certificates.
+# Whether this key will be used to sign other certificates. The
+# keyCertSign flag in RFC5280 terminology.
 #cert_signing_key
 
-# Whether this key will be used to sign CRLs.
+# Whether this key will be used to sign CRLs. The
+# cRLSign flag in RFC5280 terminology.
 #crl_signing_key
 
-# Whether this key will be used to sign code.
+# The keyAgreement flag of RFC5280. It's purpose is loosely
+# defined. Not use it unless required by a protocol.
+#key_agreement
+
+# The dataEncipherment flag of RFC5280. It's purpose is loosely
+# defined. Not use it unless required by a protocol.
+#data_encipherment
+
+# The nonRepudiation flag of RFC5280. It's purpose is loosely
+# defined. Not use it unless required by a protocol.
+#non_repudiation
+
+#### Extended key usage (key purposes)
+
+# The following extensions are used in an end certificate
+# to clarify its purpose. Some CAs also use it to indicate
+# the types of certificates they are purposed to sign.
+
+
+# Whether this certificate will be used for a TLS client;
+# this sets the id-kp-serverAuth (1.3.6.1.5.5.7.3.1) of 
+# extended key usage.
+#tls_www_client
+
+# Whether this certificate will be used for a TLS server;
+# This sets the id-kp-clientAuth (1.3.6.1.5.5.7.3.2) of 
+# extended key usage.
+#tls_www_server
+
+# Whether this key will be used to sign code. This sets the
+# id-kp-codeSigning (1.3.6.1.5.5.7.3.3) of extended key usage
+# extension.
 #code_signing_key
 
-# Whether this key will be used to sign OCSP data.
+# Whether this key will be used to sign OCSP data. This sets the
+# id-kp-OCSPSigning (1.3.6.1.5.5.7.3.9) of extended key usage extension.
 #ocsp_signing_key
 
-# Whether this key will be used for time stamping.
+# Whether this key will be used for time stamping. This sets the
+# id-kp-timeStamping (1.3.6.1.5.5.7.3.8) of extended key usage extension.
 #time_stamping_key
 
-# Whether this key will be used for IPsec IKE operations.
+# Whether this key will be used for email protection. This sets the
+# id-kp-emailProtection (1.3.6.1.5.5.7.3.4) of extended key usage extension.
+#email_protection_key
+
+# Whether this key will be used for IPsec IKE operations (1.3.6.1.5.5.7.3.17).
 #ipsec_ike_key
+
+## adding custom key purpose OIDs
+
+# for microsoft smart card logon
+# key_purpose_oid = 1.3.6.1.4.1.311.20.2.2
+
+# for email protection
+# key_purpose_oid = 1.3.6.1.5.5.7.3.4
+
+# for any purpose (must not be used in intermediate CA certificates)
+# key_purpose_oid = 2.5.29.37.0
 
 ### end of key purpose OIDs
 
@@ -756,6 +893,14 @@ encryption_key
 # this is the 5th CRL by this CA
 # Comment the field for a time-based number.
 #crl_number = 5
+
+# Specify the update dates more precisely.
+#crl_this_update_date = "2004-02-29 16:21:42"
+#crl_next_update_date = "2025-02-29 16:24:41"
+
+# The date that the certificates will be made seen as
+# being revoked.
+#crl_revocation_date = "2025-02-29 16:24:41"
 
 @end example
 

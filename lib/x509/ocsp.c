@@ -50,7 +50,7 @@ typedef struct gnutls_ocsp_resp_int {
 
 /**
  * gnutls_ocsp_req_init:
- * @req: The structure to be initialized
+ * @req: A pointer to the type to be initialized
  *
  * This function will initialize an OCSP request structure.
  *
@@ -81,7 +81,7 @@ int gnutls_ocsp_req_init(gnutls_ocsp_req_t * req)
 
 /**
  * gnutls_ocsp_req_deinit:
- * @req: The structure to be deinitialized
+ * @req: The data to be deinitialized
  *
  * This function will deinitialize a OCSP request structure.
  **/
@@ -99,7 +99,7 @@ void gnutls_ocsp_req_deinit(gnutls_ocsp_req_t req)
 
 /**
  * gnutls_ocsp_resp_init:
- * @resp: The structure to be initialized
+ * @resp: A pointer to the type to be initialized
  *
  * This function will initialize an OCSP response structure.
  *
@@ -140,7 +140,7 @@ int gnutls_ocsp_resp_init(gnutls_ocsp_resp_t * resp)
 
 /**
  * gnutls_ocsp_resp_deinit:
- * @resp: The structure to be deinitialized
+ * @resp: The data to be deinitialized
  *
  * This function will deinitialize a OCSP response structure.
  **/
@@ -165,7 +165,7 @@ void gnutls_ocsp_resp_deinit(gnutls_ocsp_resp_t resp)
 
 /**
  * gnutls_ocsp_req_import:
- * @req: The structure to store the parsed request.
+ * @req: The data to store the parsed request.
  * @data: DER encoded OCSP request.
  *
  * This function will convert the given DER encoded OCSP request to
@@ -186,7 +186,7 @@ gnutls_ocsp_req_import(gnutls_ocsp_req_t req, const gnutls_datum_t * data)
 	}
 
 	if (req->init) {
-		/* Any earlier asn1_der_decoding will modify the ASN.1
+		/* Any earlier _asn1_strict_der_decode will modify the ASN.1
 		   structure, so we need to replace it with a fresh
 		   structure. */
 		asn1_delete_structure(&req->req);
@@ -200,7 +200,7 @@ gnutls_ocsp_req_import(gnutls_ocsp_req_t req, const gnutls_datum_t * data)
 	}
 	req->init = 1;
 
-	ret = asn1_der_decoding(&req->req, data->data, data->size, NULL);
+	ret = _asn1_strict_der_decode(&req->req, data->data, data->size, NULL);
 	if (ret != ASN1_SUCCESS) {
 		gnutls_assert();
 		return _gnutls_asn2err(ret);
@@ -211,7 +211,7 @@ gnutls_ocsp_req_import(gnutls_ocsp_req_t req, const gnutls_datum_t * data)
 
 /**
  * gnutls_ocsp_resp_import:
- * @resp: The structure to store the parsed response.
+ * @resp: The data to store the parsed response.
  * @data: DER encoded OCSP response.
  *
  * This function will convert the given DER encoded OCSP response to
@@ -233,7 +233,7 @@ gnutls_ocsp_resp_import(gnutls_ocsp_resp_t resp,
 	}
 
 	if (resp->init != 0) {
-		/* Any earlier asn1_der_decoding will modify the ASN.1
+		/* Any earlier _asn1_strict_der_decode will modify the ASN.1
 		   structure, so we need to replace it with a fresh
 		   structure. */
 		asn1_delete_structure(&resp->resp);
@@ -261,7 +261,7 @@ gnutls_ocsp_resp_import(gnutls_ocsp_resp_t resp,
 	}
 
 	resp->init = 1;
-	ret = asn1_der_decoding(&resp->resp, data->data, data->size, NULL);
+	ret = _asn1_strict_der_decode(&resp->resp, data->data, data->size, NULL);
 	if (ret != ASN1_SUCCESS) {
 		gnutls_assert();
 		return _gnutls_asn2err(ret);
@@ -294,7 +294,7 @@ gnutls_ocsp_resp_import(gnutls_ocsp_resp_t resp,
 		}
 
 		ret =
-		    asn1_der_decoding(&resp->basicresp, resp->der.data, resp->der.size,
+		    _asn1_strict_der_decode(&resp->basicresp, resp->der.data, resp->der.size,
 				      NULL);
 		if (ret != ASN1_SUCCESS) {
 			gnutls_assert();
@@ -303,29 +303,6 @@ gnutls_ocsp_resp_import(gnutls_ocsp_resp_t resp,
 	} else {
 		asn1_delete_structure(&resp->basicresp);
 		resp->basicresp = NULL;
-	}
-
-	return GNUTLS_E_SUCCESS;
-}
-
-static int export(ASN1_TYPE node, const char *name, gnutls_datum_t * data)
-{
-	int ret;
-	int len = 0;
-
-	ret = asn1_der_coding(node, name, NULL, &len, NULL);
-	if (ret != ASN1_MEM_ERROR) {
-		gnutls_assert();
-		return _gnutls_asn2err(ret);
-	}
-	data->size = len;
-	data->data = gnutls_malloc(len);
-	if (data->data == NULL)
-		return GNUTLS_E_MEMORY_ERROR;
-	ret = asn1_der_coding(node, name, data->data, &len, NULL);
-	if (ret != ASN1_SUCCESS) {
-		gnutls_assert();
-		return _gnutls_asn2err(ret);
 	}
 
 	return GNUTLS_E_SUCCESS;
@@ -360,7 +337,7 @@ int gnutls_ocsp_req_export(gnutls_ocsp_req_t req, gnutls_datum_t * data)
 		asn1_write_value(req->req, "tbsRequest.requestExtensions",
 				 NULL, 0);
 
-	return export(req->req, "", data);
+	return _gnutls_x509_get_raw_field(req->req, "", data);
 }
 
 /**
@@ -380,12 +357,12 @@ int gnutls_ocsp_resp_export(gnutls_ocsp_resp_t resp, gnutls_datum_t * data)
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	return export(resp->resp, "", data);
+	return _gnutls_x509_get_raw_field(resp->resp, "", data);
 }
 
 /**
  * gnutls_ocsp_req_get_version:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  *
  * This function will return the version of the OCSP request.
  * Typically this is always 1 indicating version 1.
@@ -417,7 +394,7 @@ int gnutls_ocsp_req_get_version(gnutls_ocsp_req_t req)
 
 /**
  * gnutls_ocsp_req_get_cert_id:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @indx: Specifies which extension OID to get. Use (0) to get the first one.
  * @digest: output variable with #gnutls_digest_algorithm_t hash algorithm
  * @issuer_name_hash: output buffer with hash of issuer's DN
@@ -472,7 +449,7 @@ gnutls_ocsp_req_get_cert_id(gnutls_ocsp_req_t req,
 		return ret;
 	}
 
-	ret = _gnutls_x509_oid_to_digest((char *) sa.data);
+	ret = gnutls_oid_to_digest((char *) sa.data);
 	_gnutls_free_datum(&sa);
 	if (ret < 0) {
 		gnutls_assert();
@@ -531,7 +508,7 @@ gnutls_ocsp_req_get_cert_id(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_add_cert_id:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @digest: hash algorithm, a #gnutls_digest_algorithm_t value
  * @issuer_name_hash: hash of issuer's DN
  * @issuer_key_hash: hash of issuer's public key
@@ -644,7 +621,7 @@ gnutls_ocsp_req_add_cert_id(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_add_cert:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @digest: hash algorithm, a #gnutls_digest_algorithm_t value
  * @issuer: issuer of @subject certificate
  * @cert: certificate to request status for
@@ -730,7 +707,7 @@ gnutls_ocsp_req_add_cert(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_get_extension:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @indx: Specifies which extension OID to get. Use (0) to get the first one.
  * @oid: will hold newly allocated buffer with OID of extension, may be NULL
  * @critical: output variable with critical flag, may be NULL.
@@ -815,7 +792,7 @@ gnutls_ocsp_req_get_extension(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_set_extension:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @oid: buffer with OID of extension as a string.
  * @critical: critical flag, normally false.
  * @data: the extension data
@@ -844,7 +821,7 @@ gnutls_ocsp_req_set_extension(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_get_nonce:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @critical: whether nonce extension is marked critical, or NULL
  * @nonce: will hold newly allocated buffer with nonce data
  *
@@ -891,7 +868,7 @@ gnutls_ocsp_req_get_nonce(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_set_nonce:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  * @critical: critical flag, normally false.
  * @nonce: the nonce data
  *
@@ -943,7 +920,7 @@ gnutls_ocsp_req_set_nonce(gnutls_ocsp_req_t req,
 
 /**
  * gnutls_ocsp_req_randomize_nonce:
- * @req: should contain a #gnutls_ocsp_req_t structure
+ * @req: should contain a #gnutls_ocsp_req_t type
  *
  * This function will add or update an nonce extension to the OCSP
  * request with a newly generated random value.
@@ -979,7 +956,7 @@ int gnutls_ocsp_req_randomize_nonce(gnutls_ocsp_req_t req)
 
 /**
  * gnutls_ocsp_resp_get_status:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  *
  * This function will return the status of a OCSP response, an
  * #gnutls_ocsp_resp_status_t enumeration.
@@ -1021,7 +998,7 @@ int gnutls_ocsp_resp_get_status(gnutls_ocsp_resp_t resp)
 
 /**
  * gnutls_ocsp_resp_get_response:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @response_type_oid: newly allocated output buffer with response type OID
  * @response: newly allocated output buffer with DER encoded response
  *
@@ -1078,7 +1055,7 @@ gnutls_ocsp_resp_get_response(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_get_version:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  *
  * This function will return the version of the Basic OCSP Response.
  * Typically this is always 1 indicating version 1.
@@ -1112,13 +1089,16 @@ int gnutls_ocsp_resp_get_version(gnutls_ocsp_resp_t resp)
 
 /**
  * gnutls_ocsp_resp_get_responder:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @dn: newly allocated buffer with name
  *
  * This function will extract the name of the Basic OCSP Response in
  * the provided buffer. The name will be in the form
  * "C=xxxx,O=yyyy,CN=zzzz" as described in RFC2253. The output string
  * will be ASCII or UTF-8 encoded, depending on the certificate data.
+ *
+ * If the responder ID is not a name but a hash, this function
+ * will return zero and the @dn elements will be set to %NULL.
  *
  * The caller needs to deallocate memory by calling gnutls_free() on
  * @dn->data.
@@ -1138,10 +1118,15 @@ gnutls_ocsp_resp_get_responder(gnutls_ocsp_resp_t resp,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
+	dn->data = NULL;
+	dn->size = 0;
+
 	ret = _gnutls_x509_parse_dn
 	    (resp->basicresp, "tbsResponseData.responderID.byName",
 	     NULL, &l);
 	if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			return 0; /* for backwards compatibility */
 		gnutls_assert();
 		return ret;
 	}
@@ -1166,8 +1151,84 @@ gnutls_ocsp_resp_get_responder(gnutls_ocsp_resp_t resp,
 }
 
 /**
+ * gnutls_ocsp_resp_get_responder_by_key:
+ * @resp: should contain a #gnutls_ocsp_resp_t type
+ * @type: should be %GNUTLS_OCSP_RESP_ID_KEY or %GNUTLS_OCSP_RESP_ID_DN
+ * @raw: newly allocated buffer with the raw ID
+ *
+ * This function will extract the raw key (or DN) ID of the Basic OCSP Response in
+ * the provided buffer. If the responder ID is not a key ID then
+ * this function will return %GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE.
+ *
+ * The caller needs to deallocate memory by calling gnutls_free() on
+ * @dn->data.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error code is returned.
+ **/
+int
+gnutls_ocsp_resp_get_responder_raw_id(gnutls_ocsp_resp_t resp,
+				      unsigned type,
+				      gnutls_datum_t * raw)
+{
+	int ret;
+
+	if (resp == NULL || raw == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	if (type == GNUTLS_OCSP_RESP_ID_KEY)
+		ret = _gnutls_x509_read_value(resp->basicresp, "tbsResponseData.responderID.byKey", raw);
+	else {
+		gnutls_datum_t tmp;
+
+		/* simply reading a CHOICE of CHOICE value doesn't work in libtasn1 */
+		ret = _gnutls_x509_get_raw_field2(resp->basicresp, &resp->der,
+					  "tbsResponseData.responderID.byName",
+					  &tmp);
+		if (ret >= 0) {
+			int real;
+			/* skip the tag */
+			if (tmp.size < 2) {
+				gnutls_assert();
+				ret = GNUTLS_E_ASN1_GENERIC_ERROR;
+				goto fail;
+			}
+
+			tmp.data++;
+			tmp.size--;
+
+			ret = asn1_get_length_der(tmp.data, tmp.size, &real);
+			if (ret < 0) {
+				gnutls_assert();
+				ret = GNUTLS_E_ASN1_GENERIC_ERROR;
+				goto fail;
+			}
+
+			if (tmp.size < (unsigned)real) {
+				gnutls_assert();
+				ret = GNUTLS_E_ASN1_GENERIC_ERROR;
+				goto fail;
+			}
+
+			tmp.data+=real;
+			tmp.size-=real;
+
+			ret = _gnutls_set_datum(raw, tmp.data, tmp.size);
+		}
+	}
+
+	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND || ret == GNUTLS_E_ASN1_VALUE_NOT_FOUND)
+		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+
+ fail:
+	return ret;
+}
+
+/**
  * gnutls_ocsp_resp_get_produced:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  *
  * This function will return the time when the OCSP response was
  * signed.
@@ -1201,7 +1262,7 @@ time_t gnutls_ocsp_resp_get_produced(gnutls_ocsp_resp_t resp)
 
 /**
  * gnutls_ocsp_resp_check_crt:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @indx: Specifies response number to get. Use (0) to get the first one.
  * @crt: The certificate to check
  *
@@ -1296,7 +1357,7 @@ gnutls_ocsp_resp_check_crt(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_get_single:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @indx: Specifies response number to get. Use (0) to get the first one.
  * @digest: output variable with #gnutls_digest_algorithm_t hash algorithm
  * @issuer_name_hash: output buffer with hash of issuer's DN
@@ -1349,7 +1410,7 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 		return ret;
 	}
 
-	ret = _gnutls_x509_oid_to_digest((char *) sa.data);
+	ret = gnutls_oid_to_digest((char *) sa.data);
 	_gnutls_free_datum(&sa);
 	if (ret < 0) {
 		gnutls_assert();
@@ -1497,7 +1558,7 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_get_extension:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @indx: Specifies which extension OID to get. Use (0) to get the first one.
  * @oid: will hold newly allocated buffer with OID of extension, may be NULL
  * @critical: output variable with critical flag, may be NULL.
@@ -1583,7 +1644,7 @@ gnutls_ocsp_resp_get_extension(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_get_nonce:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @critical: whether nonce extension is marked critical
  * @nonce: will hold newly allocated buffer with nonce data
  *
@@ -1628,7 +1689,7 @@ gnutls_ocsp_resp_get_nonce(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_get_signature_algorithm:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  *
  * This function will return a value of the #gnutls_sign_algorithm_t
  * enumeration that is the signature algorithm that has been used to
@@ -1649,7 +1710,7 @@ int gnutls_ocsp_resp_get_signature_algorithm(gnutls_ocsp_resp_t resp)
 		return ret;
 	}
 
-	ret = _gnutls_x509_oid2sign_algorithm((char *) sa.data);
+	ret = gnutls_oid_to_sign((char *) sa.data);
 
 	_gnutls_free_datum(&sa);
 
@@ -1658,7 +1719,7 @@ int gnutls_ocsp_resp_get_signature_algorithm(gnutls_ocsp_resp_t resp)
 
 /**
  * gnutls_ocsp_resp_get_signature:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @sig: newly allocated output buffer with signature data
  *
  * This function will extract the signature field of a OCSP response.
@@ -1688,7 +1749,7 @@ gnutls_ocsp_resp_get_signature(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_get_certs:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @certs: newly allocated array with #gnutls_x509_crt_t certificates
  * @ncerts: output variable with number of allocated certs.
  *
@@ -1797,12 +1858,17 @@ gnutls_ocsp_resp_get_certs(gnutls_ocsp_resp_t resp,
 static gnutls_x509_crt_t find_signercert(gnutls_ocsp_resp_t resp)
 {
 	int rc;
-	gnutls_x509_crt_t *certs;
+	gnutls_x509_crt_t *certs = NULL;
 	size_t ncerts = 0, i;
-	gnutls_datum_t riddn;
+	gnutls_datum_t riddn = {NULL, 0};
+	gnutls_datum_t keyid = {NULL, 0};
 	gnutls_x509_crt_t signercert = NULL;
 
-	rc = gnutls_ocsp_resp_get_responder(resp, &riddn);
+	rc = gnutls_ocsp_resp_get_responder_raw_id(resp, GNUTLS_OCSP_RESP_ID_DN, &riddn);
+	if (rc == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+		gnutls_assert();
+		rc = gnutls_ocsp_resp_get_responder_raw_id(resp, GNUTLS_OCSP_RESP_ID_KEY, &keyid);
+	}
 	if (rc != GNUTLS_E_SUCCESS) {
 		gnutls_assert();
 		return NULL;
@@ -1811,42 +1877,46 @@ static gnutls_x509_crt_t find_signercert(gnutls_ocsp_resp_t resp)
 	rc = gnutls_ocsp_resp_get_certs(resp, &certs, &ncerts);
 	if (rc != GNUTLS_E_SUCCESS) {
 		gnutls_assert();
-		gnutls_free(riddn.data);
-		return NULL;
+		signercert = NULL;
+		goto quit;
 	}
 
 	for (i = 0; i < ncerts; i++) {
-		char *crtdn;
-		size_t crtdnsize = 0;
-		int cmpok;
+		if (keyid.data != NULL) {
+			uint8_t digest[20];
+			gnutls_datum_t spki;
 
-		rc = gnutls_x509_crt_get_dn(certs[i], NULL, &crtdnsize);
-		if (rc != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-			gnutls_assert();
-			goto quit;
-		}
+			rc = _gnutls_x509_get_raw_field2(certs[i]->cert, &certs[i]->der,
+					  "tbsCertificate.subjectPublicKeyInfo.subjectPublicKey",
+					  &spki);
+			if (rc < 0 || spki.size < 6) {
+				signercert = NULL;
+				goto quit;
+			}
 
-		crtdn = gnutls_malloc(crtdnsize);
-		if (crtdn == NULL) {
-			gnutls_assert();
-			goto quit;
-		}
+			/* For some reason the protocol requires we skip the
+			 * tag, length and number of unused bits.
+			 */
+			spki.data += 5;
+			spki.size -= 5;
+			rc = gnutls_hash_fast(GNUTLS_DIG_SHA1, spki.data, spki.size, digest);
+			if (rc < 0) {
+				gnutls_assert();
+				signercert = NULL;
+				goto quit;
+			}
 
-		rc = gnutls_x509_crt_get_dn(certs[i], crtdn, &crtdnsize);
-		if (rc != GNUTLS_E_SUCCESS) {
-			gnutls_assert();
-			gnutls_free(crtdn);
-			goto quit;
-		}
-
-		cmpok = (crtdnsize == riddn.size)
-		    && memcmp(riddn.data, crtdn, crtdnsize);
-
-		gnutls_free(crtdn);
-
-		if (cmpok == 0) {
-			signercert = certs[i];
-			goto quit;
+			if ((20 == keyid.size) &&
+				memcmp(keyid.data, digest, 20) == 0) {
+				signercert = certs[i];
+				goto quit;
+			}
+		} else {
+			if ((certs[i]->raw_dn.size == riddn.size)
+			    && memcmp(riddn.data, certs[i]->raw_dn.data, riddn.size) == 0) {
+				signercert = certs[i];
+				goto quit;
+			}
 		}
 	}
 
@@ -1855,6 +1925,7 @@ static gnutls_x509_crt_t find_signercert(gnutls_ocsp_resp_t resp)
 
       quit:
 	gnutls_free(riddn.data);
+	gnutls_free(keyid.data);
 	for (i = 0; i < ncerts; i++)
 		if (certs[i] != signercert)
 			gnutls_x509_crt_deinit(certs[i]);
@@ -1977,9 +2048,9 @@ static int check_ocsp_purpose(gnutls_x509_crt_t signercert)
 
 /**
  * gnutls_ocsp_resp_verify_direct:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
+ * @resp: should contain a #gnutls_ocsp_resp_t type
  * @issuer: certificate believed to have signed the response
- * @verify: output variable with verification status, an #gnutls_ocsp_cert_status_t
+ * @verify: output variable with verification status, an #gnutls_ocsp_verify_reason_t
  * @flags: verification flags, 0 for now.
  *
  * Verify signature of the Basic OCSP Response against the public key
@@ -2053,9 +2124,9 @@ gnutls_ocsp_resp_verify_direct(gnutls_ocsp_resp_t resp,
 
 /**
  * gnutls_ocsp_resp_verify:
- * @resp: should contain a #gnutls_ocsp_resp_t structure
- * @trustlist: trust anchors as a #gnutls_x509_trust_list_t structure
- * @verify: output variable with verification status, an #gnutls_ocsp_cert_status_t
+ * @resp: should contain a #gnutls_ocsp_resp_t type
+ * @trustlist: trust anchors as a #gnutls_x509_trust_list_t type
+ * @verify: output variable with verification status, an #gnutls_ocsp_verify_reason_t
  * @flags: verification flags, 0 for now.
  *
  * Verify signature of the Basic OCSP Response against the public key
@@ -2087,7 +2158,6 @@ gnutls_ocsp_resp_verify(gnutls_ocsp_resp_t resp,
 			unsigned int *verify, unsigned int flags)
 {
 	gnutls_x509_crt_t signercert = NULL;
-	gnutls_x509_crt_t issuer = NULL;
 	int rc;
 
 	/* Algorithm:
@@ -2101,63 +2171,71 @@ gnutls_ocsp_resp_verify(gnutls_ocsp_resp_t resp,
 
 	signercert = find_signercert(resp);
 	if (!signercert) {
-		/* XXX Search in trustlist for certificate matching
-		   responderId as well? */
-		gnutls_assert();
-		*verify = GNUTLS_OCSP_VERIFY_SIGNER_NOT_FOUND;
-		rc = GNUTLS_E_SUCCESS;
-		goto done;
-	}
+		gnutls_datum_t dn;
 
-	/* Either the signer is directly trusted (i.e., in trustlist) or it
-	   is directly signed by something in trustlist and has proper OCSP
-	   extkeyusage. */
-	rc = _gnutls_trustlist_inlist(trustlist, signercert);
-	if (rc == 0) {
-		/* not in trustlist, need to verify signature and bits */
-		unsigned vtmp;
-
-		gnutls_assert();
-
-		rc = gnutls_x509_trust_list_get_issuer(trustlist,
-						       signercert, &issuer,
-						       GNUTLS_TL_GET_COPY);
-		if (rc != GNUTLS_E_SUCCESS) {
-			gnutls_assert();
-			*verify = GNUTLS_OCSP_VERIFY_UNTRUSTED_SIGNER;
-			rc = GNUTLS_E_SUCCESS;
-			goto done;
-		}
-
-		rc = gnutls_x509_crt_verify(signercert, &issuer, 1, 0,
-					    &vtmp);
-		if (rc != GNUTLS_E_SUCCESS) {
-			gnutls_assert();
-			goto done;
-		}
-
-		if (vtmp != 0) {
-			*verify = vstatus_to_ocsp_status(vtmp);
-			gnutls_assert();
-			rc = GNUTLS_E_SUCCESS;
-			goto done;
-		}
-
-		rc = check_ocsp_purpose(signercert);
+		rc = gnutls_ocsp_resp_get_responder_raw_id(resp, GNUTLS_OCSP_RESP_ID_DN, &dn);
 		if (rc < 0) {
 			gnutls_assert();
-			*verify = GNUTLS_OCSP_VERIFY_SIGNER_KEYUSAGE_ERROR;
+			*verify = GNUTLS_OCSP_VERIFY_SIGNER_NOT_FOUND;
 			rc = GNUTLS_E_SUCCESS;
 			goto done;
 		}
+
+		rc = gnutls_x509_trust_list_get_issuer_by_dn(trustlist, &dn, &signercert, 0);
+		gnutls_free(dn.data);
+
+		if (rc < 0) {
+			gnutls_assert();
+			*verify = GNUTLS_OCSP_VERIFY_SIGNER_NOT_FOUND;
+			rc = GNUTLS_E_SUCCESS;
+			goto done;
+		}
+	} else {
+		/* Either the signer is directly trusted (i.e., in trustlist) or it
+		   is directly signed by something in trustlist and has proper OCSP
+		   extkeyusage. */
+		rc = _gnutls_trustlist_inlist(trustlist, signercert);
+		if (rc == 0) {
+			/* not in trustlist, need to verify signature and bits */
+			unsigned vtmp;
+			gnutls_typed_vdata_st vdata;
+
+			vdata.type = GNUTLS_DT_KEY_PURPOSE_OID;
+			vdata.data = (void*)GNUTLS_KP_OCSP_SIGNING;
+			vdata.size = 0;
+
+			gnutls_assert();
+
+			rc = gnutls_x509_trust_list_verify_crt2(trustlist,
+								&signercert, 1,
+								&vdata, 1,
+								0, &vtmp, NULL);
+			if (rc != GNUTLS_E_SUCCESS) {
+				gnutls_assert();
+				goto done;
+			}
+
+			if (vtmp != 0) {
+				*verify = vstatus_to_ocsp_status(vtmp);
+				gnutls_assert();
+				rc = GNUTLS_E_SUCCESS;
+				goto done;
+			}
+		}
+	}
+
+	rc = check_ocsp_purpose(signercert);
+	if (rc < 0) {
+		gnutls_assert();
+		*verify = GNUTLS_OCSP_VERIFY_SIGNER_KEYUSAGE_ERROR;
+		rc = GNUTLS_E_SUCCESS;
+		goto done;
 	}
 
 	rc = _ocsp_resp_verify_direct(resp, signercert, verify, flags);
 
       done:
 	gnutls_x509_crt_deinit(signercert);
-	if (issuer != NULL)
-		gnutls_x509_crt_deinit(issuer);
 
 	return rc;
 }

@@ -27,10 +27,13 @@ if ENABLE_DANE
 SUBDIRS += libdane
 endif
 
-SUBDIRS += po src
-if ENABLE_DOC
-SUBDIRS += doc
+SUBDIRS += po
+if ENABLE_TOOLS
+SUBDIRS += src
+else
+SUBDIRS += src/gl
 endif
+
 if ENABLE_TESTS
 SUBDIRS += tests
 endif
@@ -39,9 +42,17 @@ if HAVE_GUILE
 SUBDIRS += guile
 endif
 
+if ENABLE_DOC
+SUBDIRS += doc
+endif
+
 ACLOCAL_AMFLAGS = -I m4 -I gl/m4 -I src/libopts/m4 -I src/gl/m4
 
 EXTRA_DIST = cfg.mk maint.mk .clcopying
+
+README-alpha: README.md
+	cp $^ $@
+	chmod 444 $@
 
 dist-hook: 
 	make -C doc/ compare-makefile
@@ -52,9 +63,10 @@ dist-hook:
 	@echo "symbols added or removed are correct and copy symbols.last.tmp as"
 	@echo "symbols.last"
 	@echo "*****************************************************************"
-	objdump -T $(srcdir)/lib/.libs/libgnutls.so.28  | grep -v ' \*UND\*' | awk '{print $$7 "@" $$6;}' | sort -u >symbols.last.tmp
+	objdump -T $(srcdir)/lib/.libs/libgnutls.so.30  | grep -v ' \*UND\*' | awk '{print $$7 "@" $$6;}' | sort -u >symbols.last.tmp
 	diff -u symbols.last symbols.last.tmp >/dev/null 2>&1
 	rm -f symbols.last.tmp
+	abi-compliance-checker -abi -lib gnutls -old devel/abi3.4.xml -new devel/abi.xml
 	rm -f ChangeLog
 	make ChangeLog
 	cp -f ChangeLog $(distdir)/

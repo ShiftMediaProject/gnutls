@@ -51,7 +51,8 @@ int main()
 
 static void terminate(void);
 
-/* This program tests whether EtM is negotiated as expected.
+/* This program tests whether MD5 is rejected by a client as a
+ * signature algorithm for the ServerKeyExchange.
  */
 
 static void server_log_func(int level, const char *str)
@@ -107,7 +108,7 @@ const gnutls_datum_t server_key = { server_key_pem,
 
 
 static int handshake_callback(gnutls_session_t session, unsigned int htype,
-	unsigned post, unsigned int incoming)
+	unsigned post, unsigned int incoming, const gnutls_datum_t *msg)
 {
 	gnutls_priority_set_direct(session, "NORMAL:-KX-ALL:+ECDHE-RSA", NULL);
 	return 0;

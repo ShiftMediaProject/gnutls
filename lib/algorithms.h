@@ -28,6 +28,9 @@
 #define GNUTLS_RENEGO_PROTECTION_REQUEST_MAJOR 0x00
 #define GNUTLS_RENEGO_PROTECTION_REQUEST_MINOR 0xFF
 
+#define GNUTLS_FALLBACK_SCSV_MAJOR 0x56
+#define GNUTLS_FALLBACK_SCSV_MINOR 0x00
+
 /* would allow for 256 ciphersuites */
 #define MAX_CIPHERSUITE_SIZE 512
 
@@ -136,8 +139,7 @@ inline static int _gnutls_mac_get_key_size(const mac_entry_st * e)
 		return e->key_size;
 }
 
-#define _gnutls_x509_oid_to_mac(oid) (gnutls_mac_algorithm_t)_gnutls_x509_oid_to_digest(oid)
-gnutls_digest_algorithm_t _gnutls_x509_oid_to_digest(const char *oid);
+#define _gnutls_x509_oid_to_mac(oid) (gnutls_mac_algorithm_t)gnutls_oid_to_digest(oid)
 
 /* Functions for digests. */
 #define _gnutls_x509_digest_to_oid _gnutls_x509_mac_to_oid
@@ -156,6 +158,13 @@ inline static int _gnutls_digest_is_secure(const mac_entry_st * e)
 int _gnutls_supported_ciphersuites(gnutls_session_t session,
 				   uint8_t * cipher_suites,
 				   unsigned int max_cipher_suite_size);
+int
+_gnutls_remove_unwanted_ciphersuites(gnutls_session_t session,
+			     uint8_t * cipher_suites,
+			     int cipher_suites_size,
+			     gnutls_pk_algorithm_t * pk_algos,
+			     size_t pk_algos_size);
+
 const char *_gnutls_cipher_suite_get_name(const uint8_t suite[2]);
 gnutls_mac_algorithm_t _gnutls_cipher_suite_get_prf(const uint8_t
 						    suite[2]);
@@ -172,15 +181,17 @@ _gnutls_cipher_suite_get_id(gnutls_kx_algorithm_t kx_algorithm,
 			    gnutls_mac_algorithm_t mac_algorithm,
 			    uint8_t suite[2]);
 
+const gnutls_cipher_suite_entry_st *ciphersuite_to_entry(const uint8_t suite[2]);
+
 /* Functions for ciphers. */
 const cipher_entry_st *cipher_to_entry(gnutls_cipher_algorithm_t c);
 const cipher_entry_st *cipher_name_to_entry(const char *name);
 
-inline static int _gnutls_cipher_is_block(const cipher_entry_st * e)
+inline static cipher_type_t _gnutls_cipher_type(const cipher_entry_st * e)
 {
 	if (unlikely(e == NULL))
 		return 0;
-	return e->block;
+	return e->type;
 }
 
 inline static int _gnutls_cipher_get_block_size(const cipher_entry_st * e)
@@ -233,7 +244,7 @@ inline static int _gnutls_cipher_algo_is_aead(const cipher_entry_st * e)
 {
 	if (unlikely(e == NULL))
 		return 0;
-	return e->aead;
+	return (e->type == CIPHER_AEAD)?1:0;
 }
 
 inline static int _gnutls_cipher_is_ok(const cipher_entry_st * e)
@@ -251,11 +262,8 @@ inline static int _gnutls_cipher_get_tag_size(const cipher_entry_st * e)
 	if (unlikely(e == NULL))
 		return ret;
 
-	if (e->aead)
-		ret = e->blocksize;	/* FIXME: happens to be the same for now */
-	else
-		ret = 0;
-	return ret;
+	/* non-AEAD have 0 as tag size */
+	return e->tagsize;
 }
 
 /* Functions for key exchange. */
@@ -279,8 +287,7 @@ gnutls_credentials_type_t _gnutls_map_kx_get_cred(gnutls_kx_algorithm_t
 #define GNUTLS_DISTINCT_PK_ALGORITHMS 3
 gnutls_pk_algorithm_t _gnutls_map_pk_get_pk(gnutls_kx_algorithm_t
 					    kx_algorithm);
-gnutls_pk_algorithm_t _gnutls_x509_oid2pk_algorithm(const char *oid);
-const char *_gnutls_x509_pk_to_oid(gnutls_pk_algorithm_t pk);
+const char *gnutls_pk_get_oid(gnutls_pk_algorithm_t pk);
 
 enum encipher_type { CIPHER_ENCRYPT = 0, CIPHER_SIGN = 1, CIPHER_IGN };
 
@@ -288,7 +295,6 @@ enum encipher_type _gnutls_kx_encipher_type(gnutls_kx_algorithm_t
 					    algorithm);
 
 /* Functions for sign algorithms. */
-gnutls_sign_algorithm_t _gnutls_x509_oid2sign_algorithm(const char *oid);
 gnutls_pk_algorithm_t _gnutls_x509_sign_to_pk(gnutls_sign_algorithm_t
 					      sign);
 const char *_gnutls_x509_sign_to_oid(gnutls_pk_algorithm_t,
@@ -319,11 +325,9 @@ typedef struct gnutls_ecc_curve_entry_st gnutls_ecc_curve_entry_st;
 
 const gnutls_ecc_curve_entry_st
     *_gnutls_ecc_curve_get_params(gnutls_ecc_curve_t curve);
-gnutls_ecc_curve_t _gnutls_ecc_curve_get_id(const char *name);
+gnutls_ecc_curve_t gnutls_ecc_curve_get_id(const char *name);
 int _gnutls_tls_id_to_ecc_curve(int num);
 int _gnutls_ecc_curve_get_tls_id(gnutls_ecc_curve_t supported_ecc);
-const char *_gnutls_ecc_curve_get_oid(gnutls_ecc_curve_t curve);
-gnutls_ecc_curve_t _gnutls_oid_to_ecc_curve(const char *oid);
 gnutls_ecc_curve_t _gnutls_ecc_bits_to_curve(int bits);
 #define MAX_ECC_CURVE_SIZE 66
 

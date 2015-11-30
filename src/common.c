@@ -16,20 +16,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * In addition, as a special exception, the copyright holders give
- * permission to link the code of portions of this program with the
- * OpenSSL library under certain conditions as described in each
- * individual source file, and distribute linked combinations including
- * the two.
- * 
- * You must obey the GNU General Public License in all respects for all
- * of the code used other than OpenSSL. If you modify file(s) with this
- * exception, you may extend this exception to your version of the
- * file(s), but you are not obligated to do so. If you do not wish to do
- * so, delete this exception statement from your version. If you delete
- * this exception statement from all source files in the program, then
- * also delete it here.
  */
 
 #include <config.h>
@@ -356,6 +342,7 @@ int cert_verify(gnutls_session_t session, const char *hostname, const char *purp
 static void
 print_dh_info(gnutls_session_t session, const char *str, int print)
 {
+#if defined(ENABLE_DHE) || defined(ENABLE_ANON)
 	printf("- %sDiffie-Hellman parameters\n", str);
 	printf(" - Using prime: %d bits\n",
 	       gnutls_dh_get_prime_bits(session));
@@ -429,6 +416,7 @@ print_dh_info(gnutls_session_t session, const char *str, int print)
 		gnutls_free(raw_gen.data);
 		gnutls_dh_params_deinit(dh_params);
 	}
+#endif
 }
 
 static void print_ecdh_info(gnutls_session_t session, const char *str)
@@ -445,7 +433,7 @@ static void print_ecdh_info(gnutls_session_t session, const char *str)
 
 }
 
-int print_info(gnutls_session_t session, int verbose, int print_cert)
+int print_info(gnutls_session_t session, int verbose, int flags)
 {
 	const char *tmp;
 	gnutls_credentials_type_t cred;
@@ -453,7 +441,7 @@ int print_info(gnutls_session_t session, int verbose, int print_cert)
 	unsigned char session_id[33];
 	size_t session_id_size = sizeof(session_id);
 	gnutls_srtp_profile_t srtp_profile;
-	gnutls_datum_t p, resp;
+	gnutls_datum_t p;
 	char *desc;
 	int rc;
 
@@ -525,8 +513,11 @@ int print_info(gnutls_session_t session, int verbose, int print_cert)
 			}
 		}
 
-		if (print_cert)
-			print_cert_info(session, verbose, print_cert);
+		if ((flags & P_WAIT_FOR_CERT) && gnutls_certificate_get_ours(session) == 0)
+			printf("- No certificate was sent to peer\n");
+
+		if (flags& P_PRINT_CERT)
+			print_cert_info(session, verbose, (flags&P_PRINT_CERT));
 
 		if (kx == GNUTLS_KX_DHE_RSA || kx == GNUTLS_KX_DHE_DSS)
 			print_dh_info(session, "Ephemeral ", verbose);
@@ -570,10 +561,14 @@ int print_info(gnutls_session_t session, int verbose, int print_cert)
 	printf("- Compression: %s\n", tmp);
 
 	printf("- Options:");
+	if (gnutls_session_ext_master_secret_status(session)!=0)
+		printf(" extended master secret,");
 	if (gnutls_safe_renegotiation_status(session)!=0)
 		printf(" safe renegotiation,");
+	if (gnutls_session_etm_status(session)!=0)
+		printf(" EtM,");
 #ifdef ENABLE_OCSP
-	if (gnutls_ocsp_status_request_get(session, &resp)==0) {
+	if (gnutls_ocsp_status_request_is_checked(session, GNUTLS_OCSP_SR_IS_AVAIL)!=0) {
 		printf(" OCSP status request%s,", gnutls_ocsp_status_request_is_checked(session,0)!=0?"":"[ignored]");
 	}
 #endif

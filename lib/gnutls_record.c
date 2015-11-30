@@ -67,7 +67,7 @@ struct tls_record_st {
 
 /**
  * gnutls_record_disable_padding:  
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Used to disabled padding in TLS 1.0 and above.  Normally you do not
  * need to use this function, but there are buggy clients that
@@ -84,28 +84,8 @@ void gnutls_record_disable_padding(gnutls_session_t session)
 }
 
 /**
- * gnutls_record_set_max_empty_records:
- * @session: is a #gnutls_session_t structure.
- * @i: is the desired value of maximum empty records that can be accepted in a row.
- *
- * Used to set the maximum number of empty fragments that can be accepted
- * in a row. Accepting many empty fragments is useful for receiving length-hidden
- * content, where empty fragments filled with pad are sent to hide the real
- * length of a message. However, a malicious peer could send empty fragments to
- * mount a DoS attack, so as a safety measure, a maximum number of empty fragments
- * is accepted by default. If you know your application must accept a given number
- * of empty fragments in a row, you can use this function to set the desired value.
- **/
-void
-gnutls_record_set_max_empty_records(gnutls_session_t session,
-				    const unsigned int i)
-{
-	session->internals.priorities.max_empty_records = i;
-}
-
-/**
  * gnutls_transport_set_ptr:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @ptr: is the value.
  *
  * Used to set the first argument of the transport function (for push
@@ -123,7 +103,7 @@ gnutls_transport_set_ptr(gnutls_session_t session,
 
 /**
  * gnutls_transport_set_ptr2:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @recv_ptr: is the value for the pull function
  * @send_ptr: is the value for the push function
  *
@@ -143,7 +123,7 @@ gnutls_transport_set_ptr2(gnutls_session_t session,
 
 /**
  * gnutls_transport_set_int2:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @recv_int: is the value for the pull function
  * @send_int: is the value for the push function
  *
@@ -168,7 +148,7 @@ gnutls_transport_set_int2(gnutls_session_t session,
 /* this will be a macro */
 /**
  * gnutls_transport_set_int:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @i: is the value.
  *
  * Used to set the first argument of the transport function (for push
@@ -188,7 +168,7 @@ void gnutls_transport_set_int(gnutls_session_t session, int i)
 
 /**
  * gnutls_transport_get_ptr:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Used to get the first argument of the transport function (like
  * PUSH and PULL).  This must have been set using
@@ -203,7 +183,7 @@ gnutls_transport_ptr_t gnutls_transport_get_ptr(gnutls_session_t session)
 
 /**
  * gnutls_transport_get_ptr2:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @recv_ptr: will hold the value for the pull function
  * @send_ptr: will hold the value for the push function
  *
@@ -223,7 +203,7 @@ gnutls_transport_get_ptr2(gnutls_session_t session,
 
 /**
  * gnutls_transport_get_int2:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @recv_int: will hold the value for the pull function
  * @send_int: will hold the value for the push function
  *
@@ -244,7 +224,7 @@ gnutls_transport_get_int2(gnutls_session_t session,
 
 /**
  * gnutls_transport_get_int:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Used to get the first argument of the transport function (like
  * PUSH and PULL).  This must have been set using
@@ -261,7 +241,7 @@ int gnutls_transport_get_int(gnutls_session_t session)
 
 /**
  * gnutls_bye:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @how: is an integer
  *
  * Terminates the current TLS/SSL connection. The connection should
@@ -837,7 +817,7 @@ record_add_to_buffers(gnutls_session_t session,
 			 * reasons). Otherwise it is an unexpected packet
 			 */
 			if (type == GNUTLS_ALERT
-			    || (htype == GNUTLS_HANDSHAKE_CLIENT_HELLO
+			    || ((htype == GNUTLS_HANDSHAKE_SERVER_HELLO || htype == GNUTLS_HANDSHAKE_CLIENT_HELLO)
 				&& type == GNUTLS_HANDSHAKE)) {
 				/* even if data is unexpected put it into the buffer */
 				_gnutls_record_buffer_put(session, recv->type,
@@ -1147,8 +1127,7 @@ _gnutls_recv_in_buffers(gnutls_session_t session, content_type_t type,
 
       begin:
 
-	if (empty_fragments >
-	    session->internals.priorities.max_empty_records) {
+	if (empty_fragments > DEFAULT_MAX_EMPTY_RECORDS) {
 		gnutls_assert();
 		return GNUTLS_E_TOO_MANY_EMPTY_PACKETS;
 	}
@@ -1174,7 +1153,7 @@ _gnutls_recv_in_buffers(gnutls_session_t session, content_type_t type,
 	record_state = &record_params->read;
 
 	/* receive headers */
-	ret = recv_headers(session, record_params, type, htype, &record, &ms);
+	ret = recv_headers(session, record_params, type, htype, &record, session->internals.blocking?&ms:0);
 	if (ret < 0) {
 		ret = gnutls_assert_val_fatal(ret);
 		goto recv_error;
@@ -1189,7 +1168,7 @@ _gnutls_recv_in_buffers(gnutls_session_t session, content_type_t type,
 	 */
 	ret =
 	    _gnutls_io_read_buffered(session, record.packet_size,
-				     record.type, &ms);
+				     record.type, session->internals.blocking?&ms:0);
 	if (ret != record.packet_size) {
 		gnutls_assert();
 		goto recv_error;
@@ -1449,7 +1428,7 @@ _gnutls_recv_int(gnutls_session_t session, content_type_t type,
 
 /**
  * gnutls_packet_get:
- * @packet: is a #gnutls_packet_t structure.
+ * @packet: is a #gnutls_packet_t type.
  * @data: will contain the data present in the @packet structure (may be %NULL)
  * @sequence: the 8-bytes of the packet sequence number (may be %NULL)
  *
@@ -1494,13 +1473,32 @@ void gnutls_packet_deinit(gnutls_packet_t packet)
 }
 
 /**
+ * gnutls_record_discard_queued:
+ * @session: is a #gnutls_session_t type.
+ *
+ * This function discards all queued to be sent packets in a TLS or DTLS session.
+ * These are the packets queued after an interrupted gnutls_record_send().
+ *
+ * Returns: The number of bytes discarded.
+ *
+ * Since: 3.4.0
+ **/
+size_t
+gnutls_record_discard_queued(gnutls_session_t session)
+{
+	size_t ret = session->internals.record_send_buffer.byte_length;
+	_mbuffer_head_clear(&session->internals.record_send_buffer);
+	return ret;
+}
+
+/**
  * gnutls_record_recv_packet:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @packet: the structure that will hold the packet data
  *
- * This is a lower-level function thatn gnutls_record_recv() and allows
+ * This is a lower-level function than gnutls_record_recv() and allows
  * to directly receive the whole decrypted packet. That avoids a
- * memory copy, and is mostly applicable to applications seeking high
+ * memory copy, and is intended to be used by applications seeking high
  * performance.
  *
  * The received packet is accessed using gnutls_packet_get() and 
@@ -1523,7 +1521,7 @@ gnutls_record_recv_packet(gnutls_session_t session,
 
 /**
  * gnutls_record_send:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @data: contains the data to send
  * @data_size: is the length of the data
  *
@@ -1588,7 +1586,7 @@ gnutls_record_send(gnutls_session_t session, const void *data,
 
 /**
  * gnutls_record_cork:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * If called, gnutls_record_send() will no longer send any records.
  * Any sent records will be cached until gnutls_record_uncork() is called.
@@ -1604,7 +1602,7 @@ void gnutls_record_cork(gnutls_session_t session)
 
 /**
  * gnutls_record_uncork:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @flags: Could be zero or %GNUTLS_RECORD_WAIT
  *
  * This resets the effect of gnutls_record_cork(), and flushes any pending
@@ -1672,26 +1670,25 @@ int gnutls_record_uncork(gnutls_session_t session, unsigned int flags)
 
 /**
  * gnutls_record_recv:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @data: the buffer that the data will be read into
  * @data_size: the number of requested bytes
  *
  * This function has the similar semantics with recv().  The only
  * difference is that it accepts a GnuTLS session, and uses different
  * error codes.
- * In the special case that a server requests a renegotiation, the
- * client may receive an error code of %GNUTLS_E_REHANDSHAKE.  This
- * message may be simply ignored, replied with an alert
+ * In the special case that the peer requests a renegotiation, the
+ * caller will receive an error code of %GNUTLS_E_REHANDSHAKE.  In case
+ * of a client, this message may be simply ignored, replied with an alert
  * %GNUTLS_A_NO_RENEGOTIATION, or replied with a new handshake,
- * depending on the client's will.
+ * depending on the client's will. A server receiving this error code
+ * can only initiate a new handshake or terminate the session.
+ *
  * If %EINTR is returned by the internal push function (the default
  * is recv()) then %GNUTLS_E_INTERRUPTED will be returned.  If
  * %GNUTLS_E_INTERRUPTED or %GNUTLS_E_AGAIN is returned, you must
  * call this function again to get the data.  See also
  * gnutls_record_get_direction().
- * A server may also receive %GNUTLS_E_REHANDSHAKE when a client has
- * initiated a handshake. In that case the server can only initiate a
- * handshake or terminate the connection.
  *
  * Returns: The number of bytes received and zero on EOF (for stream
  * connections).  A negative error code is returned in case of an error.  
@@ -1707,7 +1704,7 @@ gnutls_record_recv(gnutls_session_t session, void *data, size_t data_size)
 
 /**
  * gnutls_record_recv_seq:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @data: the buffer that the data will be read into
  * @data_size: the number of requested bytes
  * @seq: is the packet's 64-bit sequence number. Should have space for 8 bytes.
@@ -1736,12 +1733,15 @@ gnutls_record_recv_seq(gnutls_session_t session, void *data,
 
 /**
  * gnutls_record_set_timeout:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @ms: is a timeout value in milliseconds
  *
  * This function sets the receive timeout for the record layer
  * to the provided value. Use an @ms value of zero to disable
  * timeout (the default).
+ *
+ * This function requires to set a pull timeout callback. See
+ * gnutls_transport_set_pull_timeout_function().
  *
  * Since: 3.1.7
  **/

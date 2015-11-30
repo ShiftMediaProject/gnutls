@@ -41,15 +41,6 @@ _gnutls_set_kx(gnutls_session_t session, gnutls_kx_algorithm_t algo);
 static const char keyexp[] = "key expansion";
 static const int keyexp_length = sizeof(keyexp) - 1;
 
-static const char ivblock[] = "IV block";
-static const int ivblock_length = sizeof(ivblock) - 1;
-
-static const char cliwrite[] = "client write key";
-static const int cliwrite_length = sizeof(cliwrite) - 1;
-
-static const char servwrite[] = "server write key";
-static const int servwrite_length = sizeof(servwrite) - 1;
-
 /* This function is to be called after handshake, when master_secret,
  *  client_random and server_random have been initialized. 
  * This function creates the keys and stores them into pending session.
@@ -199,14 +190,14 @@ _gnutls_init_record_state(record_parameters_st * params,
 	gnutls_datum_t *iv = NULL;
 
 	if (!_gnutls_version_has_explicit_iv(ver)) {
-		if (_gnutls_cipher_is_block(params->cipher) !=
-		    CIPHER_STREAM)
+		if (_gnutls_cipher_type(params->cipher) == CIPHER_BLOCK)
 			iv = &state->IV;
 	}
 
 	ret = _gnutls_auth_cipher_init(&state->cipher_state,
 				       params->cipher, &state->key, iv,
 				       params->mac, &state->mac_secret,
+				       params->etm,
 				       (ver->id == GNUTLS_SSL3) ? 1 : 0,
 				       1 - read /*1==encrypt */ );
 	if (ret < 0 && params->cipher->id != GNUTLS_CIPHER_NULL)
@@ -230,6 +221,7 @@ _gnutls_epoch_set_cipher_suite(gnutls_session_t session,
 	const cipher_entry_st *cipher_algo;
 	const mac_entry_st *mac_algo;
 	record_parameters_st *params;
+	const gnutls_cipher_suite_entry_st *cs;
 	int ret;
 
 	ret = _gnutls_epoch_get(session, epoch_rel, &params);
@@ -240,8 +232,12 @@ _gnutls_epoch_set_cipher_suite(gnutls_session_t session,
 	    || params->cipher != NULL || params->mac != NULL)
 		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 
-	cipher_algo = _gnutls_cipher_suite_get_cipher_algo(suite);
-	mac_algo = _gnutls_cipher_suite_get_mac_algo(suite);
+	cs = ciphersuite_to_entry(suite);
+	if (cs == NULL)
+		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
+
+	cipher_algo = cipher_to_entry(cs->block_algorithm);
+	mac_algo = mac_to_entry(cs->mac_algorithm);
 
 	if (_gnutls_cipher_is_ok(cipher_algo) == 0
 	    || _gnutls_mac_is_ok(mac_algo) == 0)
@@ -255,6 +251,10 @@ _gnutls_epoch_set_cipher_suite(gnutls_session_t session,
 
 	params->cipher = cipher_algo;
 	params->mac = mac_algo;
+	if (cs->nonce_type == NONCE_IS_SENT)
+		params->send_nonce = 1;
+	else
+		params->send_nonce = 0;
 
 	return 0;
 }
@@ -343,16 +343,16 @@ int _gnutls_epoch_set_keys(gnutls_session_t session, uint16_t epoch)
 		    gnutls_assert_val
 		    (GNUTLS_E_UNKNOWN_COMPRESSION_ALGORITHM);
 
-	if (!_gnutls_version_has_explicit_iv(ver)) {
-		if (_gnutls_cipher_is_block(params->cipher) != CIPHER_STREAM) {
-			IV_size = _gnutls_cipher_get_iv_size(params->cipher);
-		} else
-			IV_size = _gnutls_cipher_get_implicit_iv_size(params->cipher);
-	} else
+	if (!_gnutls_version_has_explicit_iv(ver) &&
+	    _gnutls_cipher_type(params->cipher) == CIPHER_BLOCK) {
+		IV_size = _gnutls_cipher_get_iv_size(params->cipher);
+	} else {
 		IV_size = _gnutls_cipher_get_implicit_iv_size(params->cipher);
+	}
 
 	key_size = _gnutls_cipher_get_key_size(params->cipher);
 	hash_size = _gnutls_mac_get_key_size(params->mac);
+	params->etm = session->security_parameters.etm;
 
 	ret = _gnutls_set_keys
 	    (session, params, hash_size, IV_size, key_size);
@@ -383,11 +383,13 @@ int _gnutls_epoch_set_keys(gnutls_session_t session, uint16_t epoch)
 	memcpy( dst->master_secret, src->master_secret, GNUTLS_MASTER_SIZE); \
 	memcpy( dst->client_random, src->client_random, GNUTLS_RANDOM_SIZE); \
 	memcpy( dst->server_random, src->server_random, GNUTLS_RANDOM_SIZE); \
-	memcpy( dst->session_id, src->session_id, TLS_MAX_SESSION_ID_SIZE); \
+	memcpy( dst->session_id, src->session_id, GNUTLS_MAX_SESSION_ID_SIZE); \
 	dst->session_id_size = src->session_id_size; \
 	dst->cert_type = src->cert_type; \
 	dst->compression_method = src->compression_method; \
 	dst->timestamp = src->timestamp; \
+	dst->ext_master_secret = src->ext_master_secret; \
+	dst->etm = src->etm; \
 	dst->max_record_recv_size = src->max_record_recv_size; \
 	dst->max_record_send_size = src->max_record_send_size
 

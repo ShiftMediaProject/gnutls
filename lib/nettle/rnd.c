@@ -33,12 +33,12 @@
 #include <gnutls_num.h>
 #include <nettle/yarrow.h>
 #include <nettle/salsa20.h>
-#ifdef HAVE_GETPID
-#include <unistd.h>		/* getpid */
-#endif
 #include <rnd-common.h>
+#include <system.h>
+#include <atfork.h>
 #include <errno.h>
 
+#define NONCE_KEY_SIZE SALSA20_KEY_SIZE
 #define SOURCES 2
 
 #define RND_LOCK(ctx) if (gnutls_mutex_lock(&((ctx)->mutex))!=0) abort()
@@ -54,9 +54,7 @@ struct nonce_ctx_st {
 	struct salsa20_ctx ctx;
 	unsigned int counter;
 	void *mutex;
-#ifdef HAVE_GETPID
-	pid_t pid;		/* detect fork() */
-#endif
+	unsigned int forkid;
 };
 
 struct rnd_ctx_st {
@@ -66,9 +64,7 @@ struct rnd_ctx_st {
 	time_t trivia_previous_time;
 	time_t trivia_time_count;
 	void *mutex;
-#ifdef HAVE_GETPID
-	pid_t pid;		/* detect fork() */
-#endif
+	unsigned forkid;
 };
 
 static struct rnd_ctx_st rnd_ctx;
@@ -83,7 +79,7 @@ timespec_sub_sec(struct timespec *a, struct timespec *b)
 	return (a->tv_sec - b->tv_sec);
 }
 
-#define DEVICE_READ_INTERVAL (10800)
+#define DEVICE_READ_INTERVAL (21600)
 /* universal functions */
 
 static int do_trivia_source(struct rnd_ctx_st *ctx, int init, struct event_st *event)
@@ -121,10 +117,6 @@ static int do_device_source(struct rnd_ctx_st *ctx, int init, struct event_st *e
 	int ret;
 
 	if (init) {
-#ifdef HAVE_GETPID
-		ctx->pid = event->pid;
-#endif
-
 		memcpy(&ctx->device_last_read, &event->now,
 		       sizeof(ctx->device_last_read));
 
@@ -164,19 +156,18 @@ static void wrap_nettle_rnd_deinit(void *ctx)
 
 /* Initializes the nonce level random generator.
  *
+ * the @nonce_key must be provided.
+ *
  * @init must be non zero on first initialization, and
  * zero on any subsequent reinitializations.
  */
-static int nonce_rng_init(struct nonce_ctx_st *ctx, unsigned init)
+static int nonce_rng_init(struct nonce_ctx_st *ctx,
+			  uint8_t nonce_key[NONCE_KEY_SIZE],
+			  unsigned nonce_key_size,
+			  unsigned init)
 {
-	uint8_t buffer[SALSA20_KEY_SIZE];
 	uint8_t iv[8];
 	int ret;
-
-	/* Get a key from the system randomness source.  */
-	ret = _rnd_get_system_entropy(buffer, sizeof(buffer));
-	if (ret < 0)
-		return gnutls_assert_val(ret);
 
 	if (init == 0) {
 		/* use the previous key to generate IV as well */
@@ -185,23 +176,22 @@ static int nonce_rng_init(struct nonce_ctx_st *ctx, unsigned init)
 
 		/* Add key continuity by XORing the new key with data generated
 		 * from the old key */
-		salsa20r12_crypt(&ctx->ctx, sizeof(buffer), buffer, buffer);
+		salsa20r12_crypt(&ctx->ctx, nonce_key_size, nonce_key, nonce_key);
 	} else {
+		ctx->forkid = _gnutls_get_forkid();
+
 		/* when initializing read the IV from the system randomness source */
 		ret = _rnd_get_system_entropy(iv, sizeof(iv));
 		if (ret < 0)
 			return gnutls_assert_val(ret);
 	}
 
-	salsa20_set_key(&ctx->ctx, sizeof(buffer), buffer);
+	salsa20_set_key(&ctx->ctx, nonce_key_size, nonce_key);
 	salsa20_set_iv(&ctx->ctx, iv);
 
-	zeroize_key(buffer, sizeof(buffer));
+	zeroize_key(nonce_key, nonce_key_size);
 
 	ctx->counter = 0;
-#ifdef HAVE_GETPID
-	ctx->pid = getpid();
-#endif
 
 	return 0;
 }
@@ -212,6 +202,7 @@ static int wrap_nettle_rnd_init(void **ctx)
 {
 	int ret;
 	struct event_st event;
+	uint8_t nonce_key[NONCE_KEY_SIZE];
 
 	memset(&rnd_ctx, 0, sizeof(rnd_ctx));
 
@@ -238,6 +229,8 @@ static int wrap_nettle_rnd_init(void **ctx)
 
 	_rnd_get_event(&event);
 
+	rnd_ctx.forkid = _gnutls_get_forkid();
+
 	ret = do_device_source(&rnd_ctx, 1, &event);
 	if (ret < 0) {
 		gnutls_assert();
@@ -253,7 +246,11 @@ static int wrap_nettle_rnd_init(void **ctx)
 	yarrow256_slow_reseed(&rnd_ctx.yctx);
 
 	/* initialize the nonce RNG */
-	ret = nonce_rng_init(&nonce_ctx, 1);
+	ret = _rnd_get_system_entropy(nonce_key, sizeof(nonce_key));
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = nonce_rng_init(&nonce_ctx, nonce_key, sizeof(nonce_key), 1);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
@@ -273,9 +270,7 @@ static int
 wrap_nettle_rnd_nonce(void *_ctx, void *data, size_t datasize)
 {
 	int ret, reseed = 0;
-#ifdef HAVE_GETPID
-	pid_t tpid = getpid();
-#endif
+	uint8_t nonce_key[NONCE_KEY_SIZE];
 
 	/* we don't really need memset here, but otherwise we
 	 * get filled with valgrind warnings */
@@ -283,19 +278,25 @@ wrap_nettle_rnd_nonce(void *_ctx, void *data, size_t datasize)
 
 	RND_LOCK(&nonce_ctx);
 
-#ifdef HAVE_GETPID
-	if (tpid != nonce_ctx.pid) {	/* fork() detected */
+	if (_gnutls_detect_fork(nonce_ctx.forkid)) {
 		reseed = 1;
 	}
-#endif
 
 	if (reseed != 0 || nonce_ctx.counter > NONCE_RESEED_BYTES) {
 		/* reseed nonce */
-		ret = nonce_rng_init(&nonce_ctx, 0);
+		ret = _rnd_get_system_entropy(nonce_key, sizeof(nonce_key));
 		if (ret < 0) {
 			gnutls_assert();
 			goto cleanup;
 		}
+
+		ret = nonce_rng_init(&nonce_ctx, nonce_key, sizeof(nonce_key), 0);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+
+		nonce_ctx.forkid = _gnutls_get_forkid();
 	}
 
 	salsa20r12_crypt(&nonce_ctx.ctx, datasize, data, data);
@@ -323,13 +324,10 @@ wrap_nettle_rnd(void *_ctx, int level, void *data, size_t datasize)
 
 	RND_LOCK(&rnd_ctx);
 
-#ifdef HAVE_GETPID
-	if (event.pid != rnd_ctx.pid) {	/* fork() detected */
+	if (_gnutls_detect_fork(rnd_ctx.forkid)) {	/* fork() detected */
 		memset(&rnd_ctx.device_last_read, 0, sizeof(rnd_ctx.device_last_read));
-		rnd_ctx.pid = event.pid;
 		reseed = 1;
 	}
-#endif
 
 	/* reseed main */
 	ret = do_trivia_source(&rnd_ctx, 0, &event);
@@ -344,8 +342,10 @@ wrap_nettle_rnd(void *_ctx, int level, void *data, size_t datasize)
 		goto cleanup;
 	}
 
-	if (reseed != 0)
+	if (reseed != 0) {
 		yarrow256_slow_reseed(&rnd_ctx.yctx);
+		rnd_ctx.forkid = _gnutls_get_forkid();
+	}
 
 	yarrow256_random(&rnd_ctx.yctx, datasize, data);
 	ret = 0;
@@ -357,17 +357,13 @@ cleanup:
 
 static void wrap_nettle_rnd_refresh(void *_ctx)
 {
-	struct event_st event;
+	uint8_t nonce_key[NONCE_KEY_SIZE];
 
-	_rnd_get_event(&event);
-
-	RND_LOCK(&rnd_ctx);
-	do_trivia_source(&rnd_ctx, 0, &event);
-	do_device_source(&rnd_ctx, 0, &event);
-	RND_UNLOCK(&rnd_ctx);
+	/* this call refreshes the random context */
+	wrap_nettle_rnd(&rnd_ctx, GNUTLS_RND_RANDOM, nonce_key, sizeof(nonce_key));
 
 	RND_LOCK(&nonce_ctx);
-	nonce_rng_init(&nonce_ctx, 0);
+	nonce_rng_init(&nonce_ctx, nonce_key, sizeof(nonce_key), 0);
 	RND_UNLOCK(&nonce_ctx);
 
 	return;

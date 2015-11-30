@@ -1,25 +1,21 @@
 GnuTLS NEWS -- History of user-visible changes.                -*- outline -*-
 Copyright (C) 2000-2015 Free Software Foundation, Inc.
-Copyright (C) 2013, 2014 Nikos Mavrogiannopoulos
+Copyright (C) 2013-2015 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
-* Version 3.3.19 (released 2015-11-22)
+* Version 3.4.7 (released 2015-11-22)
 
-** libgnutls: Properly require TLS 1.2 to all the CBC-SHA256 and CBC-SHA384
+** libgnutls: Properly require TLS 1.2 in all CBC-SHA256 and CBC-SHA384
    ciphersuites. This solves an interoperability issue with openssl.
    Reported by Viktor Dukhovni.
 
-** libgnutls: Fixed memory leak in gnutls_pubkey_get_preferred_hash_algorithm(),
-   patch by Lennert Buytenhek.
-
-** libgnutls: When writing a certificate into a PKCS #11 token, ensure
-   that CKA_SERIAL_NUMBER and CKA_ISSUER are written.
-
-** libgnutls: Allow the presence of legacy ciphers and key exchanges in
-   priority strings and consider them a no-op.
+** libgnutls: Corrected the setting of salt size in gnutls_pkcs12_mac_info().
 
 ** libgnutls: On a rehandshake allow switching from anonymous to ECDHE and
    DHE ciphersuites.
+
+** libgnutls: Corrected regression from 3.3.x which prevented ARCFOUR128
+   from using arbitrary key sizes. Reported by Andreas Schneider.
 
 ** libgnutls: Added GNUTLS_SKIP_GLOBAL_INIT macro to allow programs skipping
    the implicit global initialization.
@@ -27,40 +23,112 @@ See the end for copying conditions.
 ** gnutls.pc: Don't include libtool specific options to link flags.
    Reported by Dan Kegel.
 
+** tools: Better support for FTP AUTH TLS negotiation
+
 ** API and ABI modifications:
-GNUTLS_SKIP_GLOBAL_INIT: Added
+gnutls_x509_crt_set_issuer_unique_id: Added
+gnutls_x509_crt_set_subject_unique_id: Added
+gnutls_certificate_set_flags: Added
+GNUTLS_CERTIFICATE_SKIP_KEY_CERT_MATCH: Added
 
 
-* Version 3.3.18 (released 2015-09-12)
+* Version 3.4.6 (released 2015-10-20)
+
+** libgnutls: Added new simple verification functions. That avoids the need
+   to install a callback to perform certificate verification. See
+   doc/examples/ex-client-x509.c for usage.
+
+** libgnutls: Introduced the security parameter 'future' which is at
+   the 256-bit level of security, and 'ultra' was aligned to its documented
+   size at 192-bits.
+
+** libgnutls: When writing a certificate into a PKCS #11 token, ensure
+   that CKA_SERIAL_NUMBER and CKA_ISSUER are written. Reported by Sumit
+   Bose.
+
+** libgnutls: Allow the presence of legacy ciphers and key exchanges in
+   priority strings and consider them a no-op.
+
+** libgnutls: Handle the extended master secret as a mandatory extension.
+   That fixes incompatibility issues with Chromium (#45). Reported by
+   Hubert Kario.
+
+** libgnutls: Added the ability to copy a public key into a PKCS #11
+   token.
+
+** tools: Added support for LDAP and XMPP negotiation for STARTTLS.
+
+** p11tool: Allow writing a public key into a PKCS #11 token.
+
+** certtool: Key generation security level was switched to HIGH. That
+   is, by default the tool generates 3072 bit keys for RSA and DSA.
+
+** API and ABI modifications:
+gnutls_session_set_verify_function: Added
+gnutls_session_set_verify_cert: Added
+gnutls_session_set_verify_cert2: Added
+gnutls_session_get_verify_cert_status: Added
+gnutls_pkcs11_copy_pubkey: Added
+
+
+* Version 3.4.5 (released 2015-09-12)
 
 ** libgnutls: When re-importing CRLs to a trust list ensure that there
-   are no duplicate entries.
+   no duplicate entries.
 
 ** certtool: Removed any arbitrary limits imposed on input file sizes
    and maximum number of certificates imported.
 
+** certtool: Allow specifying fixed dates on CRL generation.
+
+** gnutls-cli-debug: Added check for inappropriate fallback support
+   (RFC7507).
+
 ** API and ABI modifications:
-   No changes since last version.
+No changes since last version.
 
 
-* Version 3.3.17 (released 2015-08-10)
+* Version 3.4.4 (released 2015-08-10)
+
+** libgnutls: added high level API (gnutls_prf_rfc5705) to access
+   the PRF as specified by RFC5705. Suggestion and original patch
+   by Rick van Rein.
+
+** libgnutls: Link to trousers (TPM library) dynamically when this
+   functionality is requested.
 
 ** libgnutls: Fix issue with server side sending the status request
    extension even when not requested. Reported by Jeremy Harris.
+
+** libgnutls: Added support for RFC7507 by introducing the %FALLBACK_SCSV
+   priority string option. Patch by Alessandro Ghedini.
 
 ** libgnutls: gnutls_pkcs11_privkey_generate2() will store the generated
    public key, unless the GNUTLS_PKCS11_OBJ_FLAG_NO_STORE_PUBKEY flag is
    specified.
 
-** libgnutls: fixed double free in DN decoding [GNUTLS-SA-2015-3].
+** libgnutls: Corrected regression from 3.4.3 in loading PKCS #8 keys as
+   fallback. Reported by Daniel Berrange.
+
+** libgnutls: Allow the parsing of very long DNs. Also fixes double free
+   in DN decoding [GNUTLS-SA-2015-3].
 
 ** API and ABI modifications:
-   No changes since last version.
+gnutls_prf_rfc5705: Added
+gnutls_hex_encode2: Added
+gnutls_hex_decode2: Added
 
 
-* Version 3.3.16 (released 2015-07-12)
+* Version 3.4.3 (released 2015-07-12)
 
-** libgnutls: Allow compilation with nettle 3.0 or later
+** libgnutls: Follow closely RFC5280 recommendations and use UTCTime for
+   dates prior to 2050.
+
+** libgnutls: Force 16-byte alignment to all input to ciphers (previously it
+   was done only when cryptodev was enabled).
+
+** libgnutls: Removed support for pthread_atfork() as it has undefined
+   semantics when used with dlopen(), and may lead to a crash.
 
 ** libgnutls: corrected failure when importing plain files 
    with gnutls_x509_privkey_import2(), and a password was provided.
@@ -71,314 +139,326 @@ GNUTLS_SKIP_GLOBAL_INIT: Added
 
 ** libgnutls: set and read the hint in DHE-PSK and ECDHE-PSK ciphersuites.
 
+** p11tool: Added --list-token-urls option, and print the token module name
+   in list-tokens.
+
 ** API and ABI modifications:
-   No changes since last version.
+gnutls_ecc_curve_get_oid: Added
+gnutls_digest_get_oid: Added
+gnutls_pk_get_oid: Added
+gnutls_sign_get_oid: Added
+gnutls_ecc_curve_get_id: Added
+gnutls_oid_to_digest: Added
+gnutls_oid_to_pk: Added
+gnutls_oid_to_sign: Added
+gnutls_oid_to_ecc_curve: Added
+gnutls_pkcs7_get_signature_count: Added
 
 
-* Version 3.3.15 (released 2015-05-03)
+* Version 3.4.2 (released 2015-06-16)
+
+** libgnutls: DTLS blocking API is more robust against infinite blocking,
+and will notify of more possible timeouts.
+
+** libgnutls: corrected regression with Camellia-256-GCM cipher. Reported
+by Manuel Pegourie-Gonnard.
+
+** libgnutls: Introduced the GNUTLS_NO_SIGNAL flag to gnutls_init(). That
+allows to disable SIGPIPE for writes done within gnutls.
+
+** libgnutls: Enhanced the PKCS #7 API to allow signing and verification
+of structures. API moved to gnutls/pkcs7.h header.
+
+** certtool: Added options to generate PKCS #7 bundles and signed
+structures.
+
+** API and ABI modifications:
+gnutls_x509_dn_get_str: Added
+gnutls_pkcs11_get_raw_issuer_by_subject_key_id: Added
+gnutls_x509_trust_list_get_issuer_by_subject_key_id: Added
+gnutls_x509_crt_verify_data2: Added
+gnutls_pkcs7_get_crt_raw2: Added
+gnutls_pkcs7_signature_info_deinit: Added
+gnutls_pkcs7_get_signature_info: Added
+gnutls_pkcs7_verify_direct: Added
+gnutls_pkcs7_verify: Added
+gnutls_pkcs7_get_crl_raw2: Added
+gnutls_pkcs7_sign: Added
+gnutls_pkcs7_attrs_deinit: Added
+gnutls_pkcs7_add_attr: Added
+gnutls_pkcs7_get_attr: Added
+gnutls_pkcs7_print: Added
+
+
+* Version 3.4.1 (released 2015-05-03)
 
 ** libgnutls: gnutls_certificate_get_ours: will return the certificate even
 if a callback was used to send it.
 
+** libgnutls: Check for invalid length in the X.509 version field. Without
+the check certificates with invalid length would be detected as having an
+arbitrary version. Reported by Hanno Böck.
+
+** libgnutls: Handle DNS name constraints with a leading dot. Patch by
+Fotis Loukos.
+
+** libgnutls: Updated system-keys support for windows to compile in more
+versions of mingw. Patch by Tim Kosse.
+
 ** libgnutls: Fix for MD5 downgrade in TLS 1.2 signatures. Reported by
 Karthikeyan Bhargavan [GNUTLS-SA-2015-2].
 
-** libgnutls: Check for invalid length in the X.509 version field. Without the check
-certificates with invalid length would be detected as having an arbitrary
-version. Reported by Hanno Böck.
+** libgnutls: Reverted: The gnutls_handshake() process will enforce a timeout
+by default. That caused issues with non-blocking programs.
+
+** certtool: It can generate SHA256 key IDs.
+
+** gnutls-cli: fixed crash in --benchmark-ciphers. Reported by James Cloos.
+
+** configure: re-enabled the --enable-local-libopts flag
 
 ** API and ABI modifications:
-No changes since last version.
+gnutls_x509_crt_get_pk_ecc_raw: Added
 
 
-* Version 3.3.14 (released 2015-03-30)
+* Version 3.4.0 (released 2015-04-08)
 
-** libgnutls: When retrieving OCTET STRINGS from PKCS #12 ContentInfo
-structures use BER to decode them (requires libtasn1 4.3). That allows
-to decode some more complex structures.
+** libgnutls: Added support for AES-CCM and AES-CCM-8 (RFC6655 and RFC7251)
+ciphersuites. The former are enabled by default, the latter need to be
+explicitly enabled, since they reduce the overall security level.
 
-** libgnutls: When an end-certificate with no name is present and there
-are CA name constraints, don't reject the certificate. This follows RFC5280
-advice closely. Reported by Fotis Loukos.
+** libgnutls: Added support for Chacha20-Poly1305 ciphersuites following
+draft-mavrogiannopoulos-chacha-tls-05 and draft-irtf-cfrg-chacha20-poly1305-10.
+That is currently provided as technology preview and is not enabled by
+default, since there are no assigned ciphersuite points by IETF and there 
+is no guarrantee of compatibility between draft versions. The ciphersuite
+priority string to enable it is "+CHACHA20-POLY1305".
 
-** libgnutls: Fixed handling of supplemental data with types > 255.
-Patch by Thierry Quemerais.
+** libgnutls: Added support for encrypt-then-authenticate in CBC
+ciphersuites (RFC7366 -taking into account its errata text). This is
+enabled by default and can be disabled using the %NO_ETM priority
+string.
 
-** libgnutls: Fixed double free in the parsing of CRL distribution points certificate
-extension. Reported by Robert Święcki.
+** libgnutls: Added support for the extended master secret
+(triple-handshake fix) following draft-ietf-tls-session-hash-02.
 
-** libgnutls: Fixed a two-byte stack overflow in DTLS 0.9 protocol. That
-protocol is not enabled by default (used by openconnect VPN).
+** libgnutls: Added a new simple and hard to misuse AEAD API (crypto.h).
 
-** libgnutls: The maximum user data send size is set to be the same for
-block and non-block ciphersuites. This addresses a regression with wine:
-https://bugs.winehq.org/show_bug.cgi?id=37500
+** libgnutls: SSL 3.0 is no longer included in the default priorities
+list. It has to be explicitly enabled, e.g., with a string like
+"NORMAL:+VERS-SSL3.0".
 
-** libgnutls: When generating PKCS #11 keys, set CKA_ID, CKA_SIGN,
-and CKA_DECRYPT when needed.
+** libgnutls: ARCFOUR (RC4) is no longer included in the default priorities
+list. It has to be explicitly enabled, e.g., with a string like
+"NORMAL:+ARCFOUR-128".
 
-** libgnutls: Allow names with zero size to be set using
-gnutls_server_name_set(). That will disable the Server Name Indication.
-Resolves issue with wine: https://gitlab.com/gnutls/gnutls/issues/2
+** libgnutls: DSA signatures and DHE-DSS are no longer included in the
+default priorities list. They have to be explicitly enabled, e.g., with
+a string like "NORMAL:+DHE-DSS:+SIGN-DSA-SHA256:+SIGN-DSA-SHA1". The
+DSA ciphersuites were dropped because they had no deployment at all
+on the internet, to justify their inclusion.
 
-** API and ABI modifications:
-No changes since last version.
+** libgnutls: The priority string EXPORT was completely removed. The string
+was already defunc as support for the EXPORT ciphersuites was removed in
+GnuTLS 3.2.0.
+
+** libgnutls: Added API to utilize system specific private keys in
+"gnutls/system-keys.h". It is currently provided as technology preview
+and is restricted to windows CNG keys.
+
+** libgnutls: gnutls_x509_crt_check_hostname() and friends will use
+RFC6125 comparison of hostnames. That introduces a dependency on libidn.
+
+** libgnutls: Depend on p11-kit 0.23.1 to comply with the final
+PKCS #11 URLs draft (draft-pechanec-pkcs11uri-21).
+
+** libgnutls: Depend on nettle 3.1.
+
+** libgnutls: Use getrandom() or getentropy() when available. That
+avoids the complexity of file descriptor handling and issues with
+applications closing all open file descriptors on startup.
+
+** libgnutls: Use pthread_atfork() to detect fork when available.
+
+** libgnutls: If a key purpose (extended key usage) is specified for verification,
+it is applied into intermediate certificates. The verification result
+GNUTLS_CERT_PURPOSE_MISMATCH is also introduced. 
+
+** libgnutls: When gnutls_certificate_set_x509_key_file2() is used in
+combination with PKCS #11, or TPM URLs, it will utilize the provided
+password as PIN if required. That removes the requirement for the
+application to set a callback for PINs in that case.
+
+** libgnutls: priority strings VERS-TLS-ALL and VERS-DTLS-ALL are 
+restricted to the corresponding protocols only, and the VERS-ALL
+string is introduced to catch all possible protocols.
+
+** libgnutls: Added helper functions to obtain information on PKCS #8
+structures.
+
+** libgnutls: Certificate chains which are provided to gnutls_certificate_credentials_t
+will automatically be sorted instead of failing with GNUTLS_E_CERTIFICATE_LIST_UNSORTED.
+
+** libgnutls: Added functions to export and set the record state. That
+allows for gnutls_record_send() and recv() to be offloaded (to kernel,
+hardware or any other subsystem).
+
+** libgnutls: Added the ability to register application specific URL
+types, which express certificates and keys using gnutls_register_custom_url().
+
+** libgnutls: Added API to override existing ciphers, digests and MACs, e.g.,
+to override AES-GCM using a system-specific accelerator. That is, (crypto.h)
+gnutls_crypto_register_cipher(), gnutls_crypto_register_aead_cipher(),
+gnutls_crypto_register_mac(), and gnutls_crypto_register_digest().
+
+** libgnutls: Added gnutls_ext_register() to register custom extensions.
+Contributed by Thierry Quemerais.
+
+** libgnutls: Added gnutls_supplemental_register() to register custom
+supplemental data handshake messages. Contributed by Thierry Quemerais.
+
+** libgnutls-openssl: it is no longer built by default.
 
 
-* Version 3.3.13 (released 2015-02-25)
+** certtool: Added --p8-info option, which will print PKCS #8 information
+even if the password is not available.
 
-** libgnutls: Enable AESNI in GCM on x86
+** certtool: --key-info option will print PKCS #8 encryption information
+when available.
 
-** libgnutls: Fixes in DTLS message handling
+** certtool: Added the --key-id and --fingerprint options.
 
-** libgnutls: Check certificate algorithm consistency, i.e.,
-check whether the signatureAlgorithm field matches the signature
-field inside TBSCertificate.
+** certtool: Added the --verify-hostname, --verify-email and --verify-purpose
+options to be used in certificate chain verification, to simulate verification
+for specific hostname and key purpose (extended key usage).
 
-** gnutls-cli: Fixes in OCSP verification.
+** certtool: --p12-info option will print PKCS #12 MAC and cipher information
+when available.
 
-** API and ABI modifications:
-No changes since last version.
+** certtool: it will print the A-label (ACE) names in addition to UTF-8.
 
+** p11tool: added options --set-id and --set-label.
 
-* Version 3.3.12 (released 2015-01-17)
+** gnutls-cli: added options --priority-list and --save-cert.
 
-** libgnutls: When negotiating TLS use the lowest enabled version in
-the client hello, rather than the lowest supported. In addition, do
-not use SSL 3.0 as a version in the TLS record layer, unless SSL 3.0
-is the only protocol supported. That addresses issues with servers that
-immediately drop the connection when the encounter SSL 3.0 as the record
-version number. See:
-http://lists.gnutls.org/pipermail/gnutls-help/2014-November/003673.html
+** guile: Deprecated priority API has been removed. The old priority API, 
+which had been deprecated for some time, is now gone; use 'set-session-priorities!'
+instead.
 
-** libgnutls: Corrected encoding and decoding of ANSI X9.62 parameters.
-
-** libgnutls: Handle zero length plaintext for VIA PadLock functions.
-This solves a potential crash on AES encryption for small size plaintext.
-Patch by Matthias-Christian Ott.
-
-** libgnutls: In DTLS don't combine multiple packets which exceed MTU.
-Reported by Andreas Schultz. https://savannah.gnu.org/support/?108715
-
-** libgnutls: In DTLS decode all handshake packets present in a record
-packet, in a single pass. Reported by Andreas Schultz.
-https://savannah.gnu.org/support/?108712
-
-** libgnutls: When importing a CA file with a PKCS #11 URL, simply
-import the certificates, if the URL specifies objects, rather than
-treating it as trust module.
-
-** libgnutls: When importing a PKCS #11 URL and we know the type of
-object we are importing, don't require the object type in the URL.
-
-** libgnutls: fixed openpgp authentication when gnutls_certificate_set_retrieve_function2
-was used by the server.
+** guile: Remove RSA parameters and related procedures. This API had been 
+deprecated.  
 
 ** guile: Fix compilation on MinGW. Previously only the static version of the 
 'guile-gnutls-v-2' library would be built, preventing dynamic loading from Guile.
 
-** guile: Fix harmless warning during compilation of gnutls.scm
-Initially reported at <https://bugzilla.redhat.com/show_bug.cgi?id=1177847>.
-
-** certtool: --pubkey-info will also attempt to load a public key
-from stdin.
-
-** gnutls-cli: Added --starttls-proto option. That allows to specify a
-protocol for starttls negotiation.
-
 ** API and ABI modifications:
-No changes since last version.
+gnutls_record_get_state: Added
+gnutls_record_set_state: Added
+gnutls_aead_cipher_init: Added
+gnutls_aead_cipher_decrypt: Added
+gnutls_aead_cipher_encrypt: Added
+gnutls_aead_cipher_deinit: Added
+gnutls_pkcs12_generate_mac2: Added
+gnutls_pkcs12_mac_info: Added
+gnutls_pkcs12_bag_enc_info: Added
+gnutls_pkcs8_info: Added
+gnutls_pkcs_schema_get_name: Added
+gnutls_pkcs_schema_get_oid: Added
+gnutls_pcert_export_x509: Added
+gnutls_pcert_export_openpgp: Added
+gnutls_pcert_import_x509_list: Added
+gnutls_pkcs11_privkey_cpy: Added
+gnutls_x509_crq_get_signature_algorithm: Added
+gnutls_x509_trust_list_iter_get_ca: Added
+gnutls_x509_trust_list_iter_deinit: Added
+gnutls_x509_trust_list_get_issuer_by_dn: Added
+gnutls_pkcs11_get_raw_issuer_by_dn: Added
+gnutls_certificate_get_trust_list: Added
+gnutls_privkey_export_x509: Added
+gnutls_privkey_export_pkcs11: Added
+gnutls_privkey_export_openpgp: Added
+gnutls_privkey_import_ext3: Added
+gnutls_certificate_get_x509_key: Added
+gnutls_certificate_get_x509_crt: Added
+gnutls_certificate_get_openpgp_key: Added
+gnutls_certificate_get_openpgp_crt: Added
+gnutls_record_discard_queued: Added
+gnutls_session_ext_master_secret_status: Added
+gnutls_priority_string_list: Added
+gnutls_dh_params_import_raw2: Added
+gnutls_memset: Added
+gnutls_memcmp: Added
+gnutls_pkcs12_bag_set_privkey: Added
+gnutls_ocsp_resp_get_responder_raw_id: Added
+gnutls_system_key_iter_deinit: Added
+gnutls_system_key_iter_get_info: Added
+gnutls_system_key_delete: Added
+gnutls_system_key_add_x509: Added
+gnutls_system_recv_timeout: Added
+gnutls_register_custom_url: Added
+gnutls_pkcs11_obj_list_import_url3: Added
+gnutls_pkcs11_obj_list_import_url4: Added
+gnutls_pkcs11_obj_set_info: Added
+gnutls_crypto_register_cipher: Added
+gnutls_crypto_register_aead_cipher: Added
+gnutls_crypto_register_mac: Added
+gnutls_crypto_register_digest: Added
+gnutls_ext_register: Added
+gnutls_supplemental_register: Added
+gnutls_supplemental_recv: Added
+gnutls_supplemental_send: Added
+gnutls_openpgp_crt_check_email: Added
+gnutls_x509_crt_check_email: Added
+gnutls_handshake_set_hook_function: Modified
+gnutls_pkcs11_privkey_generate3: Added
+gnutls_pkcs11_copy_x509_crt2: Added
+gnutls_pkcs11_copy_x509_privkey2: Added
+gnutls_pkcs11_obj_list_import_url: Removed
+gnutls_pkcs11_obj_list_import_url2: Removed
+gnutls_certificate_client_set_retrieve_function: Removed
+gnutls_certificate_server_set_retrieve_function: Removed
+gnutls_certificate_set_rsa_export_params: Removed
+gnutls_certificate_type_set_priority: Removed
+gnutls_cipher_set_priority: Removed
+gnutls_compression_set_priority: Removed
+gnutls_kx_set_priority: Removed
+gnutls_mac_set_priority: Removed
+gnutls_protocol_set_priority: Removed
+gnutls_rsa_export_get_modulus_bits: Removed
+gnutls_rsa_export_get_pubkey: Removed
+gnutls_rsa_params_cpy: Removed
+gnutls_rsa_params_deinit: Removed
+gnutls_rsa_params_export_pkcs1: Removed
+gnutls_rsa_params_export_raw: Removed
+gnutls_rsa_params_generate2: Removed
+gnutls_rsa_params_import_pkcs1: Removed
+gnutls_rsa_params_import_raw: Removed
+gnutls_rsa_params_init: Removed
+gnutls_sign_callback_get: Removed
+gnutls_sign_callback_set: Removed
+gnutls_x509_crt_verify_data: Removed
+gnutls_x509_crt_verify_hash: Removed
+gnutls_pubkey_get_verify_algorithm: Removed
+gnutls_x509_crt_get_verify_algorithm: Removed
+gnutls_pubkey_verify_hash: Removed
+gnutls_pubkey_verify_data: Removed
+gnutls_record_set_max_empty_records: Removed
 
+guile:
+set-session-cipher-priority!: Removed
+set-session-mac-priority!: Removed
+set-session-compression-method-priority!: Removed
+set-session-kx-priority!: Removed
+set-session-protocol-priority!: Removed
+set-session-certificate-type-priority!: Removed
+set-session-default-priority!: Removed
+set-session-default-export-priority!: Removed
+make-rsa-parameters: Removed
+rsa-parameters?: Removed
+set-certificate-credentials-rsa-export-parameters!: Removed
+pkcs1-import-rsa-parameters: Removed
+pkcs1-export-rsa-parameters: Removed
 
-* Version 3.3.11 (released 2014-12-11)
-
-** libgnutls: Corrected regression introduced in 3.3.9 related to
-session renegotiation. Reported by Dan Winship.
-
-** libgnutls: Corrected parsing issue with OCSP responses.
-
-** API and ABI modifications:
-No changes since last version.
-
-
-* Version 3.3.10 (released 2014-11-10)
-
-** libgnutls: Refuse to import v1 or v2 certificates that contain
-extensions.
-
-** libgnutls: Fixes in usage of PKCS #11 token callback
-
-** libgnutls: Fixed bug in gnutls_x509_trust_list_get_issuer() when used
-with a PKCS #11 trust module and without the GNUTLS_TL_GET_COPY flag.
-Reported by David Woodhouse.
-
-** libgnutls: Removed superfluous random generator refresh on every call
-of gnutls_deinit(). That reduces load and usage of /dev/urandom.
-
-** libgnutls: Corrected issue in export of ECC parameters to X9.63 format.
-Reported by Sean Burford [GNUTLS-SA-2014-5].
-
-** libgnutls: When gnutls_global_init() is called for a second time, it
-will check whether the /dev/urandom fd kept is still open and matches
-the original one. That behavior works around issues with servers that
-close all file descriptors.
-
-** libgnutls: Corrected behavior with PKCS #11 objects that are marked
-as CKA_ALWAYS_AUTHENTICATE.
-
-** certtool: The default cipher for PKCS #12 structures is 3des-pkcs12.
-That option is more compatible than AES or RC4.
-
-** API and ABI modifications:
-No changes since last version.
-
-
-* Version 3.3.9 (released 2014-10-13)
-
-** libgnutls: Fixes in the transparent import of PKCS #11 certificates.
-Reported by Joseph Peruski.
-
-** libgnutls: Fixed issue with unexpected non-fatal errors resetting the
-handshake's hash buffer, in applications using the heartbeat extension
-or DTLS. Reported by Joeri de Ruiter.
-
-** libgnutls: When both a trust module and additional CAs are present 
-account the latter as well; reported by David Woodhouse.
-
-** libgnutls: added GNUTLS_TL_GET_COPY flag for
-gnutls_x509_trust_list_get_issuer(). That allows the function to be used
-in a thread safe way when PKCS #11 trust modules are in use.
-
-** libgnutls: fix issue in DTLS retransmission when session tickets
-were in use; reported by Manuel Pégourié-Gonnard.
-
-** libgnutls-dane: Do not require the CA on a ca match to be direct CA.
-
-** libgnutls: Prevent abort() in library if getrusage() fails. Try to
-detect instead which of RUSAGE_THREAD and RUSAGE_SELF would work.
-
-** guile: new 'set-session-server-name!' procedure; see the manual for
-details.
-
-** certtool: The authority key identifier will be set in a certificate only
-if the CA's subject key identifier is set.
-
-** API and ABI modifications:
-No changes since last version.
-
-
-* Version 3.3.8 (released 2014-09-18)
-
-** libgnutls: Updates in the name constraints checks. No name constraints
-will be checked for intermediate certificates. As our support for name
-constraints is limited to e-mail addresses in DNS names, it is pointless
-to check them on intermediate certificates.
-
-** libgnutls: Fixed issues in PKCS #11 object listing. Previously multiple
-object listing would fail completely if a single object could not be exported.
-
-** libgnutls: Improved the performance of PKCS #11 object listing/retrieving,
-by retrieving them in large batches. Report and suggestion by David
-Woodhouse.
-
-** libgnutls: Fixed issue with certificates being sanitized by gnutls prior
-to signature verification. That resulted to certain non-DER compliant modifications
-of valid certificates, being corrected by libtasn1's parser and restructured as
-the original. Issue found and reported by Antti Karjalainen and Matti Kamunen from
-Codenomicon.
-
-** libgnutls: Fixes in gnutls_x509_crt_set_dn() and friends to properly handle
-strings with embedded spaces and escaped commas.
-
-** libgnutls: when comparing a CA certificate with the trusted list compare
-the name and key only instead of the whole certificate. That is to handle
-cases where a CA certificate was superceded by a different one with the same
-name and the same key.
-
-** libgnutls: when verifying a certificate against a p11-kit trusted
-module, use the attached extensions in the module to override the CA's
-extensions (that requires p11-kit 0.20.7).
-
-** libgnutls: In DTLS prevent sending zero-size fragments in certain cases
-of MTU split. Reported by Manuel Pégourié-Gonnard.
-
-** libgnutls: Added gnutls_x509_trust_list_verify_crt2() which allows
-verifying using a hostname and a purpose (extended key usage). That
-enhances PKCS #11 trust module verification, as it can now check the purpose
-when this function is used.
-
-** libgnutls: Corrected gnutls_x509_crl_verify() which would always report
-a CRL signature as invalid. Reported by Armin Burgmeier.
-
-** libgnutls: added option --disable-padlock to allow disabling the padlock
-CPU acceleration.
-
-** p11tool: when listing tokens, list their type as well.
-
-** p11tool: when listing objects from a trust module print any attached
-extensions on certificates.
-
-** API and ABI modifications:
-gnutls_x509_crq_get_extension_by_oid2: Added
-gnutls_x509_crt_get_extension_by_oid2: Added
-gnutls_x509_trust_list_verify_crt2: Added
-gnutls_x509_ext_print: Added
-gnutls_x509_ext_deinit: Added
-gnutls_x509_othername_to_virtual: Added
-gnutls_pkcs11_obj_get_exts: Added
-
-
-* Version 3.3.7 (released 2014-08-24)
-
-** libgnutls: Added function to export the public key of a PKCS #11
-private key. Contributed by Wolfgang Meyer zu Bergsten.
-
-** libgnutls: Explicitly set the exponent in PKCS #11 key generation.
-That improves compatibility with certain PKCS #11 modules. Contributed by
-Wolfgang Meyer zu Bergsten.
-
-** libgnutls: When generating a PKCS #11 private key allow setting
-the WRAP/UNWRAP flags. Contributed by Wolfgang Meyer zu Bergsten.
-
-** libgnutls: gnutls_pkcs11_privkey_t will always hold an open session
-to the key.
-
-** libgnutls: bundle replacements of inet_pton and inet_aton if not
-available.
-
-** libgnutls: initialize parameters variable on PKCS #8 decryption.
-
-** libgnutls: gnutls_pkcs12_verify_mac() will not fail in other than SHA1
-algorithms.
-
-** libgnutls: gnutls_x509_crt_check_hostname() will follow the RFC6125
-requirement of checking the Common Name (CN) part of DN only if there is
-a single CN present in the certificate.
-
-** libgnutls: The environment variable GNUTLS_FORCE_FIPS_MODE can be used
-to force the FIPS mode, when set to 1.
-
-** libgnutls: In DTLS ignore only errors that relate to unexpected packets
-and decryption failures.
-
-** p11tool: Added --info parameter.
-
-** certtool: Added --mark-wrap parameter.
-
-** danetool: --check will attempt to retrieve the server's certificate
-chain and verify against it.
-
-** danetool/gnutls-cli-debug: Added --app-proto parameters which can
-be used to enforce starttls (currently only SMTP and IMAP) on the connection.
-
-** danetool: Added openssl linking exception, to allow linking
-with libunbound.
-
-** API and ABI modifications:
-GNUTLS_PKCS11_OBJ_ATTR_MATCH: Added
-gnutls_pkcs11_privkey_export_pubkey: Added
-gnutls_pkcs11_obj_flags_get_str: Added
-gnutls_pkcs11_obj_get_flags: Added
 
 
 * Version 3.3.6 (released 2014-07-23)

@@ -30,7 +30,7 @@
 #include <gnutls_num.h>
 
 /* This file includes all the required to parse an X.509 Distriguished
- * Name (you need a parser just to read a name in the X.509 protoocols!!!)
+ * Name (you need a parser just to read a name in the X.509 protocols!!!)
  */
 
 int
@@ -68,6 +68,11 @@ _gnutls_x509_get_dn(ASN1_TYPE asn1_struct,
 		    asn1_read_value(asn1_struct, tmpbuffer1, value, &len);
 
 		if (result == ASN1_ELEMENT_NOT_FOUND) {
+			if (k1 == 1) {
+				gnutls_assert();
+				result = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+				goto cleanup;
+			}
 			break;
 		}
 
@@ -197,13 +202,9 @@ _gnutls_x509_get_dn(ASN1_TYPE asn1_struct,
 	}
 	while (1);
 
-	DATA_APPEND("\x00", 1);
-	result = _gnutls_buffer_to_datum(&out_str, dn);
+	result = _gnutls_buffer_to_datum(&out_str, dn, 1);
 	if (result < 0)
 		gnutls_assert();
-	if (dn->size > 0) {
-		dn->size--;
-	}
 
 	goto cleanup1;
 
@@ -229,7 +230,7 @@ _gnutls_x509_parse_dn(ASN1_TYPE asn1_struct,
 		      size_t * buf_size)
 {
 	int ret;
-	gnutls_datum_t dn;
+	gnutls_datum_t dn = {NULL, 0};
 
 	if (buf_size == NULL) {
 		gnutls_assert();
@@ -740,7 +741,7 @@ _gnutls_x509_set_dn_oid(ASN1_TYPE asn1_struct,
  * gnutls_x509_dn_init:
  * @dn: the object to be initialized
  *
- * This function initializes a #gnutls_x509_dn_t structure.
+ * This function initializes a #gnutls_x509_dn_t type.
  *
  * The object returned must be deallocated using
  * gnutls_x509_dn_deinit().
@@ -753,16 +754,16 @@ _gnutls_x509_set_dn_oid(ASN1_TYPE asn1_struct,
 int gnutls_x509_dn_init(gnutls_x509_dn_t * dn)
 {
 	int result;
-	ASN1_TYPE tmpdn = ASN1_TYPE_EMPTY;
+
+	*dn = gnutls_calloc(1, sizeof(gnutls_x509_dn_st));
 
 	if ((result =
 	     asn1_create_element(_gnutls_get_pkix(),
-				 "PKIX1.Name", &tmpdn)) != ASN1_SUCCESS) {
+				 "PKIX1.Name", &(*dn)->asn)) != ASN1_SUCCESS) {
 		gnutls_assert();
+		gnutls_free(*dn);
 		return _gnutls_asn2err(result);
 	}
-
-	*dn = tmpdn;
 
 	return 0;
 }
@@ -773,7 +774,7 @@ int gnutls_x509_dn_init(gnutls_x509_dn_t * dn)
  * @data: should contain a DER encoded RDN sequence
  *
  * This function parses an RDN sequence and stores the result to a
- * #gnutls_x509_dn_t structure. The structure must have been initialized
+ * #gnutls_x509_dn_t type. The data must have been initialized
  * with gnutls_x509_dn_init(). You may use gnutls_x509_dn_get_rdn_ava() to
  * decode the DN.
  *
@@ -787,7 +788,10 @@ int gnutls_x509_dn_import(gnutls_x509_dn_t dn, const gnutls_datum_t * data)
 	int result;
 	char err[ASN1_MAX_ERROR_DESCRIPTION_SIZE];
 
-	result = asn1_der_decoding((ASN1_TYPE *) & dn,
+	if (data->data == NULL || data->size == 0)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	result = _asn1_strict_der_decode(&dn->asn,
 				   data->data, data->size, err);
 	if (result != ASN1_SUCCESS) {
 		/* couldn't decode DER */
@@ -810,7 +814,8 @@ int gnutls_x509_dn_import(gnutls_x509_dn_t dn, const gnutls_datum_t * data)
  **/
 void gnutls_x509_dn_deinit(gnutls_x509_dn_t dn)
 {
-	asn1_delete_structure((ASN1_TYPE *) & dn);
+	asn1_delete_structure(&dn->asn);
+	gnutls_free(dn);
 }
 
 /**
@@ -851,7 +856,7 @@ gnutls_x509_rdn_get(const gnutls_datum_t * idn,
 		return _gnutls_asn2err(result);
 	}
 
-	result = asn1_der_decoding(&dn, idn->data, idn->size, NULL);
+	result = _asn1_strict_der_decode(&dn, idn->data, idn->size, NULL);
 	if (result != ASN1_SUCCESS) {
 		/* couldn't decode DER */
 		gnutls_assert();
@@ -905,7 +910,7 @@ gnutls_x509_rdn_get_by_oid(const gnutls_datum_t * idn, const char *oid,
 		return _gnutls_asn2err(result);
 	}
 
-	result = asn1_der_decoding(&dn, idn->data, idn->size, NULL);
+	result = _asn1_strict_der_decode(&dn, idn->data, idn->size, NULL);
 	if (result != ASN1_SUCCESS) {
 		/* couldn't decode DER */
 		gnutls_assert();
@@ -959,7 +964,7 @@ gnutls_x509_rdn_get_oid(const gnutls_datum_t * idn,
 		return _gnutls_asn2err(result);
 	}
 
-	result = asn1_der_decoding(&dn, idn->data, idn->size, NULL);
+	result = _asn1_strict_der_decode(&dn, idn->data, idn->size, NULL);
 	if (result != ASN1_SUCCESS) {
 		/* couldn't decode DER */
 		gnutls_assert();
@@ -1022,14 +1027,12 @@ gnutls_x509_dn_export(gnutls_x509_dn_t dn,
 		      gnutls_x509_crt_fmt_t format, void *output_data,
 		      size_t * output_data_size)
 {
-	ASN1_TYPE asn1 = dn;
-
-	if (asn1 == NULL) {
+	if (dn == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	return _gnutls_x509_export_int_named(asn1, "rdnSequence",
+	return _gnutls_x509_export_int_named(dn->asn, "rdnSequence",
 					     format, "NAME",
 					     output_data,
 					     output_data_size);
@@ -1057,13 +1060,11 @@ int
 gnutls_x509_dn_export2(gnutls_x509_dn_t dn,
 		       gnutls_x509_crt_fmt_t format, gnutls_datum_t * out)
 {
-	ASN1_TYPE asn1 = dn;
-
-	if (asn1 == NULL) {
+	if (dn == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	return _gnutls_x509_export_int_named2(asn1, "rdnSequence",
+	return _gnutls_x509_export_int_named2(dn->asn, "rdnSequence",
 					      format, "NAME", out);
 }

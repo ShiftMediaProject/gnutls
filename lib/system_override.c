@@ -41,7 +41,7 @@
 
 /**
  * gnutls_transport_set_errno:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @err: error value to store in session-specific errno variable.
  *
  * Store @err in the session-specific errno variable.  Useful values
@@ -63,7 +63,7 @@ void gnutls_transport_set_errno(gnutls_session_t session, int err)
 
 /**
  * gnutls_transport_set_pull_function:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @pull_func: a callback function similar to read()
  *
  * This is the function where you set a function for gnutls to receive
@@ -84,7 +84,7 @@ gnutls_transport_set_pull_function(gnutls_session_t session,
 
 /**
  * gnutls_transport_set_pull_timeout_function:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @func: a callback function
  *
  * This is the function where you set a function for gnutls to know
@@ -100,6 +100,16 @@ gnutls_transport_set_pull_function(gnutls_session_t session,
  * @gnutls_pull_timeout_func is of the form,
  * int (*gnutls_pull_timeout_func)(gnutls_transport_ptr_t, unsigned int ms);
  *
+ * This callback is necessary when gnutls_handshake_set_timeout() or 
+ * gnutls_record_set_timeout() are set. It will not be used when 
+ * non-blocking sockets are in use. That is, this function will
+ * not operate when %GNUTLS_NONBLOCK is specified in gnutls_init(), 
+ * or a custom pull function is registered without updating the 
+ * pull timeout function.
+ *
+ * The helper function gnutls_system_recv_timeout() is provided to
+ * simplify writing callbacks. 
+ *
  * Since: 3.0
  **/
 void
@@ -111,7 +121,7 @@ gnutls_transport_set_pull_timeout_function(gnutls_session_t session,
 
 /**
  * gnutls_transport_set_push_function:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @push_func: a callback function similar to write()
  *
  * This is the function where you set a push function for gnutls to
@@ -136,7 +146,7 @@ gnutls_transport_set_push_function(gnutls_session_t session,
 
 /**
  * gnutls_transport_set_vec_push_function:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @vec_func: a callback function similar to writev()
  *
  * Using this function you can override the default writev(2)
@@ -159,7 +169,7 @@ gnutls_transport_set_vec_push_function(gnutls_session_t session,
 
 /**
  * gnutls_transport_set_errno_function:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @errno_func: a callback function similar to write()
  *
  * This is the function where you set a function to retrieve errno

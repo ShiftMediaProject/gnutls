@@ -42,9 +42,11 @@ typedef struct common_info {
 	const char *cert;
 
 	const char *request;
+	const char *crl;
 	const char *ca;
+	const char *data_file;
 	const char *ca_privkey;
-	int bits;
+	unsigned bits;
 	const char *sec_param;
 	const char *pkcs_cipher;
 	const char *password;
@@ -57,8 +59,11 @@ typedef struct common_info {
 	const char *so_pin;
 
 	int cprint;
+	unsigned key_usage;
 
 	unsigned int batch;
+	/* when printing PKCS #11 objects, only print urls */
+	unsigned int only_urls;
 	unsigned int verbose;
 } common_info_st;
 
@@ -77,6 +82,8 @@ gnutls_x509_crt_t load_cert(int mand, common_info_st * info);
 gnutls_datum_t *load_secret_key(int mand, common_info_st * info);
 gnutls_pubkey_t load_pubkey(int mand, common_info_st * info);
 gnutls_x509_crt_t *load_cert_list(int mand, size_t * size,
+				  common_info_st * info);
+gnutls_x509_crl_t *load_crl_list(int mand, size_t * size,
 				  common_info_st * info);
 int get_bits(gnutls_pk_algorithm_t key_type, int info_bits,
 	     const char *info_sec_param, int warn);

@@ -29,7 +29,7 @@
 
 #if defined(_WIN32)
 
-int main()
+void doit(void)
 {
 	exit(77);
 }
@@ -46,8 +46,8 @@ int main()
 #include <gnutls/gnutls.h>
 #include <gnutls/dtls.h>
 #include <signal.h>
+#include "utils.h"
 
-static int debug = 0;
 static void terminate(int);
 
 /* This program tests the robustness of record
@@ -208,7 +208,7 @@ static void server(int fd, const char *prio)
 	if (ret < 0) {
 		return;
 	}
-	sleep(3);
+	sec_sleep(3);
 
 	return;
 }
@@ -260,16 +260,12 @@ static void ch_handler(int sig)
 	return;
 }
 
-int main(int argc, char **argv)
+void doit(void)
 {
 	signal(SIGCHLD, ch_handler);
 	signal(SIGPIPE, SIG_IGN);
 
-	if (argc > 1)
-		debug = 1;
-
 	start("NORMAL");
-	return 0;
 }
 
 #endif				/* _WIN32 */

@@ -45,12 +45,14 @@
 
 #include "certtool-common.h"
 #include "tpmtool-args.h"
+#include "common.h"
 
 static void cmd_parser(int argc, char **argv);
 static void tpm_generate(FILE * outfile, unsigned int key_type,
 			 unsigned int bits, unsigned int flags);
 static void tpm_pubkey(const char *url, FILE * outfile);
 static void tpm_delete(const char *url, FILE * outfile);
+static void tpm_test_sign(const char *url, FILE * outfile);
 static void tpm_list(FILE * outfile);
 
 static gnutls_x509_crt_fmt_t incert_format, outcert_format;
@@ -122,14 +124,14 @@ static void cmd_parser(int argc, char **argv)
 		printf("Setting log level to %d\n", debug);
 
 	if ((ret = gnutls_global_init()) < 0) {
-		fprintf(stderr, "global_init: %s", gnutls_strerror(ret));
+		fprintf(stderr, "global_init: %s\n", gnutls_strerror(ret));
 		exit(1);
 	}
 
 	if (HAVE_OPT(OUTFILE)) {
 		outfile = safe_open_rw(OPT_ARG(OUTFILE), 0);
 		if (outfile == NULL) {
-			fprintf(stderr, "%s", OPT_ARG(OUTFILE));
+			fprintf(stderr, "%s\n", OPT_ARG(OUTFILE));
 			exit(1);
 		}
 	} else
@@ -138,7 +140,7 @@ static void cmd_parser(int argc, char **argv)
 	if (HAVE_OPT(INFILE)) {
 		infile = fopen(OPT_ARG(INFILE), "rb");
 		if (infile == NULL) {
-			fprintf(stderr, "%s", OPT_ARG(INFILE));
+			fprintf(stderr, "%s\n", OPT_ARG(INFILE));
 			exit(1);
 		}
 	} else
@@ -160,6 +162,8 @@ static void cmd_parser(int argc, char **argv)
 		tpm_delete(OPT_ARG(DELETE), outfile);
 	} else if (HAVE_OPT(LIST)) {
 		tpm_list(outfile);
+	} else if (HAVE_OPT(TEST_SIGN)) {
+		tpm_test_sign(OPT_ARG(TEST_SIGN), outfile);
 	} else {
 		USAGE(1);
 	}
@@ -169,7 +173,76 @@ static void cmd_parser(int argc, char **argv)
 	gnutls_global_deinit();
 }
 
-static void tpm_generate(FILE * outfile, unsigned int key_type,
+#define TEST_DATA "Test data to sign"
+
+static void
+tpm_test_sign(const char *url, FILE * out)
+{
+	gnutls_privkey_t privkey;
+	gnutls_pubkey_t pubkey;
+	int ret;
+	gnutls_datum_t data, sig = {NULL, 0};
+	int pk;
+
+	pkcs11_common(NULL);
+
+	data.data = (void*)TEST_DATA;
+	data.size = sizeof(TEST_DATA)-1;
+
+	ret = gnutls_privkey_init(&privkey);
+	if (ret < 0) {
+		fprintf(stderr, "Error in %s:%d: %s\n", __func__,
+			__LINE__, gnutls_strerror(ret));
+		exit(1);
+	}
+
+	ret = gnutls_pubkey_init(&pubkey);
+	if (ret < 0) {
+		fprintf(stderr, "Error in %s:%d: %s\n", __func__,
+			__LINE__, gnutls_strerror(ret));
+		exit(1);
+	}
+
+	ret = gnutls_privkey_import_url(privkey, url, 0);
+	if (ret < 0) {
+		fprintf(stderr, "Cannot import private key: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	ret = gnutls_pubkey_import_tpm_url(pubkey, url, NULL, 0);
+	if (ret < 0) {
+		fprintf(stderr, "Cannot import public key: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	ret = gnutls_privkey_sign_data(privkey, GNUTLS_DIG_SHA1, 0, &data, &sig);
+	if (ret < 0) {
+		fprintf(stderr, "Cannot sign data: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	pk = gnutls_pubkey_get_pk_algorithm(pubkey, NULL);
+
+	fprintf(stderr, "Verifying against private key parameters... ");
+	ret = gnutls_pubkey_verify_data2(pubkey, gnutls_pk_to_sign(pk, GNUTLS_DIG_SHA1),
+		0, &data, &sig);
+	if (ret < 0) {
+		fprintf(stderr, "Cannot verify signed data: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	fprintf(stderr, "ok\n");
+
+	gnutls_free(sig.data);
+	gnutls_pubkey_deinit(pubkey);
+	gnutls_privkey_deinit(privkey);
+}
+
+static void tpm_generate(FILE * out, unsigned int key_type,
 			 unsigned int bits, unsigned int flags)
 {
 	int ret;
@@ -195,21 +268,20 @@ static void tpm_generate(FILE * outfile, unsigned int key_type,
 	free(srk_pass);
 
 	if (ret < 0) {
-		fprintf(stderr, "gnutls_tpm_privkey_generate: %s",
+		fprintf(stderr, "gnutls_tpm_privkey_generate: %s\n",
 			gnutls_strerror(ret));
 		exit(1);
 	}
 
-/*  fwrite (pubkey.data, 1, pubkey.size, outfile);
-  fputs ("\n", outfile);*/
-	fwrite(privkey.data, 1, privkey.size, outfile);
-	fputs("\n", outfile);
+
+	fwrite(privkey.data, 1, privkey.size, out);
+	fputs("\n", out);
 
 	gnutls_free(privkey.data);
 	gnutls_free(pubkey.data);
 }
 
-static void tpm_delete(const char *url, FILE * outfile)
+static void tpm_delete(const char *url, FILE * out)
 {
 	int ret;
 	char *srk_pass;
@@ -218,15 +290,15 @@ static void tpm_delete(const char *url, FILE * outfile)
 
 	ret = gnutls_tpm_privkey_delete(url, srk_pass);
 	if (ret < 0) {
-		fprintf(stderr, "gnutls_tpm_privkey_delete: %s",
+		fprintf(stderr, "gnutls_tpm_privkey_delete: %s\n",
 			gnutls_strerror(ret));
 		exit(1);
 	}
 
-	fprintf(outfile, "Key %s deleted\n", url);
+	fprintf(out, "Key %s deleted\n", url);
 }
 
-static void tpm_list(FILE * outfile)
+static void tpm_list(FILE * out)
 {
 	int ret;
 	gnutls_tpm_key_list_t list;
@@ -235,30 +307,30 @@ static void tpm_list(FILE * outfile)
 
 	ret = gnutls_tpm_get_registered(&list);
 	if (ret < 0) {
-		fprintf(stderr, "gnutls_tpm_get_registered: %s",
+		fprintf(stderr, "gnutls_tpm_get_registered: %s\n",
 			gnutls_strerror(ret));
 		exit(1);
 	}
 
-	fprintf(outfile, "Available keys:\n");
+	fprintf(out, "Available keys:\n");
 	for (i = 0;; i++) {
 		ret = gnutls_tpm_key_list_get_url(list, i, &url, 0);
 		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
 			break;
 		else if (ret < 0) {
-			fprintf(stderr, "gnutls_tpm_key_list_get_url: %s",
+			fprintf(stderr, "gnutls_tpm_key_list_get_url: %s\n",
 				gnutls_strerror(ret));
 			exit(1);
 		}
 
-		fprintf(outfile, "\t%u: %s\n", i, url);
+		fprintf(out, "\t%u: %s\n", i, url);
 		gnutls_free(url);
 	}
 
-	fputs("\n", outfile);
+	fputs("\n", out);
 }
 
-static void tpm_pubkey(const char *url, FILE * outfile)
+static void tpm_pubkey(const char *url, FILE * out)
 {
 	int ret;
 	char *srk_pass;
@@ -275,12 +347,12 @@ static void tpm_pubkey(const char *url, FILE * outfile)
 	free(srk_pass);
 
 	if (ret < 0) {
-		fprintf(stderr, "gnutls_pubkey_import_tpm_url: %s",
+		fprintf(stderr, "gnutls_pubkey_import_tpm_url: %s\n",
 			gnutls_strerror(ret));
 		exit(1);
 	}
 
-	_pubkey_info(outfile, GNUTLS_CRT_PRINT_FULL, pubkey);
+	_pubkey_info(out, GNUTLS_CRT_PRINT_FULL, pubkey);
 
 	gnutls_pubkey_deinit(pubkey);
 }

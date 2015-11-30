@@ -52,10 +52,10 @@ This is disabled by default due to many servers not allowing DNSSEC.";
 
 flag = {
     name      = ca-verification;
-    descrip   = "Disable CA certificate verification";
+    descrip   = "Enable CA certificate verification";
     enabled;
     disable   = "no";
-    doc       = "This option will disable CA certificate verification. It is to be used with the --dane or --tofu options.";
+    doc       = "This option can be used to enable or disable CA certificate verification. It is to be used with the --dane or --tofu options.";
 };
 
 flag = {
@@ -94,7 +94,7 @@ flag = {
 
 flag = {
     name      = starttls-proto;
-    descrip   = "The application protocol to be used to obtain the server's certificate (https, ftp, smtp, imap)";
+    descrip   = "The application protocol to be used to obtain the server's certificate (https, ftp, smtp, imap, ldap, xmpp)";
     arg-type  = string;
     doc       = "Specify the application layer protocol for STARTTLS. If the protocol is supported, gnutls-cli will proceed to the TLS negotiation.";
     flags-cant = starttls;
@@ -137,6 +137,20 @@ flag = {
 flag = {
     name      = print-cert;
     descrip   = "Print peer's certificate in PEM format";
+    doc      = "";
+};
+
+flag = {
+    name      = save-cert;
+    arg-type  = string;
+    descrip   = "Save the peer's certificate chain in the specified file in PEM format";
+    doc      = "";
+};
+
+flag = {
+    name      = save-ocsp;
+    arg-type  = string;
+    descrip   = "Save the peer's OCSP status response in the provided file";
     doc      = "";
 };
 
@@ -196,6 +210,7 @@ flag = {
     file-exists = yes;
     descrip   = "PGP Public Key (certificate) file to use";
     doc      = "";
+    flags-must = pgpkeyfile;
 };
 
 flag = {
@@ -210,6 +225,7 @@ flag = {
     arg-type  = string;
     descrip   = "X.509 Certificate file or PKCS #11 URL to use";
     doc      = "";
+    flags-must = x509keyfile;
 };
 
 flag = {
@@ -271,7 +287,7 @@ flag = {
 flag = {
     name      = benchmark-ciphers;
     descrip   = "Benchmark individual ciphers";
-    doc      = "";
+    doc      = "By default the benchmarked ciphers will utilize any capabilities of the local CPU to improve performance. To test against the raw software implementation set the environment variable GNUTLS_CPUID_OVERRIDE to 0x1.";
 };
 
 flag = {
@@ -283,7 +299,7 @@ flag = {
 flag = {
     name      = benchmark-tls-ciphers;
     descrip   = "Benchmark TLS ciphers";
-    doc      = "";
+    doc      = "By default the benchmarked ciphers will utilize any capabilities of the local CPU to improve performance. To test against the raw software implementation set the environment variable GNUTLS_CPUID_OVERRIDE to 0x1.";
 };
 
 flag = {
@@ -292,6 +308,12 @@ flag = {
     descrip   = "Print a list of the supported algorithms and modes";
     doc      = "Print a list of the supported algorithms and modes. If a priority string is given then only the enabled ciphersuites are shown.";
     flags-cant = port;
+};
+
+flag = {
+    name      = priority-list;
+    descrip   = "Print a list of the supported priority strings";
+    doc      = "Print a list of the supported priority strings. The ciphersuites corresponding to each priority string can be examined using -l -p.";
 };
 
 flag = {
@@ -440,16 +462,17 @@ Token 0:
 $ p11tool --login --list-certs "pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test"
 
 Object 0:
-	URL: pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test;object=client;object-type=cert
+	URL: pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test;object=client;type=cert
 	Type: X.509 Certificate
 	Label: client
 	ID: 2a:97:0d:58:d1:51:3c:23:07:ae:4e:0d:72:26:03:7d:99:06:02:6a
 
-$ export MYCERT="pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test;object=client;object-type=cert"
-$ export MYKEY="pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test;object=client;object-type=private"
+$ MYCERT="pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test;object=client;type=cert"
+$ MYKEY="pkcs11:model=PKCS15;manufacturer=MyMan;serial=1234;token=Test;object=client;type=private"
+$ export MYCERT MYKEY
 
-$ gnutls-cli www.example.com --x509keyfile $MYKEY --x509certfile MYCERT
+$ gnutls-cli www.example.com --x509keyfile $MYKEY --x509certfile $MYCERT
 @end example
-Notice that the private key only differs from the certificate in the object-type.
+Notice that the private key only differs from the certificate in the type.
 _EOF_;
 };

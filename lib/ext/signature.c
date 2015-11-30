@@ -159,7 +159,7 @@ _gnutls_sign_algorithm_parse_data(gnutls_session_t session,
 		}
 	}
 
-	epriv.ptr = priv;
+	epriv = priv;
 	_gnutls_ext_set_session_data(session,
 				     GNUTLS_EXTENSION_SIGNATURE_ALGORITHMS,
 				     epriv);
@@ -276,7 +276,7 @@ _gnutls_session_get_sign_algo(gnutls_session_t session,
 	    _gnutls_ext_get_session_data(session,
 					 GNUTLS_EXTENSION_SIGNATURE_ALGORITHMS,
 					 &epriv);
-	priv = epriv.ptr;
+	priv = epriv;
 
 	if (ret < 0 || !_gnutls_version_has_selectable_sighash(ver)
 	    || priv->sign_algorithms_size == 0)
@@ -339,14 +339,14 @@ _gnutls_session_sign_algo_enabled(gnutls_session_t session,
 
 static void signature_algorithms_deinit_data(extension_priv_data_t priv)
 {
-	gnutls_free(priv.ptr);
+	gnutls_free(priv);
 }
 
 static int
 signature_algorithms_pack(extension_priv_data_t epriv,
 			  gnutls_buffer_st * ps)
 {
-	sig_ext_st *priv = epriv.ptr;
+	sig_ext_st *priv = epriv;
 	int ret, i;
 
 	BUFFER_APPEND_NUM(ps, priv->sign_algorithms_size);
@@ -375,7 +375,7 @@ signature_algorithms_unpack(gnutls_buffer_st * ps,
 		BUFFER_POP_NUM(ps, priv->sign_algorithms[i]);
 	}
 
-	epriv.ptr = priv;
+	epriv = priv;
 	*_priv = epriv;
 
 	return 0;
@@ -389,7 +389,7 @@ signature_algorithms_unpack(gnutls_buffer_st * ps,
 
 /**
  * gnutls_sign_algorithm_get_requested:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @indx: is an index of the signature algorithm to return
  * @algo: the returned certificate type will be stored there
  *
@@ -429,7 +429,7 @@ gnutls_sign_algorithm_get_requested(gnutls_session_t session,
 		gnutls_assert();
 		return ret;
 	}
-	priv = epriv.ptr;
+	priv = epriv;
 
 	if (!_gnutls_version_has_selectable_sighash(ver)
 	    || priv->sign_algorithms_size == 0) {
@@ -445,7 +445,7 @@ gnutls_sign_algorithm_get_requested(gnutls_session_t session,
 
 /**
  * gnutls_sign_algorithm_get:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Returns the signature algorithm that is (or will be) used in this 
  * session by the server to sign data.
@@ -461,7 +461,7 @@ int gnutls_sign_algorithm_get(gnutls_session_t session)
 
 /**
  * gnutls_sign_algorithm_get_client:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Returns the signature algorithm that is (or will be) used in this 
  * session by the client to sign data.

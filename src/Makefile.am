@@ -30,13 +30,6 @@ if ENABLE_CRYWRAP
 SUBDIRS += crywrap
 endif
 
-if NEED_LIBOPTS
-LIBOPTS = libopts/libopts.la
-SUBDIRS += libopts
-else
-LIBOPTS = $(LIBOPTS_LDADD)
-endif
-
 EXTRA_DIST = args-std.def
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
@@ -48,6 +41,14 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/../libdane/includes		\
 	-I$(srcdir)/../extra/includes	\
 	$(LIBOPTS_CFLAGS)
+
+if NEED_LIBOPTS
+LIBOPTS = libopts/libopts.la
+SUBDIRS += libopts
+AM_CPPFLAGS += -I$(srcdir)/libopts
+else
+LIBOPTS = $(LIBOPTS_LDADD)
+endif
 
 bin_PROGRAMS = psktool gnutls-cli-debug certtool
 if ENABLE_SRP
@@ -68,6 +69,8 @@ endif
 if ENABLE_TROUSERS
 bin_PROGRAMS += tpmtool
 endif
+
+noinst_PROGRAMS = systemkey
 
 if ENABLE_PKCS11
 bin_PROGRAMS += p11tool
@@ -96,7 +99,7 @@ if ENABLE_OCSP
 ocsptool_SOURCES = ocsptool.c ocsptool-common.h ocsptool-common.c \
 	socket.c socket.h
 ocsptool_LDADD = ../lib/libgnutls.la libcmd-ocsp.la $(LIBOPTS) ../gl/libgnu.la 
-ocsptool_LDADD += $(LTLIBINTL) $(GETADDRINFO_LIB) gl/libgnu_gpl.la
+ocsptool_LDADD += $(LTLIBINTL) $(GETADDRINFO_LIB) gl/libgnu_gpl.la $(LIBIDN_LIBS)
 noinst_LTLIBRARIES += libcmd-ocsp.la
 libcmd_ocsp_la_SOURCES = ocsptool-args.def ocsptool-args.h ocsptool-args.c
 
@@ -109,7 +112,7 @@ gnutls_serv_SOURCES =		\
 gnutls_serv_LDADD = ../lib/libgnutls.la
 gnutls_serv_LDADD += libcmd-serv.la $(LIBOPTS) ../gl/libgnu.la
 gnutls_serv_LDADD += $(LTLIBINTL) gl/libgnu_gpl.la
-gnutls_serv_LDADD += $(LIBSOCKET) $(GETADDRINFO_LIB)
+gnutls_serv_LDADD += $(LIBSOCKET) $(GETADDRINFO_LIB) $(LIBIDN_LIBS)
 noinst_LTLIBRARIES += libcmd-serv.la
 libcmd_serv_la_SOURCES = serv-args.def serv-args.c serv-args.h
 
@@ -124,7 +127,7 @@ gnutls_cli_LDADD = ../lib/libgnutls.la
 if ENABLE_DANE
 gnutls_cli_LDADD += ../libdane/libgnutls-dane.la
 endif
-gnutls_cli_LDADD += libcmd-cli.la $(LIBOPTS) ../gl/libgnu.la $(LTLIBINTL)
+gnutls_cli_LDADD += libcmd-cli.la $(LIBOPTS) ../gl/libgnu.la $(LTLIBINTL) $(LIBIDN_LIBS)
 gnutls_cli_LDADD += $(LIBSOCKET) $(GETADDRINFO_LIB) $(LIB_CLOCK_GETTIME) \
 	 $(SERVENT_LIB) gl/libgnu_gpl.la
 noinst_LTLIBRARIES += libcmd-cli.la
@@ -136,7 +139,7 @@ gnutls_cli_debug_SOURCES = cli-debug.c tests.h tests.c \
 		socket.c socket.h common.h common.c
 gnutls_cli_debug_LDADD = ../lib/libgnutls.la libcmd-cli-debug.la 
 gnutls_cli_debug_LDADD += $(LIBOPTS) ../gl/libgnu.la gl/libgnu_gpl.la
-gnutls_cli_debug_LDADD += $(LTLIBINTL)
+gnutls_cli_debug_LDADD += $(LTLIBINTL) $(LIBIDN_LIBS)
 gnutls_cli_debug_LDADD += $(LIBSOCKET) $(GETADDRINFO_LIB)
 noinst_LTLIBRARIES += libcmd-cli-debug.la
 libcmd_cli_debug_la_SOURCES = cli-debug-args.def cli-debug-args.c cli-debug-args.h
@@ -156,7 +159,7 @@ libcmd_certtool_la_LIBADD += $(LTLIBREADLINE) gl/libgnu_gpl.la
 libcmd_certtool_la_LIBADD += $(INET_PTON_LIB) $(LIB_CLOCK_GETTIME)
 
 danetool_SOURCES = danetool.c certtool-common.c certtool-extras.c common.c socket.c
-danetool_LDADD = ../lib/libgnutls.la 
+danetool_LDADD = ../lib/libgnutls.la  $(LIBIDN_LIBS)
 danetool_LDADD += libcmd-danetool.la ../gl/libgnu.la gl/libgnu_gpl.la
 if ENABLE_DANE
 danetool_LDADD += ../libdane/libgnutls-dane.la
@@ -203,6 +206,17 @@ libcmd_tpmtool_la_LIBADD += $(LTLIBREADLINE) $(INET_PTON_LIB) $(LIB_CLOCK_GETTIM
 
 endif # ENABLE_TROUSERS
 
+systemkey_SOURCES = systemkey.c certtool-common.c
+systemkey_LDADD = ../lib/libgnutls.la
+systemkey_LDADD += libcmd-systemkey.la $(LIBOPTS) ../gl/libgnu.la gl/libgnu_gpl.la
+systemkey_LDADD += $(LTLIBINTL)
+
+noinst_LTLIBRARIES += libcmd-systemkey.la
+libcmd_systemkey_la_SOURCES = systemkey-args.def systemkey-args.c systemkey-args.h \
+	certtool-cfg.h certtool-cfg.c
+libcmd_systemkey_la_LIBADD = ../lib/libgnutls.la gl/libgnu_gpl.la ../gl/libgnu.la 
+libcmd_systemkey_la_LIBADD += $(LTLIBREADLINE) $(INET_PTON_LIB) $(LIB_CLOCK_GETTIME)
+
 danetool-args.h: danetool-args.c
 danetool-args.c: $(srcdir)/danetool-args.def $(srcdir)/args-std.def
 	-$(AUTOGEN) $<
@@ -232,4 +246,8 @@ srptool-args.c: $(srcdir)/srptool-args.def $(srcdir)/args-std.def
 	-$(AUTOGEN) $<
 certtool-args.h: certtool-args.c
 certtool-args.c: $(srcdir)/certtool-args.def $(srcdir)/args-std.def
+	-$(AUTOGEN) $<
+
+systemkey-args.h: systemkey-args.c
+systemkey-args.c: $(srcdir)/systemkey-args.def $(srcdir)/args-std.def
 	-$(AUTOGEN) $<

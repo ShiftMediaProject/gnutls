@@ -138,9 +138,9 @@ int result;
 
 /**
  * gnutls_pkcs12_init:
- * @pkcs12: The structure to be initialized
+ * @pkcs12: A pointer to the type to be initialized
  *
- * This function will initialize a PKCS12 structure. PKCS12 structures
+ * This function will initialize a PKCS12 type. PKCS12 structures
  * usually contain lists of X.509 Certificates and X.509 Certificate
  * revocation lists.
  *
@@ -165,9 +165,9 @@ int gnutls_pkcs12_init(gnutls_pkcs12_t * pkcs12)
 
 /**
  * gnutls_pkcs12_deinit:
- * @pkcs12: The structure to be initialized
+ * @pkcs12: The type to be initialized
  *
- * This function will deinitialize a PKCS12 structure.
+ * This function will deinitialize a PKCS12 type.
  **/
 void gnutls_pkcs12_deinit(gnutls_pkcs12_t pkcs12)
 {
@@ -182,7 +182,7 @@ void gnutls_pkcs12_deinit(gnutls_pkcs12_t pkcs12)
 
 /**
  * gnutls_pkcs12_import:
- * @pkcs12: The structure to store the parsed PKCS12.
+ * @pkcs12: The data to store the parsed PKCS12.
  * @data: The DER or PEM encoded PKCS12.
  * @format: One of DER or PEM
  * @flags: an ORed sequence of gnutls_privkey_pkcs8_flags
@@ -260,7 +260,7 @@ gnutls_pkcs12_import(gnutls_pkcs12_t pkcs12,
 
 /**
  * gnutls_pkcs12_export:
- * @pkcs12: Holds the pkcs12 structure
+ * @pkcs12: A pkcs12 type
  * @format: the format of output params. One of PEM or DER.
  * @output_data: will contain a structure PEM or DER encoded
  * @output_data_size: holds the size of output_data (and will be
@@ -294,7 +294,7 @@ gnutls_pkcs12_export(gnutls_pkcs12_t pkcs12,
 
 /**
  * gnutls_pkcs12_export2:
- * @pkcs12: Holds the pkcs12 structure
+ * @pkcs12: A pkcs12 type
  * @format: the format of output params. One of PEM or DER.
  * @out: will contain a structure PEM or DER encoded
  *
@@ -586,7 +586,7 @@ _parse_safe_contents(ASN1_TYPE sc, const char *sc_name,
 
 /**
  * gnutls_pkcs12_get_bag:
- * @pkcs12: should contain a gnutls_pkcs12_t structure
+ * @pkcs12: A pkcs12 type
  * @indx: contains the index of the bag to extract
  * @bag: An initialized bag, where the contents of the bag will be copied
  *
@@ -651,14 +651,14 @@ gnutls_pkcs12_get_bag(gnutls_pkcs12_t pkcs12,
 
 	/* ENC_DATA_OID needs decryption */
 
-	bag->element[0].type = GNUTLS_BAG_ENCRYPTED;
-	bag->bag_elements = 1;
-
 	result = _gnutls_x509_read_value(c2, root2, &bag->element[0].data);
 	if (result < 0) {
 		gnutls_assert();
 		goto cleanup;
 	}
+
+	bag->element[0].type = GNUTLS_BAG_ENCRYPTED;
+	bag->bag_elements = 1;
 
 	result = 0;
 
@@ -726,7 +726,7 @@ static int create_empty_pfx(ASN1_TYPE pkcs12)
 
 /**
  * gnutls_pkcs12_set_bag:
- * @pkcs12: should contain a gnutls_pkcs12_t structure
+ * @pkcs12: should contain a gnutls_pkcs12_t type
  * @bag: An initialized bag
  *
  * This function will insert a Bag into the PKCS12 structure.
@@ -848,8 +848,9 @@ int gnutls_pkcs12_set_bag(gnutls_pkcs12_t pkcs12, gnutls_pkcs12_bag_t bag)
 }
 
 /**
- * gnutls_pkcs12_generate_mac:
- * @pkcs12: should contain a gnutls_pkcs12_t structure
+ * gnutls_pkcs12_generate_mac2:
+ * @pkcs12: A pkcs12 type
+ * @mac: the MAC algorithm to use
  * @pass: The password for the MAC
  *
  * This function will generate a MAC for the PKCS12 structure.
@@ -857,20 +858,24 @@ int gnutls_pkcs12_set_bag(gnutls_pkcs12_t pkcs12, gnutls_pkcs12_bag_t bag)
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
  **/
-int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
+int gnutls_pkcs12_generate_mac2(gnutls_pkcs12_t pkcs12, gnutls_mac_algorithm_t mac, const char *pass)
 {
-	uint8_t salt[8], key[20];
+	uint8_t salt[8], key[MAX_HASH_SIZE];
 	int result;
-	const int iter = 1;
+	const int iter = 10*1024;
 	mac_hd_st td1;
 	gnutls_datum_t tmp = { NULL, 0 };
-	uint8_t sha_mac[20];
-	const mac_entry_st *me = mac_to_entry(GNUTLS_MAC_SHA1);
+	unsigned mac_size;
+	uint8_t mac_out[MAX_HASH_SIZE];
+	const mac_entry_st *me = mac_to_entry(mac);
 
-	if (pkcs12 == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
+	if (pkcs12 == NULL || me == NULL)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	if (me->oid == NULL)
+		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
+
+	mac_size = _gnutls_mac_get_algo_len(me);
 
 	/* Generate the salt.
 	 */
@@ -908,7 +913,7 @@ int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 	 */
 	result =
 	    _gnutls_pkcs12_string_to_key(me, 3 /*MAC*/, salt, sizeof(salt),
-					 iter, pass, sizeof(key), key);
+					 iter, pass, mac_size, key);
 	if (result < 0) {
 		gnutls_assert();
 		goto cleanup;
@@ -925,7 +930,7 @@ int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 	/* MAC the data
 	 */
 	result = _gnutls_mac_init(&td1, me,
-				  key, sizeof(key));
+				  key, mac_size);
 	if (result < 0) {
 		gnutls_assert();
 		goto cleanup;
@@ -934,12 +939,12 @@ int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 	_gnutls_mac(&td1, tmp.data, tmp.size);
 	_gnutls_free_datum(&tmp);
 
-	_gnutls_mac_deinit(&td1, sha_mac);
+	_gnutls_mac_deinit(&td1, mac_out);
 
 
 	result =
-	    asn1_write_value(pkcs12->pkcs12, "macData.mac.digest", sha_mac,
-			     sizeof(sha_mac));
+	    asn1_write_value(pkcs12->pkcs12, "macData.mac.digest", mac_out,
+			     mac_size);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		result = _gnutls_asn2err(result);
@@ -950,7 +955,7 @@ int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 	    asn1_write_value(pkcs12->pkcs12,
 			     "macData.mac.digestAlgorithm.parameters",
 			     NULL, 0);
-	if (result != ASN1_SUCCESS) {
+	if (result != ASN1_SUCCESS && result != ASN1_ELEMENT_NOT_FOUND) {
 		gnutls_assert();
 		result = _gnutls_asn2err(result);
 		goto cleanup;
@@ -959,7 +964,7 @@ int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 	result =
 	    asn1_write_value(pkcs12->pkcs12,
 			     "macData.mac.digestAlgorithm.algorithm",
-			     HASH_OID_SHA1, 1);
+			     me->oid, 1);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		result = _gnutls_asn2err(result);
@@ -974,8 +979,23 @@ int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 }
 
 /**
+ * gnutls_pkcs12_generate_mac:
+ * @pkcs12: A pkcs12 type
+ * @pass: The password for the MAC
+ *
+ * This function will generate a MAC for the PKCS12 structure.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error value.
+ **/
+int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
+{
+	return gnutls_pkcs12_generate_mac2(pkcs12, GNUTLS_MAC_SHA1, pass);
+}
+
+/**
  * gnutls_pkcs12_verify_mac:
- * @pkcs12: should contain a gnutls_pkcs12_t structure
+ * @pkcs12: should contain a gnutls_pkcs12_t type
  * @pass: The password for the MAC
  *
  * This function will verify the MAC for the PKCS12 structure.
@@ -1375,7 +1395,7 @@ static int make_chain(gnutls_x509_crt_t ** chain, unsigned int *chain_len,
 
 /**
  * gnutls_pkcs12_simple_parse:
- * @p12: should contain a gnutls_pkcs12_t structure
+ * @p12: A pkcs12 type
  * @password: optional password used to decrypt the structure, bags and keys.
  * @key: a structure to store the parsed private key.
  * @chain: the corresponding to key certificate chain (may be %NULL)
@@ -1444,6 +1464,7 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 	uint8_t key_id[20];
 	int privkey_ok = 0;
 	unsigned int i;
+	int elements_in_bag;
 
 	*key = NULL;
 
@@ -1452,8 +1473,6 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 
 	/* find the first private key */
 	for (;;) {
-		int elements_in_bag;
-		int i;
 
 		ret = gnutls_pkcs12_bag_init(&bag);
 		if (ret < 0) {
@@ -1497,7 +1516,7 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 			goto done;
 		}
 
-		for (i = 0; i < elements_in_bag; i++) {
+		for (i = 0; i < (unsigned)elements_in_bag; i++) {
 			int type;
 			gnutls_datum_t data;
 
@@ -1580,9 +1599,6 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 	idx = 0;
 	bag = NULL;
 	for (;;) {
-		int elements_in_bag;
-		int i;
-
 		ret = gnutls_pkcs12_bag_init(&bag);
 		if (ret < 0) {
 			bag = NULL;
@@ -1618,7 +1634,7 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 			goto done;
 		}
 
-		for (i = 0; i < elements_in_bag; i++) {
+		for (i = 0; i < (unsigned)elements_in_bag; i++) {
 			int type;
 			gnutls_datum_t data;
 			gnutls_x509_crt_t this_cert;
@@ -1803,3 +1819,105 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 
 	return ret;
 }
+
+
+/**
+ * gnutls_pkcs12_mac_info:
+ * @pkcs12: A pkcs12 type
+ * @mac: the MAC algorithm used as %gnutls_mac_algorithm_t
+ * @salt: the salt used for string to key (if non-NULL then @salt_size initially holds its size)
+ * @salt_size: string to key salt size
+ * @iter_count: string to key iteration count
+ * @oid: if non-NULL it will contain an allocated null-terminated variable with the OID
+ *
+ * This function will provide information on the MAC algorithm used
+ * in a PKCS #12 structure. If the structure algorithms
+ * are unknown the code %GNUTLS_E_UNKNOWN_HASH_ALGORITHM will be returned,
+ * and only @oid, will be set. That is, @oid will be set on structures
+ * with a MAC whether supported or not. It must be deinitialized using gnutls_free().
+ * The other variables are only set on supported structures.
+ *
+ * Returns: %GNUTLS_E_INVALID_REQUEST if the provided structure doesn't contain a MAC,
+ *  %GNUTLS_E_UNKNOWN_HASH_ALGORITHM if the structure's MAC isn't supported, or
+ *  another negative error code in case of a failure. Zero on success.
+ **/
+int
+gnutls_pkcs12_mac_info(gnutls_pkcs12_t pkcs12, unsigned int *mac,
+	void *salt, unsigned int *salt_size, unsigned int *iter_count, char **oid)
+{
+	int ret;
+	gnutls_datum_t tmp = { NULL, 0 }, dsalt = {
+	NULL, 0};
+	gnutls_mac_algorithm_t algo;
+
+	if (oid)
+		*oid = NULL;
+
+	if (pkcs12 == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	ret =
+	    _gnutls_x509_read_value(pkcs12->pkcs12, "macData.mac.digestAlgorithm.algorithm",
+				    &tmp);
+	if (ret < 0) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	if (oid) {
+		*oid = (char*)tmp.data;
+	}
+
+	algo = _gnutls_x509_oid_to_mac((char*)tmp.data);
+	if (algo == GNUTLS_MAC_UNKNOWN || mac_to_entry(algo) == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_UNKNOWN_HASH_ALGORITHM;
+	}
+
+	if (oid) {
+		tmp.data = NULL;
+	}
+
+	if (mac) {
+		*mac = algo;
+	}
+
+	if (iter_count) {
+		ret =
+		    _gnutls_x509_read_uint(pkcs12->pkcs12, "macData.iterations",
+				   iter_count);
+		if (ret < 0) {
+			*iter_count = 1;	/* the default */
+		}
+	}
+
+	if (salt) {
+		/* Read the salt from the structure.
+		 */
+		ret =
+		    _gnutls_x509_read_value(pkcs12->pkcs12, "macData.macSalt",
+					    &dsalt);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+
+		if (*salt_size >= (unsigned)dsalt.size) {
+			*salt_size = dsalt.size;
+			memcpy(salt, dsalt.data, dsalt.size);
+		} else {
+			*salt_size = dsalt.size;
+			return gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
+		}
+	}
+
+	ret = 0;
+      cleanup:
+	_gnutls_free_datum(&tmp);
+	_gnutls_free_datum(&dsalt);
+	return ret;
+
+}
+

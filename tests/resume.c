@@ -48,6 +48,8 @@ int main(int argc, char **argv)
 #endif
 #include <unistd.h>
 #include <gnutls/gnutls.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 #include "utils.h"
 
@@ -86,10 +88,43 @@ struct params_res resume_tests[] = {
 #define MAX_BUF 5*1024
 #define MSG "Hello TLS"
 
+#define HANDSHAKE_SESSION_ID_POS (2+32)
+
 static void tls_log_func(int level, const char *str)
 {
 	fprintf(stderr, "%s |<%d>| %s", child ? "server" : "client", level,
 		str);
+}
+
+static int hsk_hook_cb(gnutls_session_t session, unsigned int htype, unsigned post,
+		       unsigned int incoming, const gnutls_datum_t *_msg)
+{
+	unsigned size;
+	gnutls_datum msg = {_msg->data, _msg->size};
+
+	/* skip up to session ID */
+	if (msg.size <= HANDSHAKE_SESSION_ID_POS+6) {
+		fail("Cannot parse server hello\n");
+		return -1;
+	}
+
+	msg.data += HANDSHAKE_SESSION_ID_POS;
+	msg.size -= HANDSHAKE_SESSION_ID_POS;
+	size = msg.data[0];
+
+	if (msg.size <= size) {
+		fail("Cannot parse server hello 2\n");
+		return -1;
+	}
+
+	msg.data += size;
+	msg.size -= size;
+
+	if (memmem(msg.data, msg.size, "\x00\x17\x00\x00", 4) == 0) {
+		fail("Extended master secret extension was not found in resumed session hello\n");
+		exit(1);
+	}
+	return 0;
 }
 
 static void client(int sds[], struct params_res *params)
@@ -98,12 +133,14 @@ static void client(int sds[], struct params_res *params)
 	gnutls_session_t session;
 	char buffer[MAX_BUF + 1];
 	gnutls_anon_client_credentials_t anoncred;
+	unsigned int ext_master_secret = 0;
+
 	/* Need to enable anonymous KX specifically. */
 
 	/* variables used in session resuming
 	 */
 	int t;
-	gnutls_datum_t session_data;
+	gnutls_datum_t session_data = {NULL, 0};
 
 	if (debug) {
 		gnutls_global_set_log_function(tls_log_func);
@@ -119,19 +156,22 @@ static void client(int sds[], struct params_res *params)
 		/* Initialize TLS session
 		 */
 		gnutls_init(&session,
-			    GNUTLS_CLIENT | GNUTLS_NO_EXTENSIONS);
+			    GNUTLS_CLIENT);
 
 		/* Use default priorities */
-		gnutls_priority_set_direct(session,
-					   "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH",
-					   NULL);
+		if (params->enable_session_ticket_client) {
+			gnutls_priority_set_direct(session,
+						   "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH",
+						   NULL);
+		} else {
+			gnutls_priority_set_direct(session,
+						   "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH:%NO_TICKETS",
+						   NULL);
+		}
 
 		/* put the anonymous credentials to the current session
 		 */
 		gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
-
-		if (params->enable_session_ticket_client)
-			gnutls_session_ticket_enable_client(session);
 
 		if (t > 0) {
 			/* if this is not the first time we connect */
@@ -139,6 +179,8 @@ static void client(int sds[], struct params_res *params)
 						session_data.size);
 		}
 
+		if (ext_master_secret)
+			gnutls_handshake_set_hook_function(session, GNUTLS_HANDSHAKE_SERVER_HELLO, GNUTLS_HOOK_PRE, hsk_hook_cb);
 		gnutls_transport_set_int(session, sd);
 
 		/* Perform the TLS handshake
@@ -158,7 +200,10 @@ static void client(int sds[], struct params_res *params)
 				    ("client: Handshake was completed\n");
 		}
 
-		if (t == 0) {	/* the first time we connect */
+		ext_master_secret = 0;
+		if (t == 0) {
+			ext_master_secret =  gnutls_session_ext_master_secret_status(session);
+
 			/* get the session data size */
 			ret =
 			    gnutls_session_get_data2(session,
@@ -388,6 +433,9 @@ void doit(void)
 {
 	int i;
 
+	signal(SIGCHLD, SIG_IGN);
+	signal(SIGPIPE, SIG_IGN);
+
 	for (i = 0; resume_tests[i].desc; i++) {
 		int client_sds[SESSIONS], server_sds[SESSIONS];
 		int j;
@@ -416,18 +464,21 @@ void doit(void)
 		}
 
 		if (child) {
-			int status;
+			int status = 0;
 			/* parent */
+			for (j = 0; j < SESSIONS; j++)
+				close(client_sds[j]);
 			server(server_sds, &resume_tests[i]);
-			wait(&status);
-			if (WEXITSTATUS(status) > 0)
-				error_count++;
+
+			waitpid(child, &status, 0);
+			if (WEXITSTATUS(status) != 0 || (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV))
+				exit(1);
 			global_stop();
 		} else {
+			for (j = 0; j < SESSIONS; j++)
+				close(server_sds[j]);
 			client(client_sds, &resume_tests[i]);
 			gnutls_global_deinit();
-			if (error_count)
-				exit(1);
 			exit(0);
 		}
 	}
@@ -471,6 +522,7 @@ wrap_db_store(void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 {
 	time_t t, now = time(0);
 
+#ifdef DEBUG_CACHE
 	if (debug) {
 		unsigned int i;
 		fprintf(stderr, "resume db storing (%d-%d): ", key.size,
@@ -485,6 +537,7 @@ wrap_db_store(void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 		}
 		fprintf(stderr, "\n");
 	}
+#endif
 
 	/* check the correctness of gnutls_db_check_entry_time() */
 	t = gnutls_db_check_entry_time(&data);
@@ -521,11 +574,9 @@ wrap_db_store(void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 static gnutls_datum_t wrap_db_fetch(void *dbf, gnutls_datum_t key)
 {
 	gnutls_datum_t res = { NULL, 0 };
-	int i;
+	unsigned i;
 
 	if (debug) {
-		unsigned int i;
-
 		fprintf(stderr, "resume db looking for (%d): ", key.size);
 		for (i = 0; i < key.size; i++) {
 			fprintf(stderr, "%02x", key.data[i] & 0xFF);
@@ -553,18 +604,19 @@ static gnutls_datum_t wrap_db_fetch(void *dbf, gnutls_datum_t key)
 			memcpy(res.data, cache_db[i].session_data,
 			       res.size);
 
+#ifdef DEBUG_CACHE
 			if (debug) {
-				unsigned int i;
+				unsigned int j;
 				printf("data:\n");
-				for (i = 0; i < res.size; i++) {
+				for (j = 0; j < res.size; j++) {
 					printf("%02x ",
-					       res.data[i] & 0xFF);
-					if ((i + 1) % 16 == 0)
+					       res.data[j] & 0xFF);
+					if ((j + 1) % 16 == 0)
 						printf("\n");
 				}
 				printf("\n");
 			}
-
+#endif
 			return res;
 		}
 	}

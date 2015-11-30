@@ -62,6 +62,7 @@ typedef struct gnutls_certificate_credentials_st {
 
 	/* X509 specific stuff */
 	gnutls_x509_trust_list_t tlist;
+	unsigned flags; /* gnutls_certificate_flags */
 	unsigned int verify_flags;	/* flags to be used at 
 					 * certificate verification.
 					 */
@@ -71,8 +72,6 @@ typedef struct gnutls_certificate_credentials_st {
 	/* It's a mess here. However we need to keep the old 3 functions
 	 * for compatibility */
 	gnutls_certificate_retrieve_function *get_cert_callback;	/* deprecated */
-	gnutls_certificate_client_retrieve_function *client_get_cert_callback;	/* deprecated */
-	gnutls_certificate_server_retrieve_function *server_get_cert_callback;	/* deprecated */
 	gnutls_certificate_retrieve_function2 *get_cert_callback2;
 
 	gnutls_certificate_verify_function *verify_callback;

@@ -35,6 +35,7 @@
 #include <x509_b64.h>
 #include <abstract_int.h>
 #include <fips.h>
+#include "urls.h"
 #include <gnutls_ecc.h>
 
 
@@ -58,7 +59,7 @@ int pubkey_to_bits(gnutls_pk_algorithm_t pk, gnutls_pk_params_st * params)
 
 /**
  * gnutls_pubkey_get_pk_algorithm:
- * @key: should contain a #gnutls_pubkey_t structure
+ * @key: should contain a #gnutls_pubkey_t type
  * @bits: If set will return the number of bits of the parameters (may be NULL)
  *
  * This function will return the public key algorithm of a public
@@ -80,7 +81,7 @@ int gnutls_pubkey_get_pk_algorithm(gnutls_pubkey_t key, unsigned int *bits)
 
 /**
  * gnutls_pubkey_get_key_usage:
- * @key: should contain a #gnutls_pubkey_t structure
+ * @key: should contain a #gnutls_pubkey_t type
  * @usage: If set will return the number of bits of the parameters (may be NULL)
  *
  * This function will return the key usage of the public key.
@@ -100,9 +101,9 @@ int gnutls_pubkey_get_key_usage(gnutls_pubkey_t key, unsigned int *usage)
 
 /**
  * gnutls_pubkey_init:
- * @key: The structure to be initialized
+ * @key: A pointer to the type to be initialized
  *
- * This function will initialize an public key structure.
+ * This function will initialize a public key.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -124,7 +125,7 @@ int gnutls_pubkey_init(gnutls_pubkey_t * key)
 
 /**
  * gnutls_pubkey_deinit:
- * @key: The structure to be deinitialized
+ * @key: The key to be deinitialized
  *
  * This function will deinitialize a public key structure.
  *
@@ -145,7 +146,7 @@ void gnutls_pubkey_deinit(gnutls_pubkey_t key)
  * @flags: should be zero
  *
  * This function will import the given public key to the abstract
- * #gnutls_pubkey_t structure.
+ * #gnutls_pubkey_t type.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -157,6 +158,9 @@ gnutls_pubkey_import_x509(gnutls_pubkey_t key, gnutls_x509_crt_t crt,
 			  unsigned int flags)
 {
 	int ret;
+
+	gnutls_pk_params_release(&key->params);
+	/* params initialized in _gnutls_x509_crt_get_mpis */
 
 	key->pk_algorithm =
 	    gnutls_x509_crt_get_pk_algorithm(crt, &key->bits);
@@ -181,7 +185,7 @@ gnutls_pubkey_import_x509(gnutls_pubkey_t key, gnutls_x509_crt_t crt,
  * @flags: should be zero
  *
  * This function will import the given public key to the abstract
- * #gnutls_pubkey_t structure.
+ * #gnutls_pubkey_t type.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -193,6 +197,9 @@ gnutls_pubkey_import_x509_crq(gnutls_pubkey_t key, gnutls_x509_crq_t crq,
 			      unsigned int flags)
 {
 	int ret;
+
+	gnutls_pk_params_release(&key->params);
+	/* params initialized in _gnutls_x509_crq_get_mpis */
 
 	key->pk_algorithm =
 	    gnutls_x509_crq_get_pk_algorithm(crq, &key->bits);
@@ -218,7 +225,7 @@ gnutls_pubkey_import_x509_crq(gnutls_pubkey_t key, gnutls_x509_crq_t crq,
  * @flags: should be zero
  *
  * Imports the public key from a private.  This function will import
- * the given public key to the abstract #gnutls_pubkey_t structure.
+ * the given public key to the abstract #gnutls_pubkey_t type.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -229,6 +236,9 @@ int
 gnutls_pubkey_import_privkey(gnutls_pubkey_t key, gnutls_privkey_t pkey,
 			     unsigned int usage, unsigned int flags)
 {
+	gnutls_pk_params_release(&key->params);
+	gnutls_pk_params_init(&key->params);
+
 	key->pk_algorithm =
 	    gnutls_privkey_get_pk_algorithm(pkey, &key->bits);
 
@@ -261,14 +271,39 @@ gnutls_pubkey_get_preferred_hash_algorithm(gnutls_pubkey_t key,
 					   hash, unsigned int *mand)
 {
 	int ret;
+	const mac_entry_st *me;
 
 	if (key == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	ret = _gnutls_pk_get_hash_algorithm(key->pk_algorithm,
-					    &key->params, hash, mand);
+	if (mand)
+		*mand = 0;
+
+	switch (key->pk_algorithm) {
+	case GNUTLS_PK_DSA:
+		if (mand)
+			*mand = 1;
+		/* fallthrough */
+	case GNUTLS_PK_EC:
+
+		me = _gnutls_dsa_q_to_hash(key->pk_algorithm, &key->params, NULL);
+		if (hash)
+			*hash = (gnutls_digest_algorithm_t)me->id;
+
+		ret = 0;
+		break;
+	case GNUTLS_PK_RSA:
+		if (hash)
+			*hash = GNUTLS_DIG_SHA256;
+		ret = 0;
+		break;
+
+	default:
+		gnutls_assert();
+		ret = GNUTLS_E_INTERNAL_ERROR;
+	}
 
 	return ret;
 }
@@ -282,7 +317,7 @@ gnutls_pubkey_get_preferred_hash_algorithm(gnutls_pubkey_t key,
  * @flags: should be zero
  *
  * Imports a public key from a pkcs11 key. This function will import
- * the given public key to the abstract #gnutls_pubkey_t structure.
+ * the given public key to the abstract #gnutls_pubkey_t type.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -373,7 +408,7 @@ gnutls_pubkey_import_pkcs11(gnutls_pubkey_t key,
  *
  * Imports a public key from an openpgp key. This function will import
  * the given public key to the abstract #gnutls_pubkey_t
- * structure. The subkey set as preferred will be imported or the
+ * type. The subkey set as preferred will be imported or the
  * master key otherwise.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
@@ -541,7 +576,7 @@ gnutls_pubkey_get_openpgp_key_id(gnutls_pubkey_t key, unsigned int flags,
  * @flags: Should be zero
  *
  * This function will import the given public key to the abstract
- * #gnutls_pubkey_t structure. 
+ * #gnutls_pubkey_t type. 
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -729,7 +764,7 @@ gnutls_pubkey_export2(gnutls_pubkey_t key,
 /**
  * gnutls_pubkey_get_key_id:
  * @key: Holds the public key
- * @flags: should be 0 for now
+ * @flags: should be one of the flags from %gnutls_keyid_flags_t
  * @output_data: will contain the key ID
  * @output_data_size: holds the size of output_data (and will be
  *   replaced by the actual size of parameters)
@@ -762,7 +797,7 @@ gnutls_pubkey_get_key_id(gnutls_pubkey_t key, unsigned int flags,
 
 	ret =
 	    _gnutls_get_key_id(key->pk_algorithm, &key->params,
-			       output_data, output_data_size);
+			       output_data, output_data_size, flags);
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
@@ -774,12 +809,14 @@ gnutls_pubkey_get_key_id(gnutls_pubkey_t key, unsigned int flags,
 /**
  * gnutls_pubkey_export_rsa_raw:
  * @key: Holds the certificate
- * @m: will hold the modulus
- * @e: will hold the public exponent
+ * @m: will hold the modulus (may be %NULL)
+ * @e: will hold the public exponent (may be %NULL)
  *
  * This function will export the RSA public key's parameters found in
  * the given structure.  The new parameters will be allocated using
  * gnutls_malloc() and will be stored in the appropriate datum.
+ *
+ * This function allows for %NULL parameters since 3.4.1.
  *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  *
@@ -801,17 +838,21 @@ gnutls_pubkey_export_rsa_raw(gnutls_pubkey_t key,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	ret = _gnutls_mpi_dprint_lz(key->params.params[0], m);
-	if (ret < 0) {
-		gnutls_assert();
-		return ret;
+	if (m) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[0], m);
+		if (ret < 0) {
+			gnutls_assert();
+			return ret;
+		}
 	}
 
-	ret = _gnutls_mpi_dprint_lz(key->params.params[1], e);
-	if (ret < 0) {
-		gnutls_assert();
-		_gnutls_free_datum(m);
-		return ret;
+	if (e) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[1], e);
+		if (ret < 0) {
+			gnutls_assert();
+			_gnutls_free_datum(m);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -821,14 +862,16 @@ gnutls_pubkey_export_rsa_raw(gnutls_pubkey_t key,
 /**
  * gnutls_pubkey_export_dsa_raw:
  * @key: Holds the public key
- * @p: will hold the p
- * @q: will hold the q
- * @g: will hold the g
- * @y: will hold the y
+ * @p: will hold the p (may be %NULL)
+ * @q: will hold the q (may be %NULL)
+ * @g: will hold the g (may be %NULL)
+ * @y: will hold the y (may be %NULL)
  *
  * This function will export the DSA public key's parameters found in
  * the given certificate.  The new parameters will be allocated using
  * gnutls_malloc() and will be stored in the appropriate datum.
+ *
+ * This function allows for %NULL parameters since 3.4.1.
  *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  *
@@ -852,39 +895,45 @@ gnutls_pubkey_export_dsa_raw(gnutls_pubkey_t key,
 	}
 
 	/* P */
-	ret = _gnutls_mpi_dprint_lz(key->params.params[0], p);
-	if (ret < 0) {
-		gnutls_assert();
-		return ret;
+	if (p) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[0], p);
+		if (ret < 0) {
+			gnutls_assert();
+			return ret;
+		}
 	}
 
 	/* Q */
-	ret = _gnutls_mpi_dprint_lz(key->params.params[1], q);
-	if (ret < 0) {
-		gnutls_assert();
-		_gnutls_free_datum(p);
-		return ret;
+	if (q) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[1], q);
+		if (ret < 0) {
+			gnutls_assert();
+			_gnutls_free_datum(p);
+			return ret;
+		}
 	}
-
 
 	/* G */
-	ret = _gnutls_mpi_dprint_lz(key->params.params[2], g);
-	if (ret < 0) {
-		gnutls_assert();
-		_gnutls_free_datum(p);
-		_gnutls_free_datum(q);
-		return ret;
+	if (g) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[2], g);
+		if (ret < 0) {
+			gnutls_assert();
+			_gnutls_free_datum(p);
+			_gnutls_free_datum(q);
+			return ret;
+		}
 	}
 
-
 	/* Y */
-	ret = _gnutls_mpi_dprint_lz(key->params.params[3], y);
-	if (ret < 0) {
-		gnutls_assert();
-		_gnutls_free_datum(p);
-		_gnutls_free_datum(g);
-		_gnutls_free_datum(q);
-		return ret;
+	if (y) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[3], y);
+		if (ret < 0) {
+			gnutls_assert();
+			_gnutls_free_datum(p);
+			_gnutls_free_datum(g);
+			_gnutls_free_datum(q);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -893,13 +942,15 @@ gnutls_pubkey_export_dsa_raw(gnutls_pubkey_t key,
 /**
  * gnutls_pubkey_export_ecc_raw:
  * @key: Holds the public key
- * @curve: will hold the curve
- * @x: will hold x
- * @y: will hold y
+ * @curve: will hold the curve (may be %NULL)
+ * @x: will hold x (may be %NULL)
+ * @y: will hold y (may be %NULL)
  *
  * This function will export the ECC public key's parameters found in
- * the given certificate.  The new parameters will be allocated using
+ * the given key.  The new parameters will be allocated using
  * gnutls_malloc() and will be stored in the appropriate datum.
+ *
+ * This function allows for %NULL parameters since 3.4.1.
  *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  *
@@ -922,21 +973,26 @@ gnutls_pubkey_export_ecc_raw(gnutls_pubkey_t key,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	*curve = key->params.flags;
+	if (curve)
+		*curve = key->params.flags;
 
 	/* X */
-	ret = _gnutls_mpi_dprint_lz(key->params.params[ECC_X], x);
-	if (ret < 0) {
-		gnutls_assert();
-		return ret;
+	if (x) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[ECC_X], x);
+		if (ret < 0) {
+			gnutls_assert();
+			return ret;
+		}
 	}
 
 	/* Y */
-	ret = _gnutls_mpi_dprint_lz(key->params.params[ECC_Y], y);
-	if (ret < 0) {
-		gnutls_assert();
-		_gnutls_free_datum(x);
-		return ret;
+	if (y) {
+		ret = _gnutls_mpi_dprint_lz(key->params.params[ECC_Y], y);
+		if (ret < 0) {
+			gnutls_assert();
+			_gnutls_free_datum(x);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -992,13 +1048,13 @@ int gnutls_pubkey_export_ecc_x962(gnutls_pubkey_t key,
 
 /**
  * gnutls_pubkey_import:
- * @key: The structure to store the parsed public key. 
+ * @key: The public key. 
  * @data: The DER or PEM encoded certificate. 
  * @format: One of DER or PEM 
  * 
  * This function will import the provided public key in
  * a SubjectPublicKeyInfo X.509 structure to a native
- * %gnutls_pubkey_t structure. The output will be stored 
+ * %gnutls_pubkey_t type. The output will be stored 
  * in @key. If the public key is PEM encoded it should have a header 
  * of "PUBLIC KEY". 
  * 
@@ -1079,11 +1135,11 @@ gnutls_pubkey_import(gnutls_pubkey_t key,
 
 /**
  * gnutls_x509_crt_set_pubkey:
- * @crt: should contain a #gnutls_x509_crt_t structure
+ * @crt: should contain a #gnutls_x509_crt_t type
  * @key: holds a public key
  *
  * This function will set the public parameters from the given public
- * key to the request.
+ * key to the certificate. The @key can be deallocated after that.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -1117,11 +1173,11 @@ int gnutls_x509_crt_set_pubkey(gnutls_x509_crt_t crt, gnutls_pubkey_t key)
 
 /**
  * gnutls_x509_crq_set_pubkey:
- * @crq: should contain a #gnutls_x509_crq_t structure
+ * @crq: should contain a #gnutls_x509_crq_t type
  * @key: holds a public key
  *
  * This function will set the public parameters from the given public
- * key to the request.
+ * key to the request. The @key can be deallocated after that.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -1176,6 +1232,7 @@ int gnutls_pubkey_set_key_usage(gnutls_pubkey_t key, unsigned int usage)
 
 #ifdef ENABLE_PKCS11
 
+#if 0
 /**
  * gnutls_pubkey_import_pkcs11_url:
  * @key: A key of type #gnutls_pubkey_t
@@ -1194,6 +1251,14 @@ int
 gnutls_pubkey_import_pkcs11_url(gnutls_pubkey_t key, const char *url,
 				unsigned int flags)
 {
+	int x;
+}
+#endif
+
+static int
+_gnutls_pubkey_import_pkcs11_url(gnutls_pubkey_t key, const char *url,
+				unsigned int flags)
+{
 	gnutls_pkcs11_obj_t pcrt;
 	int ret;
 
@@ -1207,13 +1272,13 @@ gnutls_pubkey_import_pkcs11_url(gnutls_pubkey_t key, const char *url,
 		gnutls_pkcs11_obj_set_pin_function(pcrt, key->pin.cb,
 						   key->pin.data);
 
-	ret = gnutls_pkcs11_obj_import_url(pcrt, url, flags);
+	ret = gnutls_pkcs11_obj_import_url(pcrt, url, flags|GNUTLS_PKCS11_OBJ_FLAG_EXPECT_PUBKEY);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
 	}
 
-	ret = gnutls_pubkey_import_pkcs11(key, pcrt, 0);
+	ret = gnutls_pubkey_import_pkcs11(key, pcrt, flags);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
@@ -1235,8 +1300,7 @@ gnutls_pubkey_import_pkcs11_url(gnutls_pubkey_t key, const char *url,
  * @url: A PKCS 11 url
  * @flags: One of GNUTLS_PKCS11_OBJ_* flags
  *
- * This function will import a PKCS11 certificate or a TPM key 
- * as a public key.
+ * This function will import a public key from the provided URL.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -1247,26 +1311,35 @@ int
 gnutls_pubkey_import_url(gnutls_pubkey_t key, const char *url,
 			 unsigned int flags)
 {
-	if (strncmp(url, "pkcs11:", 7) == 0)
+	unsigned i;
+
+	if (strncmp(url, PKCS11_URL, PKCS11_URL_SIZE) == 0)
 #ifdef ENABLE_PKCS11
-		return gnutls_pubkey_import_pkcs11_url(key, url, flags);
+		return _gnutls_pubkey_import_pkcs11_url(key, url, flags);
 #else
 		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
 #endif
 
-	if (strncmp(url, "tpmkey:", 7) == 0)
+	if (strncmp(url, TPMKEY_URL, TPMKEY_URL_SIZE) == 0)
 #ifdef HAVE_TROUSERS
 		return gnutls_pubkey_import_tpm_url(key, url, NULL, 0);
 #else
 		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
 #endif
 
+	for (i=0;i<_gnutls_custom_urls_size;i++) {
+		if (strncmp(url, _gnutls_custom_urls[i].name, _gnutls_custom_urls[i].name_size) == 0) {
+			if (_gnutls_custom_urls[i].import_pubkey)
+				return _gnutls_custom_urls[i].import_pubkey(key, url, flags);
+		}
+	}
+
 	return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 }
 
 /**
  * gnutls_pubkey_import_rsa_raw:
- * @key: Is a structure will hold the parameters
+ * @key: The key
  * @m: holds the modulus
  * @e: holds the public exponent
  *
@@ -1290,6 +1363,7 @@ gnutls_pubkey_import_rsa_raw(gnutls_pubkey_t key,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
+	gnutls_pk_params_release(&key->params);
 	gnutls_pk_params_init(&key->params);
 
 	siz = m->size;
@@ -1339,6 +1413,9 @@ gnutls_pubkey_import_ecc_raw(gnutls_pubkey_t key,
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
+
+	gnutls_pk_params_release(&key->params);
+	gnutls_pk_params_init(&key->params);
 
 	key->params.flags = curve;
 
@@ -1392,6 +1469,9 @@ gnutls_pubkey_import_ecc_x962(gnutls_pubkey_t key,
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
+
+	gnutls_pk_params_release(&key->params);
+	gnutls_pk_params_init(&key->params);
 
 	key->params.params_nr = 0;
 
@@ -1460,6 +1540,7 @@ gnutls_pubkey_import_dsa_raw(gnutls_pubkey_t key,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
+	gnutls_pk_params_release(&key->params);
 	gnutls_pk_params_init(&key->params);
 
 	siz = p->size;
@@ -1500,58 +1581,13 @@ gnutls_pubkey_import_dsa_raw(gnutls_pubkey_t key,
 
 }
 
-/**
- * gnutls_pubkey_verify_data:
- * @pubkey: Holds the public key
- * @flags: Zero or one of %gnutls_pubkey_flags_t
- * @data: holds the signed data
- * @signature: contains the signature
- *
- * This function will verify the given signed data, using the
- * parameters from the certificate.
- *
- * Deprecated. This function cannot be easily used securely. 
- * Use gnutls_pubkey_verify_data2() instead.
- *
- * Returns: In case of a verification failure %GNUTLS_E_PK_SIG_VERIFY_FAILED 
- * is returned, and zero or positive code on success. 
- *
- * Since: 2.12.0
- **/
-int
-gnutls_pubkey_verify_data(gnutls_pubkey_t pubkey, unsigned int flags,
-			  const gnutls_datum_t * data,
-			  const gnutls_datum_t * signature)
-{
-	int ret;
-	gnutls_digest_algorithm_t hash;
-
-	if (pubkey == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
-
-	if (flags & GNUTLS_PUBKEY_VERIFY_FLAG_TLS1_RSA)
-		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
-
-	ret = gnutls_pubkey_get_verify_algorithm(pubkey, signature, &hash);
-	if (ret < 0)
-		return gnutls_assert_val(ret);
-
-	ret = pubkey_verify_data(pubkey->pk_algorithm, hash_to_entry(hash),
-				 data, signature, &pubkey->params);
-	if (ret < 0) {
-		gnutls_assert();
-	}
-
-	return ret;
-}
+#define OLD_PUBKEY_VERIFY_FLAG_TLS1_RSA 1
 
 /**
  * gnutls_pubkey_verify_data2:
  * @pubkey: Holds the public key
  * @algo: The signature algorithm used
- * @flags: Zero or one of %gnutls_pubkey_flags_t
+ * @flags: Zero or an OR list of #gnutls_certificate_verify_flags
  * @data: holds the signed data
  * @signature: contains the signature
  *
@@ -1559,7 +1595,9 @@ gnutls_pubkey_verify_data(gnutls_pubkey_t pubkey, unsigned int flags,
  * parameters from the certificate.
  *
  * Returns: In case of a verification failure %GNUTLS_E_PK_SIG_VERIFY_FAILED 
- * is returned, and zero or positive code on success.
+ * is returned, and zero or positive code on success. For known to be insecure
+ * signatures this function will return %GNUTLS_E_INSUFFICIENT_SECURITY unless
+ * the flag %GNUTLS_VERIFY_ALLOW_BROKEN is specified.
  *
  * Since: 3.0
  **/
@@ -1578,7 +1616,7 @@ gnutls_pubkey_verify_data2(gnutls_pubkey_t pubkey,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (flags & GNUTLS_PUBKEY_VERIFY_FLAG_TLS1_RSA)
+	if (flags & OLD_PUBKEY_VERIFY_FLAG_TLS1_RSA || flags & GNUTLS_VERIFY_USE_TLS1_RSA)
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
 	me = hash_to_entry(gnutls_sign_get_hash_algorithm(algo));
@@ -1589,54 +1627,25 @@ gnutls_pubkey_verify_data2(gnutls_pubkey_t pubkey,
 				 data, signature, &pubkey->params);
 	if (ret < 0) {
 		gnutls_assert();
+		return ret;
 	}
 
+	if (!(flags & GNUTLS_VERIFY_ALLOW_BROKEN)) {
+		if (gnutls_sign_is_secure(algo) == 0) {
+			return gnutls_assert_val(GNUTLS_E_INSUFFICIENT_SECURITY);
+		}
+	}
+
+	if (ret >= 0)
+		return 0;
 	return ret;
-}
-
-
-/**
- * gnutls_pubkey_verify_hash:
- * @key: Holds the public key
- * @flags: Zero or one of %gnutls_pubkey_flags_t
- * @hash: holds the hash digest to be verified
- * @signature: contains the signature
- *
- * This function will verify the given signed digest, using the
- * parameters from the public key. 
- *
- * Deprecated. This function cannot be easily used securely. 
- * Use gnutls_pubkey_verify_hash2() instead.
- *
- * Returns: In case of a verification failure %GNUTLS_E_PK_SIG_VERIFY_FAILED 
- * is returned, and zero or positive code on success.
- *
- * Since: 2.12.0
- **/
-int
-gnutls_pubkey_verify_hash(gnutls_pubkey_t key, unsigned int flags,
-			  const gnutls_datum_t * hash,
-			  const gnutls_datum_t * signature)
-{
-	gnutls_digest_algorithm_t algo;
-	int ret;
-
-	ret = gnutls_pubkey_get_verify_algorithm(key, signature, &algo);
-	if (ret < 0)
-		return gnutls_assert_val(ret);
-
-	return gnutls_pubkey_verify_hash2(key,
-					  gnutls_pk_to_sign(key->
-							    pk_algorithm,
-							    algo), flags,
-					  hash, signature);
 }
 
 /**
  * gnutls_pubkey_verify_hash2:
  * @key: Holds the public key
  * @algo: The signature algorithm used
- * @flags: Zero or one of %gnutls_pubkey_flags_t
+ * @flags: Zero or an OR list of #gnutls_certificate_verify_flags
  * @hash: holds the hash digest to be verified
  * @signature: contains the signature
  *
@@ -1664,7 +1673,7 @@ gnutls_pubkey_verify_hash2(gnutls_pubkey_t key,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (flags & GNUTLS_PUBKEY_VERIFY_FLAG_TLS1_RSA) {
+	if (flags & OLD_PUBKEY_VERIFY_FLAG_TLS1_RSA || flags & GNUTLS_VERIFY_USE_TLS1_RSA) {
 		return _gnutls_pk_verify(GNUTLS_PK_RSA, hash, signature,
 					 &key->params);
 	} else {
@@ -1683,7 +1692,7 @@ gnutls_pubkey_verify_hash2(gnutls_pubkey_t key,
  * @ciphertext: contains the encrypted data
  *
  * This function will encrypt the given data, using the public
- * key.
+ * key. On success the @ciphertext will be allocated using gnutls_malloc().
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -1702,36 +1711,6 @@ gnutls_pubkey_encrypt_data(gnutls_pubkey_t key, unsigned int flags,
 
 	return _gnutls_pk_encrypt(key->pk_algorithm, ciphertext,
 				  plaintext, &key->params);
-}
-
-/**
- * gnutls_pubkey_get_verify_algorithm:
- * @key: Holds the certificate
- * @signature: contains the signature
- * @hash: The result of the call with the hash algorithm used for signature
- *
- * This function will read the certifcate and the signed data to
- * determine the hash algorithm used to generate the signature.
- *
- * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
- *
- * Since: 2.12.0
- **/
-int
-gnutls_pubkey_get_verify_algorithm(gnutls_pubkey_t key,
-				   const gnutls_datum_t * signature,
-				   gnutls_digest_algorithm_t * hash)
-{
-	if (key == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
-
-	return _gnutls_x509_verify_algorithm(hash, signature,
-					     key->pk_algorithm,
-					     &key->params);
-
 }
 
 /* Checks whether the public key given is compatible with the
@@ -1815,7 +1794,6 @@ _pkcs1_rsa_verify_sig(const mac_entry_st * me,
 	uint8_t md[MAX_HASH_SIZE], *cmp;
 	unsigned int digest_size;
 	gnutls_datum_t d, di;
-	digest_hd_st hd;
 
 	digest_size = _gnutls_hash_get_algo_len(me);
 	if (prehash) {
@@ -1829,14 +1807,11 @@ _pkcs1_rsa_verify_sig(const mac_entry_st * me,
 			return GNUTLS_E_INVALID_REQUEST;
 		}
 
-		ret = _gnutls_hash_init(&hd, me);
+		ret = _gnutls_hash_fast(me->id, text->data, text->size, md);
 		if (ret < 0) {
 			gnutls_assert();
 			return ret;
 		}
-
-		_gnutls_hash(&hd, text->data, text->size);
-		_gnutls_hash_deinit(&hd, md);
 
 		cmp = md;
 	}
@@ -1903,17 +1878,13 @@ dsa_verify_data(gnutls_pk_algorithm_t pk,
 	int ret;
 	uint8_t _digest[MAX_HASH_SIZE];
 	gnutls_datum_t digest;
-	digest_hd_st hd;
 
 	if (algo == NULL)
 		algo = _gnutls_dsa_q_to_hash(pk, params, NULL);
 
-	ret = _gnutls_hash_init(&hd, algo);
+	ret = _gnutls_hash_fast(algo->id, data->data, data->size, _digest);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
-
-	_gnutls_hash(&hd, data->data, data->size);
-	_gnutls_hash_deinit(&hd, _digest);
 
 	digest.data = _digest;
 	digest.size = _gnutls_hash_get_algo_len(algo);
@@ -2075,7 +2046,7 @@ void gnutls_pubkey_set_pin_function(gnutls_pubkey_t key,
  * @flags: should be zero
  *
  * This function will import the given public key to the abstract
- * #gnutls_pubkey_t structure. 
+ * #gnutls_pubkey_t type. 
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -2116,7 +2087,7 @@ int gnutls_pubkey_import_x509_raw(gnutls_pubkey_t pkey,
 
 /**
  * gnutls_pubkey_verify_params:
- * @key: should contain a #gnutls_pubkey_t structure
+ * @key: should contain a #gnutls_pubkey_t type
  *
  * This function will verify the private key parameters.
  *
@@ -2137,58 +2108,3 @@ int gnutls_pubkey_verify_params(gnutls_pubkey_t key)
 
 	return 0;
 }
-
-/* ABI Compatibility functions */
-#undef gnutls_pubkey_get_pk_ecc_x962
-int gnutls_pubkey_get_pk_ecc_x962(gnutls_pubkey_t key,
-				  gnutls_datum_t * parameters,
-				  gnutls_datum_t * ecpoint);
-
-int gnutls_pubkey_get_pk_ecc_x962(gnutls_pubkey_t key,
-				  gnutls_datum_t * parameters,
-				  gnutls_datum_t * ecpoint)
-{
-	return gnutls_pubkey_export_ecc_x962(key, parameters, ecpoint);
-}
-
-#undef gnutls_pubkey_get_pk_rsa_raw
-int
-gnutls_pubkey_get_pk_rsa_raw(gnutls_pubkey_t key,
-			     gnutls_datum_t * m, gnutls_datum_t * e);
-
-int
-gnutls_pubkey_get_pk_rsa_raw(gnutls_pubkey_t key,
-			     gnutls_datum_t * m, gnutls_datum_t * e)
-{
-	return gnutls_pubkey_export_rsa_raw(key, m, e);
-}
-
-#undef gnutls_pubkey_get_pk_dsa_raw
-int
-gnutls_pubkey_get_pk_dsa_raw(gnutls_pubkey_t key,
-			     gnutls_datum_t * p, gnutls_datum_t * q,
-			     gnutls_datum_t * g, gnutls_datum_t * y);
-
-int
-gnutls_pubkey_get_pk_dsa_raw(gnutls_pubkey_t key,
-			     gnutls_datum_t * p, gnutls_datum_t * q,
-			     gnutls_datum_t * g, gnutls_datum_t * y)
-{
-	return gnutls_pubkey_export_dsa_raw(key, p, q, g, y);
-}
-
-
-#undef gnutls_pubkey_get_pk_ecc_raw
-int
-gnutls_pubkey_get_pk_ecc_raw(gnutls_pubkey_t key,
-			     gnutls_ecc_curve_t * curve,
-			     gnutls_datum_t * x, gnutls_datum_t * y);
-
-int
-gnutls_pubkey_get_pk_ecc_raw(gnutls_pubkey_t key,
-			     gnutls_ecc_curve_t * curve,
-			     gnutls_datum_t * x, gnutls_datum_t * y)
-{
-	return gnutls_pubkey_export_ecc_raw(key, curve, x, y);
-}
-

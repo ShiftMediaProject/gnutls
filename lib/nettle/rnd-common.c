@@ -37,6 +37,11 @@
 #include <rnd-common.h>
 #include <hash-pjw-bare.h>
 
+#if defined(HAVE_LINUX_GETRANDOM)
+# include <linux/random.h>
+# define getentropy(x, size) getrandom(x, size, 0)
+# define HAVE_GETENTROPY
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -139,6 +144,40 @@ void _rnd_system_entropy_deinit(void)
 static int _gnutls_urandom_fd = -1;
 static mode_t _gnutls_urandom_fd_mode = 0;
 
+
+get_entropy_func _rnd_get_system_entropy = NULL;
+
+#if defined(HAVE_GETENTROPY)
+static int _rnd_get_system_entropy_simple(void* _rnd, size_t size)
+{
+	if (getentropy(_rnd, size) < 0) {
+		gnutls_assert();
+		_gnutls_debug_log
+			("Failed to use getentropy: %s\n",
+					 strerror(errno));
+		return GNUTLS_E_RANDOM_DEVICE_ERROR;
+	}
+	return 0;
+}
+
+int _rnd_system_entropy_init(void)
+{
+	_rnd_get_system_entropy = _rnd_get_system_entropy_simple;
+	return 0;
+}
+
+int _rnd_system_entropy_check(void)
+{
+	return 0;
+}
+
+void _rnd_system_entropy_deinit(void)
+{
+	return;
+}
+
+#else /* /dev/urandom - egd approach */
+
 static int _rnd_get_system_entropy_urandom(void* _rnd, size_t size)
 {
 	uint8_t* rnd = _rnd;
@@ -193,8 +232,6 @@ int _rnd_get_system_entropy_egd(void* _rnd, size_t size)
 
 	return 0;
 }
-
-get_entropy_func _rnd_get_system_entropy = NULL;
 
 int _rnd_system_entropy_check(void)
 {
@@ -255,5 +292,7 @@ void _rnd_system_entropy_deinit(void)
 		_gnutls_urandom_fd = -1;
 	}
 }
-#endif
+#endif /* GETENTROPY */
+
+#endif /* _WIN32 */
 

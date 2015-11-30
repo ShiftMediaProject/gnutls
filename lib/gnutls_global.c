@@ -28,13 +28,15 @@
 #include <gnutls/pkcs11.h>
 
 #include <gnutls_extensions.h>	/* for _gnutls_ext_init */
+#include <gnutls_supplemental.h> /* for _gnutls_supplemental_deinit */
 #include <locks.h>
 #include <system.h>
 #include <accelerated/cryptodev.h>
 #include <accelerated/accelerated.h>
 #include <fips.h>
-
-#include "gettext.h"
+#include <atfork.h>
+#include <system-keys.h>
+#include <gnutls_str.h>
 
 /* Minimum library versions we accept. */
 #define GNUTLS_MIN_LIBTASN1_VERSION "0.3.4"
@@ -193,9 +195,10 @@ static int _gnutls_init_ret = 0;
  * function can be called many times, but will only do something the
  * first time.
  *
- * Since GnuTLS 3.3.0 this function is only required in systems that
- * do not support library constructors and static linking. This
- * function also became thread safe.
+ * Since GnuTLS 3.3.0 this function is automatically called on library
+ * constructor. Since the same version this function is also thread safe.
+ * The automatic initialization can be avoided if the environment variable
+ * %GNUTLS_NO_EXPLICIT_INIT is set to be 1.
  *
  * A subsequent call of this function if the initial has failed will
  * return the same error code.
@@ -238,13 +241,20 @@ int gnutls_global_init(void)
 		_gnutls_debug_log("Enabled GnuTLS logging...\n");
 	}
 
+#ifdef HAVE_DCGETTEXT
 	bindtextdomain(PACKAGE, LOCALEDIR);
+#endif
 
 	res = gnutls_crypto_init();
 	if (res != 0) {
 		gnutls_assert();
 		ret = GNUTLS_E_CRYPTO_INIT_FAILED;
 		goto out;
+	}
+
+	ret = _gnutls_system_key_init();
+	if (ret != 0) {
+		gnutls_assert();
 	}
 
 	/* initialize ASN.1 parser
@@ -305,6 +315,14 @@ int gnutls_global_init(void)
 		gnutls_assert();
 		goto out;
 	}
+
+#ifndef _WIN32
+	ret = _gnutls_register_fork_handler();
+	if (ret < 0) {
+		gnutls_assert();
+		goto out;
+	}
+#endif
 
 #ifdef ENABLE_FIPS140
 	res = _gnutls_fips_mode_enabled();
@@ -368,6 +386,7 @@ static void _gnutls_global_deinit(unsigned destructor)
 			goto fail;
 		}
 
+		_gnutls_system_key_deinit();
 		gnutls_crypto_deinit();
 		_gnutls_rnd_deinit();
 		_gnutls_ext_deinit();
@@ -378,6 +397,8 @@ static void _gnutls_global_deinit(unsigned destructor)
 		gnutls_system_global_deinit();
 		_gnutls_cryptodev_deinit();
 
+		_gnutls_supplemental_deinit();
+
 #ifdef ENABLE_PKCS11
 		/* Do not try to deinitialize the PKCS #11 libraries
 		 * from the destructor. If we do and the PKCS #11 modules
@@ -386,6 +407,9 @@ static void _gnutls_global_deinit(unsigned destructor)
 		if (destructor == 0) {
 			gnutls_pkcs11_deinit();
 		}
+#endif
+#ifdef HAVE_TROUSERS
+		_gnutls_tpm_global_deinit();
 #endif
 
 		gnutls_mutex_deinit(&_gnutls_file_mutex);

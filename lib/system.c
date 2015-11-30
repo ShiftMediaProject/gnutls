@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2010-2015 Free Software Foundation, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -110,15 +110,30 @@ int system_errno(gnutls_transport_ptr_t ptr)
 	return errno;
 }
 
+#ifdef MSG_NOSIGNAL
+ssize_t
+system_writev_nosignal(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
+	      int iovec_cnt)
+{
+	struct msghdr hdr;
+
+	memset(&hdr, 0, sizeof(hdr));
+	hdr.msg_iov = (struct iovec *)iovec;
+	hdr.msg_iovlen = iovec_cnt;
+
+	return sendmsg(GNUTLS_POINTER_TO_INT(ptr), &hdr, MSG_NOSIGNAL);
+}
+#endif
+
 ssize_t
 system_writev(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
 	      int iovec_cnt)
 {
 	return writev(GNUTLS_POINTER_TO_INT(ptr), (struct iovec *) iovec,
 		      iovec_cnt);
-
 }
 #endif
+
 
 ssize_t
 system_read(gnutls_transport_ptr_t ptr, void *data, size_t data_size)
@@ -126,13 +141,23 @@ system_read(gnutls_transport_ptr_t ptr, void *data, size_t data_size)
 	return recv(GNUTLS_POINTER_TO_INT(ptr), data, data_size, 0);
 }
 
-/* Wait for data to be received within a timeout period in milliseconds.
- * To catch a termination it will also try to receive 0 bytes from the
- * socket if select reports to proceed.
+/**
+ * gnutls_system_recv_timeout:
+ * @ptr: A gnutls_transport_ptr_t pointer
+ * @ms: The number of milliseconds to wait.
+ *
+ * Wait for data to be received from the provided socket (@ptr) within a
+ * timeout period in milliseconds, using select() on the provided @ptr.
+ *
+ * This function is provided as a helper for constructing custom
+ * callbacks for gnutls_transport_set_pull_timeout_function(),
+ * which can be used if you rely on socket file descriptors.
  *
  * Returns -1 on error, 0 on timeout, positive value if data are available for reading.
- */
-int system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
+ *
+ * Since: 3.4.0
+ **/
+int gnutls_system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
 {
 	fd_set rfds;
 	struct timeval tv;
@@ -142,13 +167,8 @@ int system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
 
-	tv.tv_sec = 0;
-	tv.tv_usec = ms * 1000;
-
-	while (tv.tv_usec >= 1000000) {
-		tv.tv_usec -= 1000000;
-		tv.tv_sec++;
-	}
+	tv.tv_sec = ms/1000;
+	tv.tv_usec = (ms % 1000) * 1000;
 
 	ret = select(fd + 1, &rfds, NULL, NULL, &tv);
 	if (ret <= 0)
@@ -277,7 +297,7 @@ mutex_deinit_func gnutls_mutex_deinit = gnutls_system_mutex_deinit;
 mutex_lock_func gnutls_mutex_lock = gnutls_system_mutex_lock;
 mutex_unlock_func gnutls_mutex_unlock = gnutls_system_mutex_unlock;
 
-int gnutls_system_global_init()
+int gnutls_system_global_init(void)
 {
 #ifdef _WIN32
 #if defined(__MINGW32__) && !defined(__MINGW64__) && __MINGW32_MAJOR_VERSION <= 3 && __MINGW32_MINOR_VERSION <= 20
@@ -301,7 +321,7 @@ int gnutls_system_global_init()
 	return 0;
 }
 
-void gnutls_system_global_deinit()
+void gnutls_system_global_deinit(void)
 {
 #ifdef _WIN32
 #if defined(__MINGW32__) && !defined(__MINGW64__) && __MINGW32_MAJOR_VERSION <= 3 && __MINGW32_MINOR_VERSION <= 20
@@ -331,7 +351,7 @@ int _gnutls_find_config_path(char *path, size_t max_size)
 		const char *home_path = getenv("HOMEPATH");
 
 		if (home_drive != NULL && home_path != NULL) {
-			snprintf(path, max_size, "%s%s/" CONFIG_PATH, home_drive, home_path);
+			snprintf(path, max_size, "%s%s\\" CONFIG_PATH, home_drive, home_path);
 		} else {
 			path[0] = 0;
 		}
@@ -568,9 +588,8 @@ gnutls_x509_trust_list_add_system_trust(gnutls_x509_trust_list_t list,
 #if defined(_WIN32)
 #include <winnls.h>
 
-/* Can convert only english */
 int _gnutls_ucs2_to_utf8(const void *data, size_t size,
-			 gnutls_datum_t * output)
+			 gnutls_datum_t * output, unsigned be)
 {
 	int ret;
 	unsigned i;
@@ -601,9 +620,13 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
 	/* convert to LE */
-	for (i = 0; i < size; i += 2) {
-		src[i] = ((uint8_t *) data)[1 + i];
-		src[1 + i] = ((uint8_t *) data)[i];
+	if (be) {
+		for (i = 0; i < size; i += 2) {
+			src[i] = ((uint8_t *) data)[1 + i];
+			src[1 + i] = ((uint8_t *) data)[i];
+		}
+	} else {
+		memcpy(src, data, size);
 	}
 	src[size] = 0;
 	src[size+1] = 0;
@@ -655,7 +678,7 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 #include <iconv.h>
 
 int _gnutls_ucs2_to_utf8(const void *data, size_t size,
-			 gnutls_datum_t * output)
+			 gnutls_datum_t * output, unsigned be)
 {
 	iconv_t conv;
 	int ret;
@@ -666,7 +689,11 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 	if (size == 0)
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
-	conv = iconv_open("UTF-8", "UTF-16BE");
+	if (be) {
+		conv = iconv_open("UTF-8", "UTF-16BE");
+	} else {
+		conv = iconv_open("UTF-8", "UTF-16LE");
+	}
 	if (conv == (iconv_t) - 1)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
@@ -707,7 +734,7 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 
 /* Can convert only english (ASCII) */
 int _gnutls_ucs2_to_utf8(const void *data, size_t size,
-			 gnutls_datum_t * output)
+			 gnutls_datum_t * output, unsigned be)
 {
 	unsigned int i, j;
 	char *dst;
@@ -723,7 +750,10 @@ int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 	for (i = j = 0; i < size; i += 2, j++) {
 		if (src[i] != 0 || !c_isascii(src[i + 1]))
 			return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
-		dst[j] = src[i + 1];
+		if (be)
+			dst[j] = src[i + 1];
+		else
+			dst[j] = src[i];
 	}
 
 	output->data = (void *) dst;

@@ -42,27 +42,20 @@
  */
 struct gcm_x86_aes_ctx GCM_CTX(AES_KEY);
 
-#ifdef USE_NETTLE3
 static void x86_aes_encrypt(const void *_ctx,
 				size_t length, uint8_t * dst,
- 				const uint8_t * src)
-#else
-static void x86_aes_encrypt(void *_ctx,
-				unsigned length, uint8_t * dst,
 				const uint8_t * src)
-#endif
 {
 	AES_KEY *ctx = (void*)_ctx;
 
 	vpaes_encrypt(src, dst, ctx);
 }
 
-#ifdef USE_NETTLE3
 static void x86_aes_128_set_encrypt_key(void *_ctx,
 				    const uint8_t * key)
- {
- 	AES_KEY *ctx = _ctx;
- 
+{
+	AES_KEY *ctx = _ctx;
+
 	vpaes_set_encrypt_key(key, 16*8, ctx);
 }
 
@@ -73,16 +66,6 @@ static void x86_aes_256_set_encrypt_key(void *_ctx,
 
 	vpaes_set_encrypt_key(key, 32*8, ctx);
 }
-#else
-static void x86_aes_set_encrypt_key(void *_ctx,
-					unsigned length,
-					const uint8_t * key)
-{
-	AES_KEY *ctx = _ctx;
-
-	vpaes_set_encrypt_key(key, length*8, ctx);
-}
-#endif
 
 static int
 aes_gcm_cipher_init(gnutls_cipher_algorithm_t algorithm, void **_ctx,
@@ -102,7 +85,6 @@ aes_gcm_cipher_init(gnutls_cipher_algorithm_t algorithm, void **_ctx,
 	return 0;
 }
 
-#ifdef USE_NETTLE3
 static int
 aes_gcm_cipher_setkey(void *_ctx, const void *key, size_t keysize)
 {
@@ -118,18 +100,6 @@ aes_gcm_cipher_setkey(void *_ctx, const void *key, size_t keysize)
 
 	return 0;
 }
-#else
-static int
-aes_gcm_cipher_setkey(void *_ctx, const void *userkey, size_t keysize)
-{
-	struct gcm_x86_aes_ctx *ctx = _ctx;
-
-	GCM_SET_KEY(ctx, x86_aes_set_encrypt_key, x86_aes_encrypt,
-		    keysize, userkey);
-
-	return 0;
-}
-#endif
 
 static int aes_gcm_setiv(void *_ctx, const void *iv, size_t iv_size)
 {
@@ -188,10 +158,14 @@ static void aes_gcm_deinit(void *_ctx)
 	gnutls_free(ctx);
 }
 
+#include "aes-gcm-aead.h"
+
 const gnutls_crypto_cipher_st _gnutls_aes_gcm_x86_ssse3 = {
 	.init = aes_gcm_cipher_init,
 	.setkey = aes_gcm_cipher_setkey,
 	.setiv = aes_gcm_setiv,
+	.aead_encrypt = aes_gcm_aead_encrypt,
+	.aead_decrypt = aes_gcm_aead_decrypt,
 	.encrypt = aes_gcm_encrypt,
 	.decrypt = aes_gcm_decrypt,
 	.deinit = aes_gcm_deinit,

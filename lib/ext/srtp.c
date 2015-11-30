@@ -176,7 +176,7 @@ _gnutls_srtp_recv_params(gnutls_session_t session,
 	if (ret < 0)
 		return 0;
 
-	priv = epriv.ptr;
+	priv = epriv;
 
 	DECR_LENGTH_RET(data_size, 2, 0);
 	len = _gnutls_read_uint16(p);
@@ -242,7 +242,7 @@ _gnutls_srtp_send_params(gnutls_session_t session,
 	if (ret < 0)
 		return 0;
 
-	priv = epriv.ptr;
+	priv = epriv;
 
 	if (priv->profiles_size == 0)
 		return 0;
@@ -292,7 +292,7 @@ _gnutls_srtp_send_params(gnutls_session_t session,
 
 /**
  * gnutls_srtp_get_selected_profile:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @profile: will hold the profile
  *
  * This function allows you to get the negotiated SRTP profile.
@@ -318,7 +318,7 @@ gnutls_srtp_get_selected_profile(gnutls_session_t session,
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	priv = epriv.ptr;
+	priv = epriv;
 
 	if (priv->selected_profile == 0) {
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
@@ -331,7 +331,7 @@ gnutls_srtp_get_selected_profile(gnutls_session_t session,
 
 /**
  * gnutls_srtp_get_mki:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @mki: will hold the MKI
  *
  * This function exports the negotiated Master Key Identifier,
@@ -357,7 +357,7 @@ int gnutls_srtp_get_mki(gnutls_session_t session, gnutls_datum_t * mki)
 		    gnutls_assert_val
 		    (GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE);
 
-	priv = epriv.ptr;
+	priv = epriv;
 
 	if (priv->mki_received == 0)
 		return
@@ -372,7 +372,7 @@ int gnutls_srtp_get_mki(gnutls_session_t session, gnutls_datum_t * mki)
 
 /**
  * gnutls_srtp_set_mki:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @mki: holds the MKI
  *
  * This function sets the Master Key Identifier, to be
@@ -399,11 +399,11 @@ gnutls_srtp_set_mki(gnutls_session_t session, const gnutls_datum_t * mki)
 			gnutls_assert();
 			return GNUTLS_E_MEMORY_ERROR;
 		}
-		epriv.ptr = priv;
+		epriv = priv;
 		_gnutls_ext_set_session_data(session,
 					     GNUTLS_EXTENSION_SRTP, epriv);
 	} else
-		priv = epriv.ptr;
+		priv = epriv;
 
 	if (mki->size > 0 && mki->size <= sizeof(priv->mki)) {
 		priv->mki_size = mki->size;
@@ -416,7 +416,7 @@ gnutls_srtp_set_mki(gnutls_session_t session, const gnutls_datum_t * mki)
 
 /**
  * gnutls_srtp_set_profile:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @profile: is the profile id to add.
  *
  * This function is to be used by both clients and servers, to declare
@@ -444,11 +444,11 @@ gnutls_srtp_set_profile(gnutls_session_t session,
 			gnutls_assert();
 			return GNUTLS_E_MEMORY_ERROR;
 		}
-		epriv.ptr = priv;
+		epriv = priv;
 		_gnutls_ext_set_session_data(session,
 					     GNUTLS_EXTENSION_SRTP, epriv);
 	} else
-		priv = epriv.ptr;
+		priv = epriv;
 
 	if (priv->profiles_size < MAX_SRTP_PROFILES)
 		priv->profiles_size++;
@@ -459,7 +459,7 @@ gnutls_srtp_set_profile(gnutls_session_t session,
 
 /**
  * gnutls_srtp_set_profile_direct:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @profiles: is a string that contains the supported SRTP profiles,
  *   separated by colons.
  * @err_pos: In case of an error this will have the position in the string the error occured, may be NULL.
@@ -495,9 +495,9 @@ gnutls_srtp_set_profile_direct(gnutls_session_t session,
 			gnutls_assert();
 			return GNUTLS_E_MEMORY_ERROR;
 		}
-		epriv.ptr = priv;
+		epriv = priv;
 	} else
-		priv = epriv.ptr;
+		priv = epriv;
 
 	do {
 		col = strchr(profiles, ':');
@@ -526,7 +526,7 @@ gnutls_srtp_set_profile_direct(gnutls_session_t session,
 
 /**
  * gnutls_srtp_get_keys:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @key_material: Space to hold the generated key material
  * @key_material_size: The maximum size of the key material
  * @client_key: The master client write key, pointing inside the key material
@@ -609,13 +609,13 @@ gnutls_srtp_get_keys(gnutls_session_t session,
 
 static void _gnutls_srtp_deinit_data(extension_priv_data_t priv)
 {
-	gnutls_free(priv.ptr);
+	gnutls_free(priv);
 }
 
 static int
 _gnutls_srtp_pack(extension_priv_data_t epriv, gnutls_buffer_st * ps)
 {
-	srtp_ext_st *priv = epriv.ptr;
+	srtp_ext_st *priv = epriv;
 	unsigned int i;
 	int ret;
 
@@ -658,7 +658,7 @@ _gnutls_srtp_unpack(gnutls_buffer_st * ps, extension_priv_data_t * _priv)
 		BUFFER_POP(ps, priv->mki, priv->mki_size);
 	}
 
-	epriv.ptr = priv;
+	epriv = priv;
 	*_priv = epriv;
 
 	return 0;

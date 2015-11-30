@@ -113,7 +113,7 @@ char protocol_all_str[] =
     "+VERS-TLS1.2:+VERS-TLS1.1:+VERS-TLS1.0:+VERS-SSL3.0";
 char prio_str[512] = "";
 
-#define ALL_CIPHERS "+AES-128-GCM:+CAMELLIA-128-GCM:+AES-128-CBC:+CAMELLIA-128-CBC:+3DES-CBC:+ARCFOUR-128:+ARCFOUR-40"
+#define ALL_CIPHERS "+AES-128-GCM:+CAMELLIA-128-GCM:+AES-128-CBC:+CAMELLIA-128-CBC:+3DES-CBC:+ARCFOUR-128"
 #define BLOCK_CIPHERS "+3DES-CBC:+AES-128-CBC:+CAMELLIA-128-CBC"
 #define ALL_COMP "+COMP-NULL"
 #define ALL_MACS "+SHA1:+MD5"
@@ -185,6 +185,7 @@ static gnutls_ecc_curve_t curve = GNUTLS_ECC_CURVE_INVALID;
 
 test_code_t test_dhe(gnutls_session_t session)
 {
+#ifdef ENABLE_DHE
 	int ret;
 
 	sprintf(prio_str, INIT_STR
@@ -199,6 +200,8 @@ test_code_t test_dhe(gnutls_session_t session)
 	gnutls_dh_get_pubkey(session, &pubkey);
 
 	return ret;
+#endif
+	return TEST_IGNORE;
 }
 
 test_code_t test_ecdhe(gnutls_session_t session)
@@ -224,6 +227,37 @@ test_code_t test_ecdhe(gnutls_session_t session)
 	curve = gnutls_ecc_curve_get(session);
 
 	return ret;
+}
+
+test_code_t test_rfc7507(gnutls_session_t session)
+{
+	int ret;
+	const char *pstr = NULL;
+
+	if (tls1_2_ok && tls1_1_ok)
+		pstr = "-VERS-TLS-ALL:+VERS-TLS1.1:%FALLBACK_SCSV";
+	else if (tls1_1_ok && tls1_ok)
+		pstr = "-VERS-TLS-ALL:+VERS-TLS1.0:%FALLBACK_SCSV";
+	else if (tls1_ok && ssl3_ok)
+		pstr = "-VERS-TLS-ALL:+VERS-SSL3.0:%FALLBACK_SCSV";
+	else
+		return TEST_IGNORE;
+
+	sprintf(prio_str, INIT_STR
+		ALL_CIPHERS ":" ALL_COMP ":%s:" ALL_MACS
+		":"ALL_KX":%s", pstr, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+	if (ret < 0)
+		return TEST_IGNORE;
+
+	if (handshake_output < 0)
+		return TEST_SUCCEED;
+
+	return TEST_FAILED;
 }
 
 
@@ -276,7 +310,58 @@ test_code_t test_ocsp_status(gnutls_session_t session)
 
 	return TEST_FAILED;
 }
+
 #endif
+
+test_code_t test_ext_master_secret(gnutls_session_t session)
+{
+	int ret;
+
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
+	sprintf(prio_str, INIT_STR
+		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:" ALL_MACS
+		":%s:" ALL_KX, rest, protocol_str);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+
+	if (ret < 0)
+		return TEST_FAILED;
+
+	if (gnutls_session_ext_master_secret_status(session) != 0)
+		return TEST_SUCCEED;
+
+	return TEST_FAILED;
+}
+
+test_code_t test_etm(gnutls_session_t session)
+{
+	int ret;
+
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
+	sprintf(prio_str, INIT_STR
+		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:" ALL_MACS
+		":%s:" ALL_KX, rest, protocol_str);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+
+	if (ret < 0)
+		return TEST_FAILED;
+
+	if (gnutls_session_etm_status(session) != 0)
+		return TEST_SUCCEED;
+
+	return TEST_FAILED;
+}
 
 test_code_t test_safe_renegotiation_scsv(gnutls_session_t session)
 {
@@ -498,6 +583,38 @@ test_code_t test_aes_gcm(gnutls_session_t session)
 	return ret;
 }
 
+test_code_t test_aes_ccm(gnutls_session_t session)
+{
+	int ret;
+
+	sprintf(prio_str, INIT_STR
+		"+AES-128-CCM:+AES-256-CCM:+AEAD:" ALL_COMP ":"
+		ALL_CERTTYPES ":%s:" ALL_MACS ":" ALL_KX ":%s",
+		protocol_all_str, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+	return ret;
+}
+
+test_code_t test_aes_ccm_8(gnutls_session_t session)
+{
+	int ret;
+
+	sprintf(prio_str, INIT_STR
+		"+AES-128-CCM-8:+AES-256-CCM-8:+AEAD:" ALL_COMP ":"
+		ALL_CERTTYPES ":%s:" ALL_MACS ":" ALL_KX ":%s",
+		protocol_all_str, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+	return ret;
+}
+
 test_code_t test_camellia_cbc(gnutls_session_t session)
 {
 	int ret;
@@ -531,6 +648,9 @@ test_code_t test_camellia_gcm(gnutls_session_t session)
 test_code_t test_openpgp1(gnutls_session_t session)
 {
 	int ret;
+
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
 
 	sprintf(prio_str,
 		INIT_STR ALL_CIPHERS ":" ALL_COMP ":+CTYPE-OPENPGP:%s:"
@@ -806,6 +926,29 @@ test_code_t test_tls1_1_fallback(gnutls_session_t session)
 
 }
 
+test_code_t test_tls1_6_fallback(gnutls_session_t session)
+{
+	int ret;
+
+	/* we remove RSA as there is a version check in the key exchange
+	 * message we do not properly set in this test */
+	sprintf(prio_str,
+		INIT_STR ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES
+		":+VERS-TLS1.2:+VERS-TLS1.1:+VERS-TLS1.0:+VERS-SSL3.0:" ALL_MACS ":"
+		ALL_KX ":-RSA:%s", rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+	_gnutls_hello_set_default_version(session, 3, 7);
+
+	ret = do_handshake(session);
+	if (ret != TEST_SUCCEED)
+		return TEST_FAILED;
+
+	ext_text = gnutls_protocol_get_name(gnutls_protocol_get_version(session));
+	return TEST_SUCCEED;
+}
+
 /* Advertize both TLS 1.0 and SSL 3.0. If the connection fails,
  * but the previous SSL 3.0 test succeeded then disable TLS 1.0.
  */
@@ -937,6 +1080,7 @@ test_code_t test_heartbeat_extension(gnutls_session_t session)
 		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+	gnutls_record_set_max_size(session, 4096);
 
 	gnutls_heartbeat_enable(session, GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 	do_handshake(session);

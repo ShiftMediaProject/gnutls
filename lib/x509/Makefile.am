@@ -34,6 +34,7 @@ noinst_LTLIBRARIES = libgnutls_x509.la
 libgnutls_x509_la_SOURCES =	\
 	common.c key_encode.c	\
 	common.h key_decode.c	\
+	gnutls-idna.h		\
 	crl.c			\
 	crl_write.c		\
 	crq.c			\
@@ -41,16 +42,15 @@ libgnutls_x509_la_SOURCES =	\
 	extensions.c		\
 	mpi.c			\
 	output.c		\
-	pbkdf2-sha1.c		\
-	pbkdf2-sha1.h		\
 	pkcs12.c		\
 	pkcs12_bag.c		\
 	pkcs12_encr.c		\
 	pkcs7.c			\
+	pkcs7-attrs.c		\
 	privkey.c		\
 	privkey_pkcs8.c		\
 	privkey_openssl.c	\
-	rfc2818_hostname.c	\
+	hostname-verify.c	\
 	sign.c			\
 	verify.c		\
 	x509.c x509_dn.c	\
@@ -60,7 +60,9 @@ libgnutls_x509_la_SOURCES =	\
 	verify-high.c		\
 	verify-high2.c		\
 	verify-high.h		\
-	x509_ext.c
+	x509_ext.c		\
+	email-verify.c		\
+	pkcs7-output.c
 
 if ENABLE_OCSP
 libgnutls_x509_la_SOURCES += ocsp.c ocsp_output.c

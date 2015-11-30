@@ -37,13 +37,13 @@ typedef struct api_cipher_hd_st {
 
 /**
  * gnutls_cipher_init:
- * @handle: is a #gnutls_cipher_hd_t structure.
+ * @handle: is a #gnutls_cipher_hd_t type
  * @cipher: the encryption algorithm to use
- * @key: The key to be used for encryption
- * @iv: The IV to use (if not applicable set NULL)
+ * @key: the key to be used for encryption/decryption
+ * @iv: the IV to use (if not applicable set NULL)
  *
- * This function will initialize an context that can be used for
- * encryption/decryption of data. This will effectively use the
+ * This function will initialize the @handle context to be usable
+ * for encryption/decryption of data. This will effectively use the
  * current crypto backend in use by gnutls or the cryptographic
  * accelerator in use.
  *
@@ -75,7 +75,7 @@ gnutls_cipher_init(gnutls_cipher_hd_t * handle,
 	    _gnutls_cipher_init(&h->ctx_enc, e, key,
 				iv, 1);
 
-	if (ret >= 0 && _gnutls_cipher_is_block(e) != 0)
+	if (ret >= 0 && _gnutls_cipher_type(e) == CIPHER_BLOCK)
 		ret =
 		    _gnutls_cipher_init(&h->ctx_dec, e, key, iv, 0);
 
@@ -84,9 +84,9 @@ gnutls_cipher_init(gnutls_cipher_hd_t * handle,
 
 /**
  * gnutls_cipher_tag:
- * @handle: is a #gnutls_cipher_hd_t structure.
+ * @handle: is a #gnutls_cipher_hd_t type
  * @tag: will hold the tag
- * @tag_size: The length of the tag to return
+ * @tag_size: the length of the tag to return
  *
  * This function operates on authenticated encryption with
  * associated data (AEAD) ciphers and will return the
@@ -111,9 +111,9 @@ gnutls_cipher_tag(gnutls_cipher_hd_t handle, void *tag, size_t tag_size)
 
 /**
  * gnutls_cipher_add_auth:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @text: the data to be authenticated
- * @text_size: The length of the data
+ * @handle: is a #gnutls_cipher_hd_t type
+ * @ptext: the data to be authenticated
+ * @ptext_size: the length of the data
  *
  * This function operates on authenticated encryption with
  * associated data (AEAD) ciphers and authenticate the
@@ -125,24 +125,24 @@ gnutls_cipher_tag(gnutls_cipher_hd_t handle, void *tag, size_t tag_size)
  * Since: 3.0
  **/
 int
-gnutls_cipher_add_auth(gnutls_cipher_hd_t handle, const void *text,
-		       size_t text_size)
+gnutls_cipher_add_auth(gnutls_cipher_hd_t handle, const void *ptext,
+		       size_t ptext_size)
 {
 	api_cipher_hd_st *h = handle;
 
 	if (_gnutls_cipher_is_aead(&h->ctx_enc) == 0)
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
-	_gnutls_cipher_auth(&h->ctx_enc, text, text_size);
+	_gnutls_cipher_auth(&h->ctx_enc, ptext, ptext_size);
 
 	return 0;
 }
 
 /**
  * gnutls_cipher_set_iv:
- * @handle: is a #gnutls_cipher_hd_t structure.
+ * @handle: is a #gnutls_cipher_hd_t type
  * @iv: the IV to set
- * @ivlen: The length of the IV
+ * @ivlen: the length of the IV
  *
  * This function will set the IV to be used for the next
  * encryption block.
@@ -156,15 +156,15 @@ gnutls_cipher_set_iv(gnutls_cipher_hd_t handle, void *iv, size_t ivlen)
 
 	_gnutls_cipher_setiv(&h->ctx_enc, iv, ivlen);
 
-	if (_gnutls_cipher_is_block(h->ctx_enc.e) != 0)
+	if (_gnutls_cipher_type(h->ctx_enc.e) == CIPHER_BLOCK)
 		_gnutls_cipher_setiv(&h->ctx_dec, iv, ivlen);
 }
 
 /**
  * gnutls_cipher_encrypt:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @text: the data to encrypt
- * @textlen: The length of data to encrypt
+ * @handle: is a #gnutls_cipher_hd_t type
+ * @ptext: the data to encrypt
+ * @ptext_len: the length of data to encrypt
  *
  * This function will encrypt the given data using the algorithm
  * specified by the context.
@@ -174,19 +174,19 @@ gnutls_cipher_set_iv(gnutls_cipher_hd_t handle, void *iv, size_t ivlen)
  * Since: 2.10.0
  **/
 int
-gnutls_cipher_encrypt(gnutls_cipher_hd_t handle, void *text,
-		      size_t textlen)
+gnutls_cipher_encrypt(gnutls_cipher_hd_t handle, void *ptext,
+		      size_t ptext_len)
 {
 	api_cipher_hd_st *h = handle;
 
-	return _gnutls_cipher_encrypt(&h->ctx_enc, text, textlen);
+	return _gnutls_cipher_encrypt(&h->ctx_enc, ptext, ptext_len);
 }
 
 /**
  * gnutls_cipher_decrypt:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @ciphertext: the data to encrypt
- * @ciphertextlen: The length of data to encrypt
+ * @handle: is a #gnutls_cipher_hd_t type
+ * @ctext: the data to decrypt
+ * @ctext_len: the length of data to decrypt
  *
  * This function will decrypt the given data using the algorithm
  * specified by the context.
@@ -199,55 +199,59 @@ gnutls_cipher_encrypt(gnutls_cipher_hd_t handle, void *text,
  * Since: 2.10.0
  **/
 int
-gnutls_cipher_decrypt(gnutls_cipher_hd_t handle, void *ciphertext,
-		      size_t ciphertextlen)
+gnutls_cipher_decrypt(gnutls_cipher_hd_t handle, void *ctext,
+		      size_t ctext_len)
 {
 	api_cipher_hd_st *h = handle;
 
-	if (_gnutls_cipher_is_block(h->ctx_enc.e) == 0)
-		return _gnutls_cipher_decrypt(&h->ctx_enc, ciphertext,
-					      ciphertextlen);
+	if (_gnutls_cipher_type(h->ctx_enc.e) != CIPHER_BLOCK)
+		return _gnutls_cipher_decrypt(&h->ctx_enc, ctext,
+					      ctext_len);
 	else
-		return _gnutls_cipher_decrypt(&h->ctx_dec, ciphertext,
-					      ciphertextlen);
+		return _gnutls_cipher_decrypt(&h->ctx_dec, ctext,
+					      ctext_len);
 }
 
 /**
  * gnutls_cipher_encrypt2:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @text: the data to encrypt
- * @textlen: The length of data to encrypt
- * @ciphertext: the encrypted data
- * @ciphertextlen: The available length for encrypted data
+ * @handle: is a #gnutls_cipher_hd_t type
+ * @ptext: the data to encrypt
+ * @ptext_len: the length of data to encrypt
+ * @ctext: the encrypted data
+ * @ctext_len: the available length for encrypted data
  *
  * This function will encrypt the given data using the algorithm
- * specified by the context.
+ * specified by the context. For block ciphers the @ptext_len must be
+ * a multiple of the block size. For the supported ciphers the encrypted
+ * data length will equal the plaintext size.
  *
  * Returns: Zero or a negative error code on error.
  *
  * Since: 2.12.0
  **/
 int
-gnutls_cipher_encrypt2(gnutls_cipher_hd_t handle, const void *text,
-		       size_t textlen, void *ciphertext,
-		       size_t ciphertextlen)
+gnutls_cipher_encrypt2(gnutls_cipher_hd_t handle, const void *ptext,
+		       size_t ptext_len, void *ctext,
+		       size_t ctext_len)
 {
 	api_cipher_hd_st *h = handle;
 
-	return _gnutls_cipher_encrypt2(&h->ctx_enc, text, textlen,
-				       ciphertext, ciphertextlen);
+	return _gnutls_cipher_encrypt2(&h->ctx_enc, ptext, ptext_len,
+				       ctext, ctext_len);
 }
 
 /**
  * gnutls_cipher_decrypt2:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @ciphertext: the data to encrypt
- * @ciphertextlen: The length of data to encrypt
- * @text: the decrypted data
- * @textlen: The available length for decrypted data
+ * @handle: is a #gnutls_cipher_hd_t type
+ * @ctext: the data to decrypt
+ * @ctext_len: the length of data to decrypt
+ * @ptext: the decrypted data
+ * @ptext_len: the available length for decrypted data
  *
  * This function will decrypt the given data using the algorithm
- * specified by the context.
+ * specified by the context. For block ciphers the @ctext_len must be
+ * a multiple of the block size. For the supported ciphers the plaintext
+ * data length will equal the ciphertext size.
  *
  * Note that in AEAD ciphers, this will not check the tag. You will
  * need to compare the tag sent with the value returned from gnutls_cipher_tag().
@@ -257,24 +261,24 @@ gnutls_cipher_encrypt2(gnutls_cipher_hd_t handle, const void *text,
  * Since: 2.12.0
  **/
 int
-gnutls_cipher_decrypt2(gnutls_cipher_hd_t handle, const void *ciphertext,
-		       size_t ciphertextlen, void *text, size_t textlen)
+gnutls_cipher_decrypt2(gnutls_cipher_hd_t handle, const void *ctext,
+		       size_t ctext_len, void *ptext, size_t ptext_len)
 {
 	api_cipher_hd_st *h = handle;
 
-	if (_gnutls_cipher_is_block(h->ctx_enc.e) == 0)
-		return _gnutls_cipher_decrypt2(&h->ctx_enc, ciphertext,
-					       ciphertextlen, text,
-					       textlen);
+	if (_gnutls_cipher_type(h->ctx_enc.e) != CIPHER_BLOCK)
+		return _gnutls_cipher_decrypt2(&h->ctx_enc, ctext,
+					       ctext_len, ptext,
+					       ptext_len);
 	else
-		return _gnutls_cipher_decrypt2(&h->ctx_dec, ciphertext,
-					       ciphertextlen, text,
-					       textlen);
+		return _gnutls_cipher_decrypt2(&h->ctx_dec, ctext,
+					       ctext_len, ptext,
+					       ptext_len);
 }
 
 /**
  * gnutls_cipher_deinit:
- * @handle: is a #gnutls_cipher_hd_t structure.
+ * @handle: is a #gnutls_cipher_hd_t type
  *
  * This function will deinitialize all resources occupied by the given
  * encryption context.
@@ -286,7 +290,7 @@ void gnutls_cipher_deinit(gnutls_cipher_hd_t handle)
 	api_cipher_hd_st *h = handle;
 
 	_gnutls_cipher_deinit(&h->ctx_enc);
-	if (_gnutls_cipher_is_block(h->ctx_enc.e) != 0)
+	if (_gnutls_cipher_type(h->ctx_enc.e) == CIPHER_BLOCK)
 		_gnutls_cipher_deinit(&h->ctx_dec);
 	gnutls_free(handle);
 }
@@ -296,10 +300,10 @@ void gnutls_cipher_deinit(gnutls_cipher_hd_t handle)
 
 /**
  * gnutls_hmac_init:
- * @dig: is a #gnutls_hmac_hd_t structure.
+ * @dig: is a #gnutls_hmac_hd_t type
  * @algorithm: the HMAC algorithm to use
- * @key: The key to be used for encryption
- * @keylen: The length of the key
+ * @key: the key to be used for encryption
+ * @keylen: the length of the key
  *
  * This function will initialize an context that can be used to
  * produce a Message Authentication Code (MAC) of data.  This will
@@ -340,9 +344,9 @@ gnutls_hmac_init(gnutls_hmac_hd_t * dig,
 
 /**
  * gnutls_hmac_set_nonce:
- * @handle: is a #gnutls_cipher_hd_t structure.
+ * @handle: is a #gnutls_hmac_hd_t type
  * @nonce: the data to set as nonce
- * @nonce_len: The length of data
+ * @nonce_len: the length of data
  *
  * This function will set the nonce in the MAC algorithm.
  *
@@ -357,9 +361,9 @@ gnutls_hmac_set_nonce(gnutls_hmac_hd_t handle, const void *nonce,
 
 /**
  * gnutls_hmac:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @text: the data to hash
- * @textlen: The length of data to hash
+ * @handle: is a #gnutls_hmac_hd_t type
+ * @ptext: the data to hash
+ * @ptext_len: the length of data to hash
  *
  * This function will hash the given data using the algorithm
  * specified by the context.
@@ -368,14 +372,14 @@ gnutls_hmac_set_nonce(gnutls_hmac_hd_t handle, const void *nonce,
  *
  * Since: 2.10.0
  **/
-int gnutls_hmac(gnutls_hmac_hd_t handle, const void *text, size_t textlen)
+int gnutls_hmac(gnutls_hmac_hd_t handle, const void *ptext, size_t ptext_len)
 {
-	return _gnutls_mac((mac_hd_st *) handle, text, textlen);
+	return _gnutls_mac((mac_hd_st *) handle, ptext, ptext_len);
 }
 
 /**
  * gnutls_hmac_output:
- * @handle: is a #gnutls_hmac_hd_t structure.
+ * @handle: is a #gnutls_hmac_hd_t type
  * @digest: is the output value of the MAC
  *
  * This function will output the current MAC value
@@ -390,7 +394,7 @@ void gnutls_hmac_output(gnutls_hmac_hd_t handle, void *digest)
 
 /**
  * gnutls_hmac_deinit:
- * @handle: is a #gnutls_hmac_hd_t structure.
+ * @handle: is a #gnutls_hmac_hd_t type
  * @digest: is the output value of the MAC
  *
  * This function will deinitialize all resources occupied by
@@ -424,9 +428,9 @@ int gnutls_hmac_get_len(gnutls_mac_algorithm_t algorithm)
  * gnutls_hmac_fast:
  * @algorithm: the hash algorithm to use
  * @key: the key to use
- * @keylen: The length of the key
- * @text: the data to hash
- * @textlen: The length of data to hash
+ * @keylen: the length of the key
+ * @ptext: the data to hash
+ * @ptext_len: the length of data to hash
  * @digest: is the output value of the hash
  *
  * This convenience function will hash the given data and return output
@@ -439,9 +443,9 @@ int gnutls_hmac_get_len(gnutls_mac_algorithm_t algorithm)
 int
 gnutls_hmac_fast(gnutls_mac_algorithm_t algorithm,
 		 const void *key, size_t keylen,
-		 const void *text, size_t textlen, void *digest)
+		 const void *ptext, size_t ptext_len, void *digest)
 {
-	return _gnutls_mac_fast(algorithm, key, keylen, text, textlen,
+	return _gnutls_mac_fast(algorithm, key, keylen, ptext, ptext_len,
 				digest);
 }
 
@@ -449,7 +453,7 @@ gnutls_hmac_fast(gnutls_mac_algorithm_t algorithm,
 
 /**
  * gnutls_hash_init:
- * @dig: is a #gnutls_hash_hd_t structure.
+ * @dig: is a #gnutls_hash_hd_t type
  * @algorithm: the hash algorithm to use
  *
  * This function will initialize an context that can be used to
@@ -487,9 +491,9 @@ gnutls_hash_init(gnutls_hash_hd_t * dig,
 
 /**
  * gnutls_hash:
- * @handle: is a #gnutls_cipher_hd_t structure.
- * @text: the data to hash
- * @textlen: The length of data to hash
+ * @handle: is a #gnutls_hash_hd_t type
+ * @ptext: the data to hash
+ * @ptext_len: the length of data to hash
  *
  * This function will hash the given data using the algorithm
  * specified by the context.
@@ -498,14 +502,14 @@ gnutls_hash_init(gnutls_hash_hd_t * dig,
  *
  * Since: 2.10.0
  **/
-int gnutls_hash(gnutls_hash_hd_t handle, const void *text, size_t textlen)
+int gnutls_hash(gnutls_hash_hd_t handle, const void *ptext, size_t ptext_len)
 {
-	return _gnutls_hash((digest_hd_st *) handle, text, textlen);
+	return _gnutls_hash((digest_hd_st *) handle, ptext, ptext_len);
 }
 
 /**
  * gnutls_hash_output:
- * @handle: is a #gnutls_hash_hd_t structure.
+ * @handle: is a #gnutls_hash_hd_t type
  * @digest: is the output value of the hash
  *
  * This function will output the current hash value
@@ -520,7 +524,7 @@ void gnutls_hash_output(gnutls_hash_hd_t handle, void *digest)
 
 /**
  * gnutls_hash_deinit:
- * @handle: is a #gnutls_hash_hd_t structure.
+ * @handle: is a #gnutls_hash_hd_t type
  * @digest: is the output value of the hash
  *
  * This function will deinitialize all resources occupied by
@@ -553,8 +557,8 @@ int gnutls_hash_get_len(gnutls_digest_algorithm_t algorithm)
 /**
  * gnutls_hash_fast:
  * @algorithm: the hash algorithm to use
- * @text: the data to hash
- * @textlen: The length of data to hash
+ * @ptext: the data to hash
+ * @ptext_len: the length of data to hash
  * @digest: is the output value of the hash
  *
  * This convenience function will hash the given data and return output
@@ -566,16 +570,16 @@ int gnutls_hash_get_len(gnutls_digest_algorithm_t algorithm)
  **/
 int
 gnutls_hash_fast(gnutls_digest_algorithm_t algorithm,
-		 const void *text, size_t textlen, void *digest)
+		 const void *ptext, size_t ptext_len, void *digest)
 {
-	return _gnutls_hash_fast(algorithm, text, textlen, digest);
+	return _gnutls_hash_fast(algorithm, ptext, ptext_len, digest);
 }
 
 /**
  * gnutls_key_generate:
  * @key: is a pointer to a #gnutls_datum_t which will contain a newly
- * created key.
- * @key_size: The number of bytes of the key.
+ * created key
+ * @key_size: the number of bytes of the key
  *
  * Generates a random key of @key_size bytes.
  *
@@ -612,4 +616,178 @@ int gnutls_key_generate(gnutls_datum_t * key, unsigned int key_size)
 	}
 
 	return 0;
+}
+
+/* AEAD API */
+typedef struct api_aead_cipher_hd_st {
+	cipher_hd_st ctx_enc;
+} api_aead_cipher_hd_st;
+
+/**
+ * gnutls_aead_cipher_init:
+ * @handle: is a #gnutls_aead_cipher_hd_t type.
+ * @cipher: the authenticated-encryption algorithm to use
+ * @key: The key to be used for encryption
+ *
+ * This function will initialize an context that can be used for
+ * encryption/decryption of data. This will effectively use the
+ * current crypto backend in use by gnutls or the cryptographic
+ * accelerator in use.
+ *
+ * Returns: Zero or a negative error code on error.
+ *
+ * Since: 3.4.0
+ **/
+int gnutls_aead_cipher_init(gnutls_aead_cipher_hd_t * handle,
+			    gnutls_cipher_algorithm_t cipher,
+			    const gnutls_datum_t * key)
+{
+	api_aead_cipher_hd_st *h;
+	const cipher_entry_st* e;
+
+	e = cipher_to_entry(cipher);
+	if (e == NULL || e->type != CIPHER_AEAD)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	*handle = gnutls_calloc(1, sizeof(api_aead_cipher_hd_st));
+	if (*handle == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_MEMORY_ERROR;
+	}
+
+	h = *handle;
+
+	return
+	    _gnutls_cipher_init(&h->ctx_enc, e, key,
+				NULL, 1);
+}
+
+/**
+ * gnutls_aead_cipher_decrypt:
+ * @handle: is a #gnutls_aead_cipher_hd_t type.
+ * @nonce: the nonce to set
+ * @nonce_len: The length of the nonce
+ * @auth: the data to be authenticated
+ * @auth_len: The length of the data
+ * @tag_size: The size of the tag to use (use zero for the default)
+ * @ctext: the data to decrypt
+ * @ctext_len: the length of data to decrypt (includes tag size)
+ * @ptext: the decrypted data
+ * @ptext_len: the length of decrypted data (initially must hold the maximum available size)
+ *
+ * This function will decrypt the given data using the algorithm
+ * specified by the context. This function must be provided the whole
+ * data to be decrypted, including the tag, and will fail if the tag
+ * verification fails.
+ *
+ * Returns: Zero or a negative error code on error.
+ *
+ * Since: 3.4.0
+ **/
+int
+gnutls_aead_cipher_decrypt(gnutls_aead_cipher_hd_t handle,
+			   const void *nonce, size_t nonce_len,
+			   const void *auth, size_t auth_len,
+			   size_t tag_size,
+			   const void *ctext, size_t ctext_len,
+			   void *ptext, size_t *ptext_len)
+{
+	int ret;
+	api_aead_cipher_hd_st *h = handle;
+
+	if (tag_size == 0)
+		tag_size = _gnutls_cipher_get_tag_size(h->ctx_enc.e);
+	else if (tag_size > (unsigned)_gnutls_cipher_get_tag_size(h->ctx_enc.e))
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	if (unlikely(ctext_len < tag_size))
+		return gnutls_assert_val(GNUTLS_E_DECRYPTION_FAILED);
+
+	ret = _gnutls_aead_cipher_decrypt(&h->ctx_enc,
+					  nonce, nonce_len,
+					  auth, auth_len,
+					  tag_size,
+					  ctext, ctext_len,
+					  ptext, *ptext_len);
+	if (unlikely(ret < 0))
+		return gnutls_assert_val(ret);
+
+	/* That assumes that AEAD ciphers are stream */
+	*ptext_len = ctext_len;
+
+	return 0;
+}
+
+
+/**
+ * gnutls_aead_cipher_encrypt:
+ * @handle: is a #gnutls_aead_cipher_hd_t type.
+ * @nonce: the nonce to set
+ * @nonce_len: The length of the nonce
+ * @auth: the data to be authenticated
+ * @auth_len: The length of the data
+ * @tag_size: The size of the tag to use (use zero for the default)
+ * @ptext: the data to encrypt
+ * @ptext_len: The length of data to encrypt
+ * @ctext: the encrypted data
+ * @ctext_len: the length of encrypted data (initially must hold the maximum available size, including space for tag)
+ *
+ * This function will encrypt the given data using the algorithm
+ * specified by the context. The output data will contain the
+ * authentication tag. This function requires that 
+ * gnutls_aead_cipher_set_nonce() is called before it.
+ *
+ * Returns: Zero or a negative error code on error.
+ *
+ * Since: 3.4.0
+ **/
+int
+gnutls_aead_cipher_encrypt(gnutls_aead_cipher_hd_t handle,
+			   const void *nonce, size_t nonce_len,
+			   const void *auth, size_t auth_len,
+			   size_t tag_size,
+			   const void *ptext, size_t ptext_len,
+			   void *ctext, size_t *ctext_len)
+{
+	api_aead_cipher_hd_st *h = handle;
+	int ret;
+
+	if (tag_size == 0)
+		tag_size = _gnutls_cipher_get_tag_size(h->ctx_enc.e);
+	else if (tag_size > (unsigned)_gnutls_cipher_get_tag_size(h->ctx_enc.e))
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	if (unlikely(*ctext_len < ptext_len + tag_size))
+		return gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
+
+	ret = _gnutls_aead_cipher_encrypt(&h->ctx_enc,
+				     	  nonce, nonce_len,
+				     	  auth, auth_len,
+				     	  tag_size,
+				     	  ptext, ptext_len,
+				     	  ctext, *ctext_len);
+	if (unlikely(ret < 0))
+		return gnutls_assert_val(ret);
+
+	/* That assumes that AEAD ciphers are stream */
+	*ctext_len = ptext_len + tag_size;
+
+	return 0;
+}
+
+/**
+ * gnutls_aead_cipher_deinit:
+ * @handle: is a #gnutls_aead_cipher_hd_t type.
+ *
+ * This function will deinitialize all resources occupied by the given
+ * authenticated-encryption context.
+ *
+ * Since: 3.4.0
+ **/
+void gnutls_aead_cipher_deinit(gnutls_aead_cipher_hd_t handle)
+{
+	api_aead_cipher_hd_st *h = handle;
+
+	_gnutls_cipher_deinit(&h->ctx_enc);
+	gnutls_free(handle);
 }

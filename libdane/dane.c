@@ -37,6 +37,10 @@
 #include "../lib/gnutls_int.h"
 
 #define MAX_DATA_ENTRIES 100
+
+#undef gnutls_assert
+#undef gnutls_assert_val
+
 #ifdef DEBUG
 #define gnutls_assert() fprintf(stderr, "ASSERT: %s: %d\n", __FILE__, __LINE__);
 #define gnutls_assert_val(x) gnutls_assert_val_int(x, __FILE__, __LINE__)
@@ -1032,7 +1036,6 @@ dane_verification_status_print(unsigned int status,
 			       gnutls_datum_t * out, unsigned int flags)
 {
 	gnutls_buffer_st str;
-	int ret;
 
 	_gnutls_buffer_init(&str);
 
@@ -1057,9 +1060,5 @@ dane_verification_status_print(unsigned int status,
 					  _
 					  ("There were no DANE information. "));
 
-	ret = _gnutls_buffer_to_datum(&str, out);
-	if (out->size > 0)
-		out->size--;
-
-	return ret;
+	return _gnutls_buffer_to_datum(&str, out, 1);
 }

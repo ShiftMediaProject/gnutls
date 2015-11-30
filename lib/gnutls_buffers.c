@@ -83,7 +83,7 @@ _gnutls_record_buffer_put(gnutls_session_t session,
 
 /**
  * gnutls_record_check_pending:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * This function checks if there are unread data
  * in the gnutls buffers. If the return value is
@@ -99,7 +99,7 @@ size_t gnutls_record_check_pending(gnutls_session_t session)
 
 /**
  * gnutls_record_check_corked:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * This function checks if there pending corked
  * data in the gnutls buffers --see gnutls_record_cork(). 
@@ -142,6 +142,10 @@ _gnutls_record_buffer_get(content_type_t type,
 					  (int) bufel->type,
 					  _gnutls_packet2str(type),
 					  (int) type);
+		else
+			_gnutls_debug_log("received unexpected packet: %s(%d)\n",
+						_gnutls_packet2str(bufel->type), (int)bufel->type);
+
 		_mbuffer_head_remove_bytes(&session->internals.
 					   record_buffer, msg.size);
 		return gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
@@ -233,13 +237,12 @@ _gnutls_dgram_read(gnutls_session_t session, mbuffer_st ** bufel,
 	ssize_t i, ret;
 	uint8_t *ptr;
 	struct timespec t1, t2;
-	size_t max_size = max_record_recv_size(session);
-	size_t recv_size = max_record_recv_size(session);
+	size_t max_size, recv_size;
 	gnutls_transport_ptr_t fd = session->internals.transport_recv_ptr;
 	unsigned int diff;
 
-	if (recv_size > max_size)
-		recv_size = max_size;
+	max_size = max_record_recv_size(session);
+	recv_size = max_size;
 
 	session->internals.direction = 0;
 
@@ -437,9 +440,22 @@ _gnutls_writev_emu(gnutls_session_t session, gnutls_transport_ptr_t fd,
 		if (vec) {
 			ret = session->internals.vec_push_func(fd, &giovec[j], 1);
 		} else {
-			ret =
-			    session->internals.push_func(fd, giovec[j].iov_base,
-							 giovec[j].iov_len);
+			size_t sent = 0;
+			ssize_t left = giovec[j].iov_len;
+			char *p = giovec[j].iov_base;
+			do {
+				ret =
+				    session->internals.push_func(fd, p,
+								 left);
+				if (ret > 0) {
+					sent += ret;
+					left -= ret;
+					p += ret;
+				}
+			} while(ret > 0 && left > 0);
+
+			if (sent > 0)
+				ret = sent;
 		}
 
 		if (ret == -1) {
@@ -725,7 +741,7 @@ int _gnutls_io_check_recv(gnutls_session_t session, unsigned int ms)
 	int ret = 0, err;
 
 	if (unlikely
-	    (session->internals.pull_timeout_func == system_recv_timeout
+	    (session->internals.pull_timeout_func == gnutls_system_recv_timeout
 	     && session->internals.pull_func != system_read)) {
 		_gnutls_debug_log("The pull function has been replaced but not the pull timeout.");
 		return gnutls_assert_val(GNUTLS_E_PULL_ERROR);
@@ -1363,8 +1379,9 @@ _gnutls_handshake_io_recv_int(gnutls_session_t session,
 	 */
 	ret = _gnutls_parse_record_buffered_msgs(session);
 
-	if (ret == 0)
+	if (ret == 0) {
 		ret = get_last_packet(session, htype, hsk, optional);
+	}
 
 	if (IS_DTLS(session)) {
 		if (ret >= 0)

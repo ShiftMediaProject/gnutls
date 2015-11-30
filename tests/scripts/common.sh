@@ -18,19 +18,21 @@
 # along with this file; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
+RPORT="$(((($$<<15)|RANDOM) % 63001 + 2000))"
+
 fail() {
-   PID=$1
-   shift;
+   PID="$1"
+   shift
    echo "Failure: $1" >&2
-   kill $PID
+   [ -n "${PID}" ] && kill ${PID}
    exit 1
 }
 
 launch_server() {
-       PARENT=$1;
-       shift;
-       $SERV $DEBUG -p $PORT $* >/dev/null 2>&1 &
-       LOCALPID="$!";
+       PARENT="$1"
+       shift
+       ${SERV} ${DEBUG} -p "${PORT}" $* >/dev/null 2>&1 &
+       LOCALPID="$!"
        trap "[ ! -z \"${LOCALPID}\" ] && kill ${LOCALPID};" 15
        wait "${LOCALPID}"
        LOCALRET="$?"
@@ -42,12 +44,12 @@ launch_server() {
 }
 
 launch_pkcs11_server() {
-       PARENT=$1;
-       shift;
-       PROVIDER=$1;
-       shift;
-       $VALGRIND $SERV $PROVIDER $DEBUG -p $PORT $* &
-       LOCALPID="$!";
+       PARENT="$1"
+       shift
+       PROVIDER="$1"
+       shift
+       ${VALGRIND} ${SERV} ${PROVIDER} ${DEBUG} -p "${PORT}" $* &
+       LOCALPID="$!"
        trap "[ ! -z \"${LOCALPID}\" ] && kill ${LOCALPID};" 15
        wait "${LOCALPID}"
        LOCALRET="$?"
@@ -59,10 +61,10 @@ launch_pkcs11_server() {
 }
 
 launch_bare_server() {
-       PARENT=$1;
-       shift;
-       $SERV $* >/dev/null 2>&1 &
-       LOCALPID="$!";
+       PARENT="$1"
+       shift
+       ${SERV} $* >/dev/null 2>&1 &
+       LOCALPID="$!"
        trap "[ ! -z \"${LOCALPID}\" ] && kill ${LOCALPID};" 15
        wait "${LOCALPID}"
        LOCALRET="$?"
@@ -78,4 +80,4 @@ wait_server() {
 	sleep 4
 }
 
-trap "fail \"Failed to launch a gnutls-serv server, aborting test... \"" 10 
+trap "fail '' 'Failed to launch a gnutls-serv server, aborting test... '" 10

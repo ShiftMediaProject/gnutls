@@ -27,28 +27,39 @@ EXTRA_DIST = ca-no-pathlen.pem no-ca-or-pathlen.pem aki-cert.pem \
 	template-overflow.tmpl template-overflow2.pem template-overflow2.tmpl \
 	template-date.tmpl template-date.pem template-dn-err.tmpl \
 	template-nc.tmpl template-nc.pem xmpp-othername.pem \
-	suppressions.valgrind csr-invalid.der invalid-sig2.pem invalid-sig3.pem
+	suppressions.valgrind csr-invalid.der invalid-sig2.pem invalid-sig3.pem \
+	invalid-sig.pem email-certs/chain.exclude.test.example.com email-certs/chain.test.example.com \
+	email-certs/chain.invalid.example.com email-certs/chain.test.example.com-2 \
+	single-ca.p7b single-ca.p7b.out full.p7b full.p7b.out detached.p7b \
+	pkcs7-detached.txt p7-combined.out template-generalized.pem \
+	template-generalized.tmpl privkey1.pem privkey2.pem privkey3.pem \
+	name-constraints-ip.pem cert-invalid-utf8.der very-long-dn.pem \
+	template-unique.tmpl template-unique.pem
 
-dist_check_SCRIPTS = pathlen aki template-test pem-decoding dane crq invalid-sig \
-	crl
+dist_check_SCRIPTS = pathlen aki pem-decoding certtool invalid-sig email \
+	pkcs7 privkey-import name-constraints certtool-long-cn crl
 
-TESTS = pathlen aki pem-decoding invalid-sig
+if !HAVE_BUGGY_LIBIDN
+dist_check_SCRIPTS += certtool-utf8
+endif
 
 if ENABLE_NON_SUITEB_CURVES
-TESTS += crq
+dist_check_SCRIPTS += crq
 endif
 
 if !WINDOWS
-TESTS += template-test
+dist_check_SCRIPTS += template-test
 endif
 
 if ENABLE_DANE
-TESTS += dane
+dist_check_SCRIPTS += dane
 endif
+
+TESTS = $(dist_check_SCRIPTS)
 
 TESTS_ENVIRONMENT = EXEEXT=$(EXEEXT) \
 	LC_ALL="C"				\
-	VALGRIND="$(VALGRIND)"			\
+	VALGRIND="$(VALGRIND)" 			\
 	LIBTOOL="$(LIBTOOL)"			\
 	top_builddir="$(top_builddir)"		\
 	srcdir="$(srcdir)"

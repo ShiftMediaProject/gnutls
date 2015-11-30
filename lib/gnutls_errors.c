@@ -27,11 +27,7 @@
 #include <stdarg.h>
 #endif
 #include "vasprintf.h"
-
-/* I18n of error codes. */
-#include "gettext.h"
-#define _(String) dgettext (PACKAGE, String)
-#define N_(String) gettext_noop (String)
+#include <gnutls_str.h>
 
 #define ERROR_ENTRY(desc, name) \
 	{ desc, #name, name}
@@ -77,12 +73,17 @@ static const gnutls_error_entry error_entries[] = {
 		    GNUTLS_E_INVALID_SESSION),
 
 	ERROR_ENTRY(N_("GnuTLS internal error."), GNUTLS_E_INTERNAL_ERROR),
+	ERROR_ENTRY(N_(
+	            "A connection with inappropriate fallback was attempted."),
+	            GNUTLS_E_INAPPROPRIATE_FALLBACK),
 	ERROR_ENTRY(N_("An illegal TLS extension was received."),
 		    GNUTLS_E_RECEIVED_ILLEGAL_EXTENSION),
 	ERROR_ENTRY(N_("A TLS fatal alert has been received."),
 		    GNUTLS_E_FATAL_ALERT_RECEIVED),
 	ERROR_ENTRY(N_("An unexpected TLS packet was received."),
 		    GNUTLS_E_UNEXPECTED_PACKET),
+	ERROR_ENTRY(N_("Failed to import the key into store."),
+		    GNUTLS_E_KEY_IMPORT_FAILED),
 	ERROR_ENTRY(N_
 		    ("An error was encountered at the TLS Finished packet calculation."),
 		    GNUTLS_E_ERROR_IN_FINISHED_PACKET),
@@ -153,6 +154,8 @@ static const gnutls_error_entry error_entries[] = {
 		    GNUTLS_E_RECORD_LIMIT_REACHED),
 	ERROR_ENTRY(N_("Error in the certificate."),
 		    GNUTLS_E_CERTIFICATE_ERROR),
+	ERROR_ENTRY(N_("Error in the certificate verification."),
+		    GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR),
 	ERROR_ENTRY(N_("Could not authenticate peer."),
 		    GNUTLS_E_AUTH_ERROR),
 	ERROR_ENTRY(N_
@@ -290,6 +293,8 @@ static const gnutls_error_entry error_entries[] = {
 
 	ERROR_ENTRY(N_("TPM error."),
 		    GNUTLS_E_TPM_ERROR),
+	ERROR_ENTRY(N_("The TPM library (trousers) cannot be found."),
+		    GNUTLS_E_TPM_NO_LIB),
 	ERROR_ENTRY(N_("TPM is not initialized."),
 		    GNUTLS_E_TPM_UNINITIALIZED),
 	ERROR_ENTRY(N_("TPM key was not found in persistent storage."),
@@ -385,6 +390,8 @@ static const gnutls_error_entry non_fatal_error_entries[] = {
 	ERROR_ENTRY(N_("Function was interrupted."), GNUTLS_E_INTERRUPTED),
 	ERROR_ENTRY(N_("Rehandshake was requested by the peer."),
 		    GNUTLS_E_REHANDSHAKE),
+	ERROR_ENTRY(N_("One of the involved algorithms has insufficient security level."),
+		    GNUTLS_E_INSUFFICIENT_SECURITY),
 	{NULL, NULL, 0}
 };
 

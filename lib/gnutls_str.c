@@ -26,7 +26,9 @@
 #include <gnutls_str.h>
 #include <stdarg.h>
 #include <c-ctype.h>
+#include <intprops.h>
 #include "vasprintf.h"
+#include "extras/hex.h"
 
 /* These functions are like strcat, strcpy. They only
  * do bound checking (they shouldn't cause buffer overruns),
@@ -106,32 +108,47 @@ void _gnutls_buffer_clear(gnutls_buffer_st * str)
 
 #define MIN_CHUNK 1024
 
+static void align_allocd_with_data(gnutls_buffer_st * dest)
+{
+	if (dest->length)
+		memmove(dest->allocd, dest->data, dest->length);
+	dest->data = dest->allocd;
+}
+
+/**
+ * gnutls_buffer_append_data:
+ * @dest: the buffer to append to
+ * @data: the data
+ * @data_size: the size of @data
+ *
+ * Appends the provided @data to the destination buffer.
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
+ *
+ * Since: 3.4.0
+ **/
 int
-_gnutls_buffer_append_data(gnutls_buffer_st * dest, const void *data,
+gnutls_buffer_append_data(gnutls_buffer_t dest, const void *data,
 			   size_t data_size)
 {
-	size_t tot_len = data_size + dest->length;
+	size_t const tot_len = data_size + dest->length;
+	size_t const unused = MEMSUB(dest->data, dest->allocd);
 
 	if (data_size == 0)
 		return 0;
 
+	if (unlikely(sizeof(size_t) == 4 &&
+	    INT_ADD_OVERFLOW (((ssize_t)MAX(data_size, MIN_CHUNK)), ((ssize_t)dest->length)))) {
+		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
+	}
+
 	if (dest->max_length >= tot_len) {
-		size_t unused = MEMSUB(dest->data, dest->allocd);
 
 		if (dest->max_length - unused <= tot_len) {
-			if (dest->length && dest->data)
-				memmove(dest->allocd, dest->data,
-					dest->length);
-
-			dest->data = dest->allocd;
+			align_allocd_with_data(dest);
 		}
-		memmove(&dest->data[dest->length], data, data_size);
-		dest->length = tot_len;
-
-		return tot_len;
 	} else {
-		size_t unused = MEMSUB(dest->data, dest->allocd);
-		size_t new_len =
+		size_t const new_len =
 		    MAX(data_size, MIN_CHUNK) + MAX(dest->max_length,
 						    MIN_CHUNK);
 
@@ -143,15 +160,13 @@ _gnutls_buffer_append_data(gnutls_buffer_st * dest, const void *data,
 		dest->max_length = new_len;
 		dest->data = dest->allocd + unused;
 
-		if (dest->length && dest->data)
-			memmove(dest->allocd, dest->data, dest->length);
-		dest->data = dest->allocd;
-
-		memcpy(&dest->data[dest->length], data, data_size);
-		dest->length = tot_len;
-
-		return tot_len;
+		align_allocd_with_data(dest);
 	}
+
+	memcpy(&dest->data[dest->length], data, data_size);
+	dest->length = tot_len;
+
+	return 0;
 }
 
 int _gnutls_buffer_resize(gnutls_buffer_st * dest, size_t new_size)
@@ -159,10 +174,7 @@ int _gnutls_buffer_resize(gnutls_buffer_st * dest, size_t new_size)
 	if (dest->max_length >= new_size) {
 		size_t unused = MEMSUB(dest->data, dest->allocd);
 		if (dest->max_length - unused <= new_size) {
-			if (dest->length && dest->data)
-				memmove(dest->allocd, dest->data,
-					dest->length);
-			dest->data = dest->allocd;
+			align_allocd_with_data(dest);
 		}
 
 		return 0;
@@ -181,9 +193,7 @@ int _gnutls_buffer_resize(gnutls_buffer_st * dest, size_t new_size)
 		dest->max_length = alloc_len;
 		dest->data = dest->allocd + unused;
 
-		if (dest->length && dest->data)
-			memmove(dest->allocd, dest->data, dest->length);
-		dest->data = dest->allocd;
+		align_allocd_with_data(dest);
 
 		return 0;
 	}
@@ -237,14 +247,22 @@ _gnutls_buffer_pop_datum(gnutls_buffer_st * str, gnutls_datum_t * data,
 /* converts the buffer to a datum if possible. After this call 
  * (failed or not) the buffer should be considered deinitialized.
  */
-int _gnutls_buffer_to_datum(gnutls_buffer_st * str, gnutls_datum_t * data)
+int _gnutls_buffer_to_datum(gnutls_buffer_st * str, gnutls_datum_t * data, unsigned is_str)
 {
+	int ret;
 
 	if (str->length == 0) {
 		data->data = NULL;
 		data->size = 0;
 		_gnutls_buffer_clear(str);
 		return 0;
+	}
+
+	if (is_str) {
+		ret = _gnutls_buffer_append_data(str, "\x00", 1);
+		if (ret < 0) {
+			return gnutls_assert_val(ret);
+		}
 	}
 
 	if (str->allocd != str->data) {
@@ -261,6 +279,10 @@ int _gnutls_buffer_to_datum(gnutls_buffer_st * str, gnutls_datum_t * data)
 		data->data = str->data;
 		data->size = str->length;
 		_gnutls_buffer_init(str);
+	}
+
+	if (is_str) {
+		data->size--;
 	}
 
 	return 0;
@@ -341,27 +363,29 @@ _gnutls_buffer_delete_data(gnutls_buffer_st * dest, int pos,
 
 
 int
-_gnutls_buffer_escape(gnutls_buffer_st * dest, int all,
-		      const char *const invalid_chars)
+_gnutls_buffer_append_escape(gnutls_buffer_st * dest, const void *data,
+			     size_t data_size, const char *invalid_chars)
 {
 	int rv = -1;
 	char t[5];
-	unsigned int pos = 0;
+	unsigned int pos = dest->length;
+
+	rv = _gnutls_buffer_append_data(dest, data, data_size);
+	if (rv < 0)
+		return gnutls_assert_val(rv);
 
 	while (pos < dest->length) {
 
-		if (all != 0
-		    || (dest->data[pos] == '\\'
+		if (dest->data[pos] == '\\'
 			|| strchr(invalid_chars, dest->data[pos])
-			|| !c_isgraph(dest->data[pos]))) {
+			|| !c_isgraph(dest->data[pos])) {
 
 			snprintf(t, sizeof(t), "%%%.2X",
 				 (unsigned int) dest->data[pos]);
 
 			_gnutls_buffer_delete_data(dest, pos, 1);
 
-			if (_gnutls_buffer_insert_data(dest, pos, t, 3) <
-			    0) {
+			if (_gnutls_buffer_insert_data(dest, pos, t, 3) < 0) {
 				rv = -1;
 				goto cleanup;
 			}
@@ -373,7 +397,6 @@ _gnutls_buffer_escape(gnutls_buffer_st * dest, int all,
 	rv = 0;
 
       cleanup:
-
 	return rv;
 }
 
@@ -454,7 +477,9 @@ char *_gnutls_bin2hex(const void *_old, size_t oldlen,
  * @bin_size: when calling should hold maximum size of @bin_data,
  *            on return will hold actual length of @bin_data.
  *
- * Convert a buffer with hex data to binary data.
+ * Convert a buffer with hex data to binary data. This function
+ * unlike gnutls_hex_decode() can parse hex data with separators
+ * between numbers. That is, it ignores any non-hex characters.
  *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  *
@@ -506,6 +531,40 @@ _gnutls_hex2bin(const char *hex_data, size_t hex_size, uint8_t * bin_data,
 }
 
 /**
+ * gnutls_hex_decode2:
+ * @hex_data: contain the encoded data
+ * @result: the result in an allocated string
+ *
+ * This function will decode the given encoded data, using the hex
+ * encoding used by PSK password files.
+ *
+ * Returns: %GNUTLS_E_PARSING_ERROR on invalid hex data, or 0 on success.
+ **/
+int
+gnutls_hex_decode2(const gnutls_datum_t * hex_data, gnutls_datum_t *result)
+{
+	int ret;
+	int size = hex_data_size(hex_data->size);
+
+	result->data = gnutls_malloc(size);
+	if (result->data == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_MEMORY_ERROR;
+	}
+
+	result->size = size;
+	ret = hex_decode((char *) hex_data->data, hex_data->size,
+			 result->data, result->size);
+	if (ret == 0) {
+		gnutls_assert();
+		gnutls_free(result->data);
+		return GNUTLS_E_PARSING_ERROR;
+	}
+
+	return 0;
+}
+
+/**
  * gnutls_hex_decode:
  * @hex_data: contain the encoded data
  * @result: the place where decoded data will be copied
@@ -514,22 +573,30 @@ _gnutls_hex2bin(const char *hex_data, size_t hex_size, uint8_t * bin_data,
  * This function will decode the given encoded data, using the hex
  * encoding used by PSK password files.
  *
- * Note that hex_data should be null terminated.
+ * Initially @result_size must hold the maximum size available in
+ * @result, and on return it will contain the number of bytes written.
  *
  * Returns: %GNUTLS_E_SHORT_MEMORY_BUFFER if the buffer given is not
- *   long enough, or 0 on success.
+ *   long enough, %GNUTLS_E_PARSING_ERROR on invalid hex data, or 0 on success.
  **/
 int
 gnutls_hex_decode(const gnutls_datum_t * hex_data, void *result,
 		  size_t * result_size)
 {
 	int ret;
+	size_t size = hex_data_size(hex_data->size);
 
-	ret =
-	    _gnutls_hex2bin((char *) hex_data->data, hex_data->size,
-			    (uint8_t *) result, result_size);
-	if (ret < 0)
-		return ret;
+	if (*result_size < size) {
+		gnutls_assert();
+		return GNUTLS_E_SHORT_MEMORY_BUFFER;
+	}
+
+	ret = hex_decode((char *) hex_data->data, hex_data->size,
+			 result, size);
+	if (ret == 0) {
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+	}
+	*result_size = size;
 
 	return 0;
 }
@@ -552,16 +619,55 @@ int
 gnutls_hex_encode(const gnutls_datum_t * data, char *result,
 		  size_t * result_size)
 {
-	size_t res = data->size + data->size + 1;
+	int ret;
+	size_t size = hex_str_size(data->size);
 
-	if (*result_size < res) {
+	if (*result_size < size) {
 		gnutls_assert();
 		return GNUTLS_E_SHORT_MEMORY_BUFFER;
 	}
 
-	_gnutls_bin2hex(data->data, data->size, result, *result_size,
-			NULL);
-	*result_size = res;
+	ret = hex_encode(data->data, data->size, result, *result_size);
+	if (ret == 0) {
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+	}
+
+	*result_size = size;
+
+	return 0;
+}
+
+/**
+ * gnutls_hex_encode2:
+ * @data: contain the raw data
+ * @result: the result in an allocated string
+ *
+ * This function will convert the given data to printable data, using
+ * the hex encoding, as used in the PSK password files.
+ *
+ * Note that the size of the result does NOT include the null terminator.
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
+ **/
+int
+gnutls_hex_encode2(const gnutls_datum_t * data, gnutls_datum_t *result)
+{
+	int ret;
+	int size = hex_str_size(data->size);
+
+	result->data = gnutls_malloc(size);
+	if (result->data == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_MEMORY_ERROR;
+	}
+
+	ret = hex_encode((char*)data->data, data->size, (char*)result->data, size); 
+	if (ret == 0) {
+		gnutls_free(result->data);
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+	}
+
+	result->size = size-1;
 
 	return 0;
 }

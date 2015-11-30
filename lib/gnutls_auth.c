@@ -37,7 +37,7 @@
 
 /**
  * gnutls_credentials_clear:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Clears all the credentials previously set in this session.
  **/
@@ -61,9 +61,9 @@ void gnutls_credentials_clear(gnutls_session_t session)
  */
 /**
  * gnutls_credentials_set:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @type: is the type of the credentials
- * @cred: is a pointer to a structure.
+ * @cred: the credentials to set
  *
  * Sets the needed credentials for the specified type.  Eg username,
  * password - or public and private keys etc.  The @cred parameter is
@@ -142,9 +142,9 @@ gnutls_credentials_set(gnutls_session_t session,
 
 /**
  * gnutls_credentials_get:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @type: is the type of the credentials to return
- * @cred: will contain the pointer to the credentials structure.
+ * @cred: will contain the credentials.
  *
  * Returns the previously provided credentials structures.
  *
@@ -161,6 +161,8 @@ gnutls_credentials_set(gnutls_session_t session,
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned,
  *   otherwise a negative error code is returned.
+ *
+ * Since: 3.3.3
  **/
 int
 gnutls_credentials_get(gnutls_session_t session,
@@ -180,7 +182,7 @@ const void *_cred;
 
 /**
  * gnutls_auth_get_type:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Returns type of credentials for the current authentication schema.
  * The returned information is to be used to distinguish the function used
@@ -209,7 +211,7 @@ gnutls_credentials_type_t gnutls_auth_get_type(gnutls_session_t session)
 
 /**
  * gnutls_auth_server_get_type:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Returns the type of credentials that were used for server authentication.
  * The returned information is to be used to distinguish the function used
@@ -229,7 +231,7 @@ gnutls_auth_server_get_type(gnutls_session_t session)
 
 /**
  * gnutls_auth_client_get_type:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * Returns the type of credentials that were used for client authentication.
  * The returned information is to be used to distinguish the function used
@@ -283,7 +285,7 @@ const void *_gnutls_get_cred(gnutls_session_t session,
 
 /*-
  * _gnutls_free_auth_info - Frees the auth info structure
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * This function frees the auth info structure and sets it to
  * null. It must be called since some structures contain malloced
@@ -301,6 +303,7 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 	switch (session->key.auth_info_type) {
 	case GNUTLS_CRD_SRP:
 		break;
+#ifdef ENABLE_ANON
 	case GNUTLS_CRD_ANON:
 		{
 			anon_auth_info_t info =
@@ -313,6 +316,7 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 			_gnutls_free_dh_info(dh_info);
 		}
 		break;
+#endif
 	case GNUTLS_CRD_PSK:
 		{
 			psk_auth_info_t info =
@@ -321,8 +325,10 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 			if (info == NULL)
 				break;
 
+#ifdef ENABLE_DHE
 			dh_info = &info->dh;
 			_gnutls_free_dh_info(dh_info);
+#endif
 		}
 		break;
 	case GNUTLS_CRD_CERTIFICATE:
@@ -345,7 +351,9 @@ void _gnutls_free_auth_info(gnutls_session_t session)
 			info->raw_certificate_list = NULL;
 			info->ncerts = 0;
 
+#ifdef ENABLE_DHE
 			_gnutls_free_dh_info(dh_info);
+#endif
 		}
 
 

@@ -41,7 +41,8 @@ extern "C" {
 # define _GL_ATTRIBUTE_MALLOC
 #endif
 
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
+#if ! defined __clang__ && \
+    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
 # define _GL_ATTRIBUTE_ALLOC_SIZE(args) __attribute__ ((__alloc_size__ args))
 #else
 # define _GL_ATTRIBUTE_ALLOC_SIZE(args)
@@ -258,5 +259,6 @@ xmemdup (T const *p, size_t s)
 
 #endif
 
+_GL_INLINE_HEADER_END
 
 #endif /* !XALLOC_H_ */

@@ -300,13 +300,17 @@ int ret;
 		if (!require_cert && gnutls_certificate_get_peers(session, &size) == NULL)
 			return 0;
 
-		if ((require_cert || ENABLED_OPT(VERIFY_CLIENT_CERT)) && cert_verify(session, NULL, NULL) == 0) {
-			do {
-				ret = gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_ACCESS_DENIED);
-			} while(ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
+		if (require_cert || ENABLED_OPT(VERIFY_CLIENT_CERT)) {
+			if (cert_verify(session, NULL, NULL) == 0) {
+				do {
+					ret = gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_ACCESS_DENIED);
+				} while(ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
 
-			j->http_state = HTTP_STATE_CLOSING;
-			return -1;
+				j->http_state = HTTP_STATE_CLOSING;
+				return -1;
+			}
+		} else {
+			printf("- Peer's certificate was NOT verified.\n");
 		}
 	}
 	return 0;
@@ -1398,9 +1402,13 @@ static void tcp_server(const char *name, int port)
 						} else {
 							j->http_state = HTTP_STATE_CLOSING;
 							if (r < 0) {
+								int ret;
 								check_alert(j->tls_session, r);
 								fprintf(stderr,
 								     "Error while receiving data\n");
+								do {
+									ret = gnutls_alert_send_appropriate(j->tls_session, r);
+								} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
 								GERR(r);
 							}
 						}

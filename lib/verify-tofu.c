@@ -422,12 +422,11 @@ static int pgp_crt_to_raw_pubkey(const gnutls_datum_t * cert,
 	}
 
 	rpubkey->data = gnutls_malloc(size);
-	if (rpubkey->data == NULL)
-		if (ret < 0 && ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-			ret = GNUTLS_E_MEMORY_ERROR;
-			gnutls_assert();
-			goto cleanup;
-		}
+	if (rpubkey->data == NULL) {
+		ret = GNUTLS_E_MEMORY_ERROR;
+		gnutls_assert();
+		goto cleanup;
+	}
 
 	ret =
 	    gnutls_pubkey_export(pubkey, GNUTLS_X509_FMT_DER,
@@ -642,7 +641,6 @@ gnutls_store_commitment(const char *db_name,
 			const gnutls_datum_t * hash,
 			time_t expiration, unsigned int flags)
 {
-	FILE *fd = NULL;
 	int ret;
 	char local_file[MAX_FILENAME];
 	const mac_entry_st *me = hash_to_entry(hash_algo);
@@ -679,9 +677,6 @@ gnutls_store_commitment(const char *db_name,
 
 	ret = 0;
 
-	if (fd != NULL)
-		fclose(fd);
-
 	return ret;
 }
 
@@ -706,7 +701,7 @@ static int find_config_file(char *file, size_t max_size)
 
 /**
  * gnutls_tdb_init:
- * @tdb: The structure to be initialized
+ * @tdb: A pointer to the type to be initialized
  *
  * This function will initialize a public key trust storage structure.
  *

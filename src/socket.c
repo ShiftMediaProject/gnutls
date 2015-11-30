@@ -15,20 +15,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * In addition, as a special exception, the copyright holders give
- * permission to link the code of portions of this program with the
- * OpenSSL library under certain conditions as described in each
- * individual source file, and distribute linked combinations including
- * the two.
- * 
- * You must obey the GNU General Public License in all respects for all
- * of the code used other than OpenSSL. If you modify file(s) with this
- * exception, you may extend this exception to your version of the
- * file(s), but you are not obligated to do so. If you do not wish to do
- * so, delete this exception statement from your version. If you delete
- * this exception statement from all source files in the program, then
- * also delete it here.
  */
 
 #include <config.h>
@@ -53,6 +39,11 @@
 #include <socket.h>
 #include <c-ctype.h>
 #include "sockets.h"
+
+#ifdef HAVE_LIBIDN
+#include <idna.h>
+#include <idn-free.h>
+#endif
 
 #define MAX_BUF 4096
 
@@ -129,15 +120,18 @@ socket_send_range(const socket_st * socket, const void *buffer,
 }
 
 static
-ssize_t send_line(int fd, const char *txt)
+ssize_t send_line(socket_st * socket, const char *txt)
 {
 	int len = strlen(txt);
 	int ret;
 
-	ret = send(fd, txt, len, 0);
+	if (socket->verbose)
+		fprintf(stderr, "starttls: sending: %s\n", txt);
+
+	ret = send(socket->fd, txt, len, 0);
 
 	if (ret == -1) {
-		fprintf(stderr, "error sending %s\n", txt);
+		fprintf(stderr, "error sending \"%s\"\n", txt);
 		exit(1);
 	}
 
@@ -145,29 +139,38 @@ ssize_t send_line(int fd, const char *txt)
 }
 
 static
-ssize_t wait_for_text(int fd, const char *txt, unsigned txt_size)
+ssize_t wait_for_text(socket_st * socket, const char *txt, unsigned txt_size)
 {
-	char buf[512];
+	char buf[1024];
 	char *p;
 	int ret;
 	fd_set read_fds;
 	struct timeval tv;
 
+	if (socket->verbose && txt != NULL)
+		fprintf(stderr, "starttls: waiting for: \"%.*s\"\n", txt_size, txt);
+
 	do {
 		FD_ZERO(&read_fds);
-		FD_SET(fd, &read_fds);
+		FD_SET(socket->fd, &read_fds);
 		tv.tv_sec = 10;
 		tv.tv_usec = 0;
-		ret = select(fd + 1, &read_fds, NULL, NULL, &tv);
+		ret = select(socket->fd + 1, &read_fds, NULL, NULL, &tv);
 		if (ret <= 0)
 			ret = -1;
 		else
-			ret = recv(fd, buf, sizeof(buf)-1, 0);
+			ret = recv(socket->fd, buf, sizeof(buf)-1, 0);
 		if (ret == -1) {
 			fprintf(stderr, "error receiving %s\n", txt);
 			exit(1);
 		}
 		buf[ret] = 0;
+
+		if (txt == NULL)
+			break;
+
+		if (socket->verbose)
+			fprintf(stderr, "starttls: received: %s\n", buf);
 
 		p = memmem(buf, ret, txt, txt_size);
 		if (p != NULL && p != buf) {
@@ -183,6 +186,8 @@ ssize_t wait_for_text(int fd, const char *txt, unsigned txt_size)
 void
 socket_starttls(socket_st * socket, const char *app_proto)
 {
+	char buf[512];
+
 	if (socket->secure)
 		return;
 
@@ -193,27 +198,43 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		if (socket->verbose)
 			printf("Negotiating SMTP STARTTLS\n");
 
-		wait_for_text(socket->fd, "220 ", 4);
-		send_line(socket->fd, "EHLO mail.example.com\n");
-		wait_for_text(socket->fd, "250 ", 4);
-		send_line(socket->fd, "STARTTLS\n");
-		wait_for_text(socket->fd, "220 ", 4);
+		wait_for_text(socket, "220 ", 4);
+		snprintf(buf, sizeof(buf), "EHLO %s\n", socket->hostname);
+		send_line(socket, buf);
+		wait_for_text(socket, "250 ", 4);
+		send_line(socket, "STARTTLS\n");
+		wait_for_text(socket, "220 ", 4);
 	} else if (strcasecmp(app_proto, "imap") == 0 || strcasecmp(app_proto, "imap2") == 0) {
 		if (socket->verbose)
 			printf("Negotiating IMAP STARTTLS\n");
 
-		send_line(socket->fd, "a CAPABILITY\r\n");
-		wait_for_text(socket->fd, "a OK", 4);
-		send_line(socket->fd, "a STARTTLS\r\n");
-		wait_for_text(socket->fd, "a OK", 4);
+		send_line(socket, "a CAPABILITY\r\n");
+		wait_for_text(socket, "a OK", 4);
+		send_line(socket, "a STARTTLS\r\n");
+		wait_for_text(socket, "a OK", 4);
+	} else if (strcasecmp(app_proto, "xmpp") == 0) {
+		if (socket->verbose)
+			printf("Negotiating XMPP STARTTLS\n");
+
+		snprintf(buf, sizeof(buf), "<stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' to='%s' version='1.0'>\n", socket->hostname);
+		send_line(socket, buf);
+		wait_for_text(socket, "<?", 2);
+		send_line(socket, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+		wait_for_text(socket, "<proceed", 8);
+	} else if (strcasecmp(app_proto, "ldap") == 0) {
+		if (socket->verbose)
+			printf("Negotiating LDAP STARTTLS\n");
+#define LDAP_STR "\x30\x1d\x02\x01\x01\x77\x18\x80\x16\x31\x2e\x33\x2e\x36\x2e\x31\x2e\x34\x2e\x31\x2e\x31\x34\x36\x36\x2e\x32\x30\x30\x33\x37"
+		send(socket->fd, LDAP_STR, sizeof(LDAP_STR)-1, 0);
+		wait_for_text(socket, NULL, 0);
 	} else if (strcasecmp(app_proto, "ftp") == 0 || strcasecmp(app_proto, "ftps") == 0) {
 		if (socket->verbose)
 			printf("Negotiating FTP STARTTLS\n");
 
-		send_line(socket->fd, "FEAT\n");
-		wait_for_text(socket->fd, "211 End", 7);
-		send_line(socket->fd, "AUTH TLS\n");
-		wait_for_text(socket->fd, "234", 3);
+		send_line(socket, "FEAT\r\n");
+		wait_for_text(socket, "211 ", 4);
+		send_line(socket, "AUTH TLS\r\n");
+		wait_for_text(socket, "234", 3);
 	} else {
 		if (!c_isdigit(app_proto[0])) {
 			static int warned = 0;
@@ -225,6 +246,41 @@ socket_starttls(socket_st * socket, const char *app_proto)
 	}
 
 	return;
+}
+
+#define CANON_SERVICE(app_proto) \
+	if (strcasecmp(app_proto, "xmpp") == 0) \
+		app_proto = "xmpp-server"; \
+
+int
+starttls_proto_to_port(const char *app_proto)
+{
+	struct servent *s;
+
+	CANON_SERVICE(app_proto);
+
+	s = getservbyname(app_proto, NULL);
+	if (s != NULL) {
+		return s->s_port;
+	}
+	endservent();
+
+	return 443;
+}
+
+const char *starttls_proto_to_service(const char *app_proto)
+{
+	struct servent *s;
+
+	CANON_SERVICE(app_proto);
+
+	s = getservbyname(app_proto, NULL);
+	if (s != NULL) {
+		return s->s_name;
+	}
+	endservent();
+
+	return "443";
 }
 
 void socket_bye(socket_st * socket)
@@ -261,22 +317,27 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 	    int udp, const char *msg)
 {
 	struct addrinfo hints, *res, *ptr;
-	int sd, err;
+	int sd, err = 0;
 	char buffer[MAX_BUF + 1];
 	char portname[16] = { 0 };
+	char *a_hostname = (char*)hostname;
+
+#ifdef HAVE_LIBIDN
+	err = idna_to_ascii_8z(hostname, &a_hostname, IDNA_ALLOW_UNASSIGNED);
+	if (err != IDNA_SUCCESS) {
+		fprintf(stderr, "Cannot convert %s to IDNA: %s\n", hostname,
+			idna_strerror(err));
+		exit(1);
+	}
+#endif
 
 	if (msg != NULL)
-		printf("Resolving '%s'...\n", hostname);
+		printf("Resolving '%s'...\n", a_hostname);
 
 	/* get server name */
 	memset(&hints, 0, sizeof(hints));
-
-#ifdef AI_IDN
-	hints.ai_flags = AI_IDN|AI_IDN_ALLOW_UNASSIGNED;
-#endif
-
 	hints.ai_socktype = udp ? SOCK_DGRAM : SOCK_STREAM;
-	if ((err = getaddrinfo(hostname, service, &hints, &res))) {
+	if ((err = getaddrinfo(a_hostname, service, &hints, &res))) {
 		fprintf(stderr, "Cannot resolve %s:%s: %s\n", hostname,
 			service, gai_strerror(err));
 		exit(1);
@@ -320,16 +381,17 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 
 		err = connect(sd, ptr->ai_addr, ptr->ai_addrlen);
 		if (err < 0) {
-			int e = errno;
-			fprintf(stderr, "Cannot connect to %s:%s: %s\n",
-				buffer, portname, strerror(e));
 			continue;
 		}
 		break;
 	}
 
-	if (err != 0)
+	if (err != 0) {
+		int e = errno;
+		fprintf(stderr, "Could not connect to %s:%s: %s\n",
+				buffer, portname, strerror(e));
 		exit(1);
+	}
 
 	if (sd == -1) {
 		fprintf(stderr, "Could not find a supported socket\n");
@@ -343,7 +405,9 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 	hd->service = strdup(portname);
 	hd->ptr = ptr;
 	hd->addr_info = res;
-
+#ifdef HAVE_LIBIDN
+	idn_free(a_hostname);
+#endif
 	return;
 }
 

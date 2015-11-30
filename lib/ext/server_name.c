@@ -25,6 +25,10 @@
 #include "gnutls_errors.h"
 #include "gnutls_num.h"
 #include <ext/server_name.h>
+#ifdef HAVE_LIBIDN
+# include <idna.h>
+# include <idn-free.h>
+#endif
 
 static int _gnutls_server_name_recv_params(gnutls_session_t session,
 					   const uint8_t * data,
@@ -136,9 +140,10 @@ _gnutls_server_name_recv_params(gnutls_session_t session,
 
 			switch (type) {
 			case 0:	/* NAME_DNS */
-				if (len <= MAX_SERVER_NAME_SIZE) {
+				if (len < MAX_SERVER_NAME_SIZE) {
 					memcpy(priv->server_names[i].name,
 					       p, len);
+					priv->server_names[i].name[len] = 0;
 					priv->server_names[i].name_length =
 					    len;
 					priv->server_names[i].type =
@@ -151,7 +156,7 @@ _gnutls_server_name_recv_params(gnutls_session_t session,
 			p += len;
 		}
 
-		epriv.ptr = priv;
+		epriv = priv;
 		_gnutls_ext_set_session_data(session,
 					     GNUTLS_EXTENSION_SERVER_NAME,
 					     epriv);
@@ -184,7 +189,7 @@ _gnutls_server_name_send_params(gnutls_session_t session,
 	/* this function sends the client extension data (dnsname)
 	 */
 	if (session->security_parameters.entity == GNUTLS_CLIENT) {
-		priv = epriv.ptr;
+		priv = epriv;
 
 		if (priv->server_names_size == 0)
 			return 0;
@@ -248,7 +253,7 @@ _gnutls_server_name_send_params(gnutls_session_t session,
 
 /**
  * gnutls_server_name_get:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @data: will hold the data
  * @data_length: will hold the data length. Must hold the maximum size of data.
  * @type: will hold the server name indicator type
@@ -260,7 +265,7 @@ _gnutls_server_name_send_params(gnutls_session_t session,
  *
  * If @type is GNUTLS_NAME_DNS, then this function is to be used by
  * servers that support virtual hosting, and the data will be a null
- * terminated UTF-8 string.
+ * terminated IDNA ACE string (prior to GnuTLS 3.4.0 it was a UTF-8 string).
  *
  * If @data has not enough size to hold the server name
  * GNUTLS_E_SHORT_MEMORY_BUFFER is returned, and @data_length will
@@ -282,7 +287,12 @@ gnutls_server_name_get(gnutls_session_t session, void *data,
 	char *_data = data;
 	server_name_ext_st *priv;
 	int ret;
+#ifdef HAVE_LIBIDN
+	int rc;
+	char *idn_name = NULL;
+#endif
 	extension_priv_data_t epriv;
+	gnutls_datum name;
 
 	if (session->security_parameters.entity == GNUTLS_CLIENT) {
 		gnutls_assert();
@@ -298,7 +308,7 @@ gnutls_server_name_get(gnutls_session_t session, void *data,
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
 	}
 
-	priv = epriv.ptr;
+	priv = epriv;
 
 	if (indx + 1 > priv->server_names_size) {
 		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
@@ -306,25 +316,44 @@ gnutls_server_name_get(gnutls_session_t session, void *data,
 
 	*type = priv->server_names[indx].type;
 
+#ifdef HAVE_LIBIDN
+	rc = idna_to_ascii_8z ((char*)priv->server_names[indx].name, &idn_name, IDNA_ALLOW_UNASSIGNED);
+	if (rc != IDNA_SUCCESS) {
+		 _gnutls_debug_log("unable to convert name %s to IDNA format: %s\n", (char*)priv->server_names[indx].name, idna_strerror(rc));
+		 return GNUTLS_E_IDNA_ERROR;
+	}
+	name.data = (unsigned char*)idn_name;
+	name.size = strlen(idn_name);
+#else
+	name.data = priv->server_names[indx].name;
+	name.size = priv->server_names[indx].name_length;
+#endif
+
 	if (*data_length >	/* greater since we need one extra byte for the null */
-	    priv->server_names[indx].name_length) {
-		*data_length = priv->server_names[indx].name_length;
-		memcpy(data, priv->server_names[indx].name, *data_length);
+	    name.size) {
+		*data_length = name.size;
+		memcpy(data, name.data, *data_length);
 
 		if (*type == GNUTLS_NAME_DNS)	/* null terminate */
 			_data[(*data_length)] = 0;
 
 	} else {
-		*data_length = priv->server_names[indx].name_length + 1;
-		return GNUTLS_E_SHORT_MEMORY_BUFFER;
+		*data_length = name.size + 1;
+		ret = GNUTLS_E_SHORT_MEMORY_BUFFER;
+		goto cleanup;
 	}
 
-	return 0;
+	ret = 0;
+ cleanup:
+#ifdef HAVE_LIBIDN
+	idn_free(idn_name);
+#endif
+	return ret;
 }
 
 /**
  * gnutls_server_name_set:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @type: specifies the indicator type
  * @name: is a string that contains the server name.
  * @name_length: holds the length of name
@@ -335,9 +364,10 @@ gnutls_server_name_get(gnutls_session_t session, void *data,
  * virtual hosting.
  *
  * The value of @name depends on the @type type.  In case of
- * %GNUTLS_NAME_DNS, an ASCII (0)-terminated domain name string,
- * without the trailing dot, is expected.  IPv4 or IPv6 addresses are
- * not permitted.
+ * %GNUTLS_NAME_DNS, a UTF-8 null-terminated domain name string,
+ * without the trailing dot, is expected.
+ *
+ * IPv4 or IPv6 addresses are not permitted.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned,
  *   otherwise a negative error code is returned.
@@ -350,19 +380,32 @@ gnutls_server_name_set(gnutls_session_t session,
 	int server_names, ret;
 	server_name_ext_st *priv;
 	extension_priv_data_t epriv;
-	int set = 0;
+	char *idn_name = NULL;
+	int set = 0, rc;
 
 	if (session->security_parameters.entity == GNUTLS_SERVER) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (name_length > MAX_SERVER_NAME_SIZE)
-		return GNUTLS_E_SHORT_MEMORY_BUFFER;
-
 	if (name_length == 0) { /* unset extension */
 		_gnutls_ext_unset_session_data(session, GNUTLS_EXTENSION_SERVER_NAME);
 		return 0;
+	}
+
+#ifdef HAVE_LIBIDN
+	rc = idna_to_ascii_8z (name, &idn_name, IDNA_ALLOW_UNASSIGNED);
+	if (rc != IDNA_SUCCESS) {
+		 _gnutls_debug_log("unable to convert name %s to IDNA format: %s\n", (char*)name, idna_strerror(rc));
+		 return GNUTLS_E_IDNA_ERROR;
+	}
+	name = idn_name;
+	name_length = strlen(idn_name);
+#endif
+
+	if (name_length > MAX_SERVER_NAME_SIZE) {
+		ret = GNUTLS_E_SHORT_MEMORY_BUFFER;
+		goto cleanup;
 	}
 
 	ret =
@@ -379,9 +422,9 @@ gnutls_server_name_set(gnutls_session_t session,
 			gnutls_assert();
 			return GNUTLS_E_MEMORY_ERROR;
 		}
-		epriv.ptr = priv;
+		epriv = priv;
 	} else
-		priv = epriv.ptr;
+		priv = epriv;
 
 	server_names = priv->server_names_size + 1;
 
@@ -400,19 +443,24 @@ gnutls_server_name_set(gnutls_session_t session,
 					     GNUTLS_EXTENSION_SERVER_NAME,
 					     epriv);
 
-	return 0;
+	ret = 0;
+ cleanup:
+#ifdef HAVE_LIBIDN
+	idn_free(idn_name);
+#endif
+	return ret;
 }
 
 static void _gnutls_server_name_deinit_data(extension_priv_data_t priv)
 {
-	gnutls_free(priv.ptr);
+	gnutls_free(priv);
 }
 
 static int
 _gnutls_server_name_pack(extension_priv_data_t epriv,
 			 gnutls_buffer_st * ps)
 {
-	server_name_ext_st *priv = epriv.ptr;
+	server_name_ext_st *priv = epriv;
 	unsigned int i;
 	int ret;
 
@@ -453,7 +501,7 @@ _gnutls_server_name_unpack(gnutls_buffer_st * ps,
 			   priv->server_names[i].name_length);
 	}
 
-	epriv.ptr = priv;
+	epriv = priv;
 	*_priv = epriv;
 
 	return 0;

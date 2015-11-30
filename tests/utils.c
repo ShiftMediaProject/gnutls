@@ -38,7 +38,9 @@
 # include <windows.h>		/* for Sleep */
 # include <winbase.h>  
 #endif
+
 #endif
+#include <sys/types.h>
 
 #include "utils.h"
 
@@ -183,3 +185,4 @@ int main(int argc, char *argv[])
 
 	return error_count ? 1 : 0;
 }
+

@@ -77,7 +77,7 @@ int gnutls_random_art(gnutls_random_art_t type,
 #if defined(ENABLE_DHE) || defined(ENABLE_ANON)
 /**
  * gnutls_dh_set_prime_bits:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @bits: is the number of bits
  *
  * This function sets the number of bits, for use in a Diffie-Hellman
@@ -427,8 +427,8 @@ int gnutls_dh_get_peers_public_bits(gnutls_session_t session)
 
 /**
  * gnutls_certificate_set_dh_params:
- * @res: is a gnutls_certificate_credentials_t structure
- * @dh_params: is a structure that holds Diffie-Hellman parameters.
+ * @res: is a gnutls_certificate_credentials_t type
+ * @dh_params: the Diffie-Hellman parameters.
  *
  * This function will set the Diffie-Hellman parameters for a
  * certificate server to use. These parameters will be used in
@@ -608,7 +608,7 @@ gnutls_fingerprint(gnutls_digest_algorithm_t algo,
 
 /**
  * gnutls_certificate_set_params_function:
- * @res: is a gnutls_certificate_credentials_t structure
+ * @res: is a gnutls_certificate_credentials_t type
  * @func: is the function to be called
  *
  * This function will set a callback in order for the server to get
@@ -623,8 +623,26 @@ gnutls_certificate_set_params_function(gnutls_certificate_credentials_t
 }
 
 /**
+ * gnutls_certificate_set_flags:
+ * @res: is a gnutls_certificate_credentials_t type
+ * @flags: are the flags of #gnutls_certificate_flags type
+ *
+ * This function will set flags to tweak the operation of
+ * the credentials structure. See the #gnutls_certificate_flags enumerations
+ * for more information on the available flags. 
+ *
+ * Since: 3.4.7
+ **/
+void
+gnutls_certificate_set_flags(gnutls_certificate_credentials_t res,
+			     unsigned int flags)
+{
+	res->flags = flags;
+}
+
+/**
  * gnutls_certificate_set_verify_flags:
- * @res: is a gnutls_certificate_credentials_t structure
+ * @res: is a gnutls_certificate_credentials_t type
  * @flags: are the flags
  *
  * This function will set the flags to be used for verification 
@@ -640,8 +658,25 @@ gnutls_certificate_set_verify_flags(gnutls_certificate_credentials_t
 }
 
 /**
+ * gnutls_certificate_get_verify_flags:
+ * @res: is a gnutls_certificate_credentials_t type
+ *
+ * Returns the verification flags set with
+ * gnutls_certificate_set_verify_flags().
+ *
+ * Returns: The certificate verification flags used by @res.
+ *
+ * Since: 3.4.0
+ */
+unsigned int
+gnutls_certificate_get_verify_flags(gnutls_certificate_credentials_t res)
+{
+	return res->verify_flags;
+}
+
+/**
  * gnutls_certificate_set_verify_limits:
- * @res: is a gnutls_certificate_credentials structure
+ * @res: is a gnutls_certificate_credentials type
  * @max_bits: is the number of bits of an acceptable certificate (default 8200)
  * @max_depth: is maximum depth of the verification of a certificate chain (default 5)
  *
@@ -662,7 +697,7 @@ gnutls_certificate_set_verify_limits(gnutls_certificate_credentials_t res,
 #ifdef ENABLE_PSK
 /**
  * gnutls_psk_set_params_function:
- * @res: is a gnutls_psk_server_credentials_t structure
+ * @res: is a gnutls_psk_server_credentials_t type
  * @func: is the function to be called
  *
  * This function will set a callback in order for the server to get
@@ -680,7 +715,7 @@ gnutls_psk_set_params_function(gnutls_psk_server_credentials_t res,
 #ifdef ENABLE_ANON
 /**
  * gnutls_anon_set_params_function:
- * @res: is a gnutls_anon_server_credentials_t structure
+ * @res: is a gnutls_anon_server_credentials_t type
  * @func: is the function to be called
  *
  * This function will set a callback in order for the server to get
@@ -730,79 +765,42 @@ int gnutls_load_file(const char *filename, gnutls_datum_t * data)
 	return 0;
 }
 
+#ifdef ENABLE_OCSP
 /**
  * gnutls_ocsp_status_request_is_checked:
  * @session: is a gnutls session
- * @flags: should be zero
+ * @flags: should be zero or %GNUTLS_OCSP_SR_IS_AVAIL
  *
  * Check whether an OCSP status response was included in the handshake
  * and whether it was checked and valid (not too old or superseded). 
  * This is a helper function when needing to decide whether to perform an
- * OCSP validity check on the peer's certificate. Must be called after
- * gnutls_certificate_verify_peers3() is called.
+ * OCSP validity check on the peer's certificate. Should be called after
+ * any of gnutls_certificate_verify_peers*() are called.
  *
- * Returns: non zero it was valid, or a zero if it wasn't sent,
+ * If the flag %GNUTLS_OCSP_SR_IS_AVAIL is specified, the return
+ * value of the function indicates whether an OCSP status response have
+ * been received (even if invalid).
+ *
+ * Returns: non zero if the response was valid, or a zero if it wasn't sent,
  * or sent and was invalid.
  **/
 int
 gnutls_ocsp_status_request_is_checked(gnutls_session_t session,
 				      unsigned int flags)
 {
+	int ret;
+	gnutls_datum_t data;
+
+	if (flags & GNUTLS_OCSP_SR_IS_AVAIL) {
+		ret = gnutls_ocsp_status_request_get(session, &data);
+		if (ret < 0)
+			return gnutls_assert_val(0);
+
+		if (data.data == NULL)
+			return gnutls_assert_val(0);
+		return 1;
+	}
 	return session->internals.ocsp_check_ok;
-}
-
-#ifdef ENABLE_RSA_EXPORT
-
-/**
- * gnutls_rsa_export_get_pubkey:
- * @session: is a gnutls session
- * @exponent: will hold the exponent.
- * @modulus: will hold the modulus.
- *
- * This function will return the peer's public key exponent and
- * modulus used in the last RSA-EXPORT authentication.  The output
- * parameters must be freed with gnutls_free().
- *
- * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise
- *   an error code is returned.
- **/
-int
-gnutls_rsa_export_get_pubkey(gnutls_session_t session,
-			     gnutls_datum_t * exponent,
-			     gnutls_datum_t * modulus)
-{
-	return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
-}
-
-/**
- * gnutls_rsa_export_get_modulus_bits:
- * @session: is a gnutls session
- *
- * Get the export RSA parameter's modulus size.
- *
- * Returns: The bits used in the last RSA-EXPORT key exchange with the
- *   peer, or a negative error code in case of error.
- **/
-int gnutls_rsa_export_get_modulus_bits(gnutls_session_t session)
-{
-	return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
-}
-
-/**
- * gnutls_certificate_set_rsa_export_params:
- * @res: is a gnutls_certificate_credentials_t structure
- * @rsa_params: is a structure that holds temporary RSA parameters.
- *
- * This function will set the temporary RSA parameters for a
- * certificate server to use.  These parameters will be used in
- * RSA-EXPORT cipher suites.
- **/
-void
-gnutls_certificate_set_rsa_export_params(gnutls_certificate_credentials_t
-					 res,
-					 gnutls_rsa_params_t rsa_params)
-{
-	return;
 }
 #endif
 
@@ -814,6 +812,9 @@ gnutls_certificate_set_rsa_export_params(gnutls_certificate_credentials_t
  *
  * This function returns a string describing the current session.
  * The string is null terminated and allocated using gnutls_malloc().
+ *
+ * If initial negotiation is not complete when this function is called,
+ * %NULL will be returned.
  *
  * Returns: a description of the protocols and algorithms in the current session.
  *
@@ -831,6 +832,9 @@ char *gnutls_session_get_desc(gnutls_session_t session)
 	unsigned mac_id;
 	char *desc;
 
+	if (session->internals.initial_negotiation_completed == 0)
+		return NULL;
+
 	kx = session->security_parameters.kx_algorithm;
 
 	if (kx == GNUTLS_KX_ANON_ECDH || kx == GNUTLS_KX_ECDHE_PSK ||
@@ -838,9 +842,11 @@ char *gnutls_session_get_desc(gnutls_session_t session)
 		curve_name =
 		    gnutls_ecc_curve_get_name(gnutls_ecc_curve_get
 					      (session));
+#if defined(ENABLE_DHE) || defined(ENABLE_ANON)
 	} else if (kx == GNUTLS_KX_ANON_DH || kx == GNUTLS_KX_DHE_PSK
 		   || kx == GNUTLS_KX_DHE_RSA || kx == GNUTLS_KX_DHE_DSS) {
 		dh_bits = gnutls_dh_get_prime_bits(session);
+#endif
 	}
 
 	kx_str = gnutls_kx_get_name(kx);
@@ -895,7 +901,7 @@ char *gnutls_session_get_desc(gnutls_session_t session)
 
 /**
  * gnutls_session_set_id:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @sid: the session identifier
  *
  * This function sets the session ID to be used in a client hello.
@@ -911,7 +917,7 @@ int
 gnutls_session_set_id(gnutls_session_t session, const gnutls_datum_t * sid)
 {
 	if (session->security_parameters.entity == GNUTLS_SERVER ||
-	    sid->size > TLS_MAX_SESSION_ID_SIZE)
+	    sid->size > GNUTLS_MAX_SESSION_ID_SIZE)
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
 	memset(&session->internals.resumed_security_parameters, 0,

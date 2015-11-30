@@ -24,11 +24,7 @@
 #include <gnutls_errors.h>
 #include <gnutls_record.h>
 #include <debug.h>
-
-/* I18n of error codes. */
-#include "gettext.h"
-#define _(String) dgettext (PACKAGE, String)
-#define N_(String) gettext_noop (String)
+#include <gnutls_str.h>
 
 typedef struct {
 	gnutls_alert_description_t alert;
@@ -71,6 +67,8 @@ static const gnutls_alert_entry sup_alerts[] = {
 	ALERT_ENTRY(GNUTLS_A_SSL3_NO_CERTIFICATE,
 		    N_("No certificate (SSL 3.0)")),
 	ALERT_ENTRY(GNUTLS_A_INTERNAL_ERROR, N_("Internal error")),
+	ALERT_ENTRY(GNUTLS_A_INAPPROPRIATE_FALLBACK,
+		    N_("Inappropriate fallback")),
 	ALERT_ENTRY(GNUTLS_A_NO_RENEGOTIATION,
 		    N_("No renegotiation is allowed")),
 	ALERT_ENTRY(GNUTLS_A_CERTIFICATE_UNOBTAINABLE,
@@ -130,7 +128,7 @@ const char *gnutls_alert_get_strname(gnutls_alert_description_t alert)
 
 /**
  * gnutls_alert_send:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @level: is the level of the alert
  * @desc: is the alert description
  *
@@ -228,6 +226,7 @@ int gnutls_error_to_alert(int err, int *level)
 	case GNUTLS_E_ASN1_SYNTAX_ERROR:
 	case GNUTLS_E_ASN1_DER_OVERFLOW:
 	case GNUTLS_E_CERTIFICATE_ERROR:
+	case GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR:
 		ret = GNUTLS_A_BAD_CERTIFICATE;
 		_level = GNUTLS_AL_FATAL;
 		break;
@@ -279,6 +278,10 @@ int gnutls_error_to_alert(int err, int *level)
 		ret = GNUTLS_A_INTERNAL_ERROR;
 		_level = GNUTLS_AL_FATAL;
 		break;
+	case GNUTLS_E_INAPPROPRIATE_FALLBACK:
+		ret = GNUTLS_A_INAPPROPRIATE_FALLBACK;
+		_level = GNUTLS_AL_FATAL;
+		break;
 	case GNUTLS_E_OPENPGP_GETKEY_FAILED:
 		ret = GNUTLS_A_CERTIFICATE_UNOBTAINABLE;
 		_level = GNUTLS_AL_FATAL;
@@ -306,7 +309,7 @@ int gnutls_error_to_alert(int err, int *level)
 
 /**
  * gnutls_alert_send_appropriate:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  * @err: is an integer
  *
  * Sends an alert to the peer depending on the error code returned by
@@ -337,7 +340,7 @@ int gnutls_alert_send_appropriate(gnutls_session_t session, int err)
 
 /**
  * gnutls_alert_get:
- * @session: is a #gnutls_session_t structure.
+ * @session: is a #gnutls_session_t type.
  *
  * This function will return the last alert number received.  This
  * function should be called when %GNUTLS_E_WARNING_ALERT_RECEIVED or

@@ -21,16 +21,19 @@
 
 EXTRA_DIST = stamp_mans
 
-dist_man_MANS = gnutls-cli.1 gnutls-cli-debug.1 gnutls-serv.1	\
-	certtool.1 psktool.1 p11tool.1 ocsptool.1 tpmtool.1
+dist_man_MANS =
 
 -include $(top_srcdir)/doc/doc.mk
 
+if ENABLE_TOOLS
+dist_man_MANS += gnutls-cli.1 gnutls-cli-debug.1 gnutls-serv.1	\
+	certtool.1 psktool.1 p11tool.1 ocsptool.1 tpmtool.1
 if ENABLE_SRP
 dist_man_MANS += srptool.1
 endif
 if ENABLE_DANE
 dist_man_MANS += danetool.1
+endif
 endif
 
 # Note that our .def files depend on autogen
@@ -90,6 +93,10 @@ psktool.1: ../../src/psktool-args.def
 	rm -f "$<".tmp
 
 APIMANS =
+APIMANS += gnutls_aead_cipher_decrypt.3
+APIMANS += gnutls_aead_cipher_deinit.3
+APIMANS += gnutls_aead_cipher_encrypt.3
+APIMANS += gnutls_aead_cipher_init.3
 APIMANS += gnutls_alert_get.3
 APIMANS += gnutls_alert_get_name.3
 APIMANS += gnutls_alert_get_strname.3
@@ -107,11 +114,11 @@ APIMANS += gnutls_anon_set_server_params_function.3
 APIMANS += gnutls_auth_client_get_type.3
 APIMANS += gnutls_auth_get_type.3
 APIMANS += gnutls_auth_server_get_type.3
+APIMANS += gnutls_buffer_append_data.3
 APIMANS += gnutls_bye.3
 APIMANS += gnutls_certificate_activation_time_peers.3
 APIMANS += gnutls_certificate_allocate_credentials.3
 APIMANS += gnutls_certificate_client_get_request_status.3
-APIMANS += gnutls_certificate_client_set_retrieve_function.3
 APIMANS += gnutls_certificate_expiration_time_peers.3
 APIMANS += gnutls_certificate_free_ca_names.3
 APIMANS += gnutls_certificate_free_cas.3
@@ -120,13 +127,19 @@ APIMANS += gnutls_certificate_free_crls.3
 APIMANS += gnutls_certificate_free_keys.3
 APIMANS += gnutls_certificate_get_crt_raw.3
 APIMANS += gnutls_certificate_get_issuer.3
+APIMANS += gnutls_certificate_get_openpgp_crt.3
+APIMANS += gnutls_certificate_get_openpgp_key.3
 APIMANS += gnutls_certificate_get_ours.3
 APIMANS += gnutls_certificate_get_peers.3
 APIMANS += gnutls_certificate_get_peers_subkey_id.3
+APIMANS += gnutls_certificate_get_trust_list.3
+APIMANS += gnutls_certificate_get_verify_flags.3
+APIMANS += gnutls_certificate_get_x509_crt.3
+APIMANS += gnutls_certificate_get_x509_key.3
 APIMANS += gnutls_certificate_send_x509_rdn_sequence.3
 APIMANS += gnutls_certificate_server_set_request.3
-APIMANS += gnutls_certificate_server_set_retrieve_function.3
 APIMANS += gnutls_certificate_set_dh_params.3
+APIMANS += gnutls_certificate_set_flags.3
 APIMANS += gnutls_certificate_set_key.3
 APIMANS += gnutls_certificate_set_ocsp_status_request_file.3
 APIMANS += gnutls_certificate_set_ocsp_status_request_function.3
@@ -141,7 +154,6 @@ APIMANS += gnutls_certificate_set_params_function.3
 APIMANS += gnutls_certificate_set_pin_function.3
 APIMANS += gnutls_certificate_set_retrieve_function.3
 APIMANS += gnutls_certificate_set_retrieve_function2.3
-APIMANS += gnutls_certificate_set_rsa_export_params.3
 APIMANS += gnutls_certificate_set_trust_list.3
 APIMANS += gnutls_certificate_set_verify_flags.3
 APIMANS += gnutls_certificate_set_verify_function.3
@@ -165,7 +177,6 @@ APIMANS += gnutls_certificate_type_get.3
 APIMANS += gnutls_certificate_type_get_id.3
 APIMANS += gnutls_certificate_type_get_name.3
 APIMANS += gnutls_certificate_type_list.3
-APIMANS += gnutls_certificate_type_set_priority.3
 APIMANS += gnutls_certificate_verification_status_print.3
 APIMANS += gnutls_certificate_verify_peers.3
 APIMANS += gnutls_certificate_verify_peers2.3
@@ -188,7 +199,6 @@ APIMANS += gnutls_cipher_init.3
 APIMANS += gnutls_cipher_list.3
 APIMANS += gnutls_cipher_self_test.3
 APIMANS += gnutls_cipher_set_iv.3
-APIMANS += gnutls_cipher_set_priority.3
 APIMANS += gnutls_cipher_suite_get_name.3
 APIMANS += gnutls_cipher_suite_info.3
 APIMANS += gnutls_cipher_tag.3
@@ -196,10 +206,13 @@ APIMANS += gnutls_compression_get.3
 APIMANS += gnutls_compression_get_id.3
 APIMANS += gnutls_compression_get_name.3
 APIMANS += gnutls_compression_list.3
-APIMANS += gnutls_compression_set_priority.3
 APIMANS += gnutls_credentials_clear.3
 APIMANS += gnutls_credentials_get.3
 APIMANS += gnutls_credentials_set.3
+APIMANS += gnutls_crypto_register_aead_cipher.3
+APIMANS += gnutls_crypto_register_cipher.3
+APIMANS += gnutls_crypto_register_digest.3
+APIMANS += gnutls_crypto_register_mac.3
 APIMANS += gnutls_db_check_entry.3
 APIMANS += gnutls_db_check_entry_time.3
 APIMANS += gnutls_db_get_default_cache_expiration.3
@@ -224,10 +237,12 @@ APIMANS += gnutls_dh_params_export_raw.3
 APIMANS += gnutls_dh_params_generate2.3
 APIMANS += gnutls_dh_params_import_pkcs3.3
 APIMANS += gnutls_dh_params_import_raw.3
+APIMANS += gnutls_dh_params_import_raw2.3
 APIMANS += gnutls_dh_params_init.3
 APIMANS += gnutls_dh_set_prime_bits.3
 APIMANS += gnutls_digest_get_id.3
 APIMANS += gnutls_digest_get_name.3
+APIMANS += gnutls_digest_get_oid.3
 APIMANS += gnutls_digest_list.3
 APIMANS += gnutls_digest_self_test.3
 APIMANS += gnutls_dtls_cookie_send.3
@@ -240,12 +255,17 @@ APIMANS += gnutls_dtls_set_data_mtu.3
 APIMANS += gnutls_dtls_set_mtu.3
 APIMANS += gnutls_dtls_set_timeouts.3
 APIMANS += gnutls_ecc_curve_get.3
+APIMANS += gnutls_ecc_curve_get_id.3
 APIMANS += gnutls_ecc_curve_get_name.3
+APIMANS += gnutls_ecc_curve_get_oid.3
 APIMANS += gnutls_ecc_curve_get_size.3
 APIMANS += gnutls_ecc_curve_list.3
 APIMANS += gnutls_error_is_fatal.3
 APIMANS += gnutls_error_to_alert.3
 APIMANS += gnutls_est_record_overhead_size.3
+APIMANS += gnutls_ext_get_data.3
+APIMANS += gnutls_ext_register.3
+APIMANS += gnutls_ext_set_data.3
 APIMANS += gnutls_fingerprint.3
 APIMANS += gnutls_fips140_mode_enabled.3
 APIMANS += gnutls_global_deinit.3
@@ -280,7 +300,9 @@ APIMANS += gnutls_heartbeat_pong.3
 APIMANS += gnutls_heartbeat_set_timeouts.3
 APIMANS += gnutls_hex2bin.3
 APIMANS += gnutls_hex_decode.3
+APIMANS += gnutls_hex_decode2.3
 APIMANS += gnutls_hex_encode.3
+APIMANS += gnutls_hex_encode2.3
 APIMANS += gnutls_hmac.3
 APIMANS += gnutls_hmac_deinit.3
 APIMANS += gnutls_hmac_fast.3
@@ -294,7 +316,6 @@ APIMANS += gnutls_kx_get.3
 APIMANS += gnutls_kx_get_id.3
 APIMANS += gnutls_kx_get_name.3
 APIMANS += gnutls_kx_list.3
-APIMANS += gnutls_kx_set_priority.3
 APIMANS += gnutls_load_file.3
 APIMANS += gnutls_mac_get.3
 APIMANS += gnutls_mac_get_id.3
@@ -303,7 +324,8 @@ APIMANS += gnutls_mac_get_name.3
 APIMANS += gnutls_mac_get_nonce_size.3
 APIMANS += gnutls_mac_list.3
 APIMANS += gnutls_mac_self_test.3
-APIMANS += gnutls_mac_set_priority.3
+APIMANS += gnutls_memcmp.3
+APIMANS += gnutls_memset.3
 APIMANS += gnutls_ocsp_req_add_cert.3
 APIMANS += gnutls_ocsp_req_add_cert_id.3
 APIMANS += gnutls_ocsp_req_deinit.3
@@ -326,6 +348,7 @@ APIMANS += gnutls_ocsp_resp_get_extension.3
 APIMANS += gnutls_ocsp_resp_get_nonce.3
 APIMANS += gnutls_ocsp_resp_get_produced.3
 APIMANS += gnutls_ocsp_resp_get_responder.3
+APIMANS += gnutls_ocsp_resp_get_responder_raw_id.3
 APIMANS += gnutls_ocsp_resp_get_response.3
 APIMANS += gnutls_ocsp_resp_get_signature.3
 APIMANS += gnutls_ocsp_resp_get_signature_algorithm.3
@@ -340,6 +363,11 @@ APIMANS += gnutls_ocsp_resp_verify_direct.3
 APIMANS += gnutls_ocsp_status_request_enable_client.3
 APIMANS += gnutls_ocsp_status_request_get.3
 APIMANS += gnutls_ocsp_status_request_is_checked.3
+APIMANS += gnutls_oid_to_digest.3
+APIMANS += gnutls_oid_to_ecc_curve.3
+APIMANS += gnutls_oid_to_pk.3
+APIMANS += gnutls_oid_to_sign.3
+APIMANS += gnutls_openpgp_crt_check_email.3
 APIMANS += gnutls_openpgp_crt_check_hostname.3
 APIMANS += gnutls_openpgp_crt_check_hostname2.3
 APIMANS += gnutls_openpgp_crt_deinit.3
@@ -411,27 +439,36 @@ APIMANS += gnutls_openpgp_set_recv_key_function.3
 APIMANS += gnutls_packet_deinit.3
 APIMANS += gnutls_packet_get.3
 APIMANS += gnutls_pcert_deinit.3
+APIMANS += gnutls_pcert_export_openpgp.3
+APIMANS += gnutls_pcert_export_x509.3
 APIMANS += gnutls_pcert_import_openpgp.3
 APIMANS += gnutls_pcert_import_openpgp_raw.3
 APIMANS += gnutls_pcert_import_x509.3
+APIMANS += gnutls_pcert_import_x509_list.3
 APIMANS += gnutls_pcert_import_x509_raw.3
 APIMANS += gnutls_pcert_list_import_x509_raw.3
 APIMANS += gnutls_pem_base64_decode.3
-APIMANS += gnutls_pem_base64_decode_alloc.3
+APIMANS += gnutls_pem_base64_decode2.3
 APIMANS += gnutls_pem_base64_encode.3
-APIMANS += gnutls_pem_base64_encode_alloc.3
+APIMANS += gnutls_pem_base64_encode2.3
 APIMANS += gnutls_perror.3
 APIMANS += gnutls_pk_algorithm_get_name.3
 APIMANS += gnutls_pk_bits_to_sec_param.3
 APIMANS += gnutls_pkcs11_add_provider.3
+APIMANS += gnutls_pkcs11_copy_attached_extension.3
+APIMANS += gnutls_pkcs11_copy_pubkey.3
 APIMANS += gnutls_pkcs11_copy_secret_key.3
 APIMANS += gnutls_pkcs11_copy_x509_crt.3
+APIMANS += gnutls_pkcs11_copy_x509_crt2.3
 APIMANS += gnutls_pkcs11_copy_x509_privkey.3
+APIMANS += gnutls_pkcs11_copy_x509_privkey2.3
 APIMANS += gnutls_pkcs11_crt_is_known.3
 APIMANS += gnutls_pkcs11_deinit.3
 APIMANS += gnutls_pkcs11_delete_url.3
 APIMANS += gnutls_pkcs11_get_pin_function.3
 APIMANS += gnutls_pkcs11_get_raw_issuer.3
+APIMANS += gnutls_pkcs11_get_raw_issuer_by_dn.3
+APIMANS += gnutls_pkcs11_get_raw_issuer_by_subject_key_id.3
 APIMANS += gnutls_pkcs11_init.3
 APIMANS += gnutls_pkcs11_obj_deinit.3
 APIMANS += gnutls_pkcs11_obj_export.3
@@ -445,14 +482,17 @@ APIMANS += gnutls_pkcs11_obj_get_info.3
 APIMANS += gnutls_pkcs11_obj_get_type.3
 APIMANS += gnutls_pkcs11_obj_import_url.3
 APIMANS += gnutls_pkcs11_obj_init.3
-APIMANS += gnutls_pkcs11_obj_list_import_url.3
-APIMANS += gnutls_pkcs11_obj_list_import_url2.3
+APIMANS += gnutls_pkcs11_obj_list_import_url3.3
+APIMANS += gnutls_pkcs11_obj_list_import_url4.3
+APIMANS += gnutls_pkcs11_obj_set_info.3
 APIMANS += gnutls_pkcs11_obj_set_pin_function.3
+APIMANS += gnutls_pkcs11_privkey_cpy.3
 APIMANS += gnutls_pkcs11_privkey_deinit.3
 APIMANS += gnutls_pkcs11_privkey_export_pubkey.3
 APIMANS += gnutls_pkcs11_privkey_export_url.3
 APIMANS += gnutls_pkcs11_privkey_generate.3
 APIMANS += gnutls_pkcs11_privkey_generate2.3
+APIMANS += gnutls_pkcs11_privkey_generate3.3
 APIMANS += gnutls_pkcs11_privkey_get_info.3
 APIMANS += gnutls_pkcs11_privkey_get_pk_algorithm.3
 APIMANS += gnutls_pkcs11_privkey_import_url.3
@@ -472,6 +512,7 @@ APIMANS += gnutls_pkcs11_token_set_pin.3
 APIMANS += gnutls_pkcs11_type_get_name.3
 APIMANS += gnutls_pkcs12_bag_decrypt.3
 APIMANS += gnutls_pkcs12_bag_deinit.3
+APIMANS += gnutls_pkcs12_bag_enc_info.3
 APIMANS += gnutls_pkcs12_bag_encrypt.3
 APIMANS += gnutls_pkcs12_bag_get_count.3
 APIMANS += gnutls_pkcs12_bag_get_data.3
@@ -484,38 +525,58 @@ APIMANS += gnutls_pkcs12_bag_set_crt.3
 APIMANS += gnutls_pkcs12_bag_set_data.3
 APIMANS += gnutls_pkcs12_bag_set_friendly_name.3
 APIMANS += gnutls_pkcs12_bag_set_key_id.3
+APIMANS += gnutls_pkcs12_bag_set_privkey.3
 APIMANS += gnutls_pkcs12_deinit.3
 APIMANS += gnutls_pkcs12_export.3
 APIMANS += gnutls_pkcs12_export2.3
 APIMANS += gnutls_pkcs12_generate_mac.3
+APIMANS += gnutls_pkcs12_generate_mac2.3
 APIMANS += gnutls_pkcs12_get_bag.3
 APIMANS += gnutls_pkcs12_import.3
 APIMANS += gnutls_pkcs12_init.3
+APIMANS += gnutls_pkcs12_mac_info.3
 APIMANS += gnutls_pkcs12_set_bag.3
 APIMANS += gnutls_pkcs12_simple_parse.3
 APIMANS += gnutls_pkcs12_verify_mac.3
+APIMANS += gnutls_pkcs7_add_attr.3
+APIMANS += gnutls_pkcs7_attrs_deinit.3
 APIMANS += gnutls_pkcs7_deinit.3
 APIMANS += gnutls_pkcs7_delete_crl.3
 APIMANS += gnutls_pkcs7_delete_crt.3
 APIMANS += gnutls_pkcs7_export.3
 APIMANS += gnutls_pkcs7_export2.3
+APIMANS += gnutls_pkcs7_get_attr.3
 APIMANS += gnutls_pkcs7_get_crl_count.3
 APIMANS += gnutls_pkcs7_get_crl_raw.3
+APIMANS += gnutls_pkcs7_get_crl_raw2.3
 APIMANS += gnutls_pkcs7_get_crt_count.3
 APIMANS += gnutls_pkcs7_get_crt_raw.3
+APIMANS += gnutls_pkcs7_get_crt_raw2.3
+APIMANS += gnutls_pkcs7_get_signature_count.3
+APIMANS += gnutls_pkcs7_get_signature_info.3
 APIMANS += gnutls_pkcs7_import.3
 APIMANS += gnutls_pkcs7_init.3
+APIMANS += gnutls_pkcs7_print.3
 APIMANS += gnutls_pkcs7_set_crl.3
 APIMANS += gnutls_pkcs7_set_crl_raw.3
 APIMANS += gnutls_pkcs7_set_crt.3
 APIMANS += gnutls_pkcs7_set_crt_raw.3
+APIMANS += gnutls_pkcs7_sign.3
+APIMANS += gnutls_pkcs7_signature_info_deinit.3
+APIMANS += gnutls_pkcs7_verify.3
+APIMANS += gnutls_pkcs7_verify_direct.3
+APIMANS += gnutls_pkcs8_info.3
+APIMANS += gnutls_pkcs_schema_get_name.3
+APIMANS += gnutls_pkcs_schema_get_oid.3
 APIMANS += gnutls_pk_get_id.3
 APIMANS += gnutls_pk_get_name.3
+APIMANS += gnutls_pk_get_oid.3
 APIMANS += gnutls_pk_list.3
 APIMANS += gnutls_pk_self_test.3
 APIMANS += gnutls_pk_to_sign.3
 APIMANS += gnutls_prf.3
 APIMANS += gnutls_prf_raw.3
+APIMANS += gnutls_prf_rfc5705.3
 APIMANS += gnutls_priority_certificate_type_list.3
 APIMANS += gnutls_priority_cipher_list.3
 APIMANS += gnutls_priority_compression_list.3
@@ -529,11 +590,15 @@ APIMANS += gnutls_priority_protocol_list.3
 APIMANS += gnutls_priority_set.3
 APIMANS += gnutls_priority_set_direct.3
 APIMANS += gnutls_priority_sign_list.3
+APIMANS += gnutls_priority_string_list.3
 APIMANS += gnutls_privkey_decrypt_data.3
 APIMANS += gnutls_privkey_deinit.3
 APIMANS += gnutls_privkey_export_dsa_raw.3
 APIMANS += gnutls_privkey_export_ecc_raw.3
+APIMANS += gnutls_privkey_export_openpgp.3
+APIMANS += gnutls_privkey_export_pkcs11.3
 APIMANS += gnutls_privkey_export_rsa_raw.3
+APIMANS += gnutls_privkey_export_x509.3
 APIMANS += gnutls_privkey_generate.3
 APIMANS += gnutls_privkey_get_pk_algorithm.3
 APIMANS += gnutls_privkey_get_type.3
@@ -541,6 +606,7 @@ APIMANS += gnutls_privkey_import_dsa_raw.3
 APIMANS += gnutls_privkey_import_ecc_raw.3
 APIMANS += gnutls_privkey_import_ext.3
 APIMANS += gnutls_privkey_import_ext2.3
+APIMANS += gnutls_privkey_import_ext3.3
 APIMANS += gnutls_privkey_import_openpgp.3
 APIMANS += gnutls_privkey_import_openpgp_raw.3
 APIMANS += gnutls_privkey_import_pkcs11.3
@@ -555,14 +621,12 @@ APIMANS += gnutls_privkey_init.3
 APIMANS += gnutls_privkey_set_pin_function.3
 APIMANS += gnutls_privkey_sign_data.3
 APIMANS += gnutls_privkey_sign_hash.3
-APIMANS += gnutls_privkey_sign_raw_data.3
 APIMANS += gnutls_privkey_status.3
 APIMANS += gnutls_privkey_verify_params.3
 APIMANS += gnutls_protocol_get_id.3
 APIMANS += gnutls_protocol_get_name.3
 APIMANS += gnutls_protocol_get_version.3
 APIMANS += gnutls_protocol_list.3
-APIMANS += gnutls_protocol_set_priority.3
 APIMANS += gnutls_psk_allocate_client_credentials.3
 APIMANS += gnutls_psk_allocate_server_credentials.3
 APIMANS += gnutls_psk_client_get_hint.3
@@ -590,7 +654,6 @@ APIMANS += gnutls_pubkey_get_key_usage.3
 APIMANS += gnutls_pubkey_get_openpgp_key_id.3
 APIMANS += gnutls_pubkey_get_pk_algorithm.3
 APIMANS += gnutls_pubkey_get_preferred_hash_algorithm.3
-APIMANS += gnutls_pubkey_get_verify_algorithm.3
 APIMANS += gnutls_pubkey_import.3
 APIMANS += gnutls_pubkey_import_dsa_raw.3
 APIMANS += gnutls_pubkey_import_ecc_raw.3
@@ -598,7 +661,6 @@ APIMANS += gnutls_pubkey_import_ecc_x962.3
 APIMANS += gnutls_pubkey_import_openpgp.3
 APIMANS += gnutls_pubkey_import_openpgp_raw.3
 APIMANS += gnutls_pubkey_import_pkcs11.3
-APIMANS += gnutls_pubkey_import_pkcs11_url.3
 APIMANS += gnutls_pubkey_import_privkey.3
 APIMANS += gnutls_pubkey_import_rsa_raw.3
 APIMANS += gnutls_pubkey_import_tpm_raw.3
@@ -611,9 +673,7 @@ APIMANS += gnutls_pubkey_init.3
 APIMANS += gnutls_pubkey_print.3
 APIMANS += gnutls_pubkey_set_key_usage.3
 APIMANS += gnutls_pubkey_set_pin_function.3
-APIMANS += gnutls_pubkey_verify_data.3
 APIMANS += gnutls_pubkey_verify_data2.3
-APIMANS += gnutls_pubkey_verify_hash.3
 APIMANS += gnutls_pubkey_verify_hash2.3
 APIMANS += gnutls_pubkey_verify_params.3
 APIMANS += gnutls_random_art.3
@@ -623,32 +683,25 @@ APIMANS += gnutls_record_check_corked.3
 APIMANS += gnutls_record_check_pending.3
 APIMANS += gnutls_record_cork.3
 APIMANS += gnutls_record_disable_padding.3
+APIMANS += gnutls_record_discard_queued.3
 APIMANS += gnutls_record_get_direction.3
 APIMANS += gnutls_record_get_discarded.3
 APIMANS += gnutls_record_get_max_size.3
+APIMANS += gnutls_record_get_state.3
 APIMANS += gnutls_record_overhead_size.3
 APIMANS += gnutls_record_recv.3
 APIMANS += gnutls_record_recv_packet.3
 APIMANS += gnutls_record_recv_seq.3
 APIMANS += gnutls_record_send.3
 APIMANS += gnutls_record_send_range.3
-APIMANS += gnutls_record_set_max_empty_records.3
 APIMANS += gnutls_record_set_max_size.3
+APIMANS += gnutls_record_set_state.3
 APIMANS += gnutls_record_set_timeout.3
 APIMANS += gnutls_record_uncork.3
+APIMANS += gnutls_register_custom_url.3
 APIMANS += gnutls_rehandshake.3
 APIMANS += gnutls_rnd.3
 APIMANS += gnutls_rnd_refresh.3
-APIMANS += gnutls_rsa_export_get_modulus_bits.3
-APIMANS += gnutls_rsa_export_get_pubkey.3
-APIMANS += gnutls_rsa_params_cpy.3
-APIMANS += gnutls_rsa_params_deinit.3
-APIMANS += gnutls_rsa_params_export_pkcs1.3
-APIMANS += gnutls_rsa_params_export_raw.3
-APIMANS += gnutls_rsa_params_generate2.3
-APIMANS += gnutls_rsa_params_import_pkcs1.3
-APIMANS += gnutls_rsa_params_import_raw.3
-APIMANS += gnutls_rsa_params_init.3
 APIMANS += gnutls_safe_renegotiation_status.3
 APIMANS += gnutls_sec_param_get_name.3
 APIMANS += gnutls_sec_param_to_pk_bits.3
@@ -657,6 +710,8 @@ APIMANS += gnutls_server_name_get.3
 APIMANS += gnutls_server_name_set.3
 APIMANS += gnutls_session_channel_binding.3
 APIMANS += gnutls_session_enable_compatibility_mode.3
+APIMANS += gnutls_session_etm_status.3
+APIMANS += gnutls_session_ext_master_secret_status.3
 APIMANS += gnutls_session_force_valid.3
 APIMANS += gnutls_session_get_data.3
 APIMANS += gnutls_session_get_data2.3
@@ -665,34 +720,36 @@ APIMANS += gnutls_session_get_id.3
 APIMANS += gnutls_session_get_id2.3
 APIMANS += gnutls_session_get_ptr.3
 APIMANS += gnutls_session_get_random.3
+APIMANS += gnutls_session_get_verify_cert_status.3
 APIMANS += gnutls_session_is_resumed.3
 APIMANS += gnutls_session_resumption_requested.3
 APIMANS += gnutls_session_set_data.3
 APIMANS += gnutls_session_set_id.3
 APIMANS += gnutls_session_set_premaster.3
 APIMANS += gnutls_session_set_ptr.3
+APIMANS += gnutls_session_set_verify_cert.3
+APIMANS += gnutls_session_set_verify_cert2.3
+APIMANS += gnutls_session_set_verify_function.3
 APIMANS += gnutls_session_ticket_enable_client.3
 APIMANS += gnutls_session_ticket_enable_server.3
 APIMANS += gnutls_session_ticket_key_generate.3
-APIMANS += gnutls_set_default_export_priority.3
 APIMANS += gnutls_set_default_priority.3
 APIMANS += gnutls_sign_algorithm_get.3
 APIMANS += gnutls_sign_algorithm_get_client.3
 APIMANS += gnutls_sign_algorithm_get_requested.3
-APIMANS += gnutls_sign_callback_get.3
-APIMANS += gnutls_sign_callback_set.3
 APIMANS += gnutls_sign_get_hash_algorithm.3
 APIMANS += gnutls_sign_get_id.3
 APIMANS += gnutls_sign_get_name.3
+APIMANS += gnutls_sign_get_oid.3
 APIMANS += gnutls_sign_get_pk_algorithm.3
 APIMANS += gnutls_sign_is_secure.3
 APIMANS += gnutls_sign_list.3
 APIMANS += gnutls_srp_allocate_client_credentials.3
 APIMANS += gnutls_srp_allocate_server_credentials.3
 APIMANS += gnutls_srp_base64_decode.3
-APIMANS += gnutls_srp_base64_decode_alloc.3
+APIMANS += gnutls_srp_base64_decode2.3
 APIMANS += gnutls_srp_base64_encode.3
-APIMANS += gnutls_srp_base64_encode_alloc.3
+APIMANS += gnutls_srp_base64_encode2.3
 APIMANS += gnutls_srp_free_client_credentials.3
 APIMANS += gnutls_srp_free_server_credentials.3
 APIMANS += gnutls_srp_server_get_username.3
@@ -720,6 +777,14 @@ APIMANS += gnutls_subject_alt_names_get.3
 APIMANS += gnutls_subject_alt_names_init.3
 APIMANS += gnutls_subject_alt_names_set.3
 APIMANS += gnutls_supplemental_get_name.3
+APIMANS += gnutls_supplemental_recv.3
+APIMANS += gnutls_supplemental_register.3
+APIMANS += gnutls_supplemental_send.3
+APIMANS += gnutls_system_key_add_x509.3
+APIMANS += gnutls_system_key_delete.3
+APIMANS += gnutls_system_key_iter_deinit.3
+APIMANS += gnutls_system_key_iter_get_info.3
+APIMANS += gnutls_system_recv_timeout.3
 APIMANS += gnutls_tdb_deinit.3
 APIMANS += gnutls_tdb_init.3
 APIMANS += gnutls_tdb_set_store_commitment_func.3
@@ -824,6 +889,7 @@ APIMANS += gnutls_x509_crq_get_key_rsa_raw.3
 APIMANS += gnutls_x509_crq_get_key_usage.3
 APIMANS += gnutls_x509_crq_get_pk_algorithm.3
 APIMANS += gnutls_x509_crq_get_private_key_usage_period.3
+APIMANS += gnutls_x509_crq_get_signature_algorithm.3
 APIMANS += gnutls_x509_crq_get_subject_alt_name.3
 APIMANS += gnutls_x509_crq_get_subject_alt_othername_oid.3
 APIMANS += gnutls_x509_crq_get_version.3
@@ -847,6 +913,7 @@ APIMANS += gnutls_x509_crq_set_version.3
 APIMANS += gnutls_x509_crq_sign.3
 APIMANS += gnutls_x509_crq_sign2.3
 APIMANS += gnutls_x509_crq_verify.3
+APIMANS += gnutls_x509_crt_check_email.3
 APIMANS += gnutls_x509_crt_check_hostname.3
 APIMANS += gnutls_x509_crt_check_hostname2.3
 APIMANS += gnutls_x509_crt_check_issuer.3
@@ -889,6 +956,7 @@ APIMANS += gnutls_x509_crt_get_key_usage.3
 APIMANS += gnutls_x509_crt_get_name_constraints.3
 APIMANS += gnutls_x509_crt_get_pk_algorithm.3
 APIMANS += gnutls_x509_crt_get_pk_dsa_raw.3
+APIMANS += gnutls_x509_crt_get_pk_ecc_raw.3
 APIMANS += gnutls_x509_crt_get_pk_rsa_raw.3
 APIMANS += gnutls_x509_crt_get_policy.3
 APIMANS += gnutls_x509_crt_get_preferred_hash_algorithm.3
@@ -905,11 +973,10 @@ APIMANS += gnutls_x509_crt_get_subject_alt_name2.3
 APIMANS += gnutls_x509_crt_get_subject_alt_othername_oid.3
 APIMANS += gnutls_x509_crt_get_subject_key_id.3
 APIMANS += gnutls_x509_crt_get_subject_unique_id.3
-APIMANS += gnutls_x509_crt_get_verify_algorithm.3
 APIMANS += gnutls_x509_crt_get_version.3
 APIMANS += gnutls_x509_crt_import.3
 APIMANS += gnutls_x509_crt_import_pkcs11.3
-APIMANS += gnutls_x509_crt_import_pkcs11_url.3
+APIMANS += gnutls_x509_crt_import_url.3
 APIMANS += gnutls_x509_crt_init.3
 APIMANS += gnutls_x509_crt_list_import.3
 APIMANS += gnutls_x509_crt_list_import2.3
@@ -933,6 +1000,7 @@ APIMANS += gnutls_x509_crt_set_extension_by_oid.3
 APIMANS += gnutls_x509_crt_set_issuer_alt_name.3
 APIMANS += gnutls_x509_crt_set_issuer_dn.3
 APIMANS += gnutls_x509_crt_set_issuer_dn_by_oid.3
+APIMANS += gnutls_x509_crt_set_issuer_unique_id.3
 APIMANS += gnutls_x509_crt_set_key.3
 APIMANS += gnutls_x509_crt_set_key_purpose_oid.3
 APIMANS += gnutls_x509_crt_set_key_usage.3
@@ -947,16 +1015,17 @@ APIMANS += gnutls_x509_crt_set_serial.3
 APIMANS += gnutls_x509_crt_set_subject_alternative_name.3
 APIMANS += gnutls_x509_crt_set_subject_alt_name.3
 APIMANS += gnutls_x509_crt_set_subject_key_id.3
+APIMANS += gnutls_x509_crt_set_subject_unique_id.3
 APIMANS += gnutls_x509_crt_set_version.3
 APIMANS += gnutls_x509_crt_sign.3
 APIMANS += gnutls_x509_crt_sign2.3
 APIMANS += gnutls_x509_crt_verify.3
-APIMANS += gnutls_x509_crt_verify_data.3
-APIMANS += gnutls_x509_crt_verify_hash.3
+APIMANS += gnutls_x509_crt_verify_data2.3
 APIMANS += gnutls_x509_dn_deinit.3
 APIMANS += gnutls_x509_dn_export.3
 APIMANS += gnutls_x509_dn_export2.3
 APIMANS += gnutls_x509_dn_get_rdn_ava.3
+APIMANS += gnutls_x509_dn_get_str.3
 APIMANS += gnutls_x509_dn_import.3
 APIMANS += gnutls_x509_dn_init.3
 APIMANS += gnutls_x509_dn_oid_known.3
@@ -1030,6 +1099,7 @@ APIMANS += gnutls_x509_privkey_import_rsa_raw.3
 APIMANS += gnutls_x509_privkey_import_rsa_raw2.3
 APIMANS += gnutls_x509_privkey_init.3
 APIMANS += gnutls_x509_privkey_sec_param.3
+APIMANS += gnutls_x509_privkey_set_pin_function.3
 APIMANS += gnutls_x509_privkey_sign_data.3
 APIMANS += gnutls_x509_privkey_sign_hash.3
 APIMANS += gnutls_x509_privkey_verify_params.3
@@ -1045,7 +1115,11 @@ APIMANS += gnutls_x509_trust_list_add_trust_file.3
 APIMANS += gnutls_x509_trust_list_add_trust_mem.3
 APIMANS += gnutls_x509_trust_list_deinit.3
 APIMANS += gnutls_x509_trust_list_get_issuer.3
+APIMANS += gnutls_x509_trust_list_get_issuer_by_dn.3
+APIMANS += gnutls_x509_trust_list_get_issuer_by_subject_key_id.3
 APIMANS += gnutls_x509_trust_list_init.3
+APIMANS += gnutls_x509_trust_list_iter_deinit.3
+APIMANS += gnutls_x509_trust_list_iter_get_ca.3
 APIMANS += gnutls_x509_trust_list_remove_cas.3
 APIMANS += gnutls_x509_trust_list_remove_trust_file.3
 APIMANS += gnutls_x509_trust_list_remove_trust_mem.3
@@ -1061,7 +1135,7 @@ compare-makefile:
 	@echo "******************************************************************************"
 	@echo "If the following step fails copy $(srcdir)/doc/manpages/tmp-compare-makefile to doc/manpages/Makefile.am"
 	@echo "******************************************************************************"
-	FUNCS=`cat $(top_srcdir)/lib/includes/gnutls/*.h | $(top_srcdir)/doc/scripts/getfuncs.pl|sort -d`; \
+	FUNCS=`cat $(top_srcdir)/lib/includes/gnutls/*.h | $(top_srcdir)/doc/scripts/getfuncs.pl|sort -d|uniq`; \
 	MANS=""; \
 	for i in $$FUNCS; do \
 		MANS="$$MANS\nAPIMANS += $$i.3"; \
@@ -1079,7 +1153,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/gnutls.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1093,7 +1167,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/compat.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1107,7 +1181,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/dane.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1121,9 +1195,9 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/x509.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
-			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
+			$(C_X509_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
 	done
 	@echo ""
@@ -1135,9 +1209,23 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/x509-ext.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
-			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
+			$(C_X509_SOURCE_FILES) > $$i.3 2>/dev/null && \
+		echo $(ECHO_N) "."; \
+	done
+	@echo ""
+	@echo $(ECHO_N) "Creating man pages for pkcs7.h..." && \
+	for i in `$(top_srcdir)/doc/scripts/getfuncs.pl <$(top_srcdir)/lib/includes/gnutls/pkcs7.h`; do \
+		$(top_srcdir)/doc/scripts/gdoc -man \
+			-module $(PACKAGE) -sourceversion $(VERSION) \
+			-bugsto $(PACKAGE_BUGREPORT) \
+			-pkg-site "http://www.gnutls.org" \
+			-include "gnutls/pkcs7.h" \
+			-seeinfo $(PACKAGE) -verbatimcopying \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
+			-function $$i \
+			$(C_X509_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
 	done
 	@echo ""
@@ -1149,9 +1237,9 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/ocsp.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
-			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
+			$(C_X509_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
 	done
 	@echo ""
@@ -1163,7 +1251,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/abstract.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1177,9 +1265,9 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/pkcs12.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
-			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
+			$(C_X509_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
 	done
 	@echo ""
@@ -1191,7 +1279,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/pkcs11.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1205,7 +1293,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/dtls.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1219,7 +1307,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/openpgp.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1233,7 +1321,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/crypto.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \
@@ -1247,7 +1335,35 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "http://www.gnutls.org" \
 			-include "gnutls/tpm.h" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-2014 Free Software Foundation, Inc." \
+			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
+			-function $$i \
+			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
+		echo $(ECHO_N) "."; \
+	done
+	@echo ""
+	@echo $(ECHO_N) "Creating man pages for urls.h..." && \
+	for i in `$(top_srcdir)/doc/scripts/getfuncs.pl <$(top_srcdir)/lib/includes/gnutls/urls.h`; do \
+		$(top_srcdir)/doc/scripts/gdoc -man \
+			-module $(PACKAGE) -sourceversion $(VERSION) \
+			-bugsto $(PACKAGE_BUGREPORT) \
+			-pkg-site "http://www.gnutls.org" \
+			-include "gnutls/urls.h" \
+			-seeinfo $(PACKAGE) -verbatimcopying \
+			-copyright "2014-$(YEAR) Free Software Foundation, Inc., and others" \
+			-function $$i \
+			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
+		echo $(ECHO_N) "."; \
+	done
+	@echo ""
+	@echo $(ECHO_N) "Creating man pages for system-keys.h..." && \
+	for i in `$(top_srcdir)/doc/scripts/getfuncs.pl <$(top_srcdir)/lib/includes/gnutls/system-keys.h`; do \
+		$(top_srcdir)/doc/scripts/gdoc -man \
+			-module $(PACKAGE) -sourceversion $(VERSION) \
+			-bugsto $(PACKAGE_BUGREPORT) \
+			-pkg-site "http://www.gnutls.org" \
+			-include "gnutls/system-keys.h" \
+			-seeinfo $(PACKAGE) -verbatimcopying \
+			-copyright "2014-$(YEAR) Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 2>/dev/null && \
 		echo $(ECHO_N) "."; \

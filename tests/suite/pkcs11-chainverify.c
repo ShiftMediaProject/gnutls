@@ -36,8 +36,7 @@
 #include "softhsm.h"
 #include "../test-chains.h"
 
-#define URL "pkcs11:model=SoftHSM;manufacturer=SoftHSM;serial=1;token=test"
-#define CONFIG "softhsm.config"
+#define CONFIG "softhsm-chainverify.config"
 
 #define DEFAULT_THEN 1256803113
 static time_t then = DEFAULT_THEN;
@@ -75,11 +74,10 @@ void doit(void)
 	int exit_val = 0;
 	size_t i;
 	int ret;
-	FILE *fp;
-	char buf[128];
 	const char *lib, *bin;
+	gnutls_typed_vdata_st vdata[2];
+	char buf[128];
 
-	unsetenv("SOFTHSM_CONF");
 	/* The overloading of time() seems to work in linux (ELF?)
 	 * systems only. Disable it on windows.
 	 */
@@ -103,17 +101,7 @@ void doit(void)
 	if (debug)
 		gnutls_global_set_log_level(4711);
 
-	/* write softhsm.config */
-	fp = fopen(CONFIG, "w");
-	if (fp == NULL) {
-		fprintf(stderr, "error writing softhsm.config\n");
-		exit(1);
-	}
-	fputs("0:./softhsm.db\n", fp);
-	fclose(fp);
-
-	setenv("SOFTHSM_CONF", CONFIG, 0);
-
+	set_softhsm_conf(CONFIG);
 	snprintf(buf, sizeof(buf), "%s --init-token --slot 0 --label test --so-pin 1234 --pin 1234", bin);
 	system(buf);
 
@@ -131,6 +119,11 @@ void doit(void)
 		gnutls_x509_crt_t ca;
 		gnutls_datum_t tmp;
 		size_t j;
+
+		gnutls_x509_trust_list_iter_t get_ca_iter;
+		gnutls_datum_t get_ca_datum_test;
+		gnutls_datum_t get_ca_datum;
+		gnutls_x509_crt_t get_ca_crt;
 
 		if (debug)
 			printf("Chain '%s' (%d)...\n", chains[i].name,
@@ -209,14 +202,14 @@ void doit(void)
 			printf("\tVerifying...");
 
 		/* initialize softhsm token */
-		ret = gnutls_pkcs11_token_init(URL, "1234", "test");
+		ret = gnutls_pkcs11_token_init(SOFTHSM_URL, "1234", "test");
 		if (ret < 0) {
 			fail("gnutls_pkcs11_token_init\n");
 			exit(1);
 		}
 
 		/* write CA certificate to softhsm */
-		ret = gnutls_pkcs11_copy_x509_crt(URL, ca, "test-ca", GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED|
+		ret = gnutls_pkcs11_copy_x509_crt(SOFTHSM_URL, ca, "test-ca", GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED|
 			GNUTLS_PKCS11_OBJ_FLAG_MARK_CA|
 			GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO);
 		if (ret < 0) {
@@ -226,7 +219,7 @@ void doit(void)
 
 		gnutls_x509_trust_list_init(&tl, 0);
 
-		ret = gnutls_x509_trust_list_add_trust_file(tl, URL, NULL, 0, 0, 0);
+		ret = gnutls_x509_trust_list_add_trust_file(tl, SOFTHSM_URL, NULL, 0, 0, 0);
 		if (ret < 0) {
 			fail("gnutls_x509_trust_list_add_trust_file: %s\n", gnutls_strerror(ret));
 			exit(1);
@@ -237,13 +230,45 @@ void doit(void)
 			exit(1);
 		}
 
+		/* test trust list iteration */
+		get_ca_iter = NULL;
+		while (gnutls_x509_trust_list_iter_get_ca(tl, &get_ca_iter, &get_ca_crt) == 0) {
+			ret = gnutls_x509_crt_export2(get_ca_crt, GNUTLS_X509_FMT_PEM, &get_ca_datum_test);
+			if (ret < 0) {
+				fail("gnutls_x509_crt_export2: %s\n", gnutls_strerror(ret));
+				exit(1);
+			}
+
+			ret = gnutls_x509_crt_export2(ca, GNUTLS_X509_FMT_PEM, &get_ca_datum);
+			if (ret < 0) {
+				fail("gnutls_x509_crt_export2: %s\n", gnutls_strerror(ret));
+				exit(1);
+			}
+
+			if (get_ca_datum_test.size != get_ca_datum.size ||
+			    memcmp(get_ca_datum_test.data, get_ca_datum.data, get_ca_datum.size) != 0) {
+				fail("gnutls_x509_trist_list_iter_get_ca: Unexpected certificate (%u != %u):\n\n%s\n\nvs.\n\n%s", get_ca_datum.size, get_ca_datum_test.size, get_ca_datum.data, get_ca_datum_test.data);
+				exit(1);
+			}
+
+			gnutls_free(get_ca_datum.data);
+			gnutls_free(get_ca_datum_test.data);
+			gnutls_x509_crt_deinit(get_ca_crt);
+		}
+
+		vdata[0].type = GNUTLS_DT_KEY_PURPOSE_OID;
+		vdata[0].data = (void *)chains[i].purpose;
+
 		if (chains[i].expected_time != 0)
 			then = chains[i].expected_time;
 		else
 			then = DEFAULT_THEN;
 
 		/* make sure that the two functions don't diverge */
-		ret = gnutls_x509_trust_list_verify_crt(tl, certs, j, chains[i].verify_flags,
+		ret = gnutls_x509_trust_list_verify_crt2(tl, certs, j,
+						vdata,
+						chains[i].purpose==NULL?0:1,
+						chains[i].verify_flags,
 						&verify_status, NULL);
 		if (ret < 0) {
 			fprintf(stderr,

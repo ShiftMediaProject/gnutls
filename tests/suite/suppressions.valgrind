@@ -225,3 +225,46 @@
    obj:*
 }
 
+{
+   memxor_different_alignment
+   Memcheck:Addr8
+   fun:memxor_different_alignment
+   obj:*
+}
+
+{
+   libidn-strlen
+   Memcheck:Addr4
+   fun:idna_to_ascii_4z
+   fun:idna_to_ascii_8z
+   fun:gnutls_x509_crt_check_hostname2
+   ...
+}
+
+{
+   libidn-strlen2
+   Memcheck:Addr4
+   fun:idna_to_ascii_4z
+   fun:idna_to_ascii_8z
+   fun:gnutls_server_name_set
+   ...
+}
+
+{
+   libidn-strlen2
+   Memcheck:Addr4
+   fun:idna_to_ascii_4z
+   fun:idna_to_ascii_8z
+   fun:gnutls_server_name_get
+   ...
+}
+
+{
+   bash leak
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xmalloc
+   fun:set_default_locale
+   fun:main
+}

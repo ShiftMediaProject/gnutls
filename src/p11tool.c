@@ -68,9 +68,11 @@ int main(int argc, char **argv)
 }
 
 static
-unsigned opt_to_flags(void)
+unsigned opt_to_flags(unsigned *key_usage)
 {
 	unsigned flags = 0;
+	
+	*key_usage = 0;
 
 	if (HAVE_OPT(MARK_PRIVATE)) {
 		if (ENABLED_OPT(MARK_PRIVATE)) {
@@ -83,6 +85,12 @@ unsigned opt_to_flags(void)
 	if (ENABLED_OPT(MARK_TRUSTED))
 		flags |=
 		    GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED;
+
+	if (ENABLED_OPT(MARK_SIGN))
+		*key_usage |= GNUTLS_KEY_DIGITAL_SIGNATURE;
+
+	if (ENABLED_OPT(MARK_DECRYPT))
+		*key_usage |= GNUTLS_KEY_DECIPHER_ONLY;
 
 	if (ENABLED_OPT(MARK_CA))
 		flags |=
@@ -108,8 +116,9 @@ static void cmd_parser(int argc, char **argv)
 	const char *url = NULL;
 	unsigned int detailed_url = 0, optct;
 	unsigned int bits = 0;
-	const char *label = NULL, *sec_param = NULL;
+	const char *label = NULL, *sec_param = NULL, *id = NULL;
 	unsigned flags;
+	unsigned key_usage;
 
 	optct = optionProcess(&p11toolOptions, argc, argv);
 	argc += optct;
@@ -166,7 +175,8 @@ static void cmd_parser(int argc, char **argv)
 
 	memset(&cinfo, 0, sizeof(cinfo));
 
-	flags = opt_to_flags();
+	flags = opt_to_flags(&key_usage);
+	cinfo.key_usage = key_usage;
 
 	if (HAVE_OPT(SECRET_KEY))
 		cinfo.secret_key = OPT_ARG(SECRET_KEY);
@@ -179,6 +189,10 @@ static void cmd_parser(int argc, char **argv)
 
 	if (HAVE_OPT(BATCH)) {
 		batch = cinfo.batch = 1;
+	}
+
+	if (HAVE_OPT(ONLY_URLS)) {
+		batch = cinfo.only_urls = 1;
 	}
 
 	if (ENABLED_OPT(INDER) || ENABLED_OPT(INRAW))
@@ -210,41 +224,29 @@ static void cmd_parser(int argc, char **argv)
 		label = OPT_ARG(LABEL);
 	}
 
+	if (HAVE_OPT(ID)) {
+		id = OPT_ARG(ID);
+	}
+
 	if (HAVE_OPT(BITS)) {
 		bits = OPT_VALUE_BITS;
 	}
 
 	if (HAVE_OPT(CURVE)) {
-		bits = GNUTLS_CURVE_TO_BITS(str_to_curve(OPT_ARG(CURVE)));
+		gnutls_ecc_curve_t curve = str_to_curve(OPT_ARG(CURVE));
+		bits = GNUTLS_CURVE_TO_BITS(curve);
 	}
 
 	if (HAVE_OPT(SEC_PARAM)) {
 		sec_param = OPT_ARG(SEC_PARAM);
 	}
 
-	if (debug > 4) {
-		if (HAVE_OPT(MARK_PRIVATE))
-			fprintf(stderr, "Private: %s\n",
-				ENABLED_OPT(MARK_PRIVATE) ? "yes" : "no");
-		fprintf(stderr, "Trusted: %s\n",
-			ENABLED_OPT(MARK_TRUSTED) ? "yes" : "no");
-		fprintf(stderr, "Wrap: %s\n",
-			ENABLED_OPT(MARK_WRAP) ? "yes" : "no");
-		fprintf(stderr, "CA: %s\n",
-			ENABLED_OPT(MARK_CA) ? "yes" : "no");
-		fprintf(stderr, "Login: %s\n",
-			ENABLED_OPT(LOGIN) ? "yes" : "no");
-		fprintf(stderr, "SO Login: %s\n",
-			ENABLED_OPT(SO_LOGIN) ? "yes" : "no");
-		fprintf(stderr, "Detailed URLs: %s\n",
-			ENABLED_OPT(DETAILED_URL) ? "yes" : "no");
-		fprintf(stderr, "\n");
-	}
-
 	/* handle actions 
 	 */
 	if (HAVE_OPT(LIST_TOKENS)) {
 		pkcs11_token_list(outfile, detailed_url, &cinfo, 0);
+	} else if (HAVE_OPT(LIST_TOKEN_URLS)) {
+		pkcs11_token_list(outfile, detailed_url, &cinfo, 1);
 	} else if (HAVE_OPT(LIST_MECHANISMS)) {
 		pkcs11_mechanism_list(outfile, url, flags, &cinfo);
 	} else if (HAVE_OPT(GENERATE_RANDOM)) {
@@ -279,8 +281,10 @@ static void cmd_parser(int argc, char **argv)
 	} else if (HAVE_OPT(EXPORT_CHAIN)) {
 		pkcs11_export_chain(outfile, url, flags, &cinfo);
 	} else if (HAVE_OPT(WRITE)) {
-		pkcs11_write(outfile, url, label,
+		pkcs11_write(outfile, url, label, id,
 			     flags, &cinfo);
+	} else if (HAVE_OPT(TEST_SIGN)) {
+		pkcs11_test_sign(outfile, url, flags, &cinfo);
 	} else if (HAVE_OPT(INITIALIZE))
 		pkcs11_init(outfile, url, label, &cinfo);
 	else if (HAVE_OPT(DELETE))
@@ -289,22 +293,26 @@ static void cmd_parser(int argc, char **argv)
 		key_type = GNUTLS_PK_EC;
 		pkcs11_generate(outfile, url, key_type,
 				get_bits(key_type, bits, sec_param, 0),
-				label, detailed_url,
+				label, id, detailed_url,
 				flags, &cinfo);
 	} else if (HAVE_OPT(GENERATE_RSA)) {
 		key_type = GNUTLS_PK_RSA;
 		pkcs11_generate(outfile, url, key_type,
 				get_bits(key_type, bits, sec_param, 0),
-				label, detailed_url,
+				label, id, detailed_url,
 				flags, &cinfo);
 	} else if (HAVE_OPT(GENERATE_DSA)) {
 		key_type = GNUTLS_PK_DSA;
 		pkcs11_generate(outfile, url, key_type,
 				get_bits(key_type, bits, sec_param, 0),
-				label, detailed_url,
+				label, id, detailed_url,
 				flags, &cinfo);
 	} else if (HAVE_OPT(EXPORT_PUBKEY)) {
 		pkcs11_export_pubkey(outfile, url, detailed_url, flags, &cinfo);
+	} else if (HAVE_OPT(SET_ID)) {
+		pkcs11_set_id(outfile, url, detailed_url, flags, &cinfo, OPT_ARG(SET_ID));
+	} else if (HAVE_OPT(SET_LABEL)) {
+		pkcs11_set_label(outfile, url, detailed_url, flags, &cinfo, OPT_ARG(SET_LABEL));
 	} else {
 		USAGE(1);
 	}

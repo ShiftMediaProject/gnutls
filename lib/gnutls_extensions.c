@@ -39,15 +39,17 @@
 #include <ext/safe_renegotiation.h>
 #include <ext/ecc.h>
 #include <ext/status_request.h>
+#include <ext/ext_master_secret.h>
 #include <ext/srtp.h>
 #include <ext/alpn.h>
 #include <ext/dumbfw.h>
+#include <ext/etm.h>
 #include <gnutls_num.h>
 
 
+static int ext_register(extension_entry_st * mod);
 static void _gnutls_ext_unset_resumed_session_data(gnutls_session_t
 						   session, uint16_t type);
-
 
 static size_t extfunc_size = 0;
 static extension_entry_st *extfunc = NULL;
@@ -313,75 +315,83 @@ int _gnutls_ext_init(void)
 {
 	int ret;
 
-	ret = _gnutls_ext_register(&ext_mod_max_record_size);
+	ret = ext_register(&ext_mod_max_record_size);
+	if (ret != GNUTLS_E_SUCCESS)
+		return ret;
+
+	ret = ext_register(&ext_mod_ext_master_secret);
+	if (ret != GNUTLS_E_SUCCESS)
+		return ret;
+
+	ret = ext_register(&ext_mod_etm);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
 #ifdef ENABLE_OCSP
-	ret = _gnutls_ext_register(&ext_mod_status_request);
+	ret = ext_register(&ext_mod_status_request);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
 #ifdef ENABLE_OPENPGP
-	ret = _gnutls_ext_register(&ext_mod_cert_type);
+	ret = ext_register(&ext_mod_cert_type);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
-	ret = _gnutls_ext_register(&ext_mod_server_name);
+	ret = ext_register(&ext_mod_server_name);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
-	ret = _gnutls_ext_register(&ext_mod_sr);
+	ret = ext_register(&ext_mod_sr);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
 #ifdef ENABLE_SRP
-	ret = _gnutls_ext_register(&ext_mod_srp);
+	ret = ext_register(&ext_mod_srp);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
 #ifdef ENABLE_HEARTBEAT
-	ret = _gnutls_ext_register(&ext_mod_heartbeat);
+	ret = ext_register(&ext_mod_heartbeat);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
 #ifdef ENABLE_SESSION_TICKETS
-	ret = _gnutls_ext_register(&ext_mod_session_ticket);
+	ret = ext_register(&ext_mod_session_ticket);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
-	ret = _gnutls_ext_register(&ext_mod_supported_ecc);
+	ret = ext_register(&ext_mod_supported_ecc);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
-	ret = _gnutls_ext_register(&ext_mod_supported_ecc_pf);
+	ret = ext_register(&ext_mod_supported_ecc_pf);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
-	ret = _gnutls_ext_register(&ext_mod_sig);
+	ret = ext_register(&ext_mod_sig);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
 #ifdef ENABLE_DTLS_SRTP
-	ret = _gnutls_ext_register(&ext_mod_srtp);
+	ret = ext_register(&ext_mod_srtp);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
 #ifdef ENABLE_ALPN
-	ret = _gnutls_ext_register(&ext_mod_alpn);
+	ret = ext_register(&ext_mod_alpn);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 #endif
 
 	/* This must be the last extension registered.
 	 */
-	ret = _gnutls_ext_register(&ext_mod_dumbfw);
+	ret = ext_register(&ext_mod_dumbfw);
 	if (ret != GNUTLS_E_SUCCESS)
 		return ret;
 
@@ -390,12 +400,20 @@ int _gnutls_ext_init(void)
 
 void _gnutls_ext_deinit(void)
 {
+	unsigned i;
+	for (i = 0; i < extfunc_size; i++) {
+		if (extfunc[i].free_name != 0) {
+			gnutls_free((void*)extfunc[i].name);
+		}
+	}
+
 	gnutls_free(extfunc);
 	extfunc = NULL;
 	extfunc_size = 0;
 }
 
-int _gnutls_ext_register(extension_entry_st * mod)
+static
+int ext_register(extension_entry_st * mod)
 {
 	extension_entry_st *p;
 
@@ -415,28 +433,11 @@ int _gnutls_ext_register(extension_entry_st * mod)
 	return GNUTLS_E_SUCCESS;
 }
 
-int _gnutls_ext_before_epoch_change(gnutls_session_t session)
-{
-	unsigned int i;
-	int ret;
-
-	for (i = 0; i < extfunc_size; i++) {
-		if (extfunc[i].epoch_func != NULL) {
-			ret = extfunc[i].epoch_func(session);
-			if (ret < 0)
-				return gnutls_assert_val(ret);
-		}
-	}
-
-	return 0;
-}
-
-
 int _gnutls_ext_pack(gnutls_session_t session, gnutls_buffer_st * packed)
 {
 	unsigned int i;
 	int ret;
-	extension_priv_data_t data;
+	gnutls_ext_priv_data_t data;
 	int cur_size;
 	int size_offset;
 	int total_exts_pos;
@@ -519,7 +520,7 @@ void _gnutls_ext_restore_resumed_session(gnutls_session_t session)
 static void
 _gnutls_ext_set_resumed_session_data(gnutls_session_t session,
 				     uint16_t type,
-				     extension_priv_data_t data)
+				     gnutls_ext_priv_data_t data)
 {
 	int i;
 
@@ -548,7 +549,7 @@ _gnutls_ext_set_resumed_session_data(gnutls_session_t session,
 int _gnutls_ext_unpack(gnutls_session_t session, gnutls_buffer_st * packed)
 {
 	int i, ret;
-	extension_priv_data_t data;
+	gnutls_ext_priv_data_t data;
 	gnutls_ext_unpack_func unpack;
 	int max_exts = 0;
 	uint16_t type;
@@ -594,7 +595,7 @@ void
 _gnutls_ext_unset_session_data(gnutls_session_t session, uint16_t type)
 {
 	gnutls_ext_deinit_data_func deinit;
-	extension_priv_data_t data;
+	gnutls_ext_priv_data_t data;
 	int ret, i;
 
 	deinit = _gnutls_ext_func_deinit(type);
@@ -618,7 +619,7 @@ _gnutls_ext_unset_resumed_session_data(gnutls_session_t session,
 				       uint16_t type)
 {
 	gnutls_ext_deinit_data_func deinit;
-	extension_priv_data_t data;
+	gnutls_ext_priv_data_t data;
 	int ret, i;
 
 	deinit = _gnutls_ext_func_deinit(type);
@@ -656,13 +657,13 @@ void _gnutls_ext_free_session_data(gnutls_session_t session)
 
 }
 
-/* This function allows and extension to store data in the current session
+/* This function allows an extension to store data in the current session
  * and retrieve them later on. We use functions instead of a pointer to a
  * private pointer, to allow API additions by individual extensions.
  */
 void
 _gnutls_ext_set_session_data(gnutls_session_t session, uint16_t type,
-			     extension_priv_data_t data)
+			     gnutls_ext_priv_data_t data)
 {
 	unsigned int i;
 	gnutls_ext_deinit_data_func deinit;
@@ -690,7 +691,7 @@ _gnutls_ext_set_session_data(gnutls_session_t session, uint16_t type,
 
 int
 _gnutls_ext_get_session_data(gnutls_session_t session,
-			     uint16_t type, extension_priv_data_t * data)
+			     uint16_t type, gnutls_ext_priv_data_t * data)
 {
 	int i;
 
@@ -709,7 +710,7 @@ _gnutls_ext_get_session_data(gnutls_session_t session,
 int
 _gnutls_ext_get_resumed_session_data(gnutls_session_t session,
 				     uint16_t type,
-				     extension_priv_data_t * data)
+				     gnutls_ext_priv_data_t * data)
 {
 	int i;
 
@@ -725,4 +726,101 @@ _gnutls_ext_get_resumed_session_data(gnutls_session_t session,
 		}
 	}
 	return GNUTLS_E_INVALID_REQUEST;
+}
+
+/**
+ * gnutls_ext_register:
+ * @name: the name of the extension to register
+ * @type: the numeric id of the extension
+ * @parse_type: the parse type of the extension (see gnutls_ext_parse_type_t)
+ * @recv_func: a function to receive the data
+ * @send_func: a function to send the data
+ * @deinit_func: a function deinitialize any private data
+ * @pack_func: a function which serializes the extension's private data (used on session packing for resumption)
+ * @unpack_func: a function which will deserialize the extension's private data
+ *
+ * This function will register a new extension type. The extension will remain
+ * registered until gnutls_global_deinit() is called. If the extension type
+ * is already registred then %GNUTLS_E_ALREADY_REGISTERED will be returned.
+ *
+ * Each registered extension can store temporary data into the gnutls_session_t
+ * structure using gnutls_ext_set_data(), and they can be retrieved using
+ * gnutls_ext_get_data().
+ *
+ * This function is not thread safe.
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
+ *
+ * Since: 3.4.0
+ **/
+int 
+gnutls_ext_register(const char *name, int type, gnutls_ext_parse_type_t parse_type,
+		    gnutls_ext_recv_func recv_func, gnutls_ext_send_func send_func, 
+		    gnutls_ext_deinit_data_func deinit_func, gnutls_ext_pack_func pack_func,
+		    gnutls_ext_unpack_func unpack_func)
+{
+	extension_entry_st tmp_mod;
+	int ret;
+	unsigned i;
+
+	for (i = 0; i < extfunc_size; i++) {
+		if (extfunc[i].type == type)
+			return gnutls_assert_val(GNUTLS_E_ALREADY_REGISTERED);
+	}
+
+	memset(&tmp_mod, 0, sizeof(tmp_mod));
+
+	tmp_mod.name = gnutls_strdup(name);
+	tmp_mod.free_name = 1;
+	tmp_mod.type = type;
+	tmp_mod.parse_type = parse_type;
+	tmp_mod.recv_func = recv_func;
+	tmp_mod.send_func = send_func;
+	tmp_mod.deinit_func = deinit_func;
+	tmp_mod.pack_func = pack_func;
+	tmp_mod.unpack_func = unpack_func;
+
+	ret = ext_register(&tmp_mod);
+	if (ret < 0) {
+		gnutls_free((void*)tmp_mod.name);
+	}
+	return ret;
+}
+
+/**
+ * gnutls_ext_set_data:
+ * @session: a #gnutls_session_t opaque pointer
+ * @type: the numeric id of the extension
+ * @data: the private data to set
+ *
+ * This function allows an extension handler to store data in the current session
+ * and retrieve them later on. The set data will be deallocated using
+ * the gnutls_ext_deinit_data_func.
+ *
+ * Since: 3.4.0
+ **/
+void
+gnutls_ext_set_data(gnutls_session_t session, unsigned type,
+		    gnutls_ext_priv_data_t data)
+{
+	_gnutls_ext_set_session_data(session, type, data);
+}
+
+/**
+ * gnutls_ext_get_data:
+ * @session: a #gnutls_session_t opaque pointer
+ * @type: the numeric id of the extension
+ * @data: a pointer to the private data to retrieve
+ *
+ * This function retrieves any data previously stored with gnutls_ext_set_data().
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
+ *
+ * Since: 3.4.0
+ **/
+int
+gnutls_ext_get_data(gnutls_session_t session,
+		    unsigned type, gnutls_ext_priv_data_t *data)
+{
+	return _gnutls_ext_get_session_data(session, type, data);
 }

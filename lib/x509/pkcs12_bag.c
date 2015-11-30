@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2003-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2003-2014 Free Software Foundation, Inc.
+ * Copyright (C) 2014 Red Hat
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -33,7 +34,7 @@
 
 /**
  * gnutls_pkcs12_bag_init:
- * @bag: The structure to be initialized
+ * @bag: A pointer to the type to be initialized
  *
  * This function will initialize a PKCS12 bag structure. PKCS12 Bags
  * usually contain private keys, lists of X.509 Certificates and X.509
@@ -69,7 +70,7 @@ static inline void _pkcs12_bag_free_data(gnutls_pkcs12_bag_t bag)
 
 /**
  * gnutls_pkcs12_bag_deinit:
- * @bag: The structure to be initialized
+ * @bag: A pointer to the type to be initialized
  *
  * This function will deinitialize a PKCS12 Bag structure.
  **/
@@ -780,4 +781,126 @@ gnutls_pkcs12_bag_encrypt(gnutls_pkcs12_bag_t bag, const char *pass,
 
 
 	return 0;
+}
+
+/**
+ * gnutls_pkcs12_bag_enc_info:
+ * @bag: The bag
+ * @schema: indicate the schema as one of %gnutls_pkcs_encrypt_flags_t
+ * @cipher: the cipher used as %gnutls_cipher_algorithm_t
+ * @salt: PBKDF2 salt (if non-NULL then @salt_size initially holds its size)
+ * @salt_size: PBKDF2 salt size
+ * @iter_count: PBKDF2 iteration count
+ * @oid: if non-NULL it will contain an allocated null-terminated variable with the OID
+ *
+ * This function will provide information on the encryption algorithms used
+ * in an encrypted bag. If the structure algorithms
+ * are unknown the code %GNUTLS_E_UNKNOWN_CIPHER_TYPE will be returned,
+ * and only @oid, will be set. That is, @oid will be set on encrypted bags
+ * whether supported or not. It must be deinitialized using gnutls_free().
+ * The other variables are only set on supported structures.
+ *
+ * Returns: %GNUTLS_E_INVALID_REQUEST if the provided bag isn't encrypted,
+ *  %GNUTLS_E_UNKNOWN_CIPHER_TYPE if the structure's encryption isn't supported, or
+ *  another negative error code in case of a failure. Zero on success.
+ **/
+int
+gnutls_pkcs12_bag_enc_info(gnutls_pkcs12_bag_t bag, unsigned int *schema, unsigned int *cipher,
+	void *salt, unsigned int *salt_size, unsigned int *iter_count, char **oid)
+{
+	int ret;
+	struct pbkdf2_params kdf;
+	const struct pbes2_schema_st *p;
+
+	if (bag == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	if (bag->element[0].type != GNUTLS_BAG_ENCRYPTED) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	ret =
+	    _gnutls_pkcs7_data_enc_info(&bag->element[0].data, &p, &kdf, oid);
+
+	if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	if (schema)
+		*schema = p->flag;
+
+	if (cipher)
+		*cipher = p->cipher;
+
+	if (iter_count)
+		 *iter_count = kdf.iter_count;
+
+	if (salt) {
+		if (*salt_size >= (unsigned)kdf.salt_size) {
+			memcpy(salt, kdf.salt, kdf.salt_size);
+		} else {
+			*salt_size = kdf.salt_size;
+			return gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
+		}
+	}
+
+	if (salt_size)
+		*salt_size = kdf.salt_size;
+
+
+	return 0;
+}
+
+/**
+ * gnutls_pkcs12_bag_set_privkey:
+ * @bag: The bag
+ * @privkey: the private key to be copied.
+ * @password: the password to protect the key with (may be %NULL)
+ * @flags: should be one of #gnutls_pkcs_encrypt_flags_t elements bitwise or'd
+ *
+ * This function will insert the given private key into the
+ * bag. This is just a wrapper over gnutls_pkcs12_bag_set_data().
+ *
+ * Returns: the index of the added bag on success, or a negative
+ * value on failure.
+ **/
+int
+gnutls_pkcs12_bag_set_privkey(gnutls_pkcs12_bag_t bag, gnutls_x509_privkey_t privkey,
+			      const char *password, unsigned flags)
+{
+	int ret;
+	gnutls_datum_t data = {NULL, 0};
+
+	if (bag == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	ret = gnutls_x509_privkey_export2_pkcs8(privkey, GNUTLS_X509_FMT_DER,
+						password, flags, &data);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	if (password == NULL) {
+		ret = gnutls_pkcs12_bag_set_data(bag, GNUTLS_BAG_PKCS8_KEY, &data);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+	} else {
+		ret = gnutls_pkcs12_bag_set_data(bag, GNUTLS_BAG_PKCS8_ENCRYPTED_KEY, &data);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+	}
+
+ cleanup:
+	_gnutls_free_datum(&data);
+
+	return ret;
 }

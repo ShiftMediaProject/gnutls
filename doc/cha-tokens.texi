@@ -1,5 +1,5 @@
 @node Hardware security modules and abstract key types
-@chapter Hardware security modules and abstract key types
+@chapter Abstract keys types and Hardware security modules
 
 In several cases storing the long term cryptographic keys in a hard disk or
 even in memory poses a significant risk. Once the system they are stored
@@ -18,7 +18,7 @@ In GnuTLS the approach is to handle all keys transparently by the high level API
 the API that loads a key or certificate from a file.
 The high-level API will accept URIs in addition to files that specify keys on an HSM or in TPM,
 and a callback function will be used to obtain any required keys. The URI format is defined in 
-@xcite{TPMURI} and @xcite{PKCS11URI}, and is in the process of being standardized across systems.
+@xcite{TPMURI} and the standardized @xcite{PKCS11URI}.
 
 More information on the API is provided in the next sections. Examples of a URI of a certificate 
 stored in an HSM, as well as a key stored in the TPM chip are shown below. To discover the URIs 
@@ -27,7 +27,7 @@ or @code{tpmtool} (see @ref{tpmtool Invocation}) may be used.
 
 @example
 pkcs11:token=Nikos;serial=307521161601031;model=PKCS%2315; \
-manufacturer=EnterSafe;object=test1;objecttype=cert
+manufacturer=EnterSafe;object=test1;type=cert
 
 tpmkey:uuid=42309df8-d101-11e1-a89a-97bb33c23ad1;storage=user
 @end example
@@ -35,6 +35,7 @@ tpmkey:uuid=42309df8-d101-11e1-a89a-97bb33c23ad1;storage=user
 
 @menu
 * Abstract key types::
+* Application-specific keys::
 * Smart cards and HSMs::
 * Trusted Platform Module::
 @end menu
@@ -66,7 +67,7 @@ gnutls_privkey_t abs_key;
   gnutls_privkey_import_url(abs_key, key_url);
 
   gnutls_x509_crt_init(&ca_cert);
-  gnutls_x509_crt_import_pkcs11_url(&ca_cert, cert_url);
+  gnutls_x509_crt_import_url(&ca_cert, cert_url);
 
   /* sign the certificate to be signed */
   gnutls_x509_crt_privkey_sign(to_be_signed, ca_cert, abs_key, 
@@ -147,7 +148,7 @@ an external API, the following function is provided.
 This allows for a simple extensibility API without
 resorting to @acronym{PKCS} #11.
 
-@showfuncdesc{gnutls_privkey_import_ext2}
+@showfuncdesc{gnutls_privkey_import_ext3}
 
 @node Operations
 @subsection Operations
@@ -171,6 +172,71 @@ key abstractions.
 @showfuncdesc{gnutls_x509_crt_set_pubkey}
 @showfuncC{gnutls_x509_crt_privkey_sign,gnutls_x509_crl_privkey_sign,gnutls_x509_crq_privkey_sign}
 
+
+@node Application-specific keys
+@section System and application-specific keys
+@cindex Application-specific keys
+@cindex System-specific keys
+
+@subsection System-specific keys
+In several systems there are keystores which allow to read, store and use certificates
+and private keys. For these systems GnuTLS provides the system-key API in @code{gnutls/system-keys.h}.
+That API provides the ability to iterate through all stored keys, add and delete keys as well
+as use these keys using a URL which starts with "system:". The format of the URLs is system-specific.
+
+@showfuncdesc{gnutls_system_key_iter_get_info}
+
+@showfuncC{gnutls_system_key_iter_deinit,gnutls_system_key_add_x509,gnutls_system_key_delete}
+
+@subsection Application-specific keys
+For systems where GnuTLS doesn't provide a system specific store,
+it may often be desirable to define a custom class of keys
+that are identified via URLs and available to GnuTLS calls such as @funcref{gnutls_certificate_set_x509_key_file2}.
+Such keys can be registered using the API in @code{gnutls/urls.h}. The function
+which registers such keys is @funcref{gnutls_register_custom_url}.
+
+@showfuncdesc{gnutls_register_custom_url}
+
+The input to this function are three callback functions as well as
+the prefix of the URL, (e.g., "mypkcs11:") and the length of the prefix.
+The types of the callbacks are shown below, and are expected to
+use the exported gnutls functions to import the keys and certificates.
+E.g., a typical @code{import_key} callback should use @funcref{gnutls_privkey_import_ext3}.
+
+@example
+typedef int (*gnutls_privkey_import_url_func)(gnutls_privkey_t pkey,
+                                              const char *url,
+                                              unsigned flags);
+
+typedef int (*gnutls_x509_crt_import_url_func)(gnutls_x509_crt_t pkey,
+                                               const char *url,
+                                               unsigned flags);
+
+/* The following callbacks are optional */
+
+/* This is to enable gnutls_pubkey_import_url() */
+typedef int (*gnutls_pubkey_import_url_func)(gnutls_pubkey_t pkey,
+					     const char *url, unsigned flags);
+
+/* This is to allow constructing a certificate chain. It will be provided
+ * the initial certificate URL and the certificate to find its issuer, and must
+ * return zero and the DER encoding of the issuer's certificate. If not available,
+ * it should return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE. */
+typedef int (*gnutls_get_raw_issuer_func)(const char *url, gnutls_x509_crt_t crt,
+					  gnutls_datum_t *issuer_der, unsigned flags);
+
+typedef struct custom_url_st @{
+        const char *name;
+        unsigned name_size;
+        gnutls_privkey_import_url_func import_key;
+        gnutls_x509_crt_import_url_func import_crt;
+        gnutls_pubkey_import_url_func import_pubkey;
+	gnutls_get_raw_issuer_func get_issuer;
+@} gnutls_custom_url_st;
+@end example
+
+
+
 @node Smart cards and HSMs
 @section Smart cards and HSMs
 @cindex PKCS #11 tokens
@@ -190,7 +256,7 @@ separation subsystem.
 
 @acronym{PKCS} #11 is plugin API allowing applications to access cryptographic
 operations on a security module, as well as to objects residing on it. PKCS
-#11 modules exist for hardware tokens such as smart cards@footnote{@url{http://www.opensc-project.org}},
+#11 modules exist for hardware tokens such as smart cards@footnote{For example, OpenSC-supported cards.},
 cryptographic tokens, as well as for software modules like @acronym{Gnome Keyring}. 
 The objects residing on a security module may be certificates, public keys, 
 private keys or secret keys. Of those certificates and public/private key 
@@ -222,36 +288,42 @@ storage module@footnote{@url{http://p11-glue.freedesktop.org/trust-module.html}}
 @node PKCS11 Initialization
 @subsection Initialization
 To allow all @acronym{GnuTLS} applications to transparently access smard cards
-and tokens, @acronym{PKCS} #11 is automatically initialized during the global 
-initialization (see @funcref{gnutls_global_init}). The initialization function, to select
-which modules to load reads certain module configuration files.
-Those are stored in @code{/etc/pkcs11/modules/} and 
-are the configuration files of @acronym{p11-kit}@footnote{@url{http://p11-glue.freedesktop.org/}}.
-For example a file that will load the @acronym{OpenSC} module, could be named
-@code{/etc/pkcs11/modules/opensc.module} and contain the following:
+and tokens, @acronym{PKCS} #11 is automatically initialized during the first
+call of a @acronym{PKCS} #11 related function. The initialization process, based
+on p11-kit configuration, loads any appropriate modules. The p11-kit configuration
+files@footnote{@url{http://p11-glue.freedesktop.org/}} are typically stored in @code{/etc/pkcs11/modules/}.
+For example a file that will instruct GnuTLS to load the @acronym{OpenSC} module,
+could be named @code{/etc/pkcs11/modules/opensc.module} and contain the following:
 
 @example
 module: /usr/lib/opensc-pkcs11.so
 @end example
 
 If you use these configuration files, then there is no need for other initialization in
-@acronym{GnuTLS}, except for the PIN and token functions (see next section).  
-In several cases, however, it is desirable to limit badly behaving modules 
+@acronym{GnuTLS}, except for the PIN and token callbacks (see next section).
+In several cases, however, it is desirable to limit badly behaving modules
 (e.g., modules that add an unacceptable delay on initialization)
 to single applications. That can be done using the ``enable-in:'' option
 followed by the base name of applications that this module should be used.
 
-In all cases, you can also manually initialize the PKCS #11 subsystem if the 
+It is also possible to manually initialize the PKCS #11 subsystem if the 
 default settings are not desirable. To completely disable PKCS #11 support you
 need to call @funcref{gnutls_pkcs11_init} with the flag @code{GNUTLS_PKCS11_FLAG_MANUAL}
 prior to @funcref{gnutls_global_init}.
 
 @showfuncdesc{gnutls_pkcs11_init}
 
-Note that PKCS #11 modules must be reinitialized on the child processes
-after a @funcintref{fork}. In older versions of @acronym{GnuTLS} it was
-required to call @funcref{gnutls_pkcs11_reinit}; since 3.3.0 this is no
-longer required, as reinitialization occurs automatically.
+Note that, PKCS #11 modules behave in a peculiar way after a fork; they
+require a reinitialization of all the used PKCS #11 resources.
+While GnuTLS automates that process, there are corner cases where
+it is not possible to handle it correctly in an automated way@footnote{For
+example when an open session is to be reinitialized, but the PIN is not available
+to GnuTLS (e.g., it was entered at a pinpad).}. For that reasons it is
+recommended not to mix fork() and PKCS #11 module usage. It is recommended
+to initialize and use any PKCS #11 resources in a single process.
+
+Older versions of @acronym{GnuTLS} required to call @funcref{gnutls_pkcs11_reinit}
+after a fork() call; since 3.3.0 this is no longer required.
 
 @node Accessing objects that require a PIN
 @subsection Accessing objects that require a PIN
@@ -305,7 +377,7 @@ key on a smart card may be referenced as:
 
 @example
 pkcs11:token=Nikos;serial=307521161601031;model=PKCS%2315; \
-manufacturer=EnterSafe;object=test1;objecttype=public;\
+manufacturer=EnterSafe;object=test1;type=public;\
 id=32f153f3e37990b08624141077ca5dec2d15faed
 @end example
 
@@ -324,7 +396,7 @@ are shown below.
 
 @showfuncdesc{gnutls_pkcs11_obj_get_info}
 
-@showfuncC{gnutls_x509_crt_import_pkcs11,gnutls_x509_crt_import_pkcs11_url,gnutls_x509_crt_list_import_pkcs11}
+@showfuncC{gnutls_x509_crt_import_pkcs11,gnutls_x509_crt_import_url,gnutls_x509_crt_list_import_pkcs11}
 
 Properties of the physical token can also be accessed and altered with @acronym{GnuTLS}.
 For example data in a token can be erased (initialized), PIN can be altered, etc.
@@ -368,9 +440,9 @@ to prevent its extraction. An object can be marked as private using the flag
 @code{GNUTLS_@-PKCS11_OBJ_@-FLAG_@-MARK_@-PRIVATE}, to require PIN to be
 entered before accessing the object (for operations or otherwise).
 
-@showfuncdesc{gnutls_pkcs11_copy_x509_privkey}
+@showfuncdesc{gnutls_pkcs11_copy_x509_privkey2}
 
-@showfuncdesc{gnutls_pkcs11_copy_x509_crt}
+@showfuncdesc{gnutls_pkcs11_copy_x509_crt2}
 @showfuncdesc{gnutls_pkcs11_delete_url}
 
 

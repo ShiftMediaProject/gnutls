@@ -23,6 +23,7 @@
 #include <gnutls_int.h>
 #include <gnutls_errors.h>
 #include <auth/cert.h>
+#include <x509/common.h>
 #include <gnutls_x509.h>
 #include "x509/x509_int.h"
 #ifdef ENABLE_OPENPGP
@@ -32,7 +33,7 @@
 /**
  * gnutls_pcert_import_x509:
  * @pcert: The pcert structure
- * @crt: The raw certificate to be imported
+ * @crt: The certificate to be imported
  * @flags: zero for now
  *
  * This convenience function will import the given certificate to a
@@ -82,6 +83,73 @@ int gnutls_pcert_import_x509(gnutls_pcert_st * pcert,
 	_gnutls_free_datum(&pcert->cert);
 
 	return ret;
+}
+
+/**
+ * gnutls_pcert_import_x509_list:
+ * @pcert: The pcert structure
+ * @crt: The certificates to be imported
+ * @ncrt: The number of certificates
+ * @flags: zero or %GNUTLS_X509_CRT_LIST_SORT
+ *
+ * This convenience function will import the given certificate to a
+ * #gnutls_pcert_st structure. The structure must be deinitialized
+ * afterwards using gnutls_pcert_deinit();
+ *
+ * In the case %GNUTLS_X509_CRT_LIST_SORT is specified and that
+ * function cannot sort the list, %GNUTLS_E_CERTIFICATE_LIST_UNSORTED
+ * will be returned. Currently sorting can fail if the list size
+ * exceeds an internal constraint (16).
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error value.
+ *
+ * Since: 3.4.0
+ **/
+int gnutls_pcert_import_x509_list(gnutls_pcert_st * pcert,
+			     	  gnutls_x509_crt_t *crt, unsigned *ncrt,
+			     	  unsigned int flags)
+{
+	int ret;
+	unsigned i;
+	unsigned current = 0;
+	gnutls_x509_crt_t sorted[DEFAULT_MAX_VERIFY_DEPTH];
+	gnutls_x509_crt_t *s;
+
+	s = crt;
+
+	if (flags & GNUTLS_X509_CRT_LIST_SORT && *ncrt > 1) {
+		if (*ncrt > DEFAULT_MAX_VERIFY_DEPTH) {
+			ret = _gnutls_check_if_sorted(crt, *ncrt);
+			if (ret < 0) {
+				gnutls_assert();
+				return GNUTLS_E_CERTIFICATE_LIST_UNSORTED;
+			}
+		} else {
+			s = _gnutls_sort_clist(sorted, crt, ncrt, NULL);
+			if (s == crt) {
+				gnutls_assert();
+				return GNUTLS_E_UNIMPLEMENTED_FEATURE;
+			}
+		}
+	}
+
+	for (i=0;i<*ncrt;i++) {
+		ret = gnutls_pcert_import_x509(&pcert[i], s[i], 0);
+		if (ret < 0) {
+			current = i;
+			goto cleanup;
+		}
+	}
+
+	return 0;
+
+ cleanup:
+ 	for (i=0;i<current;i++) {
+ 		gnutls_pcert_deinit(&pcert[i]);
+ 	}
+ 	return ret;
+
 }
 
 /**
@@ -334,6 +402,90 @@ int gnutls_pcert_import_openpgp_raw(gnutls_pcert_st * pcert,
 	gnutls_openpgp_crt_deinit(crt);
 
 	return ret;
+}
+
+#endif
+
+/**
+ * gnutls_pcert_export_x509:
+ * @pcert: The pcert structure.
+ * @crt: An initialized #gnutls_x509_crt_t.
+ *
+ * Converts the given #gnutls_pcert_t type into a #gnutls_x509_crt_t.
+ * This function only works if the type of @pcert is %GNUTLS_CRT_X509.
+ * When successful, the value written to @crt must be freed with
+ * gnutls_x509_crt_deinit() when no longer needed.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ * negative error value.
+ *
+ * Since: 3.4.0
+ */
+int gnutls_pcert_export_x509(gnutls_pcert_st * pcert,
+                             gnutls_x509_crt_t * crt)
+{
+	int ret;
+
+	if (pcert->type != GNUTLS_CRT_X509) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	ret = gnutls_x509_crt_init(crt);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = gnutls_x509_crt_import(*crt, &pcert->cert, GNUTLS_X509_FMT_DER);
+	if (ret < 0) {
+		gnutls_x509_crt_deinit(*crt);
+		*crt = NULL;
+
+		return gnutls_assert_val(ret);
+	}
+
+	return 0;
+}
+
+#ifdef ENABLE_OPENPGP
+
+/**
+ * gnutls_pcert_export_x509:
+ * @pcert: The pcert structure.
+ * @crt: An initialized #gnutls_openpgp_crt_t.
+ *
+ * Converts the given #gnutls_pcert_t type into a #gnutls_openpgp_crt_t.
+ * This function only works if the type of @pcert is %GNUTLS_CRT_OPENPGP.
+ * When successful, the value written to @crt must be freed with
+ * gnutls_openpgp_crt_deinit() when no longer needed.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ * negative error value.
+ *
+ * Since: 3.4.0
+ */
+int gnutls_pcert_export_openpgp(gnutls_pcert_st * pcert,
+                                gnutls_openpgp_crt_t * crt)
+{
+	int ret;
+
+	if (pcert->type != GNUTLS_CRT_OPENPGP) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	ret = gnutls_openpgp_crt_init(crt);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = gnutls_openpgp_crt_import(*crt, &pcert->cert, GNUTLS_OPENPGP_FMT_RAW);
+	if (ret < 0) {
+		gnutls_openpgp_crt_deinit(*crt);
+		*crt = NULL;
+
+		return gnutls_assert_val(ret);
+	}
+
+	return 0;
 }
 
 #endif
