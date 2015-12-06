@@ -18,7 +18,6 @@ EXPORTS
     gnutls_certificate_activation_time_peers
     gnutls_certificate_allocate_credentials
     gnutls_certificate_client_get_request_status
-    gnutls_certificate_client_set_retrieve_function
     gnutls_certificate_expiration_time_peers
     gnutls_certificate_free_ca_names
     gnutls_certificate_free_cas
@@ -29,7 +28,6 @@ EXPORTS
     gnutls_certificate_get_peers
     gnutls_certificate_send_x509_rdn_sequence
     gnutls_certificate_server_set_request
-    gnutls_certificate_server_set_retrieve_function
     gnutls_certificate_set_dh_params
     gnutls_certificate_set_openpgp_key
     gnutls_certificate_set_openpgp_key_file2
@@ -39,7 +37,6 @@ EXPORTS
     gnutls_certificate_set_openpgp_keyring_file
     gnutls_certificate_set_openpgp_keyring_mem
     gnutls_certificate_set_params_function
-    gnutls_certificate_set_rsa_export_params
     gnutls_certificate_set_verify_flags
     gnutls_certificate_set_verify_limits
     gnutls_certificate_set_x509_crl
@@ -56,7 +53,6 @@ EXPORTS
     gnutls_certificate_type_get_id
     gnutls_certificate_type_get_name
     gnutls_certificate_type_list
-    gnutls_certificate_type_set_priority
     gnutls_certificate_verify_peers2
     gnutls_check_version
     gnutls_cipher_get
@@ -64,14 +60,12 @@ EXPORTS
     gnutls_cipher_get_key_size
     gnutls_cipher_get_name
     gnutls_cipher_list
-    gnutls_cipher_set_priority
     gnutls_cipher_suite_get_name
     gnutls_cipher_suite_info
     gnutls_compression_get
     gnutls_compression_get_id
     gnutls_compression_get_name
     gnutls_compression_list
-    gnutls_compression_set_priority
     gnutls_credentials_clear
     gnutls_credentials_set
     gnutls_db_check_entry
@@ -120,13 +114,11 @@ EXPORTS
     gnutls_kx_get_id
     gnutls_kx_get_name
     gnutls_kx_list
-    gnutls_kx_set_priority
     gnutls_mac_get
     gnutls_mac_get_id
     gnutls_mac_get_key_size
     gnutls_mac_get_name
     gnutls_mac_list
-    gnutls_mac_set_priority
     gnutls_malloc
     gnutls_openpgp_crt_check_hostname
     gnutls_openpgp_crt_deinit
@@ -193,9 +185,9 @@ EXPORTS
     gnutls_openpgp_send_cert
     gnutls_openpgp_set_recv_key_function
     gnutls_pem_base64_decode
-    gnutls_pem_base64_decode_alloc
+    gnutls_pem_base64_decode2
     gnutls_pem_base64_encode
-    gnutls_pem_base64_encode_alloc
+    gnutls_pem_base64_encode2
     gnutls_perror
     gnutls_pk_algorithm_get_name
     gnutls_pk_get_id
@@ -247,7 +239,6 @@ EXPORTS
     gnutls_protocol_get_name
     gnutls_protocol_get_version
     gnutls_protocol_list
-    gnutls_protocol_set_priority
     gnutls_psk_allocate_client_credentials
     gnutls_psk_allocate_server_credentials
     gnutls_psk_client_get_hint
@@ -271,16 +262,6 @@ EXPORTS
     gnutls_record_send
     gnutls_record_set_max_size
     gnutls_rehandshake
-    gnutls_rsa_export_get_modulus_bits
-    gnutls_rsa_export_get_pubkey
-    gnutls_rsa_params_cpy
-    gnutls_rsa_params_deinit
-    gnutls_rsa_params_export_pkcs1
-    gnutls_rsa_params_export_raw
-    gnutls_rsa_params_generate2
-    gnutls_rsa_params_import_pkcs1
-    gnutls_rsa_params_import_raw
-    gnutls_rsa_params_init
     gnutls_secure_malloc
     gnutls_server_name_get
     gnutls_server_name_set
@@ -292,10 +273,7 @@ EXPORTS
     gnutls_session_is_resumed
     gnutls_session_set_data
     gnutls_session_set_ptr
-    gnutls_set_default_export_priority
     gnutls_set_default_priority
-    gnutls_sign_callback_get
-    gnutls_sign_callback_set
     gnutls_sign_get_id
     gnutls_sign_get_name
     gnutls_sign_list
@@ -308,9 +286,9 @@ EXPORTS
     gnutls_srp_allocate_client_credentials
     gnutls_srp_allocate_server_credentials
     gnutls_srp_base64_decode
-    gnutls_srp_base64_decode_alloc
+    gnutls_srp_base64_decode2
     gnutls_srp_base64_encode
-    gnutls_srp_base64_encode_alloc
+    gnutls_srp_base64_encode2
     gnutls_srp_free_client_credentials
     gnutls_srp_free_server_credentials
     gnutls_srp_server_get_username
@@ -447,7 +425,6 @@ EXPORTS
     gnutls_x509_crt_sign2
     gnutls_x509_crt_sign
     gnutls_x509_crt_verify
-    gnutls_x509_crt_verify_data
     gnutls_x509_dn_deinit
     gnutls_x509_dn_export
     gnutls_x509_dn_get_rdn_ava
@@ -499,9 +476,7 @@ EXPORTS
     gnutls_x509_crq_set_key_purpose_oid
     gnutls_x509_crq_set_key_usage
     gnutls_x509_crq_set_subject_alt_name
-    gnutls_x509_crt_get_verify_algorithm
     gnutls_x509_crt_set_crq_extensions
-    gnutls_x509_crt_verify_hash
     gnutls_session_ticket_key_generate
     gnutls_session_ticket_enable_client
     gnutls_session_ticket_enable_server
@@ -544,15 +519,11 @@ EXPORTS
     gnutls_pubkey_get_pk_algorithm
     gnutls_pubkey_import_x509
     gnutls_pubkey_import_openpgp
-    gnutls_pubkey_get_pk_rsa_raw
-    gnutls_pubkey_get_pk_dsa_raw
     gnutls_pubkey_export
     gnutls_pubkey_get_key_id
     gnutls_pubkey_get_key_usage
     gnutls_pubkey_import_dsa_raw
     gnutls_pubkey_import_rsa_raw
-    gnutls_pubkey_get_verify_algorithm
-    gnutls_pubkey_verify_hash
     gnutls_pubkey_import
     gnutls_x509_crt_set_pubkey
     gnutls_x509_crq_set_pubkey
@@ -560,8 +531,8 @@ EXPORTS
     gnutls_pubkey_get_preferred_hash_algorithm
     gnutls_x509_crt_get_preferred_hash_algorithm
     gnutls_global_set_mutex
-        gnutls_transport_set_vec_push_function
-        gnutls_transport_set_errno_function
+    gnutls_transport_set_vec_push_function
+    gnutls_transport_set_errno_function
     gnutls_sec_param_to_pk_bits
     gnutls_sec_param_get_name
     gnutls_pk_bits_to_sec_param
@@ -574,7 +545,6 @@ EXPORTS
     gnutls_privkey_sign_hash
     gnutls_privkey_sign_data
     gnutls_pubkey_import_privkey
-    gnutls_pubkey_verify_data
     gnutls_certificate_get_issuer
     gnutls_x509_crq_verify
     gnutls_global_set_time_function
@@ -592,7 +562,7 @@ EXPORTS
     gnutls_transport_set_pull_timeout_function
     gnutls_dtls_get_mtu
     gnutls_dtls_set_mtu
-        gnutls_record_recv_seq
+    gnutls_record_recv_seq
     gnutls_key_generate
     gnutls_dtls_cookie_verify
     gnutls_dtls_cookie_send
@@ -605,6 +575,8 @@ EXPORTS
     gnutls_pcert_import_x509_raw
     gnutls_pcert_import_openpgp
     gnutls_pcert_import_openpgp_raw
+    gnutls_pcert_export_x509
+    gnutls_pcert_export_openpgp
     gnutls_pubkey_get_openpgp_key_id
     gnutls_certificate_set_retrieve_function2
     gnutls_x509_trust_list_get_issuer
@@ -612,7 +584,6 @@ EXPORTS
     gnutls_ecc_curve_get_name
     gnutls_ecc_curve_get_size
     gnutls_ecc_curve_get
-    gnutls_pubkey_get_pk_ecc_raw
     gnutls_x509_privkey_export_ecc_raw
     gnutls_x509_privkey_import_ecc_raw
     gnutls_pubkey_verify_data2
@@ -698,6 +669,8 @@ EXPORTS
     gnutls_x509_trust_list_add_system_trust
     gnutls_x509_trust_list_add_trust_file
     gnutls_x509_trust_list_add_trust_mem
+    gnutls_x509_trust_list_iter_get_ca
+    gnutls_x509_trust_list_iter_deinit
     gnutls_pkcs12_simple_parse
     gnutls_privkey_import_openpgp_raw
     gnutls_privkey_import_x509_raw
@@ -706,7 +679,7 @@ EXPORTS
     gnutls_x509_privkey_import2
     gnutls_privkey_import_ext2
     gnutls_privkey_import_tpm_raw
-        gnutls_tpm_privkey_generate
+    gnutls_tpm_privkey_generate
     gnutls_pubkey_import_tpm_raw
     gnutls_tpm_key_list_deinit
     gnutls_tpm_key_list_get_url
@@ -726,10 +699,10 @@ EXPORTS
     gnutls_sign_get_hash_algorithm
     gnutls_sign_algorithm_get
     gnutls_x509_privkey_get_pk_algorithm2
-        gnutls_heartbeat_ping
-        gnutls_heartbeat_pong
-        gnutls_heartbeat_enable
-        gnutls_heartbeat_allowed
+    gnutls_heartbeat_ping
+    gnutls_heartbeat_pong
+    gnutls_heartbeat_enable
+    gnutls_heartbeat_allowed
     gnutls_heartbeat_get_timeout
     gnutls_heartbeat_set_timeouts
     gnutls_certificate_set_ocsp_status_request_function
@@ -774,7 +747,6 @@ EXPORTS
     gnutls_x509_crt_set_issuer_dn
     gnutls_session_force_valid
     gnutls_record_can_use_length_hiding
-    gnutls_record_set_max_empty_records
     gnutls_range_split
     gnutls_record_send_range
     gnutls_db_check_entry_time
@@ -792,7 +764,6 @@ EXPORTS
     gnutls_x509_trust_list_remove_trust_file
     gnutls_x509_trust_list_remove_cas
     gnutls_session_get_desc
-    gnutls_privkey_sign_raw_data
     gnutls_privkey_status
     gnutls_cipher_get_iv_size
     gnutls_hmac_set_nonce
@@ -803,6 +774,7 @@ EXPORTS
     gnutls_alpn_set_protocols
     gnutls_session_set_id
     gnutls_certificate_set_trust_list
+    gnutls_certificate_get_trust_list
     gnutls_cipher_get_tag_size
     gnutls_record_overhead_size
     gnutls_handshake_set_hook_function
@@ -817,13 +789,14 @@ EXPORTS
     gnutls_est_record_overhead_size
     gnutls_pubkey_set_key_usage
     gnutls_x509_privkey_import_rsa_raw2
-    gnutls_pubkey_get_pk_ecc_x962
     gnutls_pubkey_import_ecc_x962
     gnutls_rnd_refresh
     gnutls_mac_get_nonce_size
     gnutls_x509_crl_get_raw_issuer_dn
     gnutls_certificate_get_crt_raw
     gnutls_privkey_generate
+    gnutls_privkey_export_x509
+    gnutls_privkey_export_openpgp
     gnutls_fips140_mode_enabled
     gnutls_record_check_corked
     gnutls_sec_param_to_symmetric_bits
@@ -908,6 +881,11 @@ EXPORTS
     gnutls_x509_crt_check_hostname2
     gnutls_openpgp_crt_check_hostname2
     gnutls_certificate_verify_peers
+    gnutls_certificate_get_verify_flags
+    gnutls_certificate_get_x509_key
+    gnutls_certificate_get_x509_crt
+    gnutls_certificate_get_openpgp_key
+    gnutls_certificate_get_openpgp_crt
     gnutls_credentials_get
     gnutls_x509_crl_iter_crt_serial
     gnutls_x509_crl_iter_deinit
@@ -916,10 +894,90 @@ EXPORTS
     gnutls_packet_get
     gnutls_x509_trust_list_add_trust_dir
     gnutls_certificate_set_x509_trust_dir
+    gnutls_pkcs_schema_get_name
+    gnutls_pkcs_schema_get_oid
+    gnutls_pkcs8_info
+    gnutls_pkcs12_bag_enc_info
+    gnutls_pkcs12_mac_info
+    gnutls_pkcs12_generate_mac2
     gnutls_x509_trust_list_verify_crt2
     gnutls_x509_crt_get_extension_by_oid2
     gnutls_x509_crq_get_extension_by_oid2
     gnutls_x509_ext_deinit
     gnutls_x509_ext_print
     gnutls_x509_othername_to_virtual
+    gnutls_x509_crq_get_signature_algorithm
+    gnutls_privkey_import_ext3
+    gnutls_record_discard_queued
+    gnutls_session_ext_master_secret_status
+    gnutls_session_etm_status
+    gnutls_priority_string_list
+    gnutls_aead_cipher_init
+    gnutls_aead_cipher_decrypt
+    gnutls_aead_cipher_encrypt
+    gnutls_aead_cipher_deinit
+    gnutls_dh_params_import_raw2
+    gnutls_memset
+    gnutls_memcmp
+    gnutls_pkcs12_bag_set_privkey
+    gnutls_x509_privkey_set_pin_function
+    gnutls_ocsp_resp_get_responder_raw_id
+    gnutls_system_key_iter_deinit
+    gnutls_system_key_iter_get_info
+    gnutls_system_key_delete
+    gnutls_system_key_add_x509
+    gnutls_register_custom_url
+    gnutls_pcert_import_x509_list
+    gnutls_x509_trust_list_get_issuer_by_dn
+    gnutls_system_recv_timeout
+    gnutls_record_set_state
+    gnutls_record_get_state
+    gnutls_crypto_register_cipher
+    gnutls_crypto_register_aead_cipher
+    gnutls_crypto_register_mac
+    gnutls_crypto_register_digest
+    gnutls_ext_register
+    gnutls_buffer_append_data
+    gnutls_supplemental_register
+    gnutls_supplemental_send
+    gnutls_supplemental_recv
+    gnutls_ext_get_data
+    gnutls_ext_set_data
+    gnutls_openpgp_crt_check_email
+    gnutls_x509_crt_check_email
+    gnutls_x509_crt_get_pk_ecc_raw
+    gnutls_x509_dn_get_str
+    gnutls_x509_trust_list_get_issuer_by_subject_key_id
+    gnutls_pkcs7_get_crt_raw2
+    gnutls_pkcs7_signature_info_deinit
+    gnutls_pkcs7_get_signature_info
+    gnutls_pkcs7_verify_direct
+    gnutls_pkcs7_verify
+    gnutls_pkcs7_get_crl_raw2
+    gnutls_pkcs7_sign
+    gnutls_pkcs7_attrs_deinit
+    gnutls_pkcs7_add_attr
+    gnutls_pkcs7_get_attr
+    gnutls_pkcs7_print
+    gnutls_x509_crt_verify_data2
+    gnutls_pkcs7_get_signature_count
+    gnutls_ecc_curve_get_oid
+    gnutls_digest_get_oid
+    gnutls_pk_get_oid
+    gnutls_sign_get_oid
+    gnutls_ecc_curve_get_id
+    gnutls_oid_to_digest
+    gnutls_oid_to_pk
+    gnutls_oid_to_sign
+    gnutls_oid_to_ecc_curve
+    gnutls_prf_rfc5705
+    gnutls_hex_decode2
+    gnutls_hex_encode2
+    gnutls_session_set_verify_function
+    gnutls_session_set_verify_cert
+    gnutls_session_set_verify_cert2
+    gnutls_session_get_verify_cert_status
+    gnutls_x509_crt_set_subject_unique_id
+    gnutls_x509_crt_set_issuer_unique_id
     _gnutls_global_init_skip
+    gnutls_certificate_set_flags

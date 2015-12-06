@@ -129,9 +129,6 @@
     <ClInclude Include="..\lib\x509\common.h">
       <Filter>Header Files\lib\x509</Filter>
     </ClInclude>
-    <ClInclude Include="..\lib\x509\pbkdf2-sha1.h">
-      <Filter>Header Files\lib\x509</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib\x509\verify-high.h">
       <Filter>Header Files\lib\x509</Filter>
     </ClInclude>
@@ -435,6 +432,39 @@
     <ClInclude Include="..\lib\accelerated\x86\x86-common.h">
       <Filter>Header Files\lib\accelerated\x86</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\accelerated\x86\aes-gcm-aead.h">
+      <Filter>Header Files\lib\accelerated\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\ext\etm.h">
+      <Filter>Header Files\lib\ext</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\ext\ext_master_secret.h">
+      <Filter>Header Files\lib\ext</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\extras\hex.h">
+      <Filter>Header Files\lib\extras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\includes\gnutls\system-keys.h">
+      <Filter>Header Files\lib\includes\gnutls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\includes\gnutls\urls.h">
+      <Filter>Header Files\lib\includes\gnutls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\includes\gnutls\pkcs7.h">
+      <Filter>Header Files\lib\includes\gnutls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\atfork.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\urls.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\system-keys.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\gnutls-idna.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -456,9 +486,6 @@
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\x509\privkey_pkcs8.c">
-      <Filter>Source Files\lib\x509</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\rfc2818_hostname.c">
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\x509\sign.c">
@@ -516,9 +543,6 @@
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\x509\output.c">
-      <Filter>Source Files\lib\x509</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\pbkdf2-sha1.c">
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\accelerated\cryptodev-gcm.c">
@@ -893,9 +917,6 @@
     <ClCompile Include="..\lib\gnutls_record.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_rsa_export.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\gnutls_session.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
@@ -939,9 +960,6 @@
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\random.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\safe-memset.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\system.c">
@@ -997,6 +1015,48 @@
     </ClCompile>
     <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-aesni.c">
       <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-ccm-x86-aesni.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\ext\etm.c">
+      <Filter>Source Files\lib\ext</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\ext\ext_master_secret.c">
+      <Filter>Source Files\lib\ext</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\extras\hex.c">
+      <Filter>Source Files\lib\extras</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\inet_ntop.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\safe-memfuncs.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system-keys-win.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\urls.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\atfork.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\auto-verify.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\email-verify.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\hostname-verify.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\pkcs7-attrs.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\pkcs7-output.c">
+      <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

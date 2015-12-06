@@ -95,9 +95,6 @@
 /* enable PSK authentication */
 #define ENABLE_PSK 1
 
-/* enable RSA-EXPORT */
-#define ENABLE_RSA_EXPORT 1
-
 /* Self checks are included in the library */
 /* #undef ENABLE_SELF_CHECKS */
 
@@ -108,10 +105,10 @@
 #define ENABLE_SRP 1
 
 /* fopen(3) accepts a 'b' in the mode flag */
-#define FOPEN_BINARY_FLAG "b"
+/* #undef FOPEN_BINARY_FLAG */
 
 /* fopen(3) accepts a 't' in the mode flag */
-#define FOPEN_TEXT_FLAG "t"
+/* #undef FOPEN_TEXT_FLAG */
 
 /* Define to 1 if the system's ftello function has the Solaris bug. */
 /* #undef FTELLO_BROKEN_AFTER_SWITCHING_FROM_READ_TO_WRITE */
@@ -129,6 +126,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module fscanf shall be considered present. */
 #define GNULIB_FSCANF 1
+
+/* Define to 1 if printf and friends should be labeled with attribute
+   "__gnu_printf__" instead of "__printf__" */
+/* #undef GNULIB_PRINTF_ATTRIBUTE_FLAVOR_GNU */
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module scanf shall be considered present. */
@@ -304,9 +305,6 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 /* #undef HAVE_ARPA_INET_H */
 
-/* Have this function */
-#define HAVE_ASN1_DECODE_SIMPLE_BER 1
-
 /* Define to 1 if you have the `atexit' function. */
 /* #undef HAVE_ATEXIT */
 
@@ -328,7 +326,7 @@
 /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
 
 /* Define to 1 if you have the `chmod' function. */
-#define HAVE_CHMOD 1
+/* #undef HAVE_CHMOD */
 
 /* Define to 1 if you have the `clock_gettime' function. */
 /* #undef HAVE_CLOCK_GETTIME */
@@ -497,11 +495,11 @@
 #define HAVE_DECL___FSETLOCKING 0
 
 /* Define this if /dev/zero is readable device */
-#define HAVE_DEV_ZERO 1
+/* #undef HAVE_DEV_ZERO */
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
-#define HAVE_DIRENT_H 1
+/* #undef HAVE_DIRENT_H */
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 /* #undef HAVE_DLFCN_H */
@@ -519,13 +517,13 @@
 /* #undef HAVE_EPOLL_CREATE */
 
 /* Define to 1 if you have the <errno.h> header file. */
-#define HAVE_ERRNO_H 1
+/* #undef HAVE_ERRNO_H */
 
 /* Define to 1 if you have the `fchmod' function. */
 /* #undef HAVE_FCHMOD */
 
 /* Define to 1 if you have the <fcntl.h> header file. */
-#define HAVE_FCNTL_H 1
+/* #undef HAVE_FCNTL_H */
 
 /* Define to 1 if you have the <features.h> header file. */
 /* #undef HAVE_FEATURES_H */
@@ -540,7 +538,7 @@
 #define HAVE_FSEEKO 1
 
 /* Define to 1 if you have the `fstat' function. */
-#define HAVE_FSTAT 1
+/* #undef HAVE_FSTAT */
 
 /* Define to 1 if you have the `funlockfile' function. */
 /* #undef HAVE_FUNLOCKFILE */
@@ -548,8 +546,8 @@
 /* Define to 1 if you have the `getdelim' function. */
 /* #undef HAVE_GETDELIM */
 
-/* Define to 1 if you have the `getdtablesize' function. */
-/* #undef HAVE_GETDTABLESIZE */
+/* Enable the OpenBSD getentropy function */
+/* #undef HAVE_GETENTROPY */
 
 /* Define to 1 if you have the `gethostbyname' function. */
 /* #undef HAVE_GETHOSTBYNAME */
@@ -625,10 +623,13 @@
 /* #undef HAVE_LIBGEN */
 
 /* Define to 1 if you have the <libgen.h> header file. */
-#define HAVE_LIBGEN_H 1
+/* #undef HAVE_LIBGEN_H */
 
 /* Define if you have the libiconv library. */
 #define HAVE_LIBICONV 1
+
+/* Build IDNA support */
+/* #undef HAVE_LIBIDN */
 
 /* Define to 1 if you have the `intl' library (-lintl). */
 /* #undef HAVE_LIBINTL */
@@ -653,6 +654,9 @@
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
+
+/* Enable the Linux getrandom function */
+/* #undef HAVE_LINUX_GETRANDOM */
 
 /* Define to 1 if you have the `localtime' function. */
 #define HAVE_LOCALTIME 1
@@ -1384,7 +1388,7 @@
 /* #undef HAVE_SETENV */
 
 /* Define to 1 if you have the <setjmp.h> header file. */
-#define HAVE_SETJMP_H 1
+/* #undef HAVE_SETJMP_H */
 
 /* Define to 1 if you have the `shutdown' function. */
 /* #undef HAVE_SHUTDOWN */
@@ -1410,7 +1414,7 @@
 /* Define if the return value of the snprintf function is the number of of
    bytes (excluding the terminating NUL) that would have been produced if the
    buffer had been large enough. */
-/* #undef HAVE_SNPRINTF_RETVAL_C99 */
+#define HAVE_SNPRINTF_RETVAL_C99 1
 
 /* Define to 1 if you have the `socket' function. */
 /* #undef HAVE_SOCKET */
@@ -1450,10 +1454,10 @@
 /* #undef HAVE_STRERROR_R */
 
 /* Define this if strftime() works */
-#define HAVE_STRFTIME 1
+/* #undef HAVE_STRFTIME */
 
 /* Define to 1 if you have the <strings.h> header file. */
-/* #undef HAVE_STRINGS_H */
+#define HAVE_STRINGS_H 1
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
@@ -1468,7 +1472,7 @@
 #define HAVE_STRNLEN 1
 
 /* Define to 1 if you have the `strrchr' function. */
-#define HAVE_STRRCHR 1
+/* #undef HAVE_STRRCHR */
 
 /* Define to 1 if you have the `strsignal' function. */
 /* #undef HAVE_STRSIGNAL */
@@ -1499,6 +1503,9 @@
 
 /* Define to 1 if you have the `strverscmp' function. */
 /* #undef HAVE_STRVERSCMP */
+
+/* Define to 1 if you have the `symlink' function. */
+/* #undef HAVE_SYMLINK */
 
 /* Define to 1 if you have the <sysexits.h> header file. */
 /* #undef HAVE_SYSEXITS_H */
@@ -1601,7 +1608,7 @@
 #define HAVE_UINTPTR_T 1
 
 /* Define to 1 if the system has the type `uint_t'. */
-/* #undef HAVE_UINT_T */
+#define HAVE_UINT_T 1
 
 /* Define to 1 if you have the `uname' function. */
 /* #undef HAVE_UNAME */
@@ -1616,7 +1623,7 @@
 #define HAVE_UNSIGNED_LONG_LONG_INT 1
 
 /* Define to 1 if you have the <utime.h> header file. */
-#define HAVE_UTIME_H 1
+/* #undef HAVE_UTIME_H */
 
 /* Define to 1 if you have the <values.h> header file. */
 /* #undef HAVE_VALUES_H */
@@ -1640,7 +1647,7 @@
 /* #undef HAVE_VFORK_H */
 
 /* Define to 1 if you have the `vprintf' function. */
-#define HAVE_VPRINTF 1
+/* #undef HAVE_VPRINTF */
 
 /* Define to 1 if you have the `vsnprintf' function. */
 #define HAVE_VSNPRINTF 1
@@ -1699,6 +1706,9 @@
 /* Define to 1 if you have the `__fsetlocking' function. */
 /* #undef HAVE___FSETLOCKING */
 
+/* Define to 1 if you have the `__register_atfork' function. */
+/* #undef HAVE___REGISTER_ATFORK */
+
 /* Have __va_copy() */
 /* #undef HAVE___VA_COPY */
 
@@ -1707,6 +1717,9 @@
 
 /* Define to 1 if lseek does not detect pipes. */
 #define LSEEK_PIPE_BROKEN 1
+
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
+#define LT_OBJDIR ".libs/"
 
 /* If malloc(0) is != NULL, define this to 1. Otherwise define this to 0. */
 #define MALLOC_0_IS_NONNULL 1
@@ -1731,7 +1744,7 @@
 /* #undef PTRDIFF_T_SUFFIX */
 
 /* name of regex header file */
-#define REGEX_HEADER <regex.h>
+/* #undef REGEX_HEADER */
 
 /* Define to 1 if strerror(0) does not return a message implying success. */
 /* #undef REPLACE_STRERROR_0 */
@@ -1818,16 +1831,13 @@
 #define SYSTEM_PRIORITY_FILE "/etc/gnutls/default-priorities"
 
 /* Define to 1 if all 'time_t' values fit in a 'long int'. */
-#define TIME_T_FITS_IN_LONG_INT 1
+/* #undef TIME_T_FITS_IN_LONG_INT */
 
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */
 
 /* The DNSSEC root key file */
 #define UNBOUND_ROOT_KEY_FILE "C:\Program Files\Unbound\root.key"
-
-/* nettle 3.0 or later */
-#define USE_NETTLE3 1
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
@@ -1957,28 +1967,13 @@
    'reference to static identifier "f" in extern inline function'.
    This bug was observed with Sun C 5.12 SunOS_i386 2011/11/16.
 
-   Suppress extern inline (with or without __attribute__ ((__gnu_inline__)))
-   on configurations that mistakenly use 'static inline' to implement
-   functions or macros in standard C headers like <ctype.h>.  For example,
-   if isdigit is mistakenly implemented via a static inline function,
-   a program containing an extern inline function that calls isdigit
-   may not work since the C standard prohibits extern inline functions
-   from calling static functions.  This bug is known to occur on:
-
-     OS X 10.8 and earlier; see:
-     http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html
-
-     DragonFly; see
-     http://muscles.dragonflybsd.org/bulk/bleeding-edge-potential/latest-per-pkg/ah-tty-0.3.12.log
-
-     FreeBSD; see:
-     http://lists.gnu.org/archive/html/bug-gnulib/2014-07/msg00104.html
-
+   Suppress the use of extern inline on problematic Apple configurations.
+   OS X 10.8 and earlier mishandle it; see, e.g.,
+   <http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html>.
    OS X 10.9 has a macro __header_inline indicating the bug is fixed for C and
    for clang but remains for g++; see <http://trac.macports.org/ticket/41033>.
-   Assume DragonFly and FreeBSD will be similar.  */
-#if (((defined __APPLE__ && defined __MACH__) \
-      || defined __DragonFly__ || defined __FreeBSD__) \
+   Perhaps Apple will fix this some day.  */
+#if (defined __APPLE__ \
      && (defined __header_inline \
          ? (defined __cplusplus && defined __GNUC_STDC_INLINE__ \
             && ! defined __clang__) \
@@ -1986,19 +1981,19 @@
              && (defined __GNUC__ || defined __cplusplus)) \
             || (defined _FORTIFY_SOURCE && 0 < _FORTIFY_SOURCE \
                 && defined __GNUC__ && ! defined __cplusplus))))
-# define _GL_EXTERN_INLINE_STDHEADER_BUG
+# define _GL_EXTERN_INLINE_APPLE_BUG
 #endif
 #if ((__GNUC__ \
       ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
       : (199901L <= __STDC_VERSION__ \
          && !defined __HP_cc \
          && !(defined __SUNPRO_C && __STDC__))) \
-     && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)
+     && !defined _GL_EXTERN_INLINE_APPLE_BUG)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
 # define _GL_EXTERN_INLINE_IN_USE
 #elif (2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __STRICT_ANSI__ \
-       && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)
+       && !defined _GL_EXTERN_INLINE_APPLE_BUG)
 # if defined __GNUC_GNU_INLINE__ && __GNUC_GNU_INLINE__
    /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
 #  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
@@ -2012,11 +2007,6 @@
 # define _GL_EXTERN_INLINE static _GL_UNUSED
 #endif
 
-/* In GCC, suppress bogus "no previous prototype for 'FOO'"
-   and "no previous declaration for 'FOO'" diagnostics,
-   when FOO is an inline function in the header; see
-   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113> and
-   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63877>.  */
 #if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
 # if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__
 #  define _GL_INLINE_HEADER_CONST_PRAGMA
@@ -2024,6 +2014,10 @@
 #  define _GL_INLINE_HEADER_CONST_PRAGMA \
      _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=const\"")
 # endif
+  /* Suppress GCC's bogus "no previous prototype for 'FOO'"
+     and "no previous declaration for 'FOO'"  diagnostics,
+     when FOO is an inline function in the header; see
+     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.  */
 # define _GL_INLINE_HEADER_BEGIN \
     _Pragma ("GCC diagnostic push") \
     _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \
@@ -2144,4 +2138,4 @@
 
 
 /* Define as `fork' if `vfork' does not work. */
-#define vfork fork
+/* #undef vfork */

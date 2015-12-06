@@ -62,12 +62,14 @@
     <ClInclude Include="..\lib\abstract_int.h" />
     <ClInclude Include="..\lib\accelerated\accelerated.h" />
     <ClInclude Include="..\lib\accelerated\cryptodev.h" />
+    <ClInclude Include="..\lib\accelerated\x86\aes-gcm-aead.h" />
     <ClInclude Include="..\lib\accelerated\x86\aes-padlock.h" />
     <ClInclude Include="..\lib\accelerated\x86\aes-x86.h" />
     <ClInclude Include="..\lib\accelerated\x86\sha-padlock.h" />
     <ClInclude Include="..\lib\accelerated\x86\sha-x86.h" />
     <ClInclude Include="..\lib\accelerated\x86\x86-common.h" />
     <ClInclude Include="..\lib\algorithms.h" />
+    <ClInclude Include="..\lib\atfork.h" />
     <ClInclude Include="..\lib\auth\anon.h" />
     <ClInclude Include="..\lib\auth\cert.h" />
     <ClInclude Include="..\lib\auth\dh_common.h" />
@@ -80,11 +82,14 @@
     <ClInclude Include="..\lib\crypto-backend.h" />
     <ClInclude Include="..\lib\crypto.h" />
     <ClInclude Include="..\lib\debug.h" />
+    <ClInclude Include="..\lib\extras\hex.h" />
     <ClInclude Include="..\lib\extras\randomart.h" />
     <ClInclude Include="..\lib\ext\alpn.h" />
     <ClInclude Include="..\lib\ext\cert_type.h" />
     <ClInclude Include="..\lib\ext\dumbfw.h" />
     <ClInclude Include="..\lib\ext\ecc.h" />
+    <ClInclude Include="..\lib\ext\etm.h" />
+    <ClInclude Include="..\lib\ext\ext_master_secret.h" />
     <ClInclude Include="..\lib\ext\heartbeat.h" />
     <ClInclude Include="..\lib\ext\max_record.h" />
     <ClInclude Include="..\lib\ext\safe_renegotiation.h" />
@@ -137,8 +142,11 @@
     <ClInclude Include="..\lib\includes\gnutls\openpgp.h" />
     <ClInclude Include="..\lib\includes\gnutls\pkcs11.h" />
     <ClInclude Include="..\lib\includes\gnutls\pkcs12.h" />
+    <ClInclude Include="..\lib\includes\gnutls\pkcs7.h" />
     <ClInclude Include="..\lib\includes\gnutls\self-test.h" />
+    <ClInclude Include="..\lib\includes\gnutls\system-keys.h" />
     <ClInclude Include="..\lib\includes\gnutls\tpm.h" />
+    <ClInclude Include="..\lib\includes\gnutls\urls.h" />
     <ClInclude Include="..\lib\includes\gnutls\x509-ext.h" />
     <ClInclude Include="..\lib\includes\gnutls\x509.h" />
     <ClInclude Include="..\lib\locks.h" />
@@ -163,10 +171,12 @@
     <ClInclude Include="..\lib\openpgp\openpgp_int.h" />
     <ClInclude Include="..\lib\pin.h" />
     <ClInclude Include="..\lib\random.h" />
+    <ClInclude Include="..\lib\system-keys.h" />
     <ClInclude Include="..\lib\system.h" />
+    <ClInclude Include="..\lib\urls.h" />
     <ClInclude Include="..\lib\vasprintf.h" />
     <ClInclude Include="..\lib\x509\common.h" />
-    <ClInclude Include="..\lib\x509\pbkdf2-sha1.h" />
+    <ClInclude Include="..\lib\x509\gnutls-idna.h" />
     <ClInclude Include="..\lib\x509\verify-high.h" />
     <ClInclude Include="..\lib\x509\x509_int.h" />
     <ClInclude Include="..\lib\x509_b64.h" />
@@ -186,6 +196,7 @@
     <ClCompile Include="..\lib\accelerated\cryptodev.c" />
     <ClCompile Include="..\lib\accelerated\x86\aes-cbc-x86-aesni.c" />
     <ClCompile Include="..\lib\accelerated\x86\aes-cbc-x86-ssse3.c" />
+    <ClCompile Include="..\lib\accelerated\x86\aes-ccm-x86-aesni.c" />
     <ClCompile Include="..\lib\accelerated\x86\aes-gcm-padlock.c" />
     <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-aesni.c" />
     <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-pclmul.c">
@@ -228,6 +239,7 @@
     <ClCompile Include="..\lib\algorithms\sign.c">
       <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\atfork.c" />
     <ClCompile Include="..\lib\auth\anon.c" />
     <ClCompile Include="..\lib\auth\anon_ecdh.c" />
     <ClCompile Include="..\lib\auth\cert.c" />
@@ -243,9 +255,11 @@
     <ClCompile Include="..\lib\auth\srp_passwd.c" />
     <ClCompile Include="..\lib\auth\srp_rsa.c" />
     <ClCompile Include="..\lib\auth\srp_sb64.c" />
+    <ClCompile Include="..\lib\auto-verify.c" />
     <ClCompile Include="..\lib\crypto-api.c" />
     <ClCompile Include="..\lib\crypto-backend.c" />
     <ClCompile Include="..\lib\debug.c" />
+    <ClCompile Include="..\lib\extras\hex.c" />
     <ClCompile Include="..\lib\extras\randomart.c" />
     <ClCompile Include="..\lib\ext\alpn.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
@@ -259,6 +273,8 @@
     <ClCompile Include="..\lib\ext\ecc.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\ext\etm.c" />
+    <ClCompile Include="..\lib\ext\ext_master_secret.c" />
     <ClCompile Include="..\lib\ext\heartbeat.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -322,7 +338,6 @@
     <ClCompile Include="..\lib\gnutls_pubkey.c" />
     <ClCompile Include="..\lib\gnutls_range.c" />
     <ClCompile Include="..\lib\gnutls_record.c" />
-    <ClCompile Include="..\lib\gnutls_rsa_export.c" />
     <ClCompile Include="..\lib\gnutls_session.c" />
     <ClCompile Include="..\lib\gnutls_session_pack.c" />
     <ClCompile Include="..\lib\gnutls_sig.c" />
@@ -333,6 +348,7 @@
     <ClCompile Include="..\lib\gnutls_ui.c" />
     <ClCompile Include="..\lib\gnutls_v2_compat.c" />
     <ClCompile Include="..\lib\gnutls_x509.c" />
+    <ClCompile Include="..\lib\inet_ntop.c" />
     <ClCompile Include="..\lib\inet_pton.c" />
     <ClCompile Include="..\lib\locks.c" />
     <ClCompile Include="..\lib\minitasn1\coding.c" />
@@ -413,12 +429,14 @@
     <ClCompile Include="..\lib\pin.c" />
     <ClCompile Include="..\lib\pkix_asn1_tab.c" />
     <ClCompile Include="..\lib\random.c" />
-    <ClCompile Include="..\lib\safe-memset.c" />
+    <ClCompile Include="..\lib\safe-memfuncs.c" />
+    <ClCompile Include="..\lib\system-keys-win.c" />
     <ClCompile Include="..\lib\system.c">
       <ForcedIncludeFiles>io.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="..\lib\system_override.c" />
     <ClCompile Include="..\lib\tpm.c" />
+    <ClCompile Include="..\lib\urls.c" />
     <ClCompile Include="..\lib\vasprintf.c" />
     <ClCompile Include="..\lib\verify-tofu.c" />
     <ClCompile Include="..\lib\x509\common.c">
@@ -436,9 +454,11 @@
     <ClCompile Include="..\lib\x509\dn.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\x509\email-verify.c" />
     <ClCompile Include="..\lib\x509\extensions.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\x509\hostname-verify.c" />
     <ClCompile Include="..\lib\x509\key_decode.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -458,9 +478,6 @@
     <ClCompile Include="..\lib\x509\output.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="..\lib\x509\pbkdf2-sha1.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\x509\pkcs12.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -470,6 +487,8 @@
     <ClCompile Include="..\lib\x509\pkcs12_encr.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\x509\pkcs7-attrs.c" />
+    <ClCompile Include="..\lib\x509\pkcs7-output.c" />
     <ClCompile Include="..\lib\x509\pkcs7.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -480,9 +499,6 @@
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\x509\privkey_pkcs8.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\rfc2818_hostname.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\x509\sign.c">
@@ -861,7 +877,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -874,6 +890,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -990,7 +1009,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1003,6 +1022,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
@@ -1127,7 +1149,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1140,6 +1162,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -1259,7 +1284,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1272,6 +1297,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -1389,7 +1417,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1402,6 +1430,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
@@ -1524,7 +1555,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1537,6 +1568,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
@@ -1671,7 +1705,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1684,6 +1718,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -1813,7 +1850,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1826,6 +1863,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -1955,7 +1995,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -1968,6 +2008,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
@@ -2102,7 +2145,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -2115,6 +2158,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
@@ -2249,7 +2295,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -2262,6 +2308,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -2391,7 +2440,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -2404,6 +2453,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
 perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
@@ -2532,7 +2584,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -2545,6 +2597,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
@@ -2678,7 +2733,7 @@ if exist ..\gl\sys\time.h (
 del ..\gl\sys\time.h
 )
 if exist ..\gl\sys\types.h (
-del ..\gl\sys\type.h
+del ..\gl\sys\types.h
 )
 if exist ..\gl\sys\uio.h (
 del ..\gl\sys\uio.h
@@ -2691,6 +2746,9 @@ del ..\gl\unistd.h
 )
 if exist ..\gl\wchar.h (
 del ..\gl\wchar.h
+)
+if exist ..\gl\errno.h (
+del ..\gl\errno.h
 )
 if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
 perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
