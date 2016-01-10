@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Red Hat, Inc.
+ * Copyright (C) 2015 Nikos Mavrogiannopoulos
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -20,8 +20,6 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-/* Parts copied from GnuTLS example programs. */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -29,40 +27,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+#include <assert.h>
 #include <unistd.h>
 
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
+#define CONFIG_NAME "softhsm-pubkey-import-rsa"
+#define CONFIG CONFIG_NAME".config"
 
-#include "utils.h"
-
-/* We test whether implicit global initialization can be overriden */
-
-GNUTLS_SKIP_GLOBAL_INIT
+#include "pkcs11-pubkey-import.c"
 
 void doit(void)
 {
-#ifdef _WIN32
-	/* weak symbols don't seem to work in windows */
-	exit(77);
-#else
-	int ret;
-	gnutls_x509_crt_t crt;
-
-	ret = gnutls_x509_crt_init(&crt);
-	if (ret >= 0) {
-		fail("Library is already initialized\n");
-	}
-
-	gnutls_global_init();
-
-	ret = gnutls_x509_crt_init(&crt);
-	if (ret < 0) {
-		fail("Could not init certificate!\n");
-	}
-	gnutls_x509_crt_deinit(crt);
-
-	gnutls_global_deinit();
-#endif
+	success("Testing RSA key\n");
+	return try(1);
 }

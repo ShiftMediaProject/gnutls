@@ -3448,6 +3448,11 @@ gnutls_x509_crt_list_import(gnutls_x509_crt_t * certs,
  * full subjectUniqueID, then a GNUTLS_E_SHORT_MEMORY_BUFFER error will be
  * returned, and buf_size will be set to the actual length.
  *
+ * This function had a bug prior to 3.4.8 that prevented the setting
+ * of %NULL @buf to discover the @buf_size. To use this function safely
+ * with the older versions the @buf must be a valid buffer that can hold
+ * at least a single byte if @buf_size is zero.
+ *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  **/
 int
@@ -3464,7 +3469,6 @@ gnutls_x509_crt_get_subject_unique_id(gnutls_x509_crt_t crt, char *buf,
 
 	if (datum.size > *buf_size) {	/* then we're not going to fit */
 		*buf_size = datum.size;
-		buf[0] = '\0';
 		result = GNUTLS_E_SHORT_MEMORY_BUFFER;
 	} else {
 		*buf_size = datum.size;
@@ -3490,6 +3494,11 @@ gnutls_x509_crt_get_subject_unique_id(gnutls_x509_crt_t crt, char *buf,
  * full subjectUniqueID, then a GNUTLS_E_SHORT_MEMORY_BUFFER error will be
  * returned, and buf_size will be set to the actual length.
  *
+ * This function had a bug prior to 3.4.8 that prevented the setting
+ * of %NULL @buf to discover the @buf_size. To use this function safely
+ * with the older versions the @buf must be a valid buffer that can hold
+ * at least a single byte if @buf_size is zero.
+ *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  *
  * Since: 2.12.0
@@ -3508,7 +3517,6 @@ gnutls_x509_crt_get_issuer_unique_id(gnutls_x509_crt_t crt, char *buf,
 
 	if (datum.size > *buf_size) {	/* then we're not going to fit */
 		*buf_size = datum.size;
-		buf[0] = '\0';
 		result = GNUTLS_E_SHORT_MEMORY_BUFFER;
 	} else {
 		*buf_size = datum.size;

@@ -36,7 +36,7 @@ EXTRA_DIST = ca-no-pathlen.pem no-ca-or-pathlen.pem aki-cert.pem \
 	name-constraints-ip.pem cert-invalid-utf8.der very-long-dn.pem \
 	template-unique.tmpl template-unique.pem
 
-dist_check_SCRIPTS = pathlen aki pem-decoding certtool invalid-sig email \
+dist_check_SCRIPTS = pathlen aki certtool invalid-sig email \
 	pkcs7 privkey-import name-constraints certtool-long-cn crl
 
 if !HAVE_BUGGY_LIBIDN
@@ -48,7 +48,7 @@ dist_check_SCRIPTS += crq
 endif
 
 if !WINDOWS
-dist_check_SCRIPTS += template-test
+dist_check_SCRIPTS += template-test pem-decoding
 endif
 
 if ENABLE_DANE
@@ -64,3 +64,6 @@ TESTS_ENVIRONMENT = EXEEXT=$(EXEEXT) \
 	top_builddir="$(top_builddir)"		\
 	srcdir="$(srcdir)"
 
+if WINDOWS
+TESTS_ENVIRONMENT += WINDOWS=1
+endif

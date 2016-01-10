@@ -3,6 +3,37 @@ Copyright (C) 2000-2015 Free Software Foundation, Inc.
 Copyright (C) 2013-2015 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.4.8 (released 2016-01-08)
+
+** libgnutls: Corrected memory leak in gnutls_pubkey_import_privkey() when
+   used with PKCS #11 keys.
+
+** libgnutls: For DSA and ECDSA keys in PKCS #11 objects, import
+   their public keys from either a public key object or a certificate.
+   That is, because private keys do not contain all the required
+   parameters for a direct import. Reported by Jan Vcelak.
+
+** libgnutls: Fixed issue when writing ECDSA private keys in PKCS #11
+   tokens.
+
+** libgnutls: Fixed out-of-bounds read in gnutls_x509_ext_export_key_usage(),
+   report and patch by Tim Kosse.
+
+** libgnutls: The CHACHA20-POLY1305 ciphersuites were updated to conform to
+   draft-ietf-tls-chacha20-poly1305-02.
+
+** libgnutls: Several fixes in PKCS #7 signing which improve compatibility
+   with the MacOSX tools. Reported by sskaje (#59).
+
+** libgnutls: The max-record extension not negotiated on DTLS. This resolves
+   issue with the max-record being negotiated but ignored.
+
+** certtool: Added the --p7-include-cert and --p7-show-data options.
+
+** API and ABI modifications:
+gnutls_pkcs7_get_embedded_data: Added
+
+
 * Version 3.4.7 (released 2015-11-22)
 
 ** libgnutls: Properly require TLS 1.2 in all CBC-SHA256 and CBC-SHA384

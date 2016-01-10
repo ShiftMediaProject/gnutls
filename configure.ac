@@ -21,12 +21,12 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.4.7], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.4.8], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 
-AM_INIT_AUTOMAKE([1.12.2 subdir-objects no-dist-gzip dist-xz dist-lzip -Wall -Wno-override])
+AM_INIT_AUTOMAKE([1.12.2 subdir-objects no-dist-gzip dist-xz -Wall -Wno-override])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([config.h])
 
@@ -821,11 +821,10 @@ AC_ARG_ENABLE(crywrap,
 
 
  if test "x$enable_crywrap" != "xno" ; then
-	AC_CHECK_FUNCS([argp_usage],[ac_argp=yes],[ac_argp=no])
- fi
-
- if test "$ac_cv_func_daemon" != "no" && test "$ac_argp" != "no" && test "$with_libidn" != "no";then
-  crywrap=yes
+   AC_CHECK_FUNCS([argp_usage],[ac_argp=yes],[ac_argp=no])
+   if test "$ac_cv_func_daemon" != "no" && test "$ac_argp" != "no" && test "$with_libidn" != "no";then
+     crywrap=yes
+   fi
  fi
 
 fi
