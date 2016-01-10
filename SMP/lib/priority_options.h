@@ -1,5 +1,5 @@
 /* ANSI-C code produced by gperf version 3.0.4 */
-/* Command-line: gperf --global-table -t priority_options.gperf  */
+/* Command-line: gperf --global-table -t lib/priority_options.gperf  */
 /* Computed positions: -k'1,$' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -29,11 +29,11 @@
 #error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gnu-gperf@gnu.org>."
 #endif
 
-#line 1 "priority_options.gperf"
+#line 1 "lib/priority_options.gperf"
 
 typedef void (*option_set_func)(gnutls_priority_t);
 static const struct priority_options_st *in_word_set(register const char *str, register unsigned int len);
-#line 7 "priority_options.gperf"
+#line 7 "lib/priority_options.gperf"
 struct priority_options_st { const char *name; option_set_func func; };
 
 #define TOTAL_KEYWORDS 28
@@ -88,68 +88,68 @@ hash (register const char *str, register unsigned int len)
 static const struct priority_options_st wordlist[] =
   {
     {""}, {""}, {""}, {""}, {""}, {""},
-#line 9 "priority_options.gperf"
+#line 9 "lib/priority_options.gperf"
     {"COMPAT", enable_compat},
     {""}, {""}, {""},
-#line 12 "priority_options.gperf"
+#line 12 "lib/priority_options.gperf"
     {"NO_TICKETS", enable_no_tickets},
-#line 10 "priority_options.gperf"
+#line 10 "lib/priority_options.gperf"
     {"DUMBFW", enable_dumbfw},
     {""},
-#line 11 "priority_options.gperf"
+#line 11 "lib/priority_options.gperf"
     {"NO_EXTENSIONS", enable_no_extensions},
-#line 36 "priority_options.gperf"
+#line 36 "lib/priority_options.gperf"
     {"NEW_PADDING", dummy_func},
-#line 14 "priority_options.gperf"
+#line 14 "lib/priority_options.gperf"
     {"NO_SESSION_HASH", enable_no_ext_master_secret},
-#line 29 "priority_options.gperf"
+#line 29 "lib/priority_options.gperf"
     {"PROFILE_LOW", enable_profile_low},
-#line 32 "priority_options.gperf"
+#line 32 "lib/priority_options.gperf"
     {"PROFILE_HIGH", enable_profile_high},
-#line 22 "priority_options.gperf"
+#line 22 "lib/priority_options.gperf"
     {"SAFE_RENEGOTIATION", enable_safe_renegotiation},
-#line 18 "priority_options.gperf"
+#line 18 "lib/priority_options.gperf"
     {"SSL3_RECORD_VERSION", enable_ssl3_record_version},
-#line 21 "priority_options.gperf"
+#line 21 "lib/priority_options.gperf"
     {"UNSAFE_RENEGOTIATION", enable_unsafe_renegotiation},
-#line 15 "priority_options.gperf"
+#line 15 "lib/priority_options.gperf"
     {"STATELESS_COMPRESSION", enable_stateless_compression},
-#line 26 "priority_options.gperf"
+#line 26 "lib/priority_options.gperf"
     {"DISABLE_WILDCARDS", disable_wildcards},
-#line 25 "priority_options.gperf"
+#line 25 "lib/priority_options.gperf"
     {"FALLBACK_SCSV", enable_fallback_scsv},
-#line 30 "priority_options.gperf"
+#line 30 "lib/priority_options.gperf"
     {"PROFILE_LEGACY", enable_profile_legacy},
-#line 17 "priority_options.gperf"
+#line 17 "lib/priority_options.gperf"
     {"VERIFY_DISABLE_CRL_CHECKS", disable_crl_checks},
-#line 23 "priority_options.gperf"
+#line 23 "lib/priority_options.gperf"
     {"PARTIAL_RENEGOTIATION", enable_partial_safe_renegotiation},
-#line 20 "priority_options.gperf"
+#line 20 "lib/priority_options.gperf"
     {"VERIFY_ALLOW_X509_V1_CA_CRT", dummy_func},
-#line 33 "priority_options.gperf"
+#line 33 "lib/priority_options.gperf"
     {"PROFILE_ULTRA", enable_profile_ultra},
     {""},
-#line 16 "priority_options.gperf"
+#line 16 "lib/priority_options.gperf"
     {"VERIFY_ALLOW_SIGN_RSA_MD5", enable_verify_allow_rsa_md5},
-#line 24 "priority_options.gperf"
+#line 24 "lib/priority_options.gperf"
     {"DISABLE_SAFE_RENEGOTIATION", disable_safe_renegotiation},
-#line 28 "priority_options.gperf"
+#line 28 "lib/priority_options.gperf"
     {"PROFILE_VERY_WEAK", enable_profile_very_weak},
     {""}, {""}, {""},
-#line 13 "priority_options.gperf"
+#line 13 "lib/priority_options.gperf"
     {"NO_ETM", enable_no_etm},
-#line 27 "priority_options.gperf"
+#line 27 "lib/priority_options.gperf"
     {"SERVER_PRECEDENCE", enable_server_precedence},
     {""}, {""}, {""},
-#line 19 "priority_options.gperf"
+#line 19 "lib/priority_options.gperf"
     {"LATEST_RECORD_VERSION", enable_latest_record_version},
-#line 34 "priority_options.gperf"
+#line 34 "lib/priority_options.gperf"
     {"PROFILE_SUITEB128", enable_profile_suiteb128},
     {""}, {""}, {""}, {""},
-#line 35 "priority_options.gperf"
+#line 35 "lib/priority_options.gperf"
     {"PROFILE_SUITEB192", enable_profile_suiteb192},
     {""},
-#line 31 "priority_options.gperf"
+#line 31 "lib/priority_options.gperf"
     {"PROFILE_MEDIUM", enable_profile_medium}
   };
 
