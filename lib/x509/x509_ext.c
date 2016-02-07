@@ -1125,7 +1125,9 @@ int gnutls_x509_ext_export_key_usage(unsigned int usage, gnutls_datum_t * ext)
 	str[0] = usage & 0xff;
 	str[1] = usage >> 8;
 
-	result = asn1_write_value(c2, "", str, 2);
+	/* Since KeyUsage is a BIT STRING, the input to asn1_write_value
+	 * is the number of bits to be read. */
+	result = asn1_write_value(c2, "", str, 9);
 	if (result != ASN1_SUCCESS) {
 		gnutls_assert();
 		asn1_delete_structure(&c2);
@@ -2235,7 +2237,7 @@ int crl_dist_points_set(gnutls_x509_crl_dist_points_t cdp,
  * @san: The point name data
  * @reasons: Revocation reasons. An ORed sequence of flags from %gnutls_x509_crl_reason_flags_t.
  *
- * This function will store the specified CRL distibution point value
+ * This function will store the specified CRL distribution point value
  * the @cdp type.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0), otherwise a negative error value.

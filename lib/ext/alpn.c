@@ -92,7 +92,8 @@ _gnutls_alpn_recv_params(gnutls_session_t session,
 					    priv->protocols[i];
 					priv->selected_protocol_size =
 					    priv->protocol_size[i];
-					break;
+
+					return 0;
 				}
 			p += len1;
 		}
@@ -202,6 +203,9 @@ _gnutls_alpn_send_params(gnutls_session_t session,
  * This function allows you to get the negotiated protocol name. The
  * returned protocol should be treated as opaque, constant value and
  * only valid during the session life.
+ *
+ * The selected protocol is the first supported by the list sent
+ * by the client.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned,
  *   otherwise a negative error code is returned.
