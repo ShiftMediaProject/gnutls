@@ -191,6 +191,22 @@ generate_temp_rsa_privkey () {
 #  fi
 }
 
+generate_temp_dsa_privkey () {
+	export GNUTLS_PIN="$2"
+	token="$1"
+	bits="$3"
+
+	echo -n "* Generating DSA private key ("${bits}")... "
+	${P11TOOL} ${ADDITIONAL_PARAM} --login --label temp-dsa-"${bits}" --generate-dsa --bits "${bits}" "${token}" --outfile tmp-client.pub >>"${TMPFILE}" 2>&1
+	if test $? = 0; then
+		RETCODE=0
+		echo ok
+	else
+		echo failed
+		RETCODE=1
+	fi
+}
+
 # $1: token
 # $2: PIN
 delete_temp_privkey () {
@@ -304,6 +320,53 @@ generate_temp_ecc_privkey () {
 		echo failed
 		RETCODE=1
 	fi
+}
+
+# $1: name
+# $2: label prefix
+# $3: generate option
+# $4: token
+# $5: PIN
+# $6: bits
+import_privkey () {
+	export GNUTLS_PIN="$5"
+	name="$1"
+	prefix="$2"
+	gen_option="$3"
+	token="$4"
+	bits="$6"
+
+	outfile="tmp-${prefix}-${bits}.pem"
+
+	echo -n "* Importing ${name} private key (${bits})... "
+
+	"${CERTTOOL}" ${CERTTOOL_PARAM} --generate-privkey "${gen_option}" --pkcs8 --password= --outfile "${outfile}" >>"${TMPFILE}" 2>&1
+	if test $? != 0; then
+		RETCODE=1
+		echo failed
+		return
+	fi
+
+	${P11TOOL} ${ADDITIONAL_PARAM} --login --write --label "${prefix}-${bits}" --load-privkey "${outfile}" "${token}" >>"${TMPFILE}" 2>&1
+	if test $? = 0; then
+		RETCODE=0
+		echo ok
+	else
+		echo failed
+		RETCODE=1
+	fi
+}
+
+import_temp_rsa_privkey () {
+	import_privkey RSA temp-rsa --rsa $@
+}
+
+import_temp_ecc_privkey () {
+	import_privkey ECC temp-ecc --ecc $@
+}
+
+import_temp_dsa_privkey () {
+	import_privkey DSA temp-dsa --dsa $@
 }
 
 # $1: token
@@ -536,6 +599,16 @@ delete_temp_privkey "${TOKEN}" "${GNUTLS_PIN}" ecc-384
 
 generate_temp_rsa_privkey "${TOKEN}" "${GNUTLS_PIN}" 2048
 delete_temp_privkey "${TOKEN}" "${GNUTLS_PIN}" rsa-2048
+
+generate_temp_dsa_privkey "${TOKEN}" "${GNUTLS_PIN}" 3072
+delete_temp_privkey "${TOKEN}" "${GNUTLS_PIN}" dsa-3072
+
+import_temp_rsa_privkey "${TOKEN}" "${GNUTLS_PIN}" 1024
+delete_temp_privkey "${TOKEN}" "${GNUTLS_PIN}" rsa-1024
+import_temp_ecc_privkey "${TOKEN}" "${GNUTLS_PIN}" 256
+delete_temp_privkey "${TOKEN}" "${GNUTLS_PIN}" ecc-256
+import_temp_dsa_privkey "${TOKEN}" "${GNUTLS_PIN}" 2048
+delete_temp_privkey "${TOKEN}" "${GNUTLS_PIN}" dsa-2048
 
 generate_rsa_privkey "${TOKEN}" "${GNUTLS_PIN}" 1024
 change_id_of_privkey "${TOKEN}" "${GNUTLS_PIN}"

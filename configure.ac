@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.4.9], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.4.10], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -96,6 +96,7 @@ use_accel=yes
 case "$host" in
   *android*)
     have_android=yes
+    have_elf=yes
   ;;
   *mingw32* | *mingw64*)
     have_win=yes
