@@ -69,8 +69,65 @@ char *ip_to_string(void *_ip, int ip_size, char *string,
 		return inet_ntop(AF_INET6, _ip, string, string_size);
 }
 
+static unsigned mask_to_prefix(const uint8_t *mask, unsigned mask_size)
+{
+	unsigned i, c = 0;
+	for (i=0; i<mask_size; i++) {
+		if (mask[i] == 0xFF) {
+			c += 8;
+		} else {
+			switch(mask[i]) {
+				case 0xFE: c += 7; break;
+				case 0xFC: c += 6; break;
+				case 0xF8: c += 5; break;
+				case 0xF0: c += 4; break;
+				case 0xE0: c += 3; break;
+				case 0xC0: c += 2; break;
+				case 0x80: c += 1; break;
+				case 0x00: break;
+				default:
+					return 0;
+			}
+			break;
+		}
+	}
+
+	return c;
+}
+
+static const
+char *cidr_to_string(void *_ip, int ip_size, char *string,
+			  int string_size)
+{
+	uint8_t *ip = _ip;
+	char tmp[64];
+	const char *p;
+
+	if (ip_size != 8 && ip_size != 32) {
+		gnutls_assert();
+		return NULL;
+	}
+
+	if (ip_size == 8) {
+		p = inet_ntop(AF_INET, ip, tmp, sizeof(tmp));
+
+		if (p)
+			snprintf(string, string_size, "%s/%u", tmp, mask_to_prefix(ip+4, 4));
+	} else {
+		p = inet_ntop(AF_INET6, ip, tmp, sizeof(tmp));
+
+		if (p)
+			snprintf(string, string_size, "%s/%u", tmp, mask_to_prefix(ip+16, 16));
+	}
+
+	if (p == NULL)
+		return NULL;
+
+	return string;
+}
+
 static void
-print_name(gnutls_buffer_st *str, const char *prefix, unsigned type, gnutls_datum_t *name)
+print_name(gnutls_buffer_st *str, const char *prefix, unsigned type, gnutls_datum_t *name, unsigned ip_is_cidr)
 {
 char *sname = (char*)name->data;
 char str_ip[64];
@@ -127,7 +184,10 @@ unsigned i;
 		break;
 
 	case GNUTLS_SAN_IPADDRESS:
-		p = ip_to_string(name->data, name->size, str_ip, sizeof(str_ip));
+		if (!ip_is_cidr)
+			p = ip_to_string(name->data, name->size, str_ip, sizeof(str_ip));
+		else
+			p = cidr_to_string(name->data, name->size, str_ip, sizeof(str_ip));
 		if (p == NULL)
 			p = ERROR_STR;
 		addf(str, "%sIPAddress: %s\n", prefix, p);
@@ -211,7 +271,7 @@ static void print_nc(gnutls_buffer_st * str, const char* prefix, gnutls_datum_t 
 			if (idx == 1)
 				addf(str,  _("%s\t\t\tPermitted:\n"), prefix);
 
-			print_name(str, new_prefix, type, &name);
+			print_name(str, new_prefix, type, &name, 1);
 		}
 	} while (ret == 0);
 
@@ -223,7 +283,7 @@ static void print_nc(gnutls_buffer_st * str, const char* prefix, gnutls_datum_t 
 			if (idx == 1)
 				addf(str,  _("%s\t\t\tExcluded:\n"), prefix);
 
-			print_name(str, new_prefix, type, &name);
+			print_name(str, new_prefix, type, &name, 1);
 		}
 	} while (ret == 0);
 
@@ -269,7 +329,7 @@ static void print_aia(gnutls_buffer_st * str, const gnutls_datum_t *der)
 		}
 
 		adds(str, "\t\t\tAccess Location ");
-		print_name(str, "", san_type, &san);
+		print_name(str, "", san_type, &san, 0);
 	}
 
 	return;
@@ -320,7 +380,7 @@ print_aki_gn_serial(gnutls_buffer_st * str, gnutls_x509_aki_t aki)
 		return;
 	}
 
-	print_name(str, "\t\t\t", alt_type, &san);
+	print_name(str, "\t\t\t", alt_type, &san, 0);
 
 	adds(str, "\t\t\tserial: ");
 	_gnutls_buffer_hexprint(str, serial.data, serial.size);
@@ -476,7 +536,7 @@ static void print_crldist(gnutls_buffer_st * str, gnutls_datum_t *der)
 			return;
 		}
 
-		print_name(str, "\t\t\t", type, &dist);
+		print_name(str, "\t\t\t", type, &dist, 0);
 	}
  cleanup:
  	gnutls_x509_crl_dist_points_deinit(dp);
@@ -612,7 +672,7 @@ print_altname(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
 			err = gnutls_x509_othername_to_virtual((char*)othername.data, &san, &vtype, &virt);
 			if (err >= 0) {
 				snprintf(pfx, sizeof(pfx), "%s\t\t\t", prefix);
-				print_name(str, pfx, vtype, &virt);
+				print_name(str, pfx, vtype, &virt, 0);
 				gnutls_free(virt.data);
 				continue;
 			}
@@ -630,7 +690,7 @@ print_altname(gnutls_buffer_st * str, const char *prefix, gnutls_datum_t *der)
 		} else {
 
 			snprintf(pfx, sizeof(pfx), "%s\t\t\t", prefix);
-			print_name(str, pfx, type, &san);
+			print_name(str, pfx, type, &san, 0);
 		}
 	}
 	gnutls_subject_alt_names_deinit(names);
@@ -1386,7 +1446,7 @@ print_cert(gnutls_buffer_st * str, gnutls_x509_crt_t cert,
 				name = _("unknown");
 			addf(str, _("\tSignature Algorithm: %s\n"), name);
 		}
-		if (gnutls_sign_is_secure(err) == 0) {
+		if (err != GNUTLS_SIGN_UNKNOWN && gnutls_sign_is_secure(err) == 0) {
 			adds(str,
 			     _("warning: signed using a broken signature "
 			       "algorithm that can be forged.\n"));
@@ -2028,7 +2088,7 @@ print_crl(gnutls_buffer_st * str, gnutls_x509_crl_t crl, int notsigned)
 				name = _("unknown");
 			addf(str, _("\tSignature Algorithm: %s\n"), name);
 		}
-		if (gnutls_sign_is_secure(err) == 0) {
+		if (err != GNUTLS_SIGN_UNKNOWN && gnutls_sign_is_secure(err) == 0) {
 			adds(str,
 			     _("warning: signed using a broken signature "
 			       "algorithm that can be forged.\n"));

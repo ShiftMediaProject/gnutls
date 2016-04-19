@@ -3,6 +3,37 @@ Copyright (C) 2000-2015 Free Software Foundation, Inc.
 Copyright (C) 2013-2015 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.4.11 (released 2016-04-11)
+
+** libgnutls: Fixes in gnutls_record_get/set_state() with DTLS. Reported
+   by Fridolin Pokorny.
+
+** libgnutls: Fixes in DSA key generation under PKCS #11. Report and patches
+   by Jan Vcelak.
+
+** libgnutls: Corrected behavior of ALPN extension parsing during session
+   resumption. Report and patches by Yuriy M. Kaminskiy.
+
+** libgnutls: Corrected regression (since 3.4.0) in gnutls_server_name_set()
+   which caused it not to accept non-null-terminated hostnames. Reported
+   by Tim Ruehsen.
+
+** libgnutls: Corrected printing of the IP Adress name constraints.
+
+** ocsptool: use HTTP/1.0 for requests. This avoids issue with servers
+   serving chunk encoding which ocsptool doesn't support. Reported by Thomas
+   Klute.
+
+** certtool: do not require a CA for OCSP signing tag. This follows the
+   recommendations in RFC6960 in 4.2.2.2 which allow a CA to delegate OCSP
+   signing to another certificate without requiring it to be a CA. Reported
+   by Thomas Klute.
+
+
+** API and ABI modifications:
+No changes since last version.
+
+
 * Version 3.4.10 (released 2016-03-03)
 
 ** libgnutls: Eliminated issues preventing buffers more than 2^32 bytes

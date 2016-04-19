@@ -49,6 +49,7 @@
 #include <fips.h>
 #include <intprops.h>
 #include <gnutls/dtls.h>
+#include "gnutls_dtls.h"
 
 /* These should really be static, but src/tests.c calls them.  Make
    them public functions?  */
@@ -1354,20 +1355,16 @@ void
  * @session: is a #gnutls_session_t type.
  *
  * This function provides information about the internals of the
- * record protocol and is only useful if a prior gnutls function call
- * (e.g.  gnutls_handshake()) was interrupted for some reason, that
+ * record protocol and is only useful if a prior gnutls function call,
+ * e.g.  gnutls_handshake(), was interrupted for some reason. That
  * is, if a function returned %GNUTLS_E_INTERRUPTED or
- * %GNUTLS_E_AGAIN.  In such a case, you might want to call select()
- * or poll() before calling the interrupted gnutls function again.  To
- * tell you whether a file descriptor should be selected for either
- * reading or writing, gnutls_record_get_direction() returns 0 if the
- * interrupted function was trying to read data, and 1 if it was
- * trying to write data.
+ * %GNUTLS_E_AGAIN. In such a case, you might want to call select()
+ * or poll() before restoring the interrupted gnutls function.
  *
- * This function's output is unreliable if you are using the
+ * This function's output is unreliable if you are using the same
  * @session in different threads, for sending and receiving.
  *
- * Returns: 0 if trying to read data, 1 if trying to write data.
+ * Returns: 0 if interrupted while trying to read data, or 1 while trying to write data.
  **/
 int gnutls_record_get_direction(gnutls_session_t session)
 {
@@ -1679,10 +1676,14 @@ gnutls_record_get_state(gnutls_session_t session,
 	else
 		record_state = &record_params->write;
 
-	memcpy(mac_key, &record_state->mac_secret, sizeof(gnutls_datum_t));
-	memcpy(IV, &record_state->IV, sizeof(gnutls_datum_t));
-	memcpy(cipher_key, &record_state->key, sizeof(gnutls_datum_t));
-	memcpy(seq_number, UINT64DATA(record_state->sequence_number), 8);
+	if (mac_key)
+		memcpy(mac_key, &record_state->mac_secret, sizeof(gnutls_datum_t));
+	if (IV)
+		memcpy(IV, &record_state->IV, sizeof(gnutls_datum_t));
+	if (cipher_key)
+		memcpy(cipher_key, &record_state->key, sizeof(gnutls_datum_t));
+	if (seq_number)
+		memcpy(seq_number, UINT64DATA(record_state->sequence_number), 8);
 	return 0;
 }
 
@@ -1727,5 +1728,10 @@ gnutls_record_set_state(gnutls_session_t session,
 		record_state = &record_params->write;
 
 	memcpy(UINT64DATA(record_state->sequence_number), seq_number, 8);
+
+	if (IS_DTLS(session)) {
+		_dtls_reset_window(session, seq_number);
+	}
+
 	return 0;
 }
