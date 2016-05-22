@@ -79,6 +79,21 @@ socket_recv(const socket_st * socket, void *buffer, int buffer_size)
 }
 
 ssize_t
+socket_recv_timeout(const socket_st * socket, void *buffer, int buffer_size, unsigned ms)
+{
+	int ret;
+
+	if (socket->secure)
+		gnutls_record_set_timeout(socket->session, ms);
+	ret = socket_recv(socket, buffer, buffer_size);
+
+	if (socket->secure)
+		gnutls_record_set_timeout(socket->session, 0);
+
+	return ret;
+}
+
+ssize_t
 socket_send(const socket_st * socket, const void *buffer, int buffer_size)
 {
 	return socket_send_range(socket, buffer, buffer_size, NULL);
@@ -242,7 +257,7 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		if (!c_isdigit(app_proto[0])) {
 			static int warned = 0;
 			if (warned == 0) {
-				fprintf(stderr, "unknown protocol %s\n", app_proto);
+				fprintf(stderr, "unknown protocol '%s'\n", app_proto);
 				warned = 1;
 			}
 		}
@@ -324,6 +339,8 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 	char buffer[MAX_BUF + 1];
 	char portname[16] = { 0 };
 	char *a_hostname = (char*)hostname;
+
+	memset(hd, 0, sizeof(*hd));
 
 #ifdef HAVE_LIBIDN
 	err = idna_to_ascii_8z(hostname, &a_hostname, IDNA_ALLOW_UNASSIGNED);

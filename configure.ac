@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.4.11], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.4.12], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -292,7 +292,7 @@ if test "$can_do_valgrind_tests" != "yes";then
 	opt_valgrind_tests=no
 fi
 
-AM_CONDITIONAL(WANT_TEST_SUITE, [test "$opt_valgrind_tests" != no])
+AM_CONDITIONAL(WANT_TEST_SUITE, [test -f "$SUITE_FILE"])
 
 dnl GCC warnings to enable
 

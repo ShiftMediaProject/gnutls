@@ -572,8 +572,8 @@ verify_ca(const gnutls_datum_t * raw_crt, unsigned raw_crt_size,
 	gnutls_x509_crt_t crt = NULL, ca = NULL;
 	unsigned is_ok = 0;
 
-	if (raw_crt_size < 2)
-		return gnutls_assert_val(DANE_E_INVALID_REQUEST);
+	if (raw_crt_size < 2) /* we cannot verify the CA */
+		return gnutls_assert_val(DANE_E_UNKNOWN_DANE_DATA);
 
 	if (ctype == DANE_CERT_X509 && crt_type == GNUTLS_CRT_X509) {
 		is_ok = 0;
@@ -742,27 +742,17 @@ verify_ee(const gnutls_datum_t * raw_crt,
  * @vflags: Verification flags; an OR'ed list of %dane_verify_flags_t.
  * @verify: An OR'ed list of %dane_verify_status_t.
  *
- * This function will verify the given certificate chain against the
- * CA constrains and/or the certificate available via DANE.
- * If no information via DANE can be obtained the flag %DANE_VERIFY_NO_DANE_INFO
- * is set. If a DNSSEC signature is not available for the DANE
- * record then the verify flag %DANE_VERIFY_NO_DNSSEC_DATA is set.
+ * This is the low-level function of dane_verify_crt(). See the
+ * high level function for documentation.
  *
- * Due to the many possible options of DANE, there is no single threat
- * model countered. When notifying the user about DANE verification results
- * it may be better to mention: DANE verification did not reject the certificate,
- * rather than mentioning a successful DANE verication.
+ * This function does not perform any resolving, it utilizes
+ * cached entries from @r.
  *
- * Note that this function is designed to be run in addition to
- * PKIX - certificate chain - verification. To be run independently
- * the %DANE_VFLAG_ONLY_CHECK_EE_USAGE flag should be specified; 
- * then the function will check whether the key of the peer matches the
- * key advertized in the DANE entry.
- *
- * If the @q parameter is provided it will be used for caching entries.
- *
- * Returns: On success, %DANE_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
+ * Returns: a negative error code on error and %DANE_E_SUCCESS (0)
+ * when the DANE entries were successfully parsed, irrespective of
+ * whether they were verified (see @verify for that information). If
+ * no usable entries were encountered %DANE_E_REQUESTED_DATA_NOT_AVAILABLE
+ * will be returned.
  *
  **/
 int
@@ -863,10 +853,11 @@ dane_verify_crt_raw(dane_state_t s,
  * then the function will check whether the key of the peer matches the
  * key advertized in the DANE entry.
  *
- * If the @q parameter is provided it will be used for caching entries.
- *
- * Returns: On success, %DANE_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
+ * Returns: a negative error code on error and %DANE_E_SUCCESS (0)
+ * when the DANE entries were successfully parsed, irrespective of
+ * whether they were verified (see @verify for that information). If
+ * no usable entries were encountered %DANE_E_REQUESTED_DATA_NOT_AVAILABLE
+ * will be returned.
  *
  **/
 int
@@ -925,8 +916,11 @@ dane_verify_crt(dane_state_t s,
  * verification is restricted to end certificates, this must be
  * be performed separately using gnutls_certificate_verify_peers3().
  *
- * Returns: On success, %DANE_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
+ * Returns: a negative error code on error and %DANE_E_SUCCESS (0)
+ * when the DANE entries were successfully parsed, irrespective of
+ * whether they were verified (see @verify for that information). If
+ * no usable entries were encountered %DANE_E_REQUESTED_DATA_NOT_AVAILABLE
+ * will be returned.
  *
  **/
 int

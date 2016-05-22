@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2002-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2002-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -321,6 +322,7 @@ static int get_x509_name(gnutls_x509_crt_t crt, gnutls_str_array_t * names)
 	size_t max_size;
 	int i, ret = 0, ret2;
 	char name[MAX_CN];
+	unsigned have_dns_name = 0;
 
 	for (i = 0; !(ret < 0); i++) {
 		max_size = sizeof(name);
@@ -329,6 +331,8 @@ static int get_x509_name(gnutls_x509_crt_t crt, gnutls_str_array_t * names)
 		    gnutls_x509_crt_get_subject_alt_name(crt, i, name,
 							 &max_size, NULL);
 		if (ret == GNUTLS_SAN_DNSNAME) {
+			have_dns_name = 1;
+
 			ret2 =
 			    _gnutls_str_array_append(names, name,
 						     max_size);
@@ -339,15 +343,17 @@ static int get_x509_name(gnutls_x509_crt_t crt, gnutls_str_array_t * names)
 		}
 	}
 
-	max_size = sizeof(name);
-	ret =
-	    gnutls_x509_crt_get_dn_by_oid(crt, OID_X520_COMMON_NAME, 0, 0,
-					  name, &max_size);
-	if (ret >= 0) {
-		ret = _gnutls_str_array_append(names, name, max_size);
-		if (ret < 0) {
-			_gnutls_str_array_clear(names);
-			return gnutls_assert_val(ret);
+	if (have_dns_name == 0) {
+		max_size = sizeof(name);
+		ret =
+		    gnutls_x509_crt_get_dn_by_oid(crt, OID_X520_COMMON_NAME, 0, 0,
+						  name, &max_size);
+		if (ret >= 0) {
+			ret = _gnutls_str_array_append(names, name, max_size);
+			if (ret < 0) {
+				_gnutls_str_array_clear(names);
+				return gnutls_assert_val(ret);
+			}
 		}
 	}
 
@@ -1206,7 +1212,7 @@ gnutls_certificate_get_x509_crt(gnutls_certificate_credentials_t res,
  * entity certificate (e.g., also an intermediate CA cert) then put
  * the certificate chain in @pcert_list. 
  *
- * Note that the @pcert_list and @key will become part of the credentials 
+ * Note that the @key and the elements of @pcert_list will become part of the credentials 
  * structure and must not be deallocated. They will be automatically deallocated 
  * when the @res type is deinitialized.
  *
@@ -1226,6 +1232,7 @@ gnutls_certificate_set_key(gnutls_certificate_credentials_t res,
 {
 	int ret, i;
 	gnutls_str_array_t str_names;
+	gnutls_pcert_st *new_pcert_list;
 
 	_gnutls_str_array_init(&str_names);
 
@@ -1239,6 +1246,29 @@ gnutls_certificate_set_key(gnutls_certificate_credentials_t res,
 				goto cleanup;
 			}
 		}
+	} else if (names == NULL && pcert_list[0].type == GNUTLS_CRT_X509) {
+		gnutls_x509_crt_t crt;
+
+		ret = gnutls_x509_crt_init(&crt);
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+
+		ret = gnutls_x509_crt_import(crt, &pcert_list[0].cert, GNUTLS_X509_FMT_DER);
+		if (ret < 0) {
+			gnutls_assert();
+			gnutls_x509_crt_deinit(crt);
+			goto cleanup;
+		}
+
+		ret = get_x509_name(crt, &str_names);
+		gnutls_x509_crt_deinit(crt);
+
+		if (ret < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
 	}
 
 	if (res->pin.cb)
@@ -1251,12 +1281,20 @@ gnutls_certificate_set_key(gnutls_certificate_credentials_t res,
 		goto cleanup;
 	}
 
+	new_pcert_list = gnutls_malloc(sizeof(gnutls_pcert_st) * pcert_list_size);
+	if (new_pcert_list == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_MEMORY_ERROR;
+	}
+	memcpy(new_pcert_list, pcert_list, sizeof(gnutls_pcert_st) * pcert_list_size);
+
 	ret =
 	    certificate_credential_append_crt_list(res, str_names,
-						   pcert_list,
+						   new_pcert_list,
 						   pcert_list_size);
 	if (ret < 0) {
 		gnutls_assert();
+		gnutls_free(new_pcert_list);
 		goto cleanup;
 	}
 
