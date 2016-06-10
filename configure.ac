@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.4.12], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.4.13], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -45,6 +45,8 @@ AC_PROG_CXX
 AM_PROG_CC_C_O
 AC_PROG_YACC
 AC_PROG_SED
+
+AC_USE_SYSTEM_EXTENSIONS
 
 AC_ARG_ENABLE(doc,
   AS_HELP_STRING([--disable-doc], [don't generate any documentation]),
@@ -229,7 +231,7 @@ fi
 
 AM_CONDITIONAL(HAVE_FORK, test "$ac_cv_func_fork" != "no")
 
-AC_CHECK_FUNCS([__register_atfork],,)
+AC_CHECK_FUNCS([__register_atfork secure_getenv],,)
 
 AC_LIB_HAVE_LINKFLAGS(rt,, [#include <time.h>
 #include <signal.h>

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright (C) 2013 Nikos Mavrogiannopoulos
 #
@@ -40,8 +40,6 @@ fi
 P11TOOL="${VALGRIND} ${P11TOOL} --batch"
 
 . ${srcdir}/../scripts/common.sh
-
-PORT="${PORT:-${RPORT}}"
 
 rm -f "${TMPFILE}"
 
@@ -521,9 +519,10 @@ use_certificate_test () {
 
 	echo -n "* Using PKCS #11 with gnutls-cli (${txt})... "
 	# start server
+	eval "${GETPORT}"
 	launch_pkcs11_server $$ "${ADDITIONAL_PARAM}" --echo --priority NORMAL --x509certfile="${certfile}" \
 		--x509keyfile="$keyfile" --x509cafile="${cafile}" \
-		--require-client-cert >>"${TMPFILE}" 2>&1 &
+		--require-client-cert >>"${TMPFILE}" 2>&1
 
 	PID=$!
 	wait_server ${PID}

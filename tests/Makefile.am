@@ -61,9 +61,7 @@ AM_CPPFLAGS += -I$(srcdir)/../lib/minitasn1
 endif
 
 noinst_LTLIBRARIES = libutils.la
-libutils_la_SOURCES = utils.h utils.c
-
-pkglib_LTLIBRARIES = 
+libutils_la_SOURCES = utils.h utils.c utils-adv.c
 
 ctests = mini-record-2 simple gc set_pkcs12_cred certder certuniqueid	\
 	 mpi certificate_set_x509_crl dn parse_ca moredn record-sizes \
@@ -93,15 +91,15 @@ ctests = mini-record-2 simple gc set_pkcs12_cred certder certuniqueid	\
 	 x509sign-verify2 mini-alignment oids atfork prf \
 	 status-request status-request-ok fallback-scsv pkcs8-key-decode \
 	 mini-session-verify-function auto-verify mini-x509-default-prio \
-	 global-init-override pcert-list
+	 global-init-override pcert-list keylog-env
 
 mini_dtls_pthread_LDADD = $(LDADD) -lpthread
 
 if ENABLE_PKCS11
 if !WINDOWS
-pkglib_LTLIBRARIES += libpkcs11mock1.la
+noinst_LTLIBRARIES += libpkcs11mock1.la
 libpkcs11mock1_la_SOURCES = pkcs11/pkcs11-mock.c pkcs11/pkcs11-mock.h
-libpkcs11mock1_la_LDFLAGS = -module -no-undefined -avoid-version
+libpkcs11mock1_la_LDFLAGS = -shared -rpath $(pkglibdir) -module -no-undefined -avoid-version
 
 pkcs11_cert_import_url_exts_SOURCES = pkcs11/pkcs11-cert-import-url-exts.c
 pkcs11_cert_import_url_exts_DEPENDENCIES = libpkcs11mock1.la libutils.la
