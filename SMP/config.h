@@ -224,6 +224,9 @@
 /* Define to 1 when the gnulib module recvfrom should be tested. */
 #define GNULIB_TEST_RECVFROM 1
 
+/* Define to 1 when the gnulib module secure_getenv should be tested. */
+#define GNULIB_TEST_SECURE_GETENV 1
+
 /* Define to 1 when the gnulib module select should be tested. */
 #define GNULIB_TEST_SELECT 1
 
@@ -613,6 +616,9 @@
 /* Define to 1 if <sys/socket.h> defines AF_INET6. */
 #define HAVE_IPV6 1
 
+/* Define to 1 if you have the `issetugid' function. */
+/* #undef HAVE_ISSETUGID */
+
 /* Define to 1 if you have the `kqueue' function. */
 /* #undef HAVE_KQUEUE */
 
@@ -933,6 +939,9 @@
 
 /* Define to 1 if isatty is declared even after undefining macros. */
 #define HAVE_RAW_DECL_ISATTY 1
+
+/* Define to 1 if isblank is declared even after undefining macros. */
+#define HAVE_RAW_DECL_ISBLANK 1
 
 /* Define to 1 if lchmod is declared even after undefining macros. */
 /* #undef HAVE_RAW_DECL_LCHMOD */
@@ -1378,6 +1387,9 @@
 /* Define to 1 if you have the <search.h> header file. */
 #define HAVE_SEARCH_H 1
 
+/* Define to 1 if you have the `secure_getenv' function. */
+/* #undef HAVE_SECURE_GETENV */
+
 /* Define to 1 if you have the `select' function. */
 /* #undef HAVE_SELECT */
 
@@ -1708,6 +1720,9 @@
 
 /* Define to 1 if you have the `__register_atfork' function. */
 /* #undef HAVE___REGISTER_ATFORK */
+
+/* Define to 1 if you have the `__secure_getenv' function. */
+/* #undef HAVE___SECURE_GETENV */
 
 /* Have __va_copy() */
 /* #undef HAVE___VA_COPY */

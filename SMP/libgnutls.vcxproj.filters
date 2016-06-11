@@ -1058,6 +1058,9 @@
     <ClCompile Include="..\lib\x509\pkcs7-output.c">
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
+    <ClCompile Include="..\gl\secure_getenv.c">
+      <Filter>Source Files\gl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">
