@@ -3574,32 +3574,37 @@ find_cert_cb(struct ck_function_list *module, struct pkcs11_session_info *sinfo,
 				break;
 			}
 
-			a[0].type = CKA_LABEL;
-			a[0].value = label_tmp;
-			a[0].value_len = sizeof(label_tmp);
-
-			a[1].type = CKA_ID;
-			a[1].value = id_tmp;
-			a[1].value_len = sizeof(id_tmp);
-
 			/* data will contain the certificate */
 			rv = pkcs11_get_attribute_avalue(sinfo->module, sinfo->pks, obj, CKA_VALUE, &data);
 
-			if (rv == CKR_OK && pkcs11_get_attribute_value
-			    (sinfo->module, sinfo->pks, obj, a,
-			     2) == CKR_OK) {
-				label.data = a[0].value;
-				label.size = a[0].value_len;
-				id.data = a[1].value;
-				id.size = a[1].value_len;
+			if (rv == CKR_OK) {
+				ret = check_found_cert(priv, &data, now);
+				if (ret < 0) {
+					_gnutls_free_datum(&data);
+					continue;
+				}
 
+				a[0].type = CKA_LABEL;
+				a[0].value = label_tmp;
+				a[0].value_len = sizeof(label_tmp);
 
+				a[1].type = CKA_ID;
+				a[1].value = id_tmp;
+				a[1].value_len = sizeof(id_tmp);
 
-				found = 1;
-				break;
-			} else {
-				_gnutls_debug_log
-				    ("p11: Skipped cert, missing attrs.\n");
+				if (pkcs11_get_attribute_value(sinfo->module, sinfo->pks, obj, a, 2) == CKR_OK) {
+					label.data = a[0].value;
+					label.size = a[0].value_len;
+					id.data = a[1].value;
+					id.size = a[1].value_len;
+
+					found = 1;
+					break;
+				} else {
+					_gnutls_free_datum(&data);
+					_gnutls_debug_log
+					    ("p11: Skipped cert, missing attrs.\n");
+				}
 			}
 		}
 
@@ -3607,13 +3612,7 @@ find_cert_cb(struct ck_function_list *module, struct pkcs11_session_info *sinfo,
 		finalized = 1;
 
 		if (found != 0) {
-			ret = check_found_cert(priv, &data, now);
-			if (ret < 0) {
-				_gnutls_free_datum(&data);
-				continue;
-			}
-
-			if (priv->flags & GNUTLS_PKCS11_OBJ_FLAG_OVERWRITE_TRUSTMOD_EXT) {
+			if (priv->flags & GNUTLS_PKCS11_OBJ_FLAG_OVERWRITE_TRUSTMOD_EXT && data.size > 0) {
 				gnutls_datum_t spki;
 				rv = pkcs11_get_attribute_avalue(sinfo->module, sinfo->pks, obj, CKA_PUBLIC_KEY_INFO, &spki);
 				if (rv == CKR_OK) {
@@ -3954,10 +3953,8 @@ int gnutls_pkcs11_crt_is_known(const char *url, gnutls_x509_crt_t cert,
 {
 	int ret;
 	struct find_cert_st priv;
-	uint8_t serial[ASN1_MAX_TL_SIZE+64];
+	uint8_t serial[128];
 	size_t serial_size;
-	uint8_t tag[ASN1_MAX_TL_SIZE];
-	unsigned int tag_size;
 	struct p11_kit_uri *info = NULL;
 
 	PKCS11_CHECK_INIT_RET(0);
@@ -3975,38 +3972,31 @@ int gnutls_pkcs11_crt_is_known(const char *url, gnutls_x509_crt_t cert,
 	}
 
 	/* Attempt searching using the issuer DN + serial number */
-	serial_size = sizeof(serial) - sizeof(tag);
+	serial_size = sizeof(serial);
 	ret =
-	    gnutls_x509_crt_get_serial(cert, serial+sizeof(tag), &serial_size);
+	    gnutls_x509_crt_get_serial(cert, serial, &serial_size);
 	if (ret < 0) {
 		gnutls_assert();
 		ret = 0;
 		goto cleanup;
 	}
 
-	/* PKCS#11 requires a DER encoded serial, wtf. $@(*$@ */
-	tag_size = sizeof(tag);
-	ret = asn1_encode_simple_der(ASN1_ETYPE_INTEGER, serial+sizeof(tag), serial_size,
-		tag, &tag_size);
-	if (ret != ASN1_SUCCESS) {
+	ret = _gnutls_x509_ext_gen_number(serial, serial_size, &priv.serial);
+	if (ret < 0) {
 		gnutls_assert();
 		ret = 0;
 		goto cleanup;
 	}
 
-	memcpy(serial+sizeof(tag)-tag_size, tag, tag_size);
-
-	priv.serial.data = serial+sizeof(tag)-tag_size;
-	priv.serial.size = serial_size + tag_size;
 	priv.crt = cert;
 
 	priv.issuer_dn.data = cert->raw_issuer_dn.data;
 	priv.issuer_dn.size = cert->raw_issuer_dn.size;
 
-	/* when looking for a trusted certificate, we always fully compare
-	 * with the given */
-	if (flags & GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_TRUSTED && !(flags & GNUTLS_PKCS11_OBJ_FLAG_COMPARE_KEY))
+	/* assume PKCS11_OBJ_FLAG_COMPARE everywhere but DISTRUST info */
+	if (!(flags & GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_DISTRUSTED) && !(flags & GNUTLS_PKCS11_OBJ_FLAG_COMPARE_KEY)) {
 		flags |= GNUTLS_PKCS11_OBJ_FLAG_COMPARE;
+	}
 
 	priv.flags = flags;
 
@@ -4014,8 +4004,10 @@ int gnutls_pkcs11_crt_is_known(const char *url, gnutls_x509_crt_t cert,
 	    _pkcs11_traverse_tokens(find_cert_cb, &priv, info,
 				    NULL, pkcs11_obj_flags_to_int(flags));
 	if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+		_gnutls_debug_log("crt_is_known: did not find cert, using issuer DN + serial, using DN only\n");
 		/* attempt searching with the subject DN only */
 		gnutls_assert();
+		gnutls_free(priv.serial.data);
 		memset(&priv, 0, sizeof(priv));
 		priv.crt = cert;
 		priv.flags = flags;
@@ -4028,6 +4020,7 @@ int gnutls_pkcs11_crt_is_known(const char *url, gnutls_x509_crt_t cert,
 	}
 	if (ret < 0) {
 		gnutls_assert();
+		_gnutls_debug_log("crt_is_known: did not find any cert\n");
 		ret = 0;
 		goto cleanup;
 	}
@@ -4037,6 +4030,7 @@ int gnutls_pkcs11_crt_is_known(const char *url, gnutls_x509_crt_t cert,
       cleanup:
 	if (info)
 		p11_kit_uri_free(info);
+	gnutls_free(priv.serial.data);
 
 	return ret;
 }
