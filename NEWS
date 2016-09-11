@@ -3,7 +3,37 @@ Copyright (C) 2000-2016 Free Software Foundation, Inc.
 Copyright (C) 2013-2016 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
-* Version 3.4.14 (released 2016-06-06)
+* Version 3.4.15 (released 2016-09-08)
+
+** libgnutls: Corrected the comparison of the serial size in OCSP response.
+   Previously the OCSP certificate check wouldn't verify the serial length
+   and could succeed in cases it shouldn't (GNUTLS-SA-2016-3).
+   Reported by Stefan Buehler.
+
+** libgnutls: Fixes in gnutls_x509_crt_list_import2, which was
+   ignoring flags if all certificates in the list fit within the
+   initially allocated memory.
+
+** libgnutls: Corrected issue which made gnutls_certificate_get_x509_crt()
+   to return invalid pointers when returned more than a single certificate.
+   Report and fix by Stefan Sørensen.
+
+** libgnutls: Fix gnutls_pkcs12_simple_parse to always extract the complete chain.
+   Report and fix by Stefan Sørensen.
+
+** libgnutls: Added support for decrypting PKCS#8 files which use the HMAC-SHA256
+   as PRF.
+
+** libgnutls: Addressed issue with PKCS#11 signature generation on ECDSA
+   keys. The signature is now written as unsigned integers into the DSASignatureValue
+   structure. Previously signed integers could be written depending on what
+   the underlying module would produce. Addresses #122.
+
+** API and ABI modifications:
+No changes since last version.
+
+
+* Version 3.4.14 (released 2016-07-06)
 
 ** libgnutls: Address issue when utilizing the p11-kit trust store
    for certificate verification (GNUTLS-SA-2016-2).

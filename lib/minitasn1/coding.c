@@ -337,7 +337,7 @@ _asn1_objectid_der (unsigned char *str, unsigned char *der, int *der_len)
   int len_len, counter, k, first, max_len;
   char *temp, *n_end, *n_start;
   unsigned char bit7;
-  unsigned long val, val1 = 0;
+  uint64_t val, val1 = 0;
   int str_len = _asn1_strlen (str);
 
   max_len = *der_len;
@@ -355,7 +355,7 @@ _asn1_objectid_der (unsigned char *str, unsigned char *der, int *der_len)
   while ((n_end = strchr (n_start, '.')))
     {
       *n_end = 0;
-      val = strtoul (n_start, NULL, 10);
+      val = _asn1_strtou64 (n_start, NULL, 10);
       counter++;
 
       if (counter == 1)
@@ -369,7 +369,7 @@ _asn1_objectid_der (unsigned char *str, unsigned char *der, int *der_len)
       else
 	{
 	  first = 0;
-	  for (k = 4; k >= 0; k--)
+	  for (k = sizeof(val); k >= 0; k--)
 	    {
 	      bit7 = (val >> (k * 7)) & 0x7F;
 	      if (bit7 || first || !k)
@@ -757,7 +757,7 @@ _asn1_ordering_set (unsigned char *der, int der_len, asn1_node node)
       if (err != ASN1_SUCCESS)
 	goto error;
 
-      t = class << 24;
+      t = ((unsigned int)class) << 24;
       p_vet->value = t | tag;
       counter += len2;
 
