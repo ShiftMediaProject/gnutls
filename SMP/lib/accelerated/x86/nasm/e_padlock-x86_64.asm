@@ -328,8 +328,6 @@ $L$SEH_begin_padlock_ecb_encrypt:
 	lea	rdx,[16+rdx]
 	xor	eax,eax
 	xor	ebx,ebx
-	cmp	rcx,128
-	jbe	NEAR $L$ecb_short
 	test	DWORD[rdx],32
 	jnz	NEAR $L$ecb_aligned
 	test	rdi,0x0f
@@ -349,6 +347,21 @@ $L$SEH_begin_padlock_ecb_encrypt:
 	neg	rax
 	and	rbx,512-1
 	lea	rsp,[rbp*1+rax]
+	mov	rax,512
+	cmovz	rbx,rax
+	cmp	rcx,rbx
+	ja	NEAR $L$ecb_loop
+	mov	rax,rsi
+	cmp	rbp,rsp
+	cmove	rax,rdi
+	add	rax,rcx
+	neg	rax
+	and	rax,0xfff
+	cmp	rax,128
+	mov	rax,-128
+	cmovae	rax,rbx
+	and	rbx,rax
+	jz	NEAR $L$ecb_unaligned_tail
 	jmp	NEAR $L$ecb_loop
 ALIGN	16
 $L$ecb_loop:
@@ -378,8 +391,8 @@ DB	0xf3,0x0f,0xa7,200
 	test	rdi,0x0f
 	jz	NEAR $L$ecb_out_aligned
 	mov	rcx,rbx
-	shr	rcx,3
 	lea	rsi,[rsp]
+	shr	rcx,3
 DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$ecb_out_aligned:
@@ -389,9 +402,26 @@ $L$ecb_out_aligned:
 	add	rsi,rbx
 	sub	rcx,rbx
 	mov	rbx,512
-	jnz	NEAR $L$ecb_loop
-
+	jz	NEAR $L$ecb_break
+	cmp	rcx,rbx
+	jae	NEAR $L$ecb_loop
+$L$ecb_unaligned_tail:
+	xor	eax,eax
 	cmp	rbp,rsp
+	cmove	rax,rcx
+	mov	r8,rdi
+	mov	rbx,rcx
+	sub	rsp,rax
+	shr	rcx,3
+	lea	rdi,[rsp]
+DB	0xf3,0x48,0xa5
+	mov	rsi,rsp
+	mov	rdi,r8
+	mov	rcx,rbx
+	jmp	NEAR $L$ecb_loop
+ALIGN	16
+$L$ecb_break:
+	cmp	rsp,rbp
 	je	NEAR $L$ecb_done
 
 	pxor	xmm0,xmm0
@@ -405,26 +435,39 @@ $L$ecb_bzero:
 $L$ecb_done:
 	lea	rsp,[rbp]
 	jmp	NEAR $L$ecb_exit
-ALIGN	16
-$L$ecb_short:
-	mov	rbp,rsp
-	sub	rsp,rcx
-	xor	rbx,rbx
-$L$ecb_short_copy:
-	movups	xmm0,XMMWORD[rbx*1+rsi]
-	lea	rbx,[16+rbx]
-	cmp	rcx,rbx
-	movaps	XMMWORD[(-16)+rbx*1+rsp],xmm0
-	ja	NEAR $L$ecb_short_copy
-	mov	rsi,rsp
-	mov	rbx,rcx
-	jmp	NEAR $L$ecb_loop
+
 ALIGN	16
 $L$ecb_aligned:
+	lea	rbp,[rcx*1+rsi]
+	neg	rbp
+	and	rbp,0xfff
+	xor	eax,eax
+	cmp	rbp,128
+	mov	rbp,128-1
+	cmovae	rbp,rax
+	and	rbp,rcx
+	sub	rcx,rbp
+	jz	NEAR $L$ecb_aligned_tail
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
 DB	0xf3,0x0f,0xa7,200
+	test	rbp,rbp
+	jz	NEAR $L$ecb_exit
+
+$L$ecb_aligned_tail:
+	mov	r8,rdi
+	mov	rbx,rbp
+	mov	rcx,rbp
+	lea	rbp,[rsp]
+	sub	rsp,rcx
+	shr	rcx,3
+	lea	rdi,[rsp]
+DB	0xf3,0x48,0xa5
+	lea	rdi,[r8]
+	lea	rsi,[rsp]
+	mov	rcx,rbx
+	jmp	NEAR $L$ecb_loop
 $L$ecb_exit:
 	mov	eax,1
 	lea	rsp,[8+rsp]
@@ -464,8 +507,6 @@ $L$SEH_begin_padlock_cbc_encrypt:
 	lea	rdx,[16+rdx]
 	xor	eax,eax
 	xor	ebx,ebx
-	cmp	rcx,64
-	jbe	NEAR $L$cbc_short
 	test	DWORD[rdx],32
 	jnz	NEAR $L$cbc_aligned
 	test	rdi,0x0f
@@ -485,6 +526,21 @@ $L$SEH_begin_padlock_cbc_encrypt:
 	neg	rax
 	and	rbx,512-1
 	lea	rsp,[rbp*1+rax]
+	mov	rax,512
+	cmovz	rbx,rax
+	cmp	rcx,rbx
+	ja	NEAR $L$cbc_loop
+	mov	rax,rsi
+	cmp	rbp,rsp
+	cmove	rax,rdi
+	add	rax,rcx
+	neg	rax
+	and	rax,0xfff
+	cmp	rax,64
+	mov	rax,-64
+	cmovae	rax,rbx
+	and	rbx,rax
+	jz	NEAR $L$cbc_unaligned_tail
 	jmp	NEAR $L$cbc_loop
 ALIGN	16
 $L$cbc_loop:
@@ -516,8 +572,8 @@ DB	0xf3,0x0f,0xa7,208
 	test	rdi,0x0f
 	jz	NEAR $L$cbc_out_aligned
 	mov	rcx,rbx
-	shr	rcx,3
 	lea	rsi,[rsp]
+	shr	rcx,3
 DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$cbc_out_aligned:
@@ -527,9 +583,26 @@ $L$cbc_out_aligned:
 	add	rsi,rbx
 	sub	rcx,rbx
 	mov	rbx,512
-	jnz	NEAR $L$cbc_loop
-
+	jz	NEAR $L$cbc_break
+	cmp	rcx,rbx
+	jae	NEAR $L$cbc_loop
+$L$cbc_unaligned_tail:
+	xor	eax,eax
 	cmp	rbp,rsp
+	cmove	rax,rcx
+	mov	r8,rdi
+	mov	rbx,rcx
+	sub	rsp,rax
+	shr	rcx,3
+	lea	rdi,[rsp]
+DB	0xf3,0x48,0xa5
+	mov	rsi,rsp
+	mov	rdi,r8
+	mov	rcx,rbx
+	jmp	NEAR $L$cbc_loop
+ALIGN	16
+$L$cbc_break:
+	cmp	rsp,rbp
 	je	NEAR $L$cbc_done
 
 	pxor	xmm0,xmm0
@@ -543,28 +616,41 @@ $L$cbc_bzero:
 $L$cbc_done:
 	lea	rsp,[rbp]
 	jmp	NEAR $L$cbc_exit
-ALIGN	16
-$L$cbc_short:
-	mov	rbp,rsp
-	sub	rsp,rcx
-	xor	rbx,rbx
-$L$cbc_short_copy:
-	movups	xmm0,XMMWORD[rbx*1+rsi]
-	lea	rbx,[16+rbx]
-	cmp	rcx,rbx
-	movaps	XMMWORD[(-16)+rbx*1+rsp],xmm0
-	ja	NEAR $L$cbc_short_copy
-	mov	rsi,rsp
-	mov	rbx,rcx
-	jmp	NEAR $L$cbc_loop
+
 ALIGN	16
 $L$cbc_aligned:
+	lea	rbp,[rcx*1+rsi]
+	neg	rbp
+	and	rbp,0xfff
+	xor	eax,eax
+	cmp	rbp,64
+	mov	rbp,64-1
+	cmovae	rbp,rax
+	and	rbp,rcx
+	sub	rcx,rbp
+	jz	NEAR $L$cbc_aligned_tail
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
 DB	0xf3,0x0f,0xa7,208
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
+	test	rbp,rbp
+	jz	NEAR $L$cbc_exit
+
+$L$cbc_aligned_tail:
+	mov	r8,rdi
+	mov	rbx,rbp
+	mov	rcx,rbp
+	lea	rbp,[rsp]
+	sub	rsp,rcx
+	shr	rcx,3
+	lea	rdi,[rsp]
+DB	0xf3,0x48,0xa5
+	lea	rdi,[r8]
+	lea	rsi,[rsp]
+	mov	rcx,rbx
+	jmp	NEAR $L$cbc_loop
 $L$cbc_exit:
 	mov	eax,1
 	lea	rsp,[8+rsp]
@@ -623,6 +709,8 @@ $L$SEH_begin_padlock_cfb_encrypt:
 	neg	rax
 	and	rbx,512-1
 	lea	rsp,[rbp*1+rax]
+	mov	rax,512
+	cmovz	rbx,rax
 	jmp	NEAR $L$cfb_loop
 ALIGN	16
 $L$cfb_loop:
@@ -654,8 +742,8 @@ DB	0xf3,0x0f,0xa7,224
 	test	rdi,0x0f
 	jz	NEAR $L$cfb_out_aligned
 	mov	rcx,rbx
-	shr	rcx,3
 	lea	rsi,[rsp]
+	shr	rcx,3
 DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$cfb_out_aligned:
@@ -666,8 +754,7 @@ $L$cfb_out_aligned:
 	sub	rcx,rbx
 	mov	rbx,512
 	jnz	NEAR $L$cfb_loop
-
-	cmp	rbp,rsp
+	cmp	rsp,rbp
 	je	NEAR $L$cfb_done
 
 	pxor	xmm0,xmm0
@@ -681,6 +768,7 @@ $L$cfb_bzero:
 $L$cfb_done:
 	lea	rsp,[rbp]
 	jmp	NEAR $L$cfb_exit
+
 ALIGN	16
 $L$cfb_aligned:
 	lea	rax,[((-16))+rdx]
@@ -747,6 +835,8 @@ $L$SEH_begin_padlock_ofb_encrypt:
 	neg	rax
 	and	rbx,512-1
 	lea	rsp,[rbp*1+rax]
+	mov	rax,512
+	cmovz	rbx,rax
 	jmp	NEAR $L$ofb_loop
 ALIGN	16
 $L$ofb_loop:
@@ -778,8 +868,8 @@ DB	0xf3,0x0f,0xa7,232
 	test	rdi,0x0f
 	jz	NEAR $L$ofb_out_aligned
 	mov	rcx,rbx
-	shr	rcx,3
 	lea	rsi,[rsp]
+	shr	rcx,3
 DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$ofb_out_aligned:
@@ -790,8 +880,7 @@ $L$ofb_out_aligned:
 	sub	rcx,rbx
 	mov	rbx,512
 	jnz	NEAR $L$ofb_loop
-
-	cmp	rbp,rsp
+	cmp	rsp,rbp
 	je	NEAR $L$ofb_done
 
 	pxor	xmm0,xmm0
@@ -805,6 +894,7 @@ $L$ofb_bzero:
 $L$ofb_done:
 	lea	rsp,[rbp]
 	jmp	NEAR $L$ofb_exit
+
 ALIGN	16
 $L$ofb_aligned:
 	lea	rax,[((-16))+rdx]
@@ -852,8 +942,6 @@ $L$SEH_begin_padlock_ctr32_encrypt:
 	lea	rdx,[16+rdx]
 	xor	eax,eax
 	xor	ebx,ebx
-	cmp	rcx,64
-	jbe	NEAR $L$ctr32_short
 	test	DWORD[rdx],32
 	jnz	NEAR $L$ctr32_aligned
 	test	rdi,0x0f
@@ -873,15 +961,32 @@ $L$SEH_begin_padlock_ctr32_encrypt:
 	neg	rax
 	and	rbx,512-1
 	lea	rsp,[rbp*1+rax]
+	mov	rax,512
+	cmovz	rbx,rax
 $L$ctr32_reenter:
 	mov	eax,DWORD[((-4))+rdx]
 	bswap	eax
 	neg	eax
 	and	eax,31
-	jz	NEAR $L$ctr32_loop
+	mov	rbx,512
 	shl	eax,4
+	cmovz	rax,rbx
 	cmp	rcx,rax
 	cmova	rbx,rax
+	cmovbe	rbx,rcx
+	cmp	rcx,rbx
+	ja	NEAR $L$ctr32_loop
+	mov	rax,rsi
+	cmp	rbp,rsp
+	cmove	rax,rdi
+	add	rax,rcx
+	neg	rax
+	and	rax,0xfff
+	cmp	rax,32
+	mov	rax,-32
+	cmovae	rax,rbx
+	and	rbx,rax
+	jz	NEAR $L$ctr32_unaligned_tail
 	jmp	NEAR $L$ctr32_loop
 ALIGN	16
 $L$ctr32_loop:
@@ -908,19 +1013,19 @@ $L$ctr32_inp_aligned:
 DB	0xf3,0x0f,0xa7,216
 	mov	eax,DWORD[((-4))+rdx]
 	test	eax,0xffff0000
-	jnz	NEAR $L$ctr32_no_corr
+	jnz	NEAR $L$ctr32_no_carry
 	bswap	eax
 	add	eax,0x10000
 	bswap	eax
 	mov	DWORD[((-4))+rdx],eax
-$L$ctr32_no_corr:
+$L$ctr32_no_carry:
 	mov	rdi,r8
 	mov	rbx,r11
 	test	rdi,0x0f
 	jz	NEAR $L$ctr32_out_aligned
 	mov	rcx,rbx
-	shr	rcx,3
 	lea	rsi,[rsp]
+	shr	rcx,3
 DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$ctr32_out_aligned:
@@ -930,9 +1035,38 @@ $L$ctr32_out_aligned:
 	add	rsi,rbx
 	sub	rcx,rbx
 	mov	rbx,512
-	jnz	NEAR $L$ctr32_loop
-
+	jz	NEAR $L$ctr32_break
+	cmp	rcx,rbx
+	jae	NEAR $L$ctr32_loop
+	mov	rbx,rcx
+	mov	rax,rsi
 	cmp	rbp,rsp
+	cmove	rax,rdi
+	add	rax,rcx
+	neg	rax
+	and	rax,0xfff
+	cmp	rax,32
+	mov	rax,-32
+	cmovae	rax,rbx
+	and	rbx,rax
+	jnz	NEAR $L$ctr32_loop
+$L$ctr32_unaligned_tail:
+	xor	eax,eax
+	cmp	rbp,rsp
+	cmove	rax,rcx
+	mov	r8,rdi
+	mov	rbx,rcx
+	sub	rsp,rax
+	shr	rcx,3
+	lea	rdi,[rsp]
+DB	0xf3,0x48,0xa5
+	mov	rsi,rsp
+	mov	rdi,r8
+	mov	rcx,rbx
+	jmp	NEAR $L$ctr32_loop
+ALIGN	16
+$L$ctr32_break:
+	cmp	rsp,rbp
 	je	NEAR $L$ctr32_done
 
 	pxor	xmm0,xmm0
@@ -946,56 +1080,75 @@ $L$ctr32_bzero:
 $L$ctr32_done:
 	lea	rsp,[rbp]
 	jmp	NEAR $L$ctr32_exit
-ALIGN	16
-$L$ctr32_short:
-	mov	rbp,rsp
-	sub	rsp,rcx
-	xor	rbx,rbx
-$L$ctr32_short_copy:
-	movups	xmm0,XMMWORD[rbx*1+rsi]
-	lea	rbx,[16+rbx]
-	cmp	rcx,rbx
-	movaps	XMMWORD[(-16)+rbx*1+rsp],xmm0
-	ja	NEAR $L$ctr32_short_copy
-	mov	rsi,rsp
-	mov	rbx,rcx
-	jmp	NEAR $L$ctr32_reenter
+
 ALIGN	16
 $L$ctr32_aligned:
 	mov	eax,DWORD[((-4))+rdx]
-	mov	rbx,1048576
 	bswap	eax
-	cmp	rbx,rcx
-	cmova	rbx,rcx
 	neg	eax
 	and	eax,0xffff
-	jz	NEAR $L$ctr32_aligned_loop
+	mov	rbx,1048576
 	shl	eax,4
+	cmovz	rax,rbx
 	cmp	rcx,rax
 	cmova	rbx,rax
-	jmp	NEAR $L$ctr32_aligned_loop
-ALIGN	16
+	cmovbe	rbx,rcx
+	jbe	NEAR $L$ctr32_aligned_skip
+
 $L$ctr32_aligned_loop:
-	cmp	rbx,rcx
-	cmova	rbx,rcx
 	mov	r10,rcx
 	mov	rcx,rbx
 	mov	r11,rbx
+
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
 DB	0xf3,0x0f,0xa7,216
+
 	mov	eax,DWORD[((-4))+rdx]
 	bswap	eax
 	add	eax,0x10000
 	bswap	eax
 	mov	DWORD[((-4))+rdx],eax
 
-	mov	rbx,r11
 	mov	rcx,r10
-	sub	rcx,rbx
+	sub	rcx,r11
 	mov	rbx,1048576
-	jnz	NEAR $L$ctr32_aligned_loop
+	jz	NEAR $L$ctr32_exit
+	cmp	rcx,rbx
+	jae	NEAR $L$ctr32_aligned_loop
+
+$L$ctr32_aligned_skip:
+	lea	rbp,[rcx*1+rsi]
+	neg	rbp
+	and	rbp,0xfff
+	xor	eax,eax
+	cmp	rbp,32
+	mov	rbp,32-1
+	cmovae	rbp,rax
+	and	rbp,rcx
+	sub	rcx,rbp
+	jz	NEAR $L$ctr32_aligned_tail
+	lea	rax,[((-16))+rdx]
+	lea	rbx,[16+rdx]
+	shr	rcx,4
+DB	0xf3,0x0f,0xa7,216
+	test	rbp,rbp
+	jz	NEAR $L$ctr32_exit
+
+$L$ctr32_aligned_tail:
+	mov	r8,rdi
+	mov	rbx,rbp
+	mov	rcx,rbp
+	lea	rbp,[rsp]
+	sub	rsp,rcx
+	shr	rcx,3
+	lea	rdi,[rsp]
+DB	0xf3,0x48,0xa5
+	lea	rdi,[r8]
+	lea	rsi,[rsp]
+	mov	rcx,rbx
+	jmp	NEAR $L$ctr32_loop
 $L$ctr32_exit:
 	mov	eax,1
 	lea	rsp,[8+rsp]

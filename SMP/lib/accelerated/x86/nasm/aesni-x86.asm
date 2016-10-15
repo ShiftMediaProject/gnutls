@@ -1767,6 +1767,792 @@ L$069xts_dec_ret:
 	pop	ebx
 	pop	ebp
 	ret
+global	_aesni_ocb_encrypt
+align	16
+_aesni_ocb_encrypt:
+L$_aesni_ocb_encrypt_begin:
+	push	ebp
+	push	ebx
+	push	esi
+	push	edi
+	mov	ecx,DWORD [40+esp]
+	mov	ebx,DWORD [48+esp]
+	mov	esi,DWORD [20+esp]
+	mov	edi,DWORD [24+esp]
+	mov	eax,DWORD [28+esp]
+	mov	edx,DWORD [32+esp]
+	movdqu	xmm0,[ecx]
+	mov	ebp,DWORD [36+esp]
+	movdqu	xmm1,[ebx]
+	mov	ebx,DWORD [44+esp]
+	mov	ecx,esp
+	sub	esp,132
+	and	esp,-16
+	sub	edi,esi
+	shl	eax,4
+	lea	eax,[eax*1+esi-96]
+	mov	DWORD [120+esp],edi
+	mov	DWORD [124+esp],eax
+	mov	DWORD [128+esp],ecx
+	mov	ecx,DWORD [240+edx]
+	test	ebp,1
+	jnz	NEAR L$074odd
+	bsf	eax,ebp
+	add	ebp,1
+	shl	eax,4
+	movdqu	xmm7,[eax*1+ebx]
+	mov	eax,edx
+	movdqu	xmm2,[esi]
+	lea	esi,[16+esi]
+	pxor	xmm7,xmm0
+	pxor	xmm1,xmm2
+	pxor	xmm2,xmm7
+	movdqa	xmm6,xmm1
+	movups	xmm0,[edx]
+	movups	xmm1,[16+edx]
+	lea	edx,[32+edx]
+	xorps	xmm2,xmm0
+L$075enc1_loop_15:
+db	102,15,56,220,209
+	dec	ecx
+	movups	xmm1,[edx]
+	lea	edx,[16+edx]
+	jnz	NEAR L$075enc1_loop_15
+db	102,15,56,221,209
+	xorps	xmm2,xmm7
+	movdqa	xmm0,xmm7
+	movdqa	xmm1,xmm6
+	movups	[esi*1+edi-16],xmm2
+	mov	ecx,DWORD [240+eax]
+	mov	edx,eax
+	mov	eax,DWORD [124+esp]
+L$074odd:
+	shl	ecx,4
+	mov	edi,16
+	sub	edi,ecx
+	mov	DWORD [112+esp],edx
+	lea	edx,[32+ecx*1+edx]
+	mov	DWORD [116+esp],edi
+	cmp	esi,eax
+	ja	NEAR L$076short
+	jmp	NEAR L$077grandloop
+align	32
+L$077grandloop:
+	lea	ecx,[1+ebp]
+	lea	eax,[3+ebp]
+	lea	edi,[5+ebp]
+	add	ebp,6
+	bsf	ecx,ecx
+	bsf	eax,eax
+	bsf	edi,edi
+	shl	ecx,4
+	shl	eax,4
+	shl	edi,4
+	movdqu	xmm2,[ebx]
+	movdqu	xmm3,[ecx*1+ebx]
+	mov	ecx,DWORD [116+esp]
+	movdqa	xmm4,xmm2
+	movdqu	xmm5,[eax*1+ebx]
+	movdqa	xmm6,xmm2
+	movdqu	xmm7,[edi*1+ebx]
+	pxor	xmm2,xmm0
+	pxor	xmm3,xmm2
+	movdqa	[esp],xmm2
+	pxor	xmm4,xmm3
+	movdqa	[16+esp],xmm3
+	pxor	xmm5,xmm4
+	movdqa	[32+esp],xmm4
+	pxor	xmm6,xmm5
+	movdqa	[48+esp],xmm5
+	pxor	xmm7,xmm6
+	movdqa	[64+esp],xmm6
+	movdqa	[80+esp],xmm7
+	movups	xmm0,[ecx*1+edx-48]
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	movdqu	xmm4,[32+esi]
+	movdqu	xmm5,[48+esi]
+	movdqu	xmm6,[64+esi]
+	movdqu	xmm7,[80+esi]
+	lea	esi,[96+esi]
+	pxor	xmm1,xmm2
+	pxor	xmm2,xmm0
+	pxor	xmm1,xmm3
+	pxor	xmm3,xmm0
+	pxor	xmm1,xmm4
+	pxor	xmm4,xmm0
+	pxor	xmm1,xmm5
+	pxor	xmm5,xmm0
+	pxor	xmm1,xmm6
+	pxor	xmm6,xmm0
+	pxor	xmm1,xmm7
+	pxor	xmm7,xmm0
+	movdqa	[96+esp],xmm1
+	movups	xmm1,[ecx*1+edx-32]
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,[64+esp]
+	pxor	xmm7,[80+esp]
+	movups	xmm0,[ecx*1+edx-16]
+db	102,15,56,220,209
+db	102,15,56,220,217
+db	102,15,56,220,225
+db	102,15,56,220,233
+db	102,15,56,220,241
+db	102,15,56,220,249
+	mov	edi,DWORD [120+esp]
+	mov	eax,DWORD [124+esp]
+	call	L$_aesni_encrypt6_enter
+	movdqa	xmm0,[80+esp]
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,[64+esp]
+	pxor	xmm7,xmm0
+	movdqa	xmm1,[96+esp]
+	movdqu	[esi*1+edi-96],xmm2
+	movdqu	[esi*1+edi-80],xmm3
+	movdqu	[esi*1+edi-64],xmm4
+	movdqu	[esi*1+edi-48],xmm5
+	movdqu	[esi*1+edi-32],xmm6
+	movdqu	[esi*1+edi-16],xmm7
+	cmp	esi,eax
+	jb	NEAR L$077grandloop
+L$076short:
+	add	eax,96
+	sub	eax,esi
+	jz	NEAR L$078done
+	cmp	eax,32
+	jb	NEAR L$079one
+	je	NEAR L$080two
+	cmp	eax,64
+	jb	NEAR L$081three
+	je	NEAR L$082four
+	lea	ecx,[1+ebp]
+	lea	eax,[3+ebp]
+	bsf	ecx,ecx
+	bsf	eax,eax
+	shl	ecx,4
+	shl	eax,4
+	movdqu	xmm2,[ebx]
+	movdqu	xmm3,[ecx*1+ebx]
+	mov	ecx,DWORD [116+esp]
+	movdqa	xmm4,xmm2
+	movdqu	xmm5,[eax*1+ebx]
+	movdqa	xmm6,xmm2
+	pxor	xmm2,xmm0
+	pxor	xmm3,xmm2
+	movdqa	[esp],xmm2
+	pxor	xmm4,xmm3
+	movdqa	[16+esp],xmm3
+	pxor	xmm5,xmm4
+	movdqa	[32+esp],xmm4
+	pxor	xmm6,xmm5
+	movdqa	[48+esp],xmm5
+	pxor	xmm7,xmm6
+	movdqa	[64+esp],xmm6
+	movups	xmm0,[ecx*1+edx-48]
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	movdqu	xmm4,[32+esi]
+	movdqu	xmm5,[48+esi]
+	movdqu	xmm6,[64+esi]
+	pxor	xmm7,xmm7
+	pxor	xmm1,xmm2
+	pxor	xmm2,xmm0
+	pxor	xmm1,xmm3
+	pxor	xmm3,xmm0
+	pxor	xmm1,xmm4
+	pxor	xmm4,xmm0
+	pxor	xmm1,xmm5
+	pxor	xmm5,xmm0
+	pxor	xmm1,xmm6
+	pxor	xmm6,xmm0
+	movdqa	[96+esp],xmm1
+	movups	xmm1,[ecx*1+edx-32]
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,[64+esp]
+	movups	xmm0,[ecx*1+edx-16]
+db	102,15,56,220,209
+db	102,15,56,220,217
+db	102,15,56,220,225
+db	102,15,56,220,233
+db	102,15,56,220,241
+db	102,15,56,220,249
+	mov	edi,DWORD [120+esp]
+	call	L$_aesni_encrypt6_enter
+	movdqa	xmm0,[64+esp]
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,xmm0
+	movdqa	xmm1,[96+esp]
+	movdqu	[esi*1+edi],xmm2
+	movdqu	[16+esi*1+edi],xmm3
+	movdqu	[32+esi*1+edi],xmm4
+	movdqu	[48+esi*1+edi],xmm5
+	movdqu	[64+esi*1+edi],xmm6
+	jmp	NEAR L$078done
+align	16
+L$079one:
+	movdqu	xmm7,[ebx]
+	mov	edx,DWORD [112+esp]
+	movdqu	xmm2,[esi]
+	mov	ecx,DWORD [240+edx]
+	pxor	xmm7,xmm0
+	pxor	xmm1,xmm2
+	pxor	xmm2,xmm7
+	movdqa	xmm6,xmm1
+	mov	edi,DWORD [120+esp]
+	movups	xmm0,[edx]
+	movups	xmm1,[16+edx]
+	lea	edx,[32+edx]
+	xorps	xmm2,xmm0
+L$083enc1_loop_16:
+db	102,15,56,220,209
+	dec	ecx
+	movups	xmm1,[edx]
+	lea	edx,[16+edx]
+	jnz	NEAR L$083enc1_loop_16
+db	102,15,56,221,209
+	xorps	xmm2,xmm7
+	movdqa	xmm0,xmm7
+	movdqa	xmm1,xmm6
+	movups	[esi*1+edi],xmm2
+	jmp	NEAR L$078done
+align	16
+L$080two:
+	lea	ecx,[1+ebp]
+	mov	edx,DWORD [112+esp]
+	bsf	ecx,ecx
+	shl	ecx,4
+	movdqu	xmm6,[ebx]
+	movdqu	xmm7,[ecx*1+ebx]
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	mov	ecx,DWORD [240+edx]
+	pxor	xmm6,xmm0
+	pxor	xmm7,xmm6
+	pxor	xmm1,xmm2
+	pxor	xmm2,xmm6
+	pxor	xmm1,xmm3
+	pxor	xmm3,xmm7
+	movdqa	xmm5,xmm1
+	mov	edi,DWORD [120+esp]
+	call	__aesni_encrypt2
+	xorps	xmm2,xmm6
+	xorps	xmm3,xmm7
+	movdqa	xmm0,xmm7
+	movdqa	xmm1,xmm5
+	movups	[esi*1+edi],xmm2
+	movups	[16+esi*1+edi],xmm3
+	jmp	NEAR L$078done
+align	16
+L$081three:
+	lea	ecx,[1+ebp]
+	mov	edx,DWORD [112+esp]
+	bsf	ecx,ecx
+	shl	ecx,4
+	movdqu	xmm5,[ebx]
+	movdqu	xmm6,[ecx*1+ebx]
+	movdqa	xmm7,xmm5
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	movdqu	xmm4,[32+esi]
+	mov	ecx,DWORD [240+edx]
+	pxor	xmm5,xmm0
+	pxor	xmm6,xmm5
+	pxor	xmm7,xmm6
+	pxor	xmm1,xmm2
+	pxor	xmm2,xmm5
+	pxor	xmm1,xmm3
+	pxor	xmm3,xmm6
+	pxor	xmm1,xmm4
+	pxor	xmm4,xmm7
+	movdqa	[96+esp],xmm1
+	mov	edi,DWORD [120+esp]
+	call	__aesni_encrypt3
+	xorps	xmm2,xmm5
+	xorps	xmm3,xmm6
+	xorps	xmm4,xmm7
+	movdqa	xmm0,xmm7
+	movdqa	xmm1,[96+esp]
+	movups	[esi*1+edi],xmm2
+	movups	[16+esi*1+edi],xmm3
+	movups	[32+esi*1+edi],xmm4
+	jmp	NEAR L$078done
+align	16
+L$082four:
+	lea	ecx,[1+ebp]
+	lea	eax,[3+ebp]
+	bsf	ecx,ecx
+	bsf	eax,eax
+	mov	edx,DWORD [112+esp]
+	shl	ecx,4
+	shl	eax,4
+	movdqu	xmm4,[ebx]
+	movdqu	xmm5,[ecx*1+ebx]
+	movdqa	xmm6,xmm4
+	movdqu	xmm7,[eax*1+ebx]
+	pxor	xmm4,xmm0
+	movdqu	xmm2,[esi]
+	pxor	xmm5,xmm4
+	movdqu	xmm3,[16+esi]
+	pxor	xmm6,xmm5
+	movdqa	[esp],xmm4
+	pxor	xmm7,xmm6
+	movdqa	[16+esp],xmm5
+	movdqu	xmm4,[32+esi]
+	movdqu	xmm5,[48+esi]
+	mov	ecx,DWORD [240+edx]
+	pxor	xmm1,xmm2
+	pxor	xmm2,[esp]
+	pxor	xmm1,xmm3
+	pxor	xmm3,[16+esp]
+	pxor	xmm1,xmm4
+	pxor	xmm4,xmm6
+	pxor	xmm1,xmm5
+	pxor	xmm5,xmm7
+	movdqa	[96+esp],xmm1
+	mov	edi,DWORD [120+esp]
+	call	__aesni_encrypt4
+	xorps	xmm2,[esp]
+	xorps	xmm3,[16+esp]
+	xorps	xmm4,xmm6
+	movups	[esi*1+edi],xmm2
+	xorps	xmm5,xmm7
+	movups	[16+esi*1+edi],xmm3
+	movdqa	xmm0,xmm7
+	movups	[32+esi*1+edi],xmm4
+	movdqa	xmm1,[96+esp]
+	movups	[48+esi*1+edi],xmm5
+L$078done:
+	mov	edx,DWORD [128+esp]
+	pxor	xmm2,xmm2
+	pxor	xmm3,xmm3
+	movdqa	[esp],xmm2
+	pxor	xmm4,xmm4
+	movdqa	[16+esp],xmm2
+	pxor	xmm5,xmm5
+	movdqa	[32+esp],xmm2
+	pxor	xmm6,xmm6
+	movdqa	[48+esp],xmm2
+	pxor	xmm7,xmm7
+	movdqa	[64+esp],xmm2
+	movdqa	[80+esp],xmm2
+	movdqa	[96+esp],xmm2
+	lea	esp,[edx]
+	mov	ecx,DWORD [40+esp]
+	mov	ebx,DWORD [48+esp]
+	movdqu	[ecx],xmm0
+	pxor	xmm0,xmm0
+	movdqu	[ebx],xmm1
+	pxor	xmm1,xmm1
+	pop	edi
+	pop	esi
+	pop	ebx
+	pop	ebp
+	ret
+global	_aesni_ocb_decrypt
+align	16
+_aesni_ocb_decrypt:
+L$_aesni_ocb_decrypt_begin:
+	push	ebp
+	push	ebx
+	push	esi
+	push	edi
+	mov	ecx,DWORD [40+esp]
+	mov	ebx,DWORD [48+esp]
+	mov	esi,DWORD [20+esp]
+	mov	edi,DWORD [24+esp]
+	mov	eax,DWORD [28+esp]
+	mov	edx,DWORD [32+esp]
+	movdqu	xmm0,[ecx]
+	mov	ebp,DWORD [36+esp]
+	movdqu	xmm1,[ebx]
+	mov	ebx,DWORD [44+esp]
+	mov	ecx,esp
+	sub	esp,132
+	and	esp,-16
+	sub	edi,esi
+	shl	eax,4
+	lea	eax,[eax*1+esi-96]
+	mov	DWORD [120+esp],edi
+	mov	DWORD [124+esp],eax
+	mov	DWORD [128+esp],ecx
+	mov	ecx,DWORD [240+edx]
+	test	ebp,1
+	jnz	NEAR L$084odd
+	bsf	eax,ebp
+	add	ebp,1
+	shl	eax,4
+	movdqu	xmm7,[eax*1+ebx]
+	mov	eax,edx
+	movdqu	xmm2,[esi]
+	lea	esi,[16+esi]
+	pxor	xmm7,xmm0
+	pxor	xmm2,xmm7
+	movdqa	xmm6,xmm1
+	movups	xmm0,[edx]
+	movups	xmm1,[16+edx]
+	lea	edx,[32+edx]
+	xorps	xmm2,xmm0
+L$085dec1_loop_17:
+db	102,15,56,222,209
+	dec	ecx
+	movups	xmm1,[edx]
+	lea	edx,[16+edx]
+	jnz	NEAR L$085dec1_loop_17
+db	102,15,56,223,209
+	xorps	xmm2,xmm7
+	movaps	xmm1,xmm6
+	movdqa	xmm0,xmm7
+	xorps	xmm1,xmm2
+	movups	[esi*1+edi-16],xmm2
+	mov	ecx,DWORD [240+eax]
+	mov	edx,eax
+	mov	eax,DWORD [124+esp]
+L$084odd:
+	shl	ecx,4
+	mov	edi,16
+	sub	edi,ecx
+	mov	DWORD [112+esp],edx
+	lea	edx,[32+ecx*1+edx]
+	mov	DWORD [116+esp],edi
+	cmp	esi,eax
+	ja	NEAR L$086short
+	jmp	NEAR L$087grandloop
+align	32
+L$087grandloop:
+	lea	ecx,[1+ebp]
+	lea	eax,[3+ebp]
+	lea	edi,[5+ebp]
+	add	ebp,6
+	bsf	ecx,ecx
+	bsf	eax,eax
+	bsf	edi,edi
+	shl	ecx,4
+	shl	eax,4
+	shl	edi,4
+	movdqu	xmm2,[ebx]
+	movdqu	xmm3,[ecx*1+ebx]
+	mov	ecx,DWORD [116+esp]
+	movdqa	xmm4,xmm2
+	movdqu	xmm5,[eax*1+ebx]
+	movdqa	xmm6,xmm2
+	movdqu	xmm7,[edi*1+ebx]
+	pxor	xmm2,xmm0
+	pxor	xmm3,xmm2
+	movdqa	[esp],xmm2
+	pxor	xmm4,xmm3
+	movdqa	[16+esp],xmm3
+	pxor	xmm5,xmm4
+	movdqa	[32+esp],xmm4
+	pxor	xmm6,xmm5
+	movdqa	[48+esp],xmm5
+	pxor	xmm7,xmm6
+	movdqa	[64+esp],xmm6
+	movdqa	[80+esp],xmm7
+	movups	xmm0,[ecx*1+edx-48]
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	movdqu	xmm4,[32+esi]
+	movdqu	xmm5,[48+esi]
+	movdqu	xmm6,[64+esi]
+	movdqu	xmm7,[80+esi]
+	lea	esi,[96+esi]
+	movdqa	[96+esp],xmm1
+	pxor	xmm2,xmm0
+	pxor	xmm3,xmm0
+	pxor	xmm4,xmm0
+	pxor	xmm5,xmm0
+	pxor	xmm6,xmm0
+	pxor	xmm7,xmm0
+	movups	xmm1,[ecx*1+edx-32]
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,[64+esp]
+	pxor	xmm7,[80+esp]
+	movups	xmm0,[ecx*1+edx-16]
+db	102,15,56,222,209
+db	102,15,56,222,217
+db	102,15,56,222,225
+db	102,15,56,222,233
+db	102,15,56,222,241
+db	102,15,56,222,249
+	mov	edi,DWORD [120+esp]
+	mov	eax,DWORD [124+esp]
+	call	L$_aesni_decrypt6_enter
+	movdqa	xmm0,[80+esp]
+	pxor	xmm2,[esp]
+	movdqa	xmm1,[96+esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,[64+esp]
+	pxor	xmm7,xmm0
+	pxor	xmm1,xmm2
+	movdqu	[esi*1+edi-96],xmm2
+	pxor	xmm1,xmm3
+	movdqu	[esi*1+edi-80],xmm3
+	pxor	xmm1,xmm4
+	movdqu	[esi*1+edi-64],xmm4
+	pxor	xmm1,xmm5
+	movdqu	[esi*1+edi-48],xmm5
+	pxor	xmm1,xmm6
+	movdqu	[esi*1+edi-32],xmm6
+	pxor	xmm1,xmm7
+	movdqu	[esi*1+edi-16],xmm7
+	cmp	esi,eax
+	jb	NEAR L$087grandloop
+L$086short:
+	add	eax,96
+	sub	eax,esi
+	jz	NEAR L$088done
+	cmp	eax,32
+	jb	NEAR L$089one
+	je	NEAR L$090two
+	cmp	eax,64
+	jb	NEAR L$091three
+	je	NEAR L$092four
+	lea	ecx,[1+ebp]
+	lea	eax,[3+ebp]
+	bsf	ecx,ecx
+	bsf	eax,eax
+	shl	ecx,4
+	shl	eax,4
+	movdqu	xmm2,[ebx]
+	movdqu	xmm3,[ecx*1+ebx]
+	mov	ecx,DWORD [116+esp]
+	movdqa	xmm4,xmm2
+	movdqu	xmm5,[eax*1+ebx]
+	movdqa	xmm6,xmm2
+	pxor	xmm2,xmm0
+	pxor	xmm3,xmm2
+	movdqa	[esp],xmm2
+	pxor	xmm4,xmm3
+	movdqa	[16+esp],xmm3
+	pxor	xmm5,xmm4
+	movdqa	[32+esp],xmm4
+	pxor	xmm6,xmm5
+	movdqa	[48+esp],xmm5
+	pxor	xmm7,xmm6
+	movdqa	[64+esp],xmm6
+	movups	xmm0,[ecx*1+edx-48]
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	movdqu	xmm4,[32+esi]
+	movdqu	xmm5,[48+esi]
+	movdqu	xmm6,[64+esi]
+	pxor	xmm7,xmm7
+	movdqa	[96+esp],xmm1
+	pxor	xmm2,xmm0
+	pxor	xmm3,xmm0
+	pxor	xmm4,xmm0
+	pxor	xmm5,xmm0
+	pxor	xmm6,xmm0
+	movups	xmm1,[ecx*1+edx-32]
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,[64+esp]
+	movups	xmm0,[ecx*1+edx-16]
+db	102,15,56,222,209
+db	102,15,56,222,217
+db	102,15,56,222,225
+db	102,15,56,222,233
+db	102,15,56,222,241
+db	102,15,56,222,249
+	mov	edi,DWORD [120+esp]
+	call	L$_aesni_decrypt6_enter
+	movdqa	xmm0,[64+esp]
+	pxor	xmm2,[esp]
+	movdqa	xmm1,[96+esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,[32+esp]
+	pxor	xmm5,[48+esp]
+	pxor	xmm6,xmm0
+	pxor	xmm1,xmm2
+	movdqu	[esi*1+edi],xmm2
+	pxor	xmm1,xmm3
+	movdqu	[16+esi*1+edi],xmm3
+	pxor	xmm1,xmm4
+	movdqu	[32+esi*1+edi],xmm4
+	pxor	xmm1,xmm5
+	movdqu	[48+esi*1+edi],xmm5
+	pxor	xmm1,xmm6
+	movdqu	[64+esi*1+edi],xmm6
+	jmp	NEAR L$088done
+align	16
+L$089one:
+	movdqu	xmm7,[ebx]
+	mov	edx,DWORD [112+esp]
+	movdqu	xmm2,[esi]
+	mov	ecx,DWORD [240+edx]
+	pxor	xmm7,xmm0
+	pxor	xmm2,xmm7
+	movdqa	xmm6,xmm1
+	mov	edi,DWORD [120+esp]
+	movups	xmm0,[edx]
+	movups	xmm1,[16+edx]
+	lea	edx,[32+edx]
+	xorps	xmm2,xmm0
+L$093dec1_loop_18:
+db	102,15,56,222,209
+	dec	ecx
+	movups	xmm1,[edx]
+	lea	edx,[16+edx]
+	jnz	NEAR L$093dec1_loop_18
+db	102,15,56,223,209
+	xorps	xmm2,xmm7
+	movaps	xmm1,xmm6
+	movdqa	xmm0,xmm7
+	xorps	xmm1,xmm2
+	movups	[esi*1+edi],xmm2
+	jmp	NEAR L$088done
+align	16
+L$090two:
+	lea	ecx,[1+ebp]
+	mov	edx,DWORD [112+esp]
+	bsf	ecx,ecx
+	shl	ecx,4
+	movdqu	xmm6,[ebx]
+	movdqu	xmm7,[ecx*1+ebx]
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	mov	ecx,DWORD [240+edx]
+	movdqa	xmm5,xmm1
+	pxor	xmm6,xmm0
+	pxor	xmm7,xmm6
+	pxor	xmm2,xmm6
+	pxor	xmm3,xmm7
+	mov	edi,DWORD [120+esp]
+	call	__aesni_decrypt2
+	xorps	xmm2,xmm6
+	xorps	xmm3,xmm7
+	movdqa	xmm0,xmm7
+	xorps	xmm5,xmm2
+	movups	[esi*1+edi],xmm2
+	xorps	xmm5,xmm3
+	movups	[16+esi*1+edi],xmm3
+	movaps	xmm1,xmm5
+	jmp	NEAR L$088done
+align	16
+L$091three:
+	lea	ecx,[1+ebp]
+	mov	edx,DWORD [112+esp]
+	bsf	ecx,ecx
+	shl	ecx,4
+	movdqu	xmm5,[ebx]
+	movdqu	xmm6,[ecx*1+ebx]
+	movdqa	xmm7,xmm5
+	movdqu	xmm2,[esi]
+	movdqu	xmm3,[16+esi]
+	movdqu	xmm4,[32+esi]
+	mov	ecx,DWORD [240+edx]
+	movdqa	[96+esp],xmm1
+	pxor	xmm5,xmm0
+	pxor	xmm6,xmm5
+	pxor	xmm7,xmm6
+	pxor	xmm2,xmm5
+	pxor	xmm3,xmm6
+	pxor	xmm4,xmm7
+	mov	edi,DWORD [120+esp]
+	call	__aesni_decrypt3
+	movdqa	xmm1,[96+esp]
+	xorps	xmm2,xmm5
+	xorps	xmm3,xmm6
+	xorps	xmm4,xmm7
+	movups	[esi*1+edi],xmm2
+	pxor	xmm1,xmm2
+	movdqa	xmm0,xmm7
+	movups	[16+esi*1+edi],xmm3
+	pxor	xmm1,xmm3
+	movups	[32+esi*1+edi],xmm4
+	pxor	xmm1,xmm4
+	jmp	NEAR L$088done
+align	16
+L$092four:
+	lea	ecx,[1+ebp]
+	lea	eax,[3+ebp]
+	bsf	ecx,ecx
+	bsf	eax,eax
+	mov	edx,DWORD [112+esp]
+	shl	ecx,4
+	shl	eax,4
+	movdqu	xmm4,[ebx]
+	movdqu	xmm5,[ecx*1+ebx]
+	movdqa	xmm6,xmm4
+	movdqu	xmm7,[eax*1+ebx]
+	pxor	xmm4,xmm0
+	movdqu	xmm2,[esi]
+	pxor	xmm5,xmm4
+	movdqu	xmm3,[16+esi]
+	pxor	xmm6,xmm5
+	movdqa	[esp],xmm4
+	pxor	xmm7,xmm6
+	movdqa	[16+esp],xmm5
+	movdqu	xmm4,[32+esi]
+	movdqu	xmm5,[48+esi]
+	mov	ecx,DWORD [240+edx]
+	movdqa	[96+esp],xmm1
+	pxor	xmm2,[esp]
+	pxor	xmm3,[16+esp]
+	pxor	xmm4,xmm6
+	pxor	xmm5,xmm7
+	mov	edi,DWORD [120+esp]
+	call	__aesni_decrypt4
+	movdqa	xmm1,[96+esp]
+	xorps	xmm2,[esp]
+	xorps	xmm3,[16+esp]
+	xorps	xmm4,xmm6
+	movups	[esi*1+edi],xmm2
+	pxor	xmm1,xmm2
+	xorps	xmm5,xmm7
+	movups	[16+esi*1+edi],xmm3
+	pxor	xmm1,xmm3
+	movdqa	xmm0,xmm7
+	movups	[32+esi*1+edi],xmm4
+	pxor	xmm1,xmm4
+	movups	[48+esi*1+edi],xmm5
+	pxor	xmm1,xmm5
+L$088done:
+	mov	edx,DWORD [128+esp]
+	pxor	xmm2,xmm2
+	pxor	xmm3,xmm3
+	movdqa	[esp],xmm2
+	pxor	xmm4,xmm4
+	movdqa	[16+esp],xmm2
+	pxor	xmm5,xmm5
+	movdqa	[32+esp],xmm2
+	pxor	xmm6,xmm6
+	movdqa	[48+esp],xmm2
+	pxor	xmm7,xmm7
+	movdqa	[64+esp],xmm2
+	movdqa	[80+esp],xmm2
+	movdqa	[96+esp],xmm2
+	lea	esp,[edx]
+	mov	ecx,DWORD [40+esp]
+	mov	ebx,DWORD [48+esp]
+	movdqu	[ecx],xmm0
+	pxor	xmm0,xmm0
+	movdqu	[ebx],xmm1
+	pxor	xmm1,xmm1
+	pop	edi
+	pop	esi
+	pop	ebx
+	pop	ebp
+	ret
 global	_aesni_cbc_encrypt
 align	16
 _aesni_cbc_encrypt:
@@ -1784,7 +2570,7 @@ L$_aesni_cbc_encrypt_begin:
 	mov	edx,DWORD [32+esp]
 	mov	ebp,DWORD [36+esp]
 	test	eax,eax
-	jz	NEAR L$074cbc_abort
+	jz	NEAR L$094cbc_abort
 	cmp	DWORD [40+esp],0
 	xchg	ebx,esp
 	movups	xmm7,[ebp]
@@ -1792,14 +2578,14 @@ L$_aesni_cbc_encrypt_begin:
 	mov	ebp,edx
 	mov	DWORD [16+esp],ebx
 	mov	ebx,ecx
-	je	NEAR L$075cbc_decrypt
+	je	NEAR L$095cbc_decrypt
 	movaps	xmm2,xmm7
 	cmp	eax,16
-	jb	NEAR L$076cbc_enc_tail
+	jb	NEAR L$096cbc_enc_tail
 	sub	eax,16
-	jmp	NEAR L$077cbc_enc_loop
+	jmp	NEAR L$097cbc_enc_loop
 align	16
-L$077cbc_enc_loop:
+L$097cbc_enc_loop:
 	movups	xmm7,[esi]
 	lea	esi,[16+esi]
 	movups	xmm0,[edx]
@@ -1807,25 +2593,25 @@ L$077cbc_enc_loop:
 	xorps	xmm7,xmm0
 	lea	edx,[32+edx]
 	xorps	xmm2,xmm7
-L$078enc1_loop_15:
+L$098enc1_loop_19:
 db	102,15,56,220,209
 	dec	ecx
 	movups	xmm1,[edx]
 	lea	edx,[16+edx]
-	jnz	NEAR L$078enc1_loop_15
+	jnz	NEAR L$098enc1_loop_19
 db	102,15,56,221,209
 	mov	ecx,ebx
 	mov	edx,ebp
 	movups	[edi],xmm2
 	lea	edi,[16+edi]
 	sub	eax,16
-	jnc	NEAR L$077cbc_enc_loop
+	jnc	NEAR L$097cbc_enc_loop
 	add	eax,16
-	jnz	NEAR L$076cbc_enc_tail
+	jnz	NEAR L$096cbc_enc_tail
 	movaps	xmm7,xmm2
 	pxor	xmm2,xmm2
-	jmp	NEAR L$079cbc_ret
-L$076cbc_enc_tail:
+	jmp	NEAR L$099cbc_ret
+L$096cbc_enc_tail:
 	mov	ecx,eax
 dd	2767451785
 	mov	ecx,16
@@ -1836,20 +2622,20 @@ dd	2868115081
 	mov	ecx,ebx
 	mov	esi,edi
 	mov	edx,ebp
-	jmp	NEAR L$077cbc_enc_loop
+	jmp	NEAR L$097cbc_enc_loop
 align	16
-L$075cbc_decrypt:
+L$095cbc_decrypt:
 	cmp	eax,80
-	jbe	NEAR L$080cbc_dec_tail
+	jbe	NEAR L$100cbc_dec_tail
 	movaps	[esp],xmm7
 	sub	eax,80
-	jmp	NEAR L$081cbc_dec_loop6_enter
+	jmp	NEAR L$101cbc_dec_loop6_enter
 align	16
-L$082cbc_dec_loop6:
+L$102cbc_dec_loop6:
 	movaps	[esp],xmm0
 	movups	[edi],xmm7
 	lea	edi,[16+edi]
-L$081cbc_dec_loop6_enter:
+L$101cbc_dec_loop6_enter:
 	movdqu	xmm2,[esi]
 	movdqu	xmm3,[16+esi]
 	movdqu	xmm4,[32+esi]
@@ -1879,28 +2665,28 @@ L$081cbc_dec_loop6_enter:
 	movups	[64+edi],xmm6
 	lea	edi,[80+edi]
 	sub	eax,96
-	ja	NEAR L$082cbc_dec_loop6
+	ja	NEAR L$102cbc_dec_loop6
 	movaps	xmm2,xmm7
 	movaps	xmm7,xmm0
 	add	eax,80
-	jle	NEAR L$083cbc_dec_clear_tail_collected
+	jle	NEAR L$103cbc_dec_clear_tail_collected
 	movups	[edi],xmm2
 	lea	edi,[16+edi]
-L$080cbc_dec_tail:
+L$100cbc_dec_tail:
 	movups	xmm2,[esi]
 	movaps	xmm6,xmm2
 	cmp	eax,16
-	jbe	NEAR L$084cbc_dec_one
+	jbe	NEAR L$104cbc_dec_one
 	movups	xmm3,[16+esi]
 	movaps	xmm5,xmm3
 	cmp	eax,32
-	jbe	NEAR L$085cbc_dec_two
+	jbe	NEAR L$105cbc_dec_two
 	movups	xmm4,[32+esi]
 	cmp	eax,48
-	jbe	NEAR L$086cbc_dec_three
+	jbe	NEAR L$106cbc_dec_three
 	movups	xmm5,[48+esi]
 	cmp	eax,64
-	jbe	NEAR L$087cbc_dec_four
+	jbe	NEAR L$107cbc_dec_four
 	movups	xmm6,[64+esi]
 	movaps	[esp],xmm7
 	movups	xmm2,[esi]
@@ -1927,26 +2713,26 @@ L$080cbc_dec_tail:
 	movaps	xmm2,xmm6
 	pxor	xmm6,xmm6
 	sub	eax,80
-	jmp	NEAR L$088cbc_dec_tail_collected
+	jmp	NEAR L$108cbc_dec_tail_collected
 align	16
-L$084cbc_dec_one:
+L$104cbc_dec_one:
 	movups	xmm0,[edx]
 	movups	xmm1,[16+edx]
 	lea	edx,[32+edx]
 	xorps	xmm2,xmm0
-L$089dec1_loop_16:
+L$109dec1_loop_20:
 db	102,15,56,222,209
 	dec	ecx
 	movups	xmm1,[edx]
 	lea	edx,[16+edx]
-	jnz	NEAR L$089dec1_loop_16
+	jnz	NEAR L$109dec1_loop_20
 db	102,15,56,223,209
 	xorps	xmm2,xmm7
 	movaps	xmm7,xmm6
 	sub	eax,16
-	jmp	NEAR L$088cbc_dec_tail_collected
+	jmp	NEAR L$108cbc_dec_tail_collected
 align	16
-L$085cbc_dec_two:
+L$105cbc_dec_two:
 	call	__aesni_decrypt2
 	xorps	xmm2,xmm7
 	xorps	xmm3,xmm6
@@ -1956,9 +2742,9 @@ L$085cbc_dec_two:
 	lea	edi,[16+edi]
 	movaps	xmm7,xmm5
 	sub	eax,32
-	jmp	NEAR L$088cbc_dec_tail_collected
+	jmp	NEAR L$108cbc_dec_tail_collected
 align	16
-L$086cbc_dec_three:
+L$106cbc_dec_three:
 	call	__aesni_decrypt3
 	xorps	xmm2,xmm7
 	xorps	xmm3,xmm6
@@ -1971,9 +2757,9 @@ L$086cbc_dec_three:
 	lea	edi,[32+edi]
 	movups	xmm7,[32+esi]
 	sub	eax,48
-	jmp	NEAR L$088cbc_dec_tail_collected
+	jmp	NEAR L$108cbc_dec_tail_collected
 align	16
-L$087cbc_dec_four:
+L$107cbc_dec_four:
 	call	__aesni_decrypt4
 	movups	xmm1,[16+esi]
 	movups	xmm0,[32+esi]
@@ -1991,21 +2777,21 @@ L$087cbc_dec_four:
 	movaps	xmm2,xmm5
 	pxor	xmm5,xmm5
 	sub	eax,64
-	jmp	NEAR L$088cbc_dec_tail_collected
+	jmp	NEAR L$108cbc_dec_tail_collected
 align	16
-L$083cbc_dec_clear_tail_collected:
+L$103cbc_dec_clear_tail_collected:
 	pxor	xmm3,xmm3
 	pxor	xmm4,xmm4
 	pxor	xmm5,xmm5
 	pxor	xmm6,xmm6
-L$088cbc_dec_tail_collected:
+L$108cbc_dec_tail_collected:
 	and	eax,15
-	jnz	NEAR L$090cbc_dec_tail_partial
+	jnz	NEAR L$110cbc_dec_tail_partial
 	movups	[edi],xmm2
 	pxor	xmm0,xmm0
-	jmp	NEAR L$079cbc_ret
+	jmp	NEAR L$099cbc_ret
 align	16
-L$090cbc_dec_tail_partial:
+L$110cbc_dec_tail_partial:
 	movaps	[esp],xmm2
 	pxor	xmm0,xmm0
 	mov	ecx,16
@@ -2013,14 +2799,14 @@ L$090cbc_dec_tail_partial:
 	sub	ecx,eax
 dd	2767451785
 	movdqa	[esp],xmm2
-L$079cbc_ret:
+L$099cbc_ret:
 	mov	esp,DWORD [16+esp]
 	mov	ebp,DWORD [36+esp]
 	pxor	xmm2,xmm2
 	pxor	xmm1,xmm1
 	movups	[ebp],xmm7
 	pxor	xmm7,xmm7
-L$074cbc_abort:
+L$094cbc_abort:
 	pop	edi
 	pop	esi
 	pop	ebx
@@ -2031,13 +2817,13 @@ __aesni_set_encrypt_key:
 	push	ebp
 	push	ebx
 	test	eax,eax
-	jz	NEAR L$091bad_pointer
+	jz	NEAR L$111bad_pointer
 	test	edx,edx
-	jz	NEAR L$091bad_pointer
-	call	L$092pic
-L$092pic:
+	jz	NEAR L$111bad_pointer
+	call	L$112pic
+L$112pic:
 	pop	ebx
-	lea	ebx,[(L$key_const-L$092pic)+ebx]
+	lea	ebx,[(L$key_const-L$112pic)+ebx]
 	lea	ebp,[__gnutls_x86_cpuid_s]
 	movups	xmm0,[eax]
 	xorps	xmm4,xmm4
@@ -2045,45 +2831,45 @@ L$092pic:
 	lea	edx,[16+edx]
 	and	ebp,268437504
 	cmp	ecx,256
-	je	NEAR L$09314rounds
+	je	NEAR L$11314rounds
 	cmp	ecx,192
-	je	NEAR L$09412rounds
+	je	NEAR L$11412rounds
 	cmp	ecx,128
-	jne	NEAR L$095bad_keybits
+	jne	NEAR L$115bad_keybits
 align	16
-L$09610rounds:
+L$11610rounds:
 	cmp	ebp,268435456
-	je	NEAR L$09710rounds_alt
+	je	NEAR L$11710rounds_alt
 	mov	ecx,9
 	movups	[edx-16],xmm0
 db	102,15,58,223,200,1
-	call	L$098key_128_cold
+	call	L$118key_128_cold
 db	102,15,58,223,200,2
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,4
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,8
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,16
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,32
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,64
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,128
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,27
-	call	L$099key_128
+	call	L$119key_128
 db	102,15,58,223,200,54
-	call	L$099key_128
+	call	L$119key_128
 	movups	[edx],xmm0
 	mov	DWORD [80+edx],ecx
-	jmp	NEAR L$100good_key
+	jmp	NEAR L$120good_key
 align	16
-L$099key_128:
+L$119key_128:
 	movups	[edx],xmm0
 	lea	edx,[16+edx]
-L$098key_128_cold:
+L$118key_128_cold:
 	shufps	xmm4,xmm0,16
 	xorps	xmm0,xmm4
 	shufps	xmm4,xmm0,140
@@ -2092,13 +2878,13 @@ L$098key_128_cold:
 	xorps	xmm0,xmm1
 	ret
 align	16
-L$09710rounds_alt:
+L$11710rounds_alt:
 	movdqa	xmm5,[ebx]
 	mov	ecx,8
 	movdqa	xmm4,[32+ebx]
 	movdqa	xmm2,xmm0
 	movdqu	[edx-16],xmm0
-L$101loop_key128:
+L$121loop_key128:
 db	102,15,56,0,197
 db	102,15,56,221,196
 	pslld	xmm4,1
@@ -2114,7 +2900,7 @@ db	102,15,56,221,196
 	movdqu	[edx-16],xmm0
 	movdqa	xmm2,xmm0
 	dec	ecx
-	jnz	NEAR L$101loop_key128
+	jnz	NEAR L$121loop_key128
 	movdqa	xmm4,[48+ebx]
 db	102,15,56,0,197
 db	102,15,56,221,196
@@ -2142,41 +2928,41 @@ db	102,15,56,221,196
 	movdqu	[16+edx],xmm0
 	mov	ecx,9
 	mov	DWORD [96+edx],ecx
-	jmp	NEAR L$100good_key
+	jmp	NEAR L$120good_key
 align	16
-L$09412rounds:
+L$11412rounds:
 	movq	xmm2,[16+eax]
 	cmp	ebp,268435456
-	je	NEAR L$10212rounds_alt
+	je	NEAR L$12212rounds_alt
 	mov	ecx,11
 	movups	[edx-16],xmm0
 db	102,15,58,223,202,1
-	call	L$103key_192a_cold
+	call	L$123key_192a_cold
 db	102,15,58,223,202,2
-	call	L$104key_192b
+	call	L$124key_192b
 db	102,15,58,223,202,4
-	call	L$105key_192a
+	call	L$125key_192a
 db	102,15,58,223,202,8
-	call	L$104key_192b
+	call	L$124key_192b
 db	102,15,58,223,202,16
-	call	L$105key_192a
+	call	L$125key_192a
 db	102,15,58,223,202,32
-	call	L$104key_192b
+	call	L$124key_192b
 db	102,15,58,223,202,64
-	call	L$105key_192a
+	call	L$125key_192a
 db	102,15,58,223,202,128
-	call	L$104key_192b
+	call	L$124key_192b
 	movups	[edx],xmm0
 	mov	DWORD [48+edx],ecx
-	jmp	NEAR L$100good_key
+	jmp	NEAR L$120good_key
 align	16
-L$105key_192a:
+L$125key_192a:
 	movups	[edx],xmm0
 	lea	edx,[16+edx]
 align	16
-L$103key_192a_cold:
+L$123key_192a_cold:
 	movaps	xmm5,xmm2
-L$106key_192b_warm:
+L$126key_192b_warm:
 	shufps	xmm4,xmm0,16
 	movdqa	xmm3,xmm2
 	xorps	xmm0,xmm4
@@ -2190,21 +2976,21 @@ L$106key_192b_warm:
 	pxor	xmm2,xmm3
 	ret
 align	16
-L$104key_192b:
+L$124key_192b:
 	movaps	xmm3,xmm0
 	shufps	xmm5,xmm0,68
 	movups	[edx],xmm5
 	shufps	xmm3,xmm2,78
 	movups	[16+edx],xmm3
 	lea	edx,[32+edx]
-	jmp	NEAR L$106key_192b_warm
+	jmp	NEAR L$126key_192b_warm
 align	16
-L$10212rounds_alt:
+L$12212rounds_alt:
 	movdqa	xmm5,[16+ebx]
 	movdqa	xmm4,[32+ebx]
 	mov	ecx,8
 	movdqu	[edx-16],xmm0
-L$107loop_key192:
+L$127loop_key192:
 	movq	[edx],xmm2
 	movdqa	xmm1,xmm2
 db	102,15,56,0,213
@@ -2226,54 +3012,54 @@ db	102,15,56,221,212
 	pxor	xmm2,xmm3
 	movdqu	[edx-16],xmm0
 	dec	ecx
-	jnz	NEAR L$107loop_key192
+	jnz	NEAR L$127loop_key192
 	mov	ecx,11
 	mov	DWORD [32+edx],ecx
-	jmp	NEAR L$100good_key
+	jmp	NEAR L$120good_key
 align	16
-L$09314rounds:
+L$11314rounds:
 	movups	xmm2,[16+eax]
 	lea	edx,[16+edx]
 	cmp	ebp,268435456
-	je	NEAR L$10814rounds_alt
+	je	NEAR L$12814rounds_alt
 	mov	ecx,13
 	movups	[edx-32],xmm0
 	movups	[edx-16],xmm2
 db	102,15,58,223,202,1
-	call	L$109key_256a_cold
+	call	L$129key_256a_cold
 db	102,15,58,223,200,1
-	call	L$110key_256b
+	call	L$130key_256b
 db	102,15,58,223,202,2
-	call	L$111key_256a
+	call	L$131key_256a
 db	102,15,58,223,200,2
-	call	L$110key_256b
+	call	L$130key_256b
 db	102,15,58,223,202,4
-	call	L$111key_256a
+	call	L$131key_256a
 db	102,15,58,223,200,4
-	call	L$110key_256b
+	call	L$130key_256b
 db	102,15,58,223,202,8
-	call	L$111key_256a
+	call	L$131key_256a
 db	102,15,58,223,200,8
-	call	L$110key_256b
+	call	L$130key_256b
 db	102,15,58,223,202,16
-	call	L$111key_256a
+	call	L$131key_256a
 db	102,15,58,223,200,16
-	call	L$110key_256b
+	call	L$130key_256b
 db	102,15,58,223,202,32
-	call	L$111key_256a
+	call	L$131key_256a
 db	102,15,58,223,200,32
-	call	L$110key_256b
+	call	L$130key_256b
 db	102,15,58,223,202,64
-	call	L$111key_256a
+	call	L$131key_256a
 	movups	[edx],xmm0
 	mov	DWORD [16+edx],ecx
 	xor	eax,eax
-	jmp	NEAR L$100good_key
+	jmp	NEAR L$120good_key
 align	16
-L$111key_256a:
+L$131key_256a:
 	movups	[edx],xmm2
 	lea	edx,[16+edx]
-L$109key_256a_cold:
+L$129key_256a_cold:
 	shufps	xmm4,xmm0,16
 	xorps	xmm0,xmm4
 	shufps	xmm4,xmm0,140
@@ -2282,7 +3068,7 @@ L$109key_256a_cold:
 	xorps	xmm0,xmm1
 	ret
 align	16
-L$110key_256b:
+L$130key_256b:
 	movups	[edx],xmm0
 	lea	edx,[16+edx]
 	shufps	xmm4,xmm2,16
@@ -2293,14 +3079,14 @@ L$110key_256b:
 	xorps	xmm2,xmm1
 	ret
 align	16
-L$10814rounds_alt:
+L$12814rounds_alt:
 	movdqa	xmm5,[ebx]
 	movdqa	xmm4,[32+ebx]
 	mov	ecx,7
 	movdqu	[edx-32],xmm0
 	movdqa	xmm1,xmm2
 	movdqu	[edx-16],xmm2
-L$112loop_key256:
+L$132loop_key256:
 db	102,15,56,0,213
 db	102,15,56,221,212
 	movdqa	xmm3,xmm0
@@ -2314,7 +3100,7 @@ db	102,15,56,221,212
 	pxor	xmm0,xmm2
 	movdqu	[edx],xmm0
 	dec	ecx
-	jz	NEAR L$113done_key256
+	jz	NEAR L$133done_key256
 	pshufd	xmm2,xmm0,255
 	pxor	xmm3,xmm3
 db	102,15,56,221,211
@@ -2329,11 +3115,11 @@ db	102,15,56,221,211
 	movdqu	[16+edx],xmm2
 	lea	edx,[32+edx]
 	movdqa	xmm1,xmm2
-	jmp	NEAR L$112loop_key256
-L$113done_key256:
+	jmp	NEAR L$132loop_key256
+L$133done_key256:
 	mov	ecx,13
 	mov	DWORD [16+edx],ecx
-L$100good_key:
+L$120good_key:
 	pxor	xmm0,xmm0
 	pxor	xmm1,xmm1
 	pxor	xmm2,xmm2
@@ -2345,13 +3131,13 @@ L$100good_key:
 	pop	ebp
 	ret
 align	4
-L$091bad_pointer:
+L$111bad_pointer:
 	mov	eax,-1
 	pop	ebx
 	pop	ebp
 	ret
 align	4
-L$095bad_keybits:
+L$115bad_keybits:
 	pxor	xmm0,xmm0
 	mov	eax,-2
 	pop	ebx
@@ -2377,7 +3163,7 @@ L$_aesni_set_decrypt_key_begin:
 	mov	edx,DWORD [12+esp]
 	shl	ecx,4
 	test	eax,eax
-	jnz	NEAR L$114dec_key_ret
+	jnz	NEAR L$134dec_key_ret
 	lea	eax,[16+ecx*1+edx]
 	movups	xmm0,[edx]
 	movups	xmm1,[eax]
@@ -2385,7 +3171,7 @@ L$_aesni_set_decrypt_key_begin:
 	movups	[edx],xmm1
 	lea	edx,[16+edx]
 	lea	eax,[eax-16]
-L$115dec_key_inverse:
+L$135dec_key_inverse:
 	movups	xmm0,[edx]
 	movups	xmm1,[eax]
 db	102,15,56,219,192
@@ -2395,14 +3181,14 @@ db	102,15,56,219,201
 	movups	[16+eax],xmm0
 	movups	[edx-16],xmm1
 	cmp	eax,edx
-	ja	NEAR L$115dec_key_inverse
+	ja	NEAR L$135dec_key_inverse
 	movups	xmm0,[edx]
 db	102,15,56,219,192
 	movups	[edx],xmm0
 	pxor	xmm0,xmm0
 	pxor	xmm1,xmm1
 	xor	eax,eax
-L$114dec_key_ret:
+L$134dec_key_ret:
 	ret
 align	64
 L$key_const:

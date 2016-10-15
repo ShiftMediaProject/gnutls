@@ -1294,9 +1294,9 @@ DB	102,15,56,0,251
 ALIGN	16
 $L$oop_shaext:
 	dec	rdx
-	lea	rax,[64+rsi]
+	lea	r8,[64+rsi]
 	paddd	xmm1,xmm4
-	cmovne	rsi,rax
+	cmovne	rsi,r8
 	movdqa	xmm8,xmm0
 DB	15,56,201,229
 	movdqa	xmm2,xmm0
