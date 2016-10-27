@@ -85,11 +85,11 @@
     <Filter Include="Source Files\lib\accelerated\x86">
       <UniqueIdentifier>{075c40f2-5cd7-4fd6-8eed-4d712901d635}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\lib\accelerated\x86\nasm">
-      <UniqueIdentifier>{514b70ce-1fad-4147-adbc-f8c13ff26975}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\lib\accelerated\x86">
       <UniqueIdentifier>{c5ee836d-4b0b-49bc-873a-28ceb87a5faa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\accelerated\x86\coff">
+      <UniqueIdentifier>{8c3b1839-8bb4-46d1-9a23-50782c575e2b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -1068,44 +1068,50 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <YASM Include="lib\accelerated\x86\nasm\aesni-x86.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\aesni-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\aesni-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\aes-ssse3-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\aes-ssse3-x86.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\cpuid-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\e_padlock-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\cpuid-x86.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\sha1-ssse3-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\cpuid-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\sha256-ssse3-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\e_padlock-x86.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\aesni-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\e_padlock-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\aes-ssse3-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha1-ssse3-x86.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\cpuid-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\e_padlock-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha256-ssse3-x86.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\ghash-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\sha1-ssse3-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\ghash-x86_64.asm">
-      <Filter>Source Files\lib\accelerated\x86\nasm</Filter>
+    <YASM Include="..\lib\accelerated\x86\coff\sha256-avx-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha512-ssse3-x86.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha512-ssse3-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </YASM>
   </ItemGroup>
 </Project>

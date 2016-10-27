@@ -527,48 +527,54 @@
     <ClCompile Include="..\lib\x509_b64.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="libgnutls.def" />
+    <YASM Include="..\lib\accelerated\x86\coff\aesni-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\cpuid-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\e_padlock-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha1-ssse3-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha256-ssse3-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha512-ssse3-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\aes-ssse3-x86.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\aes-ssse3-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\aesni-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\cpuid-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\e_padlock-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\ghash-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha1-ssse3-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha256-avx-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\lib\accelerated\x86\coff\sha512-ssse3-x86_64.s">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
   </ItemGroup>
   <ItemGroup>
-    <YASM Include="lib\accelerated\x86\nasm\aes-ssse3-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\aesni-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\aesni-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\cpuid-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\cpuid-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\e_padlock-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\e_padlock-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\ghash-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha1-ssse3-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha256-ssse3-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
+    <None Include="libgnutls.def" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6F610EE8-7F59-4191-AB88-F63843267C02}</ProjectGuid>
@@ -830,7 +836,7 @@
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlibd.lib;libiconvd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -908,38 +914,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -974,7 +955,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlibd.lib;libiconvd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1052,43 +1033,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -1126,7 +1078,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1204,38 +1156,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -1273,7 +1200,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1351,38 +1278,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -1418,7 +1320,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;zlibd.lib;iconvd.lib;hogweedd.lib;gmpd.lib;nettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1496,43 +1398,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -1568,7 +1441,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlibd.lib;libiconvd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1646,43 +1519,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -1730,7 +1574,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlib.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1808,38 +1652,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -1887,7 +1706,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlib.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -1965,38 +1784,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -2044,7 +1838,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlib.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -2122,43 +1916,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -2206,7 +1971,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlib.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir $(OutDir)\include
@@ -2284,43 +2049,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -2368,7 +2104,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;zlib.lib;iconv.lib;hogweed.lib;gmp.lib;nettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
@@ -2447,38 +2183,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -2526,7 +2237,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlib.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
@@ -2605,38 +2316,13 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86.asm (
-perl ..\devel\perlasm\cpuid-x86.pl win32n &gt; .\lib\accelerated\x86\nasm\cpuid-x86.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86.pl &gt; ..\devel\perlasm\aes-ssse3-x86.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86.asm
-del ..\devel\perlasm\aes-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86.pl &gt; ..\devel\perlasm\aesni-x86.pl.new
-perl ..\devel\perlasm\aesni-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\aesni-x86.asm
-del ..\devel\perlasm\aesni-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86.pl &gt; ..\devel\perlasm\e_padlock-x86.pl.new
-perl ..\devel\perlasm\e_padlock-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\e_padlock-x86.asm
-del ..\devel\perlasm\e_padlock-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86.pl &gt; ..\devel\perlasm\sha1-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86.asm
-del ..\devel\perlasm\sha1-ssse3-x86.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha256-ssse3-x86.pl &gt; ..\devel\perlasm\sha256-ssse3-x86.pl.new
-perl ..\devel\perlasm\sha256-ssse3-x86.pl.new win32n &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86.asm
-del ..\devel\perlasm\sha256-ssse3-x86.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -2683,7 +2369,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;zlib.lib;iconv.lib;hogweed.lib;gmp.lib;nettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
@@ -2762,43 +2448,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
@@ -2845,7 +2502,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
       <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;libzlib.lib;libiconv.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4006,4221 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
@@ -2924,43 +2581,14 @@ del ..\gl\wchar.h
 )
 if exist ..\gl\errno.h (
 del ..\gl\errno.h
-)
-if not exist .\lib\accelerated\x86\nasm\cpuid-x86_64.asm (
-perl ..\devel\perlasm\cpuid-x86_64.pl nasm &gt; .\lib\accelerated\x86\nasm\cpuid-x86_64.asm
-)
-if not exist .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aes-ssse3-x86_64.pl &gt; ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\aes-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aes-ssse3-x86_64.asm
-del ..\devel\perlasm\aes-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\aesni-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\aesni-x86_64.pl &gt; ..\devel\perlasm\aesni-x86_64.pl.new
-perl ..\devel\perlasm\aesni-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\aesni-x86_64.asm
-del ..\devel\perlasm\aesni-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\e_padlock-x86_64.pl &gt; ..\devel\perlasm\e_padlock-x86_64.pl.new
-perl ..\devel\perlasm\e_padlock-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\e_padlock-x86_64.asm
-del ..\devel\perlasm\e_padlock-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\ghash-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\ghash-x86_64.pl &gt; ..\devel\perlasm\ghash-x86_64.pl.new
-perl ..\devel\perlasm\ghash-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\ghash-x86_64.asm
-del ..\devel\perlasm\ghash-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha1-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha1-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha1-ssse3-x86_64.asm
-del ..\devel\perlasm\sha1-ssse3-x86_64.pl.new
-)
-if not exist .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm (
-perl -p -e "s/OPENSSL_ia32cap_P/_gnutls_x86_cpuid_s/g;" ..\devel\perlasm\sha512-ssse3-x86_64.pl &gt; ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
-perl ..\devel\perlasm\sha512-ssse3-x86_64.pl.new nasm &gt; .\lib\accelerated\x86\nasm\sha256-ssse3-x86_64.asm
-del ..\devel\perlasm\sha512-ssse3-x86_64.pl.new
 )</Command>
     </PreBuildEvent>
     <YASM>
       <Defines>__NASM_VERSION_ID__=0;%(Defines)</Defines>
+      <PreProc>1</PreProc>
+      <Parser>1</Parser>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+      <AdditionalOptions>-w %(AdditionalOptions)</AdditionalOptions>
     </YASM>
     <CustomBuildStep>
       <Message>Custom Clean Step</Message>
