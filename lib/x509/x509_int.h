@@ -97,6 +97,10 @@ typedef struct gnutls_pkcs7_attrs_st {
 
 typedef struct gnutls_pkcs7_int {
 	ASN1_TYPE pkcs7;
+
+	char encap_data_oid[MAX_OID_SIZE];
+
+	gnutls_datum_t der_signed_data;
 	ASN1_TYPE signed_data;
 	unsigned expanded;
 } gnutls_pkcs7_int;
@@ -422,6 +426,15 @@ int _gnutls_x509_crq_set_extension(gnutls_x509_crq_t crq,
 				   const char *ext_id,
 				   const gnutls_datum_t * ext_data,
 				   unsigned int critical);
+
+int
+gnutls_x509_crt_verify_data3(gnutls_x509_crt_t crt,
+			     gnutls_sign_algorithm_t algo,
+			     gnutls_typed_vdata_st *vdata,
+			     unsigned int vdata_size,
+			     const gnutls_datum_t *data,
+			     const gnutls_datum_t *signature,
+			     unsigned int flags);
 
 unsigned int
 _gnutls_verify_crt_status(const gnutls_x509_crt_t * certificate_list,
