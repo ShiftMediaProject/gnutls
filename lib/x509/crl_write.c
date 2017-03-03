@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2003-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -23,13 +24,13 @@
 /* This file contains functions to handle CRL generation.
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
-#include <gnutls_datum.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include <datum.h>
+#include <global.h>
+#include "errors.h"
 #include <common.h>
-#include <gnutls_x509.h>
+#include <x509.h>
 #include <x509_b64.h>
 #include <x509_int.h>
 #include <libtasn1.h>
@@ -77,7 +78,7 @@ gnutls_x509_crl_set_version(gnutls_x509_crl_t crl, unsigned int version)
  * @crl: should contain a gnutls_x509_crl_t type
  * @issuer: is the certificate of the certificate issuer
  * @issuer_key: holds the issuer's private key
- * @dig: The message digest to use. GNUTLS_DIG_SHA1 is the safe choice unless you know what you're doing.
+ * @dig: The message digest to use. GNUTLS_DIG_SHA256 is the safe choice unless you know what you're doing.
  * @flags: must be 0
  *
  * This function will sign the CRL with the issuer's private key, and
@@ -85,6 +86,10 @@ gnutls_x509_crl_set_version(gnutls_x509_crl_t crl, unsigned int version)
  *
  * This must be the last step in a certificate CRL since all
  * the previously set parameters are now signed.
+ *
+ * A known limitation of this function is, that a newly-signed CRL will not
+ * be fully functional (e.g., for signature verification), until it
+ * is exported an re-imported.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -179,6 +184,11 @@ int gnutls_x509_crl_set_this_update(gnutls_x509_crl_t crl, time_t act_time)
  * @exp_time: The actual time
  *
  * This function will set the time this CRL will be updated.
+ * This is an optional value to be set on a CRL and this call
+ * can be omitted when generating a CRL.
+ *
+ * Prior to GnuTLS 3.5.7, setting a nextUpdate field was required
+ * in order to generate a CRL.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -303,6 +313,12 @@ gnutls_x509_crl_set_crt(gnutls_x509_crl_t crl, gnutls_x509_crt_t crt,
  */
 static void disable_optional_stuff(gnutls_x509_crl_t crl)
 {
+	time_t t;
+
+	t = _gnutls_x509_get_time(crl->crl, "tbsCertList.nextUpdate", 0);
+	if (t == (time_t)-1) {
+		asn1_write_value(crl->crl, "tbsCertList.nextUpdate", NULL, 0);
+	}
 
 	if (crl->use_extensions == 0) {
 		asn1_write_value(crl->crl, "tbsCertList.crlExtensions",
@@ -446,7 +462,7 @@ gnutls_x509_crl_set_number(gnutls_x509_crl_t crl,
  * @crl: should contain a gnutls_x509_crl_t type
  * @issuer: is the certificate of the certificate issuer
  * @issuer_key: holds the issuer's private key
- * @dig: The message digest to use. GNUTLS_DIG_SHA1 is the safe choice unless you know what you're doing.
+ * @dig: The message digest to use. GNUTLS_DIG_SHA256 is the safe choice unless you know what you're doing.
  * @flags: must be 0
  *
  * This function will sign the CRL with the issuer's private key, and
@@ -454,6 +470,10 @@ gnutls_x509_crl_set_number(gnutls_x509_crl_t crl,
  *
  * This must be the last step in a certificate CRL since all
  * the previously set parameters are now signed.
+ *
+ * A known limitation of this function is, that a newly-signed CRL will not
+ * be fully functional (e.g., for signature verification), until it
+ * is exported an re-imported.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.

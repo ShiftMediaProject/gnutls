@@ -328,15 +328,13 @@ CommonName ::= PrintableString
 -- Cryptographic Message Syntax
 
 pkcs-7-ContentInfo ::= SEQUENCE {
-  contentType pkcs-7-ContentType,
+  contentType OBJECT IDENTIFIER,
   content [0] EXPLICIT ANY DEFINED BY contentType }
 
 pkcs-7-DigestInfo ::= SEQUENCE {
   digestAlgorithm AlgorithmIdentifier,
   digest OCTET STRING 
 }
-
-pkcs-7-ContentType ::= OBJECT IDENTIFIER
 
 pkcs-7-SignedData ::= SEQUENCE {
   version INTEGER,
@@ -353,7 +351,7 @@ pkcs-7-DigestAlgorithmIdentifiers ::= SET OF AlgorithmIdentifier
 -- rfc2315: content [0] EXPLICIT ANY DEFINED BY contentType OPTIONAL
 
 pkcs-7-EncapsulatedContentInfo ::= SEQUENCE {
-  eContentType pkcs-7-ContentType,
+  eContentType OBJECT IDENTIFIER,
   eContent [0] EXPLICIT ANY OPTIONAL }
 
 -- We don't use CertificateList here since we only want
@@ -450,6 +448,10 @@ pkcs-5-aes128-CBC-params ::= OCTET STRING (SIZE(16))
 pkcs-5-aes192-CBC-params ::= OCTET STRING (SIZE(16))
 pkcs-5-aes256-CBC-params ::= OCTET STRING (SIZE(16))
 
+pkcs-5-PBE-params ::= SEQUENCE {
+  salt OCTET STRING,
+  iterationCount INTEGER }
+
 pkcs-5-PBES2-params ::= SEQUENCE {
   keyDerivationFunc AlgorithmIdentifier,
   encryptionScheme AlgorithmIdentifier }
@@ -536,7 +538,7 @@ pkcs-7-EncryptedData ::= SEQUENCE {
     unprotectedAttrs [1] IMPLICIT pkcs-7-UnprotectedAttributes OPTIONAL }
 
 pkcs-7-EncryptedContentInfo ::= SEQUENCE {
-    contentType pkcs-7-ContentType,
+    contentType OBJECT IDENTIFIER,
     contentEncryptionAlgorithm pkcs-7-ContentEncryptionAlgorithmIdentifier,
     encryptedContent [0] IMPLICIT OCTET STRING OPTIONAL }
 
@@ -689,5 +691,8 @@ GeneralSubtree ::= SEQUENCE {
      base                    GeneralName,
      minimum         [0]     INTEGER DEFAULT 0,
      maximum         [1]     INTEGER OPTIONAL }
+
+-- rfc7633
+TlsFeatures ::= SEQUENCE OF INTEGER
 
 END

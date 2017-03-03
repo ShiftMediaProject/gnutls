@@ -22,11 +22,11 @@
 /* Online Certificate Status Protocol - RFC 2560
  */
 
-#include <gnutls_int.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include <global.h>
+#include "errors.h"
 #include <libtasn1.h>
-#include <gnutls_pk.h>
+#include <pk.h>
 #include "common.h"
 #include "verify-high.h"
 
@@ -406,11 +406,11 @@ int gnutls_ocsp_req_get_version(gnutls_ocsp_req_t req)
  * corresponds to the CertID structure:
  *
  * <informalexample><programlisting>
- *    CertID          ::=     SEQUENCE {
- *        hashAlgorithm       AlgorithmIdentifier,
- *        issuerNameHash      OCTET STRING, -- Hash of Issuer's DN
- *        issuerKeyHash       OCTET STRING, -- Hash of Issuers public key
- *        serialNumber        CertificateSerialNumber }
+ *    CertID	  ::=     SEQUENCE {
+ *	hashAlgorithm       AlgorithmIdentifier,
+ *	issuerNameHash      OCTET STRING, -- Hash of Issuer's DN
+ *	issuerKeyHash       OCTET STRING, -- Hash of Issuers public key
+ *	serialNumber	CertificateSerialNumber }
  * </programlisting></informalexample>
  *
  * Each of the pointers to output variables may be NULL to indicate
@@ -522,11 +522,11 @@ gnutls_ocsp_req_get_cert_id(gnutls_ocsp_req_t req,
  * The information needed corresponds to the CertID structure:
  *
  * <informalexample><programlisting>
- *    CertID          ::=     SEQUENCE {
- *        hashAlgorithm       AlgorithmIdentifier,
- *        issuerNameHash      OCTET STRING, -- Hash of Issuer's DN
- *        issuerKeyHash       OCTET STRING, -- Hash of Issuers public key
- *        serialNumber        CertificateSerialNumber }
+ *    CertID	  ::=     SEQUENCE {
+ *	hashAlgorithm       AlgorithmIdentifier,
+ *	issuerNameHash      OCTET STRING, -- Hash of Issuer's DN
+ *	issuerKeyHash       OCTET STRING, -- Hash of Issuers public key
+ *	serialNumber	CertificateSerialNumber }
  * </programlisting></informalexample>
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
@@ -1103,16 +1103,58 @@ int gnutls_ocsp_resp_get_version(gnutls_ocsp_resp_t resp)
  * The caller needs to deallocate memory by calling gnutls_free() on
  * @dn->data.
  *
+ * This function does not output a fully RFC4514 compliant string, if
+ * that is required see gnutls_ocsp_resp_get_responder2().
+ *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
- *   negative error code is returned.
+ *   negative error code is returned. When no data exist it will
+ *   return success and set @dn elements to zero.
  **/
 int
 gnutls_ocsp_resp_get_responder(gnutls_ocsp_resp_t resp,
 			       gnutls_datum_t * dn)
 {
 	int ret;
-	size_t l = 0;
 
+	ret = gnutls_ocsp_resp_get_responder2(resp, dn, GNUTLS_X509_DN_FLAG_COMPAT);
+	if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+		dn->data = NULL;
+		dn->size = 0;
+		return 0; /* for backwards compatibility */
+	}
+
+	return ret;
+}
+
+/**
+ * gnutls_ocsp_resp_get_responder2:
+ * @resp: should contain a #gnutls_ocsp_resp_t type
+ * @dn: newly allocated buffer with name
+ * @flags: zero or %GNUTLS_X509_DN_FLAG_COMPAT
+ *
+ * This function will extract the name of the Basic OCSP Response in
+ * the provided buffer. The name will be in the form
+ * "C=xxxx,O=yyyy,CN=zzzz" as described in RFC2253. The output string
+ * will be ASCII or UTF-8 encoded, depending on the certificate data.
+ *
+ * If the responder ID is not a name but a hash, this function
+ * will return zero and the @dn elements will be set to %NULL.
+ *
+ * The caller needs to deallocate memory by calling gnutls_free() on
+ * @dn->data.
+ *
+ * When the flag %GNUTLS_X509_DN_FLAG_COMPAT is specified, the output
+ * format will match the format output by previous to 3.5.6 versions of GnuTLS
+ * which was not not fully RFC4514-compliant.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error code is returned. When no data exist it will return
+ *   %GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE.
+ **/
+int
+gnutls_ocsp_resp_get_responder2(gnutls_ocsp_resp_t resp,
+			        gnutls_datum_t * dn, unsigned flags)
+{
 	if (resp == NULL || dn == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
@@ -1121,33 +1163,9 @@ gnutls_ocsp_resp_get_responder(gnutls_ocsp_resp_t resp,
 	dn->data = NULL;
 	dn->size = 0;
 
-	ret = _gnutls_x509_parse_dn
-	    (resp->basicresp, "tbsResponseData.responderID.byName",
-	     NULL, &l);
-	if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
-			return 0; /* for backwards compatibility */
-		gnutls_assert();
-		return ret;
-	}
-
-	dn->data = gnutls_malloc(l);
-	if (dn->data == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_MEMORY_ERROR;
-	}
-
-	ret = _gnutls_x509_parse_dn
-	    (resp->basicresp, "tbsResponseData.responderID.byName",
-	     (char *) dn->data, &l);
-	if (ret != GNUTLS_E_SUCCESS) {
-		gnutls_assert();
-		return ret;
-	}
-
-	dn->size = l;
-
-	return GNUTLS_E_SUCCESS;
+	return _gnutls_x509_get_dn(resp->basicresp,
+				  "tbsResponseData.responderID.byName",
+				  dn, flags);
 }
 
 /**
@@ -1396,30 +1414,42 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 			    time_t * revocation_time,
 			    unsigned int *revocation_reason)
 {
-	gnutls_datum_t sa;
 	char name[ASN1_MAX_NAME_SIZE];
-	int ret;
+	int ret, result;
+	char oidtmp[MAX_OID_SIZE];
+	int len;
+	char ttime[MAX_TIME];
 
-	snprintf(name, sizeof(name),
-		 "tbsResponseData.responses.?%u.certID.hashAlgorithm.algorithm",
-		 indx + 1);
-	ret = _gnutls_x509_read_value(resp->basicresp, name, &sa);
-	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND)
-		return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-	else if (ret < 0) {
-		gnutls_assert();
-		return ret;
-	}
+	/* initialize any allocated values to NULL, to allow deallocation
+	 * on error. */
+	if (issuer_name_hash)
+		issuer_name_hash->data = NULL;
+	if (issuer_key_hash)
+		issuer_key_hash->data = NULL;
+	if (serial_number)
+		serial_number->data = NULL;
 
-	ret = gnutls_oid_to_digest((char *) sa.data);
-	_gnutls_free_datum(&sa);
-	if (ret < 0) {
-		gnutls_assert();
-		return ret;
-	}
+	if (digest) {
+		snprintf(name, sizeof(name),
+			 "tbsResponseData.responses.?%u.certID.hashAlgorithm.algorithm",
+			 indx + 1);
+		len = sizeof(oidtmp);
+		result = asn1_read_value(resp->basicresp, name, oidtmp, &len);
+		if (result == ASN1_ELEMENT_NOT_FOUND) {
+			return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		} else if (result != ASN1_SUCCESS) {
+			gnutls_assert();
+			return _gnutls_asn2err(result);
+		}
 
-	if (digest)
+		ret = gnutls_oid_to_digest(oidtmp);
+		if (ret < 0) {
+			gnutls_assert();
+			return ret;
+		}
+
 		*digest = ret;
+	}
 
 	if (issuer_name_hash) {
 		snprintf(name, sizeof(name),
@@ -1427,7 +1457,7 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 			 indx + 1);
 		ret = _gnutls_x509_read_value(resp->basicresp, name,
 					      issuer_name_hash);
-		if (ret != GNUTLS_E_SUCCESS) {
+		if (ret < 0) {
 			gnutls_assert();
 			return ret;
 		}
@@ -1439,11 +1469,9 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 			 indx + 1);
 		ret = _gnutls_x509_read_value(resp->basicresp, name,
 					      issuer_key_hash);
-		if (ret != GNUTLS_E_SUCCESS) {
+		if (ret < 0) {
 			gnutls_assert();
-			if (issuer_name_hash)
-				gnutls_free(issuer_name_hash->data);
-			return ret;
+			goto fail;
 		}
 	}
 
@@ -1453,13 +1481,9 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 			 indx + 1);
 		ret = _gnutls_x509_read_value(resp->basicresp, name,
 					      serial_number);
-		if (ret != GNUTLS_E_SUCCESS) {
+		if (ret < 0) {
 			gnutls_assert();
-			if (issuer_name_hash)
-				gnutls_free(issuer_name_hash->data);
-			if (issuer_key_hash)
-				gnutls_free(issuer_key_hash->data);
-			return ret;
+			goto fail;
 		}
 	}
 
@@ -1467,41 +1491,44 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 		snprintf(name, sizeof(name),
 			 "tbsResponseData.responses.?%u.certStatus",
 			 indx + 1);
-		ret = _gnutls_x509_read_value(resp->basicresp, name, &sa);
-		if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND)
-			return GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-		else if (ret < 0) {
+
+		len = sizeof(oidtmp);
+		result = asn1_read_value(resp->basicresp, name, oidtmp, &len);
+		if (result == ASN1_ELEMENT_NOT_FOUND) {
 			gnutls_assert();
-			return ret;
+			ret = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+			goto fail;
+		} else if (result != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto fail;
 		}
-		if (sa.size == 5 && memcmp(sa.data, "good", sa.size) == 0)
+
+		if (len == 5 && memcmp(oidtmp, "good", len) == 0)
 			*cert_status = GNUTLS_OCSP_CERT_GOOD;
-		else if (sa.size == 8
-			 && memcmp(sa.data, "revoked", sa.size) == 0)
+		else if (len == 8
+			 && memcmp(oidtmp, "revoked", len) == 0)
 			*cert_status = GNUTLS_OCSP_CERT_REVOKED;
-		else if (sa.size == 8
-			 && memcmp(sa.data, "unknown", sa.size) == 0)
+		else if (len == 8
+			 && memcmp(oidtmp, "unknown", len) == 0)
 			*cert_status = GNUTLS_OCSP_CERT_UNKNOWN;
 		else {
 			gnutls_assert();
-			gnutls_free(sa.data);
-			return GNUTLS_E_ASN1_DER_ERROR;
+			ret = GNUTLS_E_ASN1_DER_ERROR;
+			goto fail;
 		}
-		gnutls_free(sa.data);
 	}
 
 	if (this_update) {
-		char ttime[MAX_TIME];
-		int len;
-
 		snprintf(name, sizeof(name),
 			 "tbsResponseData.responses.?%u.thisUpdate",
 			 indx + 1);
 		len = sizeof(ttime) - 1;
-		ret = asn1_read_value(resp->basicresp, name, ttime, &len);
-		if (ret != ASN1_SUCCESS) {
+		result = asn1_read_value(resp->basicresp, name, ttime, &len);
+		if (result != ASN1_SUCCESS) {
 			gnutls_assert();
-			return GNUTLS_E_ASN1_DER_ERROR;
+			ret = GNUTLS_E_ASN1_DER_ERROR;
+			goto fail;
 		} else {
 			*this_update =
 			    _gnutls_x509_generalTime2gtime(ttime);
@@ -1509,15 +1536,12 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 	}
 
 	if (next_update) {
-		char ttime[MAX_TIME];
-		int len;
-
 		snprintf(name, sizeof(name),
 			 "tbsResponseData.responses.?%u.nextUpdate",
 			 indx + 1);
 		len = sizeof(ttime) - 1;
-		ret = asn1_read_value(resp->basicresp, name, ttime, &len);
-		if (ret != ASN1_SUCCESS) {
+		result = asn1_read_value(resp->basicresp, name, ttime, &len);
+		if (result != ASN1_SUCCESS) {
 			gnutls_assert();
 			*next_update = (time_t) (-1);
 		} else
@@ -1526,15 +1550,12 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 	}
 
 	if (revocation_time) {
-		char ttime[MAX_TIME];
-		int len;
-
 		snprintf(name, sizeof(name),
 			 "tbsResponseData.responses.?%u.certStatus."
 			 "revoked.revocationTime", indx + 1);
 		len = sizeof(ttime) - 1;
-		ret = asn1_read_value(resp->basicresp, name, ttime, &len);
-		if (ret != ASN1_SUCCESS) {
+		result = asn1_read_value(resp->basicresp, name, ttime, &len);
+		if (result != ASN1_SUCCESS) {
 			gnutls_assert();
 			*revocation_time = (time_t) (-1);
 		} else
@@ -1556,6 +1577,20 @@ gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_t resp,
 	}
 
 	return GNUTLS_E_SUCCESS;
+ fail:
+	if (issuer_name_hash) {
+		gnutls_free(issuer_name_hash->data);
+		issuer_name_hash->data = NULL;
+	}
+	if (issuer_key_hash) {
+		gnutls_free(issuer_key_hash->data);
+		issuer_key_hash->data = NULL;
+	}
+	if (serial_number) {
+		gnutls_free(serial_number->data);
+		serial_number->data = NULL;
+	}
+	return ret;
 }
 
 /**
@@ -2019,7 +2054,7 @@ static inline unsigned int vstatus_to_ocsp_status(unsigned int status)
 
 static int check_ocsp_purpose(gnutls_x509_crt_t signercert)
 {
-	char oidtmp[sizeof(GNUTLS_KP_OCSP_SIGNING)];
+	char oidtmp[MAX_OID_SIZE];
 	size_t oidsize;
 	int indx, rc;
 
@@ -2028,6 +2063,7 @@ static int check_ocsp_purpose(gnutls_x509_crt_t signercert)
 		rc = gnutls_x509_crt_get_key_purpose_oid(signercert, indx,
 							 oidtmp, &oidsize,
 							 NULL);
+
 		if (rc == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
 			gnutls_assert();
 			return rc;
@@ -2088,7 +2124,7 @@ gnutls_ocsp_resp_verify_direct(gnutls_ocsp_resp_t resp,
 	signercert = find_signercert(resp);
 	if (!signercert) {
 		signercert = issuer;
-	} else if (!_gnutls_check_if_same_cert(signercert, issuer)) {
+	} else if (!gnutls_x509_crt_equals(signercert, issuer)) {
 
 		/* response contains a signer. Verify him */
 

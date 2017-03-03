@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2000-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2000-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  *
  * This file is part of GnuTLS.
  *
@@ -34,7 +35,6 @@
 #include <unistd.h>
 #ifndef _WIN32
 # include <arpa/inet.h>
-# include <signal.h>
 #else
 # undef endservent
 # define endservent()
@@ -43,7 +43,9 @@
 #include <c-ctype.h>
 #include "sockets.h"
 
-#ifdef HAVE_LIBIDN
+#ifdef HAVE_LIBIDN2
+#include <idn2.h>
+#elif defined HAVE_LIBIDN
 #include <idna.h>
 #include <idn-free.h>
 #endif
@@ -150,7 +152,7 @@ ssize_t send_line(socket_st * socket, const char *txt)
 
 	if (ret == -1) {
 		fprintf(stderr, "error sending \"%s\"\n", txt);
-		exit(1);
+		exit(2);
 	}
 
 	return ret;
@@ -160,13 +162,21 @@ static
 ssize_t wait_for_text(socket_st * socket, const char *txt, unsigned txt_size)
 {
 	char buf[1024];
-	char *p;
+	char *pbuf, *p;
 	int ret;
 	fd_set read_fds;
 	struct timeval tv;
+	size_t left, got;
+
+	if (txt_size > sizeof(buf))
+		abort();
 
 	if (socket->verbose && txt != NULL)
 		fprintf(stderr, "starttls: waiting for: \"%.*s\"\n", txt_size, txt);
+
+	pbuf = buf;
+	left = sizeof(buf)-1;
+	got = 0;
 
 	do {
 		FD_ZERO(&read_fds);
@@ -177,42 +187,51 @@ ssize_t wait_for_text(socket_st * socket, const char *txt, unsigned txt_size)
 		if (ret <= 0)
 			ret = -1;
 		else
-			ret = recv(socket->fd, buf, sizeof(buf)-1, 0);
-		if (ret == -1) {
-			fprintf(stderr, "error receiving %s\n", txt);
-			exit(1);
+			ret = recv(socket->fd, pbuf, left, 0);
+		if (ret == -1 || ret == 0) {
+			int e = errno;
+			fprintf(stderr, "error receiving %s: %s\n", txt, strerror(e));
+			exit(2);
 		}
-		buf[ret] = 0;
+		pbuf[ret] = 0;
 
 		if (txt == NULL)
 			break;
 
 		if (socket->verbose)
-			fprintf(stderr, "starttls: received: %s\n", buf);
+			fprintf(stderr, "starttls: received: %s\n", pbuf);
 
-		p = memmem(buf, ret, txt, txt_size);
-		if (p != NULL && p != buf) {
-			p--;
-			if (*p == '\n')
+		pbuf += ret;
+		left -= ret;
+		got += ret;
+
+
+		/* check for text after a newline in buffer */
+		if (got > txt_size) {
+			p = memmem(buf, got, txt, txt_size);
+			if (p != NULL && p != buf) {
+				p--;
+				if (*p == '\n' || *p == '\r')
 				break;
+			}
 		}
-	} while(ret < (int)txt_size || strncmp(buf, txt, txt_size) != 0);
+	} while(got < txt_size || strncmp(buf, txt, txt_size) != 0);
 
-	return ret;
+	return got;
 }
 
-void
-socket_starttls(socket_st * socket, const char *app_proto)
+static void
+socket_starttls(socket_st * socket)
 {
 	char buf[512];
 
 	if (socket->secure)
 		return;
 
-	if (app_proto == NULL || strcasecmp(app_proto, "https") == 0)
+	if (socket->app_proto == NULL || strcasecmp(socket->app_proto, "https") == 0)
 		return;
 
-	if (strcasecmp(app_proto, "smtp") == 0 || strcasecmp(app_proto, "submission") == 0) {
+	if (strcasecmp(socket->app_proto, "smtp") == 0 || strcasecmp(socket->app_proto, "submission") == 0) {
 		if (socket->verbose)
 			printf("Negotiating SMTP STARTTLS\n");
 
@@ -222,7 +241,7 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		wait_for_text(socket, "250 ", 4);
 		send_line(socket, "STARTTLS\n");
 		wait_for_text(socket, "220 ", 4);
-	} else if (strcasecmp(app_proto, "imap") == 0 || strcasecmp(app_proto, "imap2") == 0) {
+	} else if (strcasecmp(socket->app_proto, "imap") == 0 || strcasecmp(socket->app_proto, "imap2") == 0) {
 		if (socket->verbose)
 			printf("Negotiating IMAP STARTTLS\n");
 
@@ -230,7 +249,7 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		wait_for_text(socket, "a OK", 4);
 		send_line(socket, "a STARTTLS\r\n");
 		wait_for_text(socket, "a OK", 4);
-	} else if (strcasecmp(app_proto, "xmpp") == 0) {
+	} else if (strcasecmp(socket->app_proto, "xmpp") == 0) {
 		if (socket->verbose)
 			printf("Negotiating XMPP STARTTLS\n");
 
@@ -239,13 +258,13 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		wait_for_text(socket, "<?", 2);
 		send_line(socket, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 		wait_for_text(socket, "<proceed", 8);
-	} else if (strcasecmp(app_proto, "ldap") == 0) {
+	} else if (strcasecmp(socket->app_proto, "ldap") == 0) {
 		if (socket->verbose)
 			printf("Negotiating LDAP STARTTLS\n");
 #define LDAP_STR "\x30\x1d\x02\x01\x01\x77\x18\x80\x16\x31\x2e\x33\x2e\x36\x2e\x31\x2e\x34\x2e\x31\x2e\x31\x34\x36\x36\x2e\x32\x30\x30\x33\x37"
 		send(socket->fd, LDAP_STR, sizeof(LDAP_STR)-1, 0);
 		wait_for_text(socket, NULL, 0);
-	} else if (strcasecmp(app_proto, "ftp") == 0 || strcasecmp(app_proto, "ftps") == 0) {
+	} else if (strcasecmp(socket->app_proto, "ftp") == 0 || strcasecmp(socket->app_proto, "ftps") == 0) {
 		if (socket->verbose)
 			printf("Negotiating FTP STARTTLS\n");
 
@@ -254,10 +273,10 @@ socket_starttls(socket_st * socket, const char *app_proto)
 		send_line(socket, "AUTH TLS\r\n");
 		wait_for_text(socket, "234", 3);
 	} else {
-		if (!c_isdigit(app_proto[0])) {
+		if (!c_isdigit(socket->app_proto[0])) {
 			static int warned = 0;
 			if (warned == 0) {
-				fprintf(stderr, "unknown protocol '%s'\n", app_proto);
+				fprintf(stderr, "unknown protocol '%s'\n", socket->app_proto);
 				warned = 1;
 			}
 		}
@@ -301,23 +320,30 @@ const char *starttls_proto_to_service(const char *app_proto)
 	return "443";
 }
 
-void socket_bye(socket_st * socket)
+void socket_bye(socket_st * socket, unsigned polite)
 {
 	int ret;
-	if (socket->secure) {
-		do
-			ret = gnutls_bye(socket->session, GNUTLS_SHUT_WR);
-		while (ret == GNUTLS_E_INTERRUPTED
-		       || ret == GNUTLS_E_AGAIN);
-		if (ret < 0)
-			fprintf(stderr, "*** gnutls_bye() error: %s\n",
-				gnutls_strerror(ret));
+
+	if (socket->secure && socket->session) {
+		if (polite) {
+			do
+				ret = gnutls_bye(socket->session, GNUTLS_SHUT_WR);
+			while (ret == GNUTLS_E_INTERRUPTED
+			       || ret == GNUTLS_E_AGAIN);
+			if (socket->verbose && ret < 0)
+				fprintf(stderr, "*** gnutls_bye() error: %s\n",
+					gnutls_strerror(ret));
+		}
+	}
+
+	if (socket->session) {
 		gnutls_deinit(socket->session);
 		socket->session = NULL;
 	}
 
 	freeaddrinfo(socket->addr_info);
 	socket->addr_info = socket->ptr = NULL;
+	socket->connect_addrlen = 0;
 
 	free(socket->ip);
 	free(socket->hostname);
@@ -326,33 +352,67 @@ void socket_bye(socket_st * socket)
 	shutdown(socket->fd, SHUT_RDWR);	/* no more receptions */
 	close(socket->fd);
 
+	gnutls_free(socket->rdata.data);
+	socket->rdata.data = NULL;
+
 	socket->fd = -1;
 	socket->secure = 0;
 }
 
+/* Handle host:port format.
+ */
+void canonicalize_host(char *hostname, char *service, unsigned service_size)
+{
+	char *p;
+	unsigned char buf[64];
+
+	p = strchr(hostname, ':');
+	if (p == NULL)
+		return;
+
+	if (inet_pton(AF_INET6, hostname, buf) == 1)
+		return;
+
+	*p = 0;
+	snprintf(service, service_size, "%s", p+1);
+}
+
+
 void
 socket_open(socket_st * hd, const char *hostname, const char *service,
-	    int udp, const char *msg)
+	    const char *app_proto, int flags, const char *msg, gnutls_datum_t *rdata)
 {
 	struct addrinfo hints, *res, *ptr;
 	int sd, err = 0;
+	int udp = flags & SOCKET_FLAG_UDP;
+	int ret;
+	int fastopen = flags & SOCKET_FLAG_FASTOPEN;
 	char buffer[MAX_BUF + 1];
 	char portname[16] = { 0 };
-	char *a_hostname = (char*)hostname;
+	gnutls_datum_t idna;
+	char *a_hostname;
 
 	memset(hd, 0, sizeof(*hd));
 
-#ifdef HAVE_LIBIDN
-	err = idna_to_ascii_8z(hostname, &a_hostname, IDNA_ALLOW_UNASSIGNED);
-	if (err != IDNA_SUCCESS) {
-		fprintf(stderr, "Cannot convert %s to IDNA: %s\n", hostname,
-			idna_strerror(err));
+	if (flags & SOCKET_FLAG_VERBOSE)
+		hd->verbose = 1;
+
+	if (rdata) {
+		hd->rdata.data = rdata->data;
+		hd->rdata.size = rdata->size;
+	}
+
+	ret = gnutls_idna_map(hostname, strlen(hostname), &idna, 0);
+	if (ret < 0) {
+		fprintf(stderr, "Cannot convert %s to IDNA: %s\n", hostname, gnutls_strerror(ret));
 		exit(1);
 	}
-#endif
+
+	hd->hostname = strdup(hostname);
+	a_hostname = (char*)idna.data;
 
 	if (msg != NULL)
-		printf("Resolving '%s'...\n", a_hostname);
+		printf("Resolving '%s:%s'...\n", a_hostname, service);
 
 	/* get server name */
 	memset(&hints, 0, sizeof(hints));
@@ -395,14 +455,58 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 #endif
 		}
 
+		if (fastopen && ptr->ai_socktype == SOCK_STREAM
+		    && (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6)) {
+			memcpy(&hd->connect_addr, ptr->ai_addr, ptr->ai_addrlen);
+			hd->connect_addrlen = ptr->ai_addrlen;
 
-		if (msg)
-			printf("%s '%s:%s'...\n", msg, buffer, portname);
+			if (msg)
+				printf("%s '%s:%s' (TFO)...\n", msg, buffer, portname);
 
-		err = connect(sd, ptr->ai_addr, ptr->ai_addrlen);
-		if (err < 0) {
-			continue;
+		} else {
+			if (msg)
+				printf("%s '%s:%s'...\n", msg, buffer, portname);
+
+			if ((err = connect(sd, ptr->ai_addr, ptr->ai_addrlen)) < 0)
+				continue;
 		}
+
+		hd->fd = sd;
+		if (flags & SOCKET_FLAG_STARTTLS) {
+			hd->app_proto = app_proto;
+			socket_starttls(hd);
+			hd->app_proto = NULL;
+		}
+
+		if (!(flags & SOCKET_FLAG_SKIP_INIT)) {
+			hd->session = init_tls_session(hostname);
+			if (hd->session == NULL) {
+				fprintf(stderr, "error initializing session\n");
+				exit(1);
+			}
+		}
+
+		if (hd->session) {
+			if (hd->rdata.data) {
+				gnutls_session_set_data(hd->session, hd->rdata.data, hd->rdata.size);
+			}
+
+			gnutls_transport_set_int(hd->session, sd);
+		}
+
+		if (!(flags & SOCKET_FLAG_RAW) && !(flags & SOCKET_FLAG_SKIP_INIT)) {
+			err = do_handshake(hd);
+			if (err == GNUTLS_E_PUSH_ERROR) { /* failed connecting */
+				gnutls_deinit(hd->session);
+				hd->session = NULL;
+				continue;
+			}
+			else if (err < 0) {
+				fprintf(stderr, "*** handshake has failed: %s\n", gnutls_strerror(err));
+				exit(1);
+			}
+		}
+
 		break;
 	}
 
@@ -418,33 +522,19 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 		exit(1);
 	}
 
-	hd->secure = 0;
+	if ((flags & SOCKET_FLAG_RAW) || (flags & SOCKET_FLAG_SKIP_INIT))
+		hd->secure = 0;
+	else
+		hd->secure = 1;
+
 	hd->fd = sd;
-	hd->hostname = strdup(hostname);
 	hd->ip = strdup(buffer);
 	hd->service = strdup(portname);
 	hd->ptr = ptr;
 	hd->addr_info = res;
-#ifdef HAVE_LIBIDN
-	idn_free(a_hostname);
-#endif
+	hd->rdata.data = NULL;
+	gnutls_free(idna.data);
 	return;
-}
-
-void sockets_init(void)
-{
-#ifdef _WIN32
-	WORD wVersionRequested;
-	WSADATA wsaData;
-
-	wVersionRequested = MAKEWORD(1, 1);
-	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
-		perror("WSA_STARTUP_ERROR");
-	}
-#else
-	signal(SIGPIPE, SIG_IGN);
-#endif
-
 }
 
 /* converts a textual service or port to
@@ -485,7 +575,7 @@ int service_to_port(const char *service, const char *proto)
 
 	sr = getservbyname(service, proto);
 	if (sr == NULL) {
-		fprintf(stderr, "Warning: getservbyname() failed.\n");
+		fprintf(stderr, "Warning: getservbyname() failed for '%s/%s'.\n", service, proto);
 		exit(1);
 	}
 

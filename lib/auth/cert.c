@@ -24,29 +24,29 @@
  * and are common to RSA and DHE key exchange, are in this file.
  */
 
-#include <gnutls_int.h>
-#include "gnutls_auth.h"
-#include "gnutls_errors.h"
+#include "gnutls_int.h"
+#include "auth.h"
+#include "errors.h"
 #include <auth/cert.h>
-#include "gnutls_dh.h"
-#include "gnutls_num.h"
+#include "dh.h"
+#include "num.h"
 #include "libtasn1.h"
-#include "gnutls_datum.h"
+#include "datum.h"
 #include "ext/signature.h"
-#include <gnutls_pk.h>
+#include <pk.h>
 #include <algorithms.h>
-#include <gnutls_global.h>
-#include <gnutls_record.h>
-#include <gnutls_sig.h>
-#include <gnutls_state.h>
-#include <gnutls_pk.h>
-#include <gnutls_x509.h>
+#include <global.h>
+#include <record.h>
+#include <tls-sig.h>
+#include <state.h>
+#include <pk.h>
+#include <x509.h>
 #include <x509/verify-high.h>
 #include <gnutls/abstract.h>
 #include "debug.h"
 
 #ifdef ENABLE_OPENPGP
-#include "openpgp/gnutls_openpgp.h"
+#include "openpgp/openpgp.h"
 
 static gnutls_privkey_t alloc_and_load_pgp_key(const
 					       gnutls_openpgp_privkey_t
@@ -64,6 +64,13 @@ static gnutls_privkey_t alloc_and_load_x509_key(gnutls_x509_privkey_t key,
 static gnutls_privkey_t alloc_and_load_pkcs11_key(gnutls_pkcs11_privkey_t
 						  key, int deinit);
 #endif
+
+static void
+_gnutls_selected_certs_set(gnutls_session_t session,
+			   gnutls_pcert_st * certs, int ncerts,
+			   gnutls_privkey_t key, int need_free,
+			   gnutls_status_request_ocsp_func ocsp_func,
+			   void *ocsp_func_ptr);
 
 #define MAX_CLIENT_SIGN_ALGOS 3
 #define CERTTYPE_SIZE (MAX_CLIENT_SIGN_ALGOS+1)
@@ -204,7 +211,8 @@ static int cert_get_issuer_dn(gnutls_pcert_st * cert, gnutls_datum_t * odn)
  * CAs and sign algorithms supported by the peer server.
  */
 static int
-find_x509_cert(const gnutls_certificate_credentials_t cred,
+find_x509_client_cert(gnutls_session_t session,
+	       const gnutls_certificate_credentials_t cred,
 	       uint8_t * _data, size_t _data_size,
 	       const gnutls_pk_algorithm_t * pk_algos,
 	       int pk_algos_length, int *indx)
@@ -221,9 +229,10 @@ find_x509_cert(const gnutls_certificate_credentials_t cred,
 	/* If peer doesn't send any issuers and we have a single certificate
 	 * then send that one.
 	 */
-	if (data_size == 0 && cred->ncerts == 1) {
-		*indx = 0;
-		return 0;
+	if (cred->ncerts == 1 &&
+		(data_size == 0 || (session->internals.flags & GNUTLS_FORCE_CLIENT_CERT))) {
+			*indx = 0;
+			return 0;
 	}
 
 	do {
@@ -404,7 +413,7 @@ get_issuers(gnutls_session_t session,
 	return 0;
 }
 
-/* Calls the client get callback.
+/* Calls the client or server get callback.
  */
 static int
 call_get_cert_callback(gnutls_session_t session,
@@ -448,8 +457,9 @@ call_get_cert_callback(gnutls_session_t session,
 			pcert = NULL;
 			local_key = NULL;
 		}
+
 		_gnutls_selected_certs_set(session, pcert, pcert_length,
-					   local_key, 0);
+					   local_key, 0, NULL, NULL);
 
 		return 0;
 
@@ -550,7 +560,8 @@ call_get_cert_callback(gnutls_session_t session,
 	}
 
 	_gnutls_selected_certs_set(session, local_certs,
-				   st2.ncerts, local_key, 1);
+				   st2.ncerts, local_key, 1,
+				   NULL, NULL);
 
 	ret = 0;
 
@@ -569,11 +580,6 @@ call_get_cert_callback(gnutls_session_t session,
 			gnutls_openpgp_crt_deinit(st2.cert.pgp);
 		}
 #endif
-	}
-
-	if (ret < 0) {
-		if (local_key != NULL)
-			gnutls_privkey_deinit(local_key);
 	}
 
 	return ret;
@@ -654,7 +660,7 @@ select_client_cert(gnutls_session_t session,
 
 		if (session->security_parameters.cert_type == GNUTLS_CRT_X509)
 			result =
-			    find_x509_cert(cred, _data, _data_size,
+			    find_x509_client_cert(session, cred, _data, _data_size,
 					   pk_algos, pk_algos_length, &indx);
 #ifdef ENABLE_OPENPGP
 		else if (session->security_parameters.cert_type ==
@@ -675,9 +681,11 @@ select_client_cert(gnutls_session_t session,
 						   cert_list[0],
 						   cred->certs[indx].
 						   cert_list_length,
-						   cred->pkey[indx], 0);
+						   cred->pkey[indx], 0,
+						   NULL, NULL);
 		} else {
-			_gnutls_selected_certs_set(session, NULL, 0, NULL, 0);
+			_gnutls_selected_certs_set(session, NULL, 0, NULL, 0,
+						   NULL, NULL);
 		}
 
 		result = 0;
@@ -717,7 +725,7 @@ static int gen_x509_crt(gnutls_session_t session, gnutls_buffer_st * data)
 	/* if no certificates were found then send:
 	 * 0B 00 00 03 00 00 00    // Certificate with no certs
 	 * instead of:
-	 * 0B 00 00 00          // empty certificate handshake
+	 * 0B 00 00 00	  // empty certificate handshake
 	 *
 	 * ( the above is the whole handshake message, not 
 	 * the one produced here )
@@ -1086,13 +1094,6 @@ _gnutls_proc_x509_server_crt(gnutls_session_t session,
 		goto cleanup;
 	}
 
-	if ((ret =
-	     _gnutls_check_key_usage(&peer_certificate_list[0],
-				     gnutls_kx_get(session))) < 0) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
 	ret = 0;
 
  cleanup:
@@ -1277,13 +1278,6 @@ _gnutls_proc_openpgp_server_crt(gnutls_session_t session,
 	    copy_certificate_auth_info(info,
 				       peer_certificate_list, 1, subkey_id);
 	if (ret < 0) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	if ((ret =
-	     _gnutls_check_key_usage(&peer_certificate_list[0],
-				     gnutls_kx_get(session))) < 0) {
 		gnutls_assert();
 		goto cleanup;
 	}
@@ -1885,20 +1879,25 @@ void _gnutls_selected_certs_deinit(gnutls_session_t session)
 					    selected_cert_list[i]);
 		}
 		gnutls_free(session->internals.selected_cert_list);
-		session->internals.selected_cert_list = NULL;
-		session->internals.selected_cert_list_length = 0;
 
 		gnutls_privkey_deinit(session->internals.selected_key);
-		session->internals.selected_key = NULL;
 	}
+	session->internals.selected_ocsp_func = NULL;
+
+	session->internals.selected_cert_list = NULL;
+	session->internals.selected_cert_list_length = 0;
+
+	session->internals.selected_key = NULL;
 
 	return;
 }
 
-void
+static void
 _gnutls_selected_certs_set(gnutls_session_t session,
 			   gnutls_pcert_st * certs, int ncerts,
-			   gnutls_privkey_t key, int need_free)
+			   gnutls_privkey_t key, int need_free,
+			   gnutls_status_request_ocsp_func ocsp_func,
+			   void *ocsp_func_ptr)
 {
 	_gnutls_selected_certs_deinit(session);
 
@@ -1907,6 +1906,8 @@ _gnutls_selected_certs_set(gnutls_session_t session,
 	session->internals.selected_key = key;
 	session->internals.selected_need_free = need_free;
 
+	session->internals.selected_ocsp_func = ocsp_func;
+	session->internals.selected_ocsp_func_ptr = ocsp_func_ptr;
 }
 
 static void get_server_name(gnutls_session_t session, uint8_t * name,
@@ -1973,6 +1974,8 @@ _gnutls_server_select_cert(gnutls_session_t session,
 	get_server_name(session, (unsigned char *)server_name,
 			sizeof(server_name));
 
+	_gnutls_handshake_log ("HSK[%p]: Requested server name: '%s'\n",
+				     session, server_name);
 	idx = -1;		/* default is use no certificate */
 
 	/* find certificates that match the requested server_name
@@ -1984,14 +1987,14 @@ _gnutls_server_select_cert(gnutls_session_t session,
 			    && _gnutls_str_array_match(cred->certs[i].names,
 						       server_name) != 0) {
 				/* if requested algorithms are also compatible select it */
-				gnutls_pk_algorithm pk =
+				gnutls_pk_algorithm_t pk =
 				    gnutls_pubkey_get_pk_algorithm(cred->certs
 								   [i].cert_list
 								   [0].pubkey,
 								   NULL);
 
 				_gnutls_handshake_log
-				    ("HSK[%p]: Requested server name: '%s', ctype: %s (%d)",
+				    ("HSK[%p]: Requested server name: '%s', ctype: %s (%d)\n",
 				     session, server_name,
 				     gnutls_certificate_type_get_name
 				     (session->security_parameters.cert_type),
@@ -2018,7 +2021,7 @@ _gnutls_server_select_cert(gnutls_session_t session,
 		     session->security_parameters.cert_type);
 
 		for (i = 0; i < cred->ncerts; i++) {
-			gnutls_pk_algorithm pk =
+			gnutls_pk_algorithm_t pk =
 			    gnutls_pubkey_get_pk_algorithm(cred->certs[i].
 							   cert_list[0].pubkey,
 							   NULL);
@@ -2054,7 +2057,9 @@ _gnutls_server_select_cert(gnutls_session_t session,
 		_gnutls_selected_certs_set(session,
 					   &cred->certs[idx].cert_list[0],
 					   cred->certs[idx].cert_list_length,
-					   cred->pkey[idx], 0);
+					   cred->pkey[idx], 0,
+					   cred->certs[idx].ocsp_func,
+					   cred->certs[idx].ocsp_func_ptr);
 	} else {
 		gnutls_assert();
 		/* Certificate does not support REQUESTED_ALGO.  */

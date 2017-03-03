@@ -73,12 +73,11 @@ typedef struct {
 } gnutls_crypto_digest_st;
 
 typedef struct gnutls_crypto_rnd {
-	int (*init) (void **ctx);
-	int (*check) (void **ctx);
+	int (*init) (void **ctx); /* called prior to first usage of randomness */
 	int (*rnd) (void *ctx, int level, void *data, size_t datasize);
 	void (*rnd_refresh) (void *ctx);
 	void (*deinit) (void *ctx);
-	int (*self_test) (void);
+	int (*self_test) (void); /* this should not require rng initialization */
 } gnutls_crypto_rnd_st;
 
 typedef void *bigint_t;
@@ -173,6 +172,13 @@ typedef struct {
 	bigint_t params[GNUTLS_MAX_PK_PARAMS];
 	unsigned int params_nr;	/* the number of parameters */
 	unsigned int flags;
+	gnutls_datum_t raw_pub; /* used by x25519 */
+	gnutls_datum_t raw_priv;
+
+	unsigned int seed_size;
+	uint8_t seed[MAX_PVP_SEED_SIZE];
+	gnutls_digest_algorithm_t palgo;
+
 	gnutls_pk_algorithm_t algo;
 } gnutls_pk_params_st;
 
@@ -183,7 +189,8 @@ typedef struct {
  * Enumeration of public-key flag.
  */
 typedef enum {
-	GNUTLS_PK_FLAG_NONE = 0
+	GNUTLS_PK_FLAG_NONE = 0,
+	GNUTLS_PK_FLAG_PROVABLE = 1
 } gnutls_pk_flag_t;
 
 

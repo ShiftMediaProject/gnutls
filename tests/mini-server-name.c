@@ -106,8 +106,12 @@ const gnutls_datum_t server_key = { server_key_pem,
 	sizeof(server_key_pem)
 };
 
+/* internal function */
+int _gnutls_server_name_set_raw(gnutls_session_t session,
+				gnutls_server_name_type_t type,
+				const void *name, size_t name_length);
 
-static void client(int fd, const char *name, unsigned name_len)
+static void client(const char *test_name, int fd, unsigned raw, const char *name, unsigned name_len)
 {
 	int ret;
 	gnutls_anon_client_credentials_t anoncred;
@@ -138,7 +142,10 @@ static void client(int fd, const char *name, unsigned name_len)
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, x509_cred);
 
 	gnutls_transport_set_int(session, fd);
-	gnutls_server_name_set(session, GNUTLS_NAME_DNS, name, name_len);
+	if (raw)
+		_gnutls_server_name_set_raw(session, GNUTLS_NAME_DNS, name, name_len);
+	else
+		gnutls_server_name_set(session, GNUTLS_NAME_DNS, name, name_len);
 
 	/* Perform the TLS handshake
 	 */
@@ -148,16 +155,16 @@ static void client(int fd, const char *name, unsigned name_len)
 	while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
 
 	if (ret < 0) {
-		fail("client: Handshake failed\n");
+		test_fail("Handshake failed\n");
 		gnutls_perror(ret);
 		exit(1);
 	} else {
 		if (debug)
-			success("client: Handshake was completed\n");
+			test_success("Handshake was completed\n");
 	}
 
 	if (debug)
-		success("client: TLS version is: %s\n",
+		test_success("TLS version is: %s\n",
 			gnutls_protocol_get_name
 			(gnutls_protocol_get_version(session)));
 
@@ -183,7 +190,7 @@ static void terminate(void)
 	exit(1);
 }
 
-static void server(int fd, const char *name, unsigned name_len)
+static void server(const char *test_name, int fd, const char *name, unsigned name_len)
 {
 	int ret;
 	char buffer[MAX_BUF + 1];
@@ -229,38 +236,42 @@ static void server(int fd, const char *name, unsigned name_len)
 	if (ret < 0) {
 		close(fd);
 		gnutls_deinit(session);
-		fail("server: Handshake has failed (%s)\n\n",
+		test_fail("Handshake has failed (%s)\n\n",
 		     gnutls_strerror(ret));
 		terminate();
 	}
 	if (debug)
-		success("server: Handshake was completed\n");
+		test_success("Handshake was completed\n");
 
 	if (debug)
-		success("server: TLS version is: %s\n",
+		test_success("TLS version is: %s\n",
 			gnutls_protocol_get_name
 			(gnutls_protocol_get_version(session)));
 
 	buffer_size = sizeof(buffer);
 	ret = gnutls_server_name_get(session, buffer, &buffer_size, &type, 0);
 
-	if ((name == NULL || name[0] == 0) && ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+	if ((name == NULL || name[0] == 0) && (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE || ret == GNUTLS_E_IDNA_ERROR)) {
 		/* expected */
 		if (debug)
-			success("server: empty name matches\n");
+			test_success("empty name matches\n");
 	} else if (ret < 0) {
-		fail("server: server_name: %s\n", gnutls_strerror(ret));
+		test_fail("server_name: %s/%d\n", gnutls_strerror(ret), ret);
 	} else {
 		if (name == NULL || name[0] == 0) {
-			fail("server: did not received expected name\n");
+			test_fail("did not received expected name\n");
+			exit(1);
+		}
+		if (buffer_size != strlen(buffer)) {
+			test_fail("received name '%s/%d/%d', with embedded null\n", buffer, (int)buffer_size, (int)strlen(buffer));
 			exit(1);
 		}
 		if (name_len != buffer_size || memcmp(name, buffer, name_len) != 0) {
-			fail("server: received name '%s', expected '%s'\n", buffer, name);
+			test_fail("received name '%s/%d', expected '%s/%d'\n", buffer, (int)buffer_size, name, (int)name_len);
 			exit(1);
 		}
 		if (debug)
-			success("server: name matches (%s/%s)\n", buffer, name);
+			test_success("name matches (%s/%s)\n", buffer, name);
 	}
 
 
@@ -277,10 +288,13 @@ static void server(int fd, const char *name, unsigned name_len)
 	gnutls_global_deinit();
 
 	if (debug)
-		success("server: finished\n");
+		test_success("finished\n");
 }
 
-static void start(const char *name, unsigned len)
+/* name: the name sent by client
+ * server_exp: the name which should be expected by the server to see
+ */
+static void start(const char *test_name, unsigned raw, const char *name, unsigned len, const char *server_exp, unsigned server_exp_len)
 {
 	int fd[2];
 	int ret;
@@ -294,18 +308,18 @@ static void start(const char *name, unsigned len)
 	child = fork();
 	if (child < 0) {
 		perror("fork");
-		fail("fork");
+		test_fail("fork");
 		exit(1);
 	}
 
 	if (child) {
 		/* parent */
 		close(fd[1]);
-		server(fd[0], name, len);
+		server(test_name, fd[0], server_exp, server_exp_len);
 		kill(child, SIGTERM);
 	} else {
 		close(fd[0]);
-		client(fd[1], name, len);
+		client(test_name, fd[1], raw, name, len);
 		exit(0);
 	}
 }
@@ -314,15 +328,7 @@ static void ch_handler(int sig)
 {
 	int status;
 	wait(&status);
-	if (WEXITSTATUS(status) != 0 ||
-	    (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)) {
-		if (WIFSIGNALED(status))
-			fail("Child died with sigsegv\n");
-		else
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
-		terminate();
-	}
+	check_wait_status(status);
 	return;
 }
 
@@ -331,10 +337,16 @@ void doit(void)
 	signal(SIGCHLD, ch_handler);
 	signal(SIGPIPE, SIG_IGN);
 
-	start(NULL, 0);
-	start("", 0);
-	start("test.example.com", strlen("test.example.com"));
-	start("longtest.example.com.", strlen("longtest.example.com"));
+	start("NULL", 0, NULL, 0, NULL, 0);
+	start("empty", 0, "", 0, "", 0);
+	start("test.example.com", 0, "test.example.com", strlen("test.example.com"), "test.example.com", strlen("test.example.com"));
+	start("longtest.example.com", 0, "longtest.example.com.", strlen("longtest.example.com"), "longtest.example.com.", strlen("longtest.example.com"));
+#if defined(HAVE_LIBIDN) || defined(HAVE_LIBIDN2)
+	/* test invalid UTF8 */
+	start("invalid-utf8", 1, "invalid\xff.example.com.", sizeof("invalid\xff.example.com")-1, NULL, 0);
+#endif
+	/* test embedded NULL */
+	start("embedded-NULL", 1, "invalid\x00.example.com.", sizeof("invalid\x00.example.com")-1, NULL, 0);
 }
 
 #endif				/* _WIN32 */

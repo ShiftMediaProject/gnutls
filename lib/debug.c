@@ -21,11 +21,11 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
+#include "errors.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "debug.h"
-#include <gnutls_mpi.h>
+#include <mpi.h>
 
 #ifdef DEBUG
 void _gnutls_dump_mpi(const char *prefix, bigint_t a)
@@ -94,9 +94,11 @@ const char
 	case GNUTLS_HANDSHAKE_CLIENT_HELLO:
 		return "CLIENT HELLO";
 		break;
+#ifdef ENABLE_SSL2
 	case GNUTLS_HANDSHAKE_CLIENT_HELLO_V2:
 		return "SSL2 CLIENT HELLO";
 		break;
+#endif
 	case GNUTLS_HANDSHAKE_SERVER_HELLO:
 		return "SERVER HELLO";
 		break;

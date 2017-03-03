@@ -25,8 +25,8 @@
 #include <drbg-aes.h>
 #include <fips.h>
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 #include <nettle/aes.h>
 #include <nettle/memxor.h>
 #include <locks.h>
@@ -172,10 +172,6 @@ static int _rngfips_init(void **_ctx)
 	struct fips_ctx *ctx;
 	int ret;
 
-	ret = _rnd_system_entropy_init();
-	if (ret < 0)
-		return gnutls_assert_val(ret);
-
 	ctx = gnutls_calloc(1, sizeof(*ctx));
 	if (ctx == NULL)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
@@ -226,15 +222,6 @@ static void _rngfips_deinit(void *_ctx)
 	free(ctx);
 }
 
-/* This is called when gnutls_global_init() is called for second time.
- * It must check whether any resources are still available.
- * The particular problem it solves is to verify that the urandom fd is still
- * open (for applications that for some reason closed all fds */
-static int _rndfips_check(void **ctx)
-{
-	return _rnd_system_entropy_check();
-}
-
 static void _rngfips_refresh(void *_ctx)
 {
 	/* this is predictable RNG. Don't refresh */
@@ -260,7 +247,6 @@ static int selftest_kat(void)
 
 gnutls_crypto_rnd_st _gnutls_fips_rnd_ops = {
 	.init = _rngfips_init,
-	.check = _rndfips_check,
 	.deinit = _rngfips_deinit,
 	.rnd = _rngfips_rnd,
 	.rnd_refresh = _rngfips_refresh,

@@ -20,7 +20,7 @@
 #ifndef EXT_ALPN_H
 #define EXT_ALPN_H
 
-#include <gnutls_extensions.h>
+#include <extensions.h>
 
 #define MAX_ALPN_PROTOCOLS 8
 #define MAX_ALPN_PROTOCOL_NAME 32
@@ -34,6 +34,6 @@ typedef struct {
 	unsigned flags;
 } alpn_ext_st;
 
-extern extension_entry_st ext_mod_alpn;
+extern const extension_entry_st ext_mod_alpn;
 
 #endif

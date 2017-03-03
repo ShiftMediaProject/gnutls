@@ -29,8 +29,6 @@
 #include <nettle/sha2.h>
 #include <fips.h>
 
-#define MAX_PVP_SEED_SIZE 256
-
 #define div_ceil(x,y) ((x+(y)-1)/(y))
 
 struct dss_params_validation_seeds {
@@ -60,6 +58,14 @@ dsa_generate_dss_pqg(struct dsa_params *params,
 		     void *random_ctx, nettle_random_func *random,
 		     void *progress_ctx, nettle_progress_func *progress,
 		     unsigned p_bits /* = L */, unsigned q_bits /* = N */);
+
+int
+_dsa_generate_dss_pqg(struct dsa_params *params,
+			 struct dss_params_validation_seeds *cert,
+			 unsigned index,
+			 unsigned seed_size, void *seed,
+			 void *progress_ctx, nettle_progress_func * progress,
+			 unsigned p_bits /* = L */ , unsigned q_bits /* = N */ );
 
 int
 dsa_generate_dss_keypair(struct dsa_params *params,

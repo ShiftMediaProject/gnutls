@@ -19,14 +19,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 #include <unistd.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <fips.h>
 #include <gnutls/self-test.h>
 #include <stdio.h>
+#include <extras/hex.h>
 #include <random.h>
 
 unsigned int _gnutls_lib_mode = LIB_STATE_POWERON;
@@ -112,8 +113,6 @@ void _gnutls_fips_mode_reset_zombie(void)
 #define NETTLE_LIBRARY_NAME "libnettle.so.4"
 #define HOGWEED_LIBRARY_NAME "libhogweed.so.2"
 #define GMP_LIBRARY_NAME "libgmp.so.10"
-
-static const char fips_key[] = "orboDeJITITejsirpADONivirpUkvarP";
 
 #define HMAC_SUFFIX ".hmac"
 #define HMAC_SIZE 32
@@ -202,7 +201,7 @@ static unsigned check_binary_integrity(const char* libname, const char* symbol)
 
 	prev = _gnutls_get_lib_state();
 	_gnutls_switch_lib_state(LIB_STATE_OPERATIONAL);
-	ret = gnutls_hmac_fast(HMAC_ALGO, fips_key, sizeof(fips_key)-1,
+	ret = gnutls_hmac_fast(HMAC_ALGO, FIPS_KEY, sizeof(FIPS_KEY)-1,
 		data.data, data.size, new_hmac);
 	_gnutls_switch_lib_state(prev);
 	
@@ -224,8 +223,8 @@ static unsigned check_binary_integrity(const char* libname, const char* symbol)
 		}
 	}
 
-	hmac_size = sizeof(hmac);
-	ret = _gnutls_hex2bin((void*)data.data, data.size, hmac, &hmac_size);
+	hmac_size = hex_data_size(data.size);
+	ret = gnutls_hex_decode(&data, hmac, &hmac_size);
 	gnutls_free(data.data);
 
 	if (ret < 0) {
@@ -351,7 +350,8 @@ int _gnutls_fips_perform_self_checks2(void)
 		gnutls_assert();
 		goto error;
 	}
-        
+
+	/* this does not require rng initialization */
 	ret = _gnutls_rnd_ops.self_test();
 	if (ret < 0) {
 		gnutls_assert();
@@ -403,7 +403,7 @@ error:
  *
  * Since: 3.3.0
  **/
-int gnutls_fips140_mode_enabled(void)
+unsigned gnutls_fips140_mode_enabled(void)
 {
 #ifdef ENABLE_FIPS140
 int ret = _gnutls_fips_mode_enabled();

@@ -23,9 +23,9 @@
 /* Functions for printing X.509 Certificate structures
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <gnutls/openpgp.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <extras/randomart.h>
 
 #define addf _gnutls_buffer_append_printf
@@ -564,6 +564,7 @@ gnutls_openpgp_crt_print(gnutls_openpgp_crt_t cert,
 			 gnutls_datum_t * out)
 {
 	gnutls_buffer_st str;
+	int ret;
 
 	_gnutls_buffer_init(&str);
 
@@ -572,7 +573,10 @@ gnutls_openpgp_crt_print(gnutls_openpgp_crt_t cert,
 	} else if (format == GNUTLS_CRT_PRINT_COMPACT) {
 		print_oneline(&str, cert);
 
-		_gnutls_buffer_append_data(&str, "\n", 1);
+		ret = _gnutls_buffer_append_data(&str, "\n", 1);
+		if (ret < 0)
+			return gnutls_assert_val(ret);
+
 		print_key_fingerprint(&str, cert);
 	} else {
 		_gnutls_buffer_append_str(&str,

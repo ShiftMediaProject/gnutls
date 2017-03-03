@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-AM_CFLAGS = $(WERROR_CFLAGS) $(WSTACK_CFLAGS) $(WARN_CFLAGS) $(NETTLE_CFLAGS)
+include $(top_srcdir)/lib/common.mk
+
 AM_CPPFLAGS = \
 	-I$(srcdir)/../../gl		\
 	-I$(builddir)/../../gl		\
@@ -35,6 +36,6 @@ endif
 noinst_LTLIBRARIES = libgnutls_openpgp.la
 
 COBJECTS = pgp.c pgpverify.c extras.c compat.c privkey.c output.c	\
-	gnutls_openpgp.c
+	openpgp.c
 
-libgnutls_openpgp_la_SOURCES = $(COBJECTS) openpgp_int.h gnutls_openpgp.h
+libgnutls_openpgp_la_SOURCES = $(COBJECTS) openpgp_int.h openpgp.h

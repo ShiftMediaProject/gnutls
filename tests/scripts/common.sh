@@ -19,11 +19,20 @@
 # along with this file; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-# due to the use of $RANDOM, this script requires bash
+export TZ="UTC"
 
-GETPORT='rc=0;while test $rc = 0;do PORT="$(((($$<<15)|RANDOM) % 63001 + 2000))";
+GETPORT='rc=0;myrandom=$(date +%N | sed 's/^0*//');while test $rc = 0;do PORT="$(((($$<<15)|$myrandom) % 63001 + 2000))";
 	netstat -anl|grep "[\:\.]$PORT" >/dev/null 2>&1;
 	rc=$?;done;'
+
+check_for_datefudge() {
+	TSTAMP=`datefudge -s "2006-09-23" date -u +%s || true`
+	if test "$TSTAMP" != "1158969600" || test "$WINDOWS" = 1; then
+	echo $TSTAMP
+		echo "You need datefudge to run this test"
+		exit 77
+	fi
+}
 
 fail() {
    PID="$1"

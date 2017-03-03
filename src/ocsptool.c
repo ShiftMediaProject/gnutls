@@ -47,6 +47,16 @@ static void tls_log_func(int level, const char *str)
 	fprintf(stderr, "|<%d>| %s", level, str);
 }
 
+gnutls_session_t init_tls_session(const char *host)
+{
+	return NULL;
+}
+
+int do_handshake(socket_st * socket)
+{
+	return -1;
+}
+
 static void request_info(void)
 {
 	gnutls_ocsp_req_t req;
@@ -97,7 +107,7 @@ static void _response_info(const gnutls_datum_t * data)
 {
 	gnutls_ocsp_resp_t resp;
 	int ret;
-	gnutls_datum buf;
+	gnutls_datum_t buf;
 
 	ret = gnutls_ocsp_resp_init(&resp);
 	if (ret < 0) {
@@ -214,7 +224,7 @@ static gnutls_x509_crt_t load_signer(void)
 	dat.size = size;
 
 	if (!dat.data) {
-		fprintf(stderr, "reading --load-signer: %s\n",
+		fprintf(stderr, "error reading --load-signer: %s\n",
 			OPT_ARG(LOAD_SIGNER));
 		exit(1);
 	}
@@ -252,7 +262,7 @@ static gnutls_x509_crt_t load_cert(void)
 	dat.size = size;
 
 	if (!dat.data) {
-		fprintf(stderr, "reading --load-cert: %s\n",
+		fprintf(stderr, "error reading --load-cert: %s\n",
 			OPT_ARG(LOAD_CERT));
 		exit(1);
 	}
@@ -271,9 +281,15 @@ static gnutls_x509_crt_t load_cert(void)
 static void generate_request(gnutls_datum_t *nonce)
 {
 	gnutls_datum_t dat;
+	gnutls_x509_crt_t cert, issuer;
 
-	_generate_request(load_cert(), load_issuer(), &dat, nonce);
+	cert = load_cert();
+	issuer = load_issuer();
 
+	_generate_request(cert, issuer, &dat, nonce);
+
+	gnutls_x509_crt_deinit(cert);
+	gnutls_x509_crt_deinit(issuer);
 	fwrite(dat.data, 1, dat.size, outfile);
 
 	gnutls_free(dat.data);
@@ -307,7 +323,7 @@ static int _verify_response(gnutls_datum_t * data, gnutls_datum_t * nonce,
 	}
 
 	if (nonce) {
-	        gnutls_datum_t rnonce;
+		gnutls_datum_t rnonce;
 
 		ret = gnutls_ocsp_resp_get_nonce(resp, NULL, &rnonce);
 		if (ret < 0) {
@@ -322,14 +338,14 @@ static int _verify_response(gnutls_datum_t * data, gnutls_datum_t * nonce,
 			exit(1);
 		}
 
-	        gnutls_free(rnonce.data);
+		gnutls_free(rnonce.data);
 	}
 
 	if (HAVE_OPT(LOAD_TRUST)) {
 		dat.data =
 		    (void *) read_binary_file(OPT_ARG(LOAD_TRUST), &size);
 		if (dat.data == NULL) {
-			fprintf(stderr, "reading --load-trust: %s\n",
+			fprintf(stderr, "error reading --load-trust: %s\n",
 				OPT_ARG(LOAD_TRUST));
 			exit(1);
 		}
@@ -460,6 +476,10 @@ static void verify_response(gnutls_datum_t *nonce)
 	signer = load_signer();
 
 	v = _verify_response(&dat, nonce, signer);
+
+	gnutls_x509_crt_deinit(signer);
+	free(dat.data);
+
 	if (v && !HAVE_OPT(IGNORE_ERRORS))
 		exit(1);
 }
@@ -513,6 +533,10 @@ static void ask_server(const char *url)
 	if (HAVE_OPT(OUTFILE) && (v == 0 || HAVE_OPT(IGNORE_ERRORS))) {
 		fwrite(resp_data.data, 1, resp_data.size, outfile);
 	}
+
+	free(resp_data.data);
+	gnutls_x509_crt_deinit(issuer);
+	gnutls_x509_crt_deinit(cert);
 
 	if (v && !HAVE_OPT(IGNORE_ERRORS))
 		exit(1);
@@ -568,6 +592,10 @@ int main(int argc, char **argv)
 	else {
 		USAGE(1);
 	}
+
+	if (infile != stdin)
+		fclose(infile);
+	gnutls_global_deinit();
 
 	return 0;
 }

@@ -24,9 +24,9 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
-#include "gnutls_num.h"
-#include <gnutls_extensions.h>
+#include "errors.h"
+#include "num.h"
+#include <extensions.h>
 #include <ext/max_record.h>
 
 static int _gnutls_max_record_recv_params(gnutls_session_t session,
@@ -47,8 +47,8 @@ static int _gnutls_mre_num2record(int num);
 static int _gnutls_mre_record2num(uint16_t record_size);
 
 
-extension_entry_st ext_mod_max_record_size = {
-	.name = "MAX RECORD SIZE",
+const extension_entry_st ext_mod_max_record_size = {
+	.name = "Maximum Record Size",
 	.type = GNUTLS_EXTENSION_MAX_RECORD_SIZE,
 	.parse_type = GNUTLS_EXT_TLS,
 
@@ -77,9 +77,6 @@ _gnutls_max_record_recv_params(gnutls_session_t session,
 	ssize_t data_size = _data_size;
 	extension_priv_data_t epriv;
 	int ret;
-
-	if (IS_DTLS(session))
-		return 0;
 
 	if (session->security_parameters.entity == GNUTLS_SERVER) {
 		if (data_size > 0) {
@@ -294,9 +291,6 @@ ssize_t gnutls_record_set_max_size(gnutls_session_t session, size_t size)
 
 	if (session->security_parameters.entity == GNUTLS_SERVER)
 		return GNUTLS_E_INVALID_REQUEST;
-
-	if (IS_DTLS(session))
-		return 0;
 
 	new_size = _gnutls_mre_record2num(size);
 

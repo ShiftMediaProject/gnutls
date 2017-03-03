@@ -21,14 +21,14 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 #include <libtasn1.h>
-#include <gnutls_global.h>
-#include <gnutls_num.h>
-#include <gnutls_sig.h>
-#include <gnutls_str.h>
-#include <gnutls_datum.h>
+#include <global.h>
+#include <num.h>
+#include <tls-sig.h>
+#include <str.h>
+#include <datum.h>
 #include "x509_int.h"
 #include <common.h>
 #include "verify-high.h"
@@ -37,7 +37,7 @@
 
 #include <dirent.h>
 
-#ifndef _DIRENT_HAVE_D_TYPE
+#if !defined(_DIRENT_HAVE_D_TYPE) && !defined(__native_client__)
 # ifdef DT_UNKNOWN
 #  define _DIRENT_HAVE_D_TYPE
 # endif
@@ -52,7 +52,7 @@
  * @cas: A buffer containing a list of CAs (optional)
  * @crls: A buffer containing a list of CRLs (optional)
  * @type: The format of the certificates
- * @tl_flags: GNUTLS_TL_*
+ * @tl_flags: flags from %gnutls_trust_list_flags_t
  * @tl_vflags: gnutls_certificate_verify_flags if flags specifies GNUTLS_TL_VERIFY_CRL
  *
  * This function will add the given certificate authorities
@@ -286,7 +286,7 @@ int remove_pkcs11_object_url(gnutls_x509_trust_list_t list, const char *url)
  * @ca_file: A file containing a list of CAs (optional)
  * @crl_file: A file containing a list of CRLs (optional)
  * @type: The format of the certificates
- * @tl_flags: GNUTLS_TL_*
+ * @tl_flags: flags from %gnutls_trust_list_flags_t
  * @tl_vflags: gnutls_certificate_verify_flags if flags specifies GNUTLS_TL_VERIFY_CRL
  *
  * This function will add the given certificate authorities
@@ -321,7 +321,7 @@ gnutls_x509_trust_list_add_trust_file(gnutls_x509_trust_list_t list,
 			/* in case of a token URL import it as a PKCS #11 token,
 			 * otherwise import the individual certificates.
 			 */
-			if (is_object_pkcs11_url(ca_file) != 0) {
+			if (is_pkcs11_url_object(ca_file) != 0) {
 				return add_trust_list_pkcs11_object_url(list, ca_file, tl_flags);
 			} else { /* token */
 				if (list->pkcs11_token != NULL)
@@ -379,24 +379,16 @@ int load_dir_certs(const char *dirname,
 	int ret;
 	int r = 0;
 	char path[GNUTLS_PATH_MAX];
-#ifndef _WIN32
-	struct dirent e;
-#endif
 
 	dirp = opendir(dirname);
 	if (dirp != NULL) {
 		do {
-#ifdef _WIN32
 			d = readdir(dirp);
-			if (d != NULL) {
-#else
-			ret = readdir_r(dirp, &e, &d);
-			if (ret == 0 && d != NULL
+			if (d != NULL
 #ifdef _DIRENT_HAVE_D_TYPE
 				&& (d->d_type == DT_REG || d->d_type == DT_LNK || d->d_type == DT_UNKNOWN)
 #endif
 			) {
-#endif
 				snprintf(path, sizeof(path), "%s/%s",
 					 dirname, d->d_name);
 
@@ -428,7 +420,7 @@ int load_dir_certs(const char *dirname,
  * @ca_dir: A directory containing the CAs (optional)
  * @crl_dir: A directory containing a list of CRLs (optional)
  * @type: The format of the certificates
- * @tl_flags: GNUTLS_TL_*
+ * @tl_flags: flags from %gnutls_trust_list_flags_t
  * @tl_vflags: gnutls_certificate_verify_flags if flags specifies GNUTLS_TL_VERIFY_CRL
  *
  * This function will add the given certificate authorities
@@ -496,7 +488,7 @@ gnutls_x509_trust_list_remove_trust_file(gnutls_x509_trust_list_t list,
 
 #ifdef ENABLE_PKCS11
 	if (strncmp(ca_file, "pkcs11:", 7) == 0) {
-		if (is_object_pkcs11_url(ca_file) != 0) {
+		if (is_pkcs11_url_object(ca_file) != 0) {
 			return remove_pkcs11_object_url(list, ca_file);
 		} else { /* token */
 			return remove_pkcs11_url(list, ca_file);

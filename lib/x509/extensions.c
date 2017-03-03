@@ -23,15 +23,15 @@
 /* Functions that relate to the X.509 extension parsing.
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
-#include <gnutls_global.h>
+#include "gnutls_int.h"
+#include "errors.h"
+#include <global.h>
 #include <libtasn1.h>
 #include <common.h>
 #include <gnutls/x509-ext.h>
 #include <gnutls/x509.h>
 #include <x509_int.h>
-#include <gnutls_datum.h>
+#include <datum.h>
 
 int
 _gnutls_get_extension(ASN1_TYPE asn, const char *root,
@@ -500,6 +500,9 @@ _gnutls_x509_crt_set_extension(gnutls_x509_crt_t cert,
 			       const gnutls_datum_t * ext_data,
 			       unsigned int critical)
 {
+	MODIFIED(cert);
+	cert->use_extensions = 1;
+
 	return _gnutls_set_extension(cert->cert, "tbsCertificate.extensions",
 			     ext_id, ext_data, critical);
 }
@@ -767,12 +770,63 @@ _gnutls_write_new_general_name(ASN1_TYPE ext, const char *ext_name,
 	return 0;
 }
 
+int
+_gnutls_write_new_othername(ASN1_TYPE ext, const char *ext_name,
+		       const char *oid,
+		       const void *data, unsigned int data_size)
+{
+	int result;
+	char name[128];
+	char name2[128];
+
+	result = asn1_write_value(ext, ext_name, "NEW", 1);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+
+	if (ext_name[0] == 0) {	/* no dot */
+		_gnutls_str_cpy(name, sizeof(name), "?LAST");
+	} else {
+		_gnutls_str_cpy(name, sizeof(name), ext_name);
+		_gnutls_str_cat(name, sizeof(name), ".?LAST");
+	}
+
+	result = asn1_write_value(ext, name, "otherName", 1);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+
+	snprintf(name2, sizeof(name2), "%s.otherName.type-id", name);
+
+	result = asn1_write_value(ext, name2, oid, 1);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		asn1_delete_structure(&ext);
+		return _gnutls_asn2err(result);
+	}
+
+	snprintf(name2, sizeof(name2), "%s.otherName.value", name);
+
+	result = asn1_write_value(ext, name2, data, data_size);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		asn1_delete_structure(&ext);
+		return _gnutls_asn2err(result);
+	}
+
+	return 0;
+}
+
 /* Convert the given name to GeneralNames in a DER encoded extension.
  * This is the same as subject alternative name.
  */
 int
 _gnutls_x509_ext_gen_subject_alt_name(gnutls_x509_subject_alt_name_t
-				      type, const void *data,
+				      type,
+				      const char *othername_oid,
+				      const void *data,
 				      unsigned int data_size,
 				      const gnutls_datum_t * prev_der_ext,
 				      gnutls_datum_t * der_ext)
@@ -799,7 +853,7 @@ _gnutls_x509_ext_gen_subject_alt_name(gnutls_x509_subject_alt_name_t
 
 	name.data = (void*)data;
 	name.size = data_size;
-	ret = gnutls_subject_alt_names_set(sans, type, &name, NULL);
+	ret = gnutls_subject_alt_names_set(sans, type, &name, othername_oid);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
@@ -850,6 +904,6 @@ _gnutls_x509_ext_gen_auth_key_id(const void *id, size_t id_size,
 	ret = 0;
 
  cleanup:
- 	gnutls_x509_aki_deinit(aki);
- 	return ret;
+	gnutls_x509_aki_deinit(aki);
+	return ret;
 }

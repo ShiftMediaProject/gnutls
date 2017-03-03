@@ -96,7 +96,7 @@ static const gnutls_datum_t resp1 =
   "	Response Status: Successful\n"		\
   "	Response Type: Basic OCSP Response\n"	\
   "	Version: 1\n" \
-  "	Responder ID: C=CH,O=Linux strongSwan,OU=OCSP Signing Authority,CN=ocsp.strongswan.org\n" \
+  "	Responder ID: CN=ocsp.strongswan.org,OU=OCSP Signing Authority,O=Linux strongSwan,C=CH\n" \
   "	Produced At: Tue Sep 27 09:54:28 UTC 2011\n" \
   "	Responses:\n" \
   "		Certificate ID:\n" \
@@ -899,8 +899,8 @@ static void req_parse(void)
 	if (strlen(REQ1INFO) != d.size ||
 	    memcmp(REQ1INFO, d.data, strlen(REQ1INFO)) != 0) {
 		printf("expected (len %ld):\n%s\ngot (len %d):\n%.*s\n",
-		       strlen(REQ1INFO), REQ1INFO, (int) d.size,
-		       (int) d.size, d.data);
+			strlen(REQ1INFO), REQ1INFO, (int) d.size,
+			(int) d.size, d.data);
 		fail("ocsp request print failed\n");
 		exit(1);
 	}
@@ -1093,8 +1093,8 @@ static void req_addcert_id(void)
 	if (strlen(REQ1INFO) != d.size ||
 	    memcmp(REQ1INFO, d.data, strlen(REQ1INFO)) != 0) {
 		printf("expected (len %ld):\n%s\ngot (len %d):\n%.*s\n",
-		       strlen(REQ1INFO), REQ1INFO, (int) d.size,
-		       (int) d.size, d.data);
+			strlen(REQ1INFO), REQ1INFO, (int) d.size,
+			(int) d.size, d.data);
 		fail("ocsp request print failed\n");
 		exit(1);
 	}
@@ -1185,7 +1185,7 @@ static void req_addcert(void)
 		}
 
 		ret = gnutls_ocsp_req_add_cert(req, GNUTLS_DIG_SHA1,
-					       issuer, subject);
+						issuer, subject);
 		if (ret != 0) {
 			fail("gnutls_ocsp_add_cert %d\n", ret);
 			exit(1);
@@ -1206,8 +1206,8 @@ static void req_addcert(void)
 	if (strlen(REQ1INFO) != d.size ||
 	    memcmp(REQ1INFO, d.data, strlen(REQ1INFO)) != 0) {
 		printf("expected (len %ld):\n%s\ngot (len %d):\n%.*s\n",
-		       strlen(REQ1INFO), REQ1INFO, (int) d.size,
-		       (int) d.size, d.data);
+			strlen(REQ1INFO), REQ1INFO, (int) d.size,
+			(int) d.size, d.data);
 		fail("ocsp request print failed\n");
 		exit(1);
 	}
@@ -1231,6 +1231,48 @@ static void req_addcert(void)
 	/* cleanup */
 
 	gnutls_ocsp_req_deinit(req);
+}
+
+static void check_ocsp_resp(gnutls_ocsp_resp_t resp)
+{
+	int ret;
+	gnutls_digest_algorithm_t digest;
+	gnutls_datum_t issuer_name_hash;
+	gnutls_datum_t issuer_key_hash;
+	gnutls_datum_t serial_number;
+	unsigned cert_status;
+	time_t this_update;
+	time_t next_update;
+	time_t revocation_time;
+	unsigned revocation_reason;
+
+	/* functionality check of gnutls_ocsp_resp_get_single(), the data
+	 * sanity check is done with the gnutls_ocsp_resp_print() checks. */
+	ret = gnutls_ocsp_resp_get_single(resp, 0, &digest, &issuer_name_hash,
+		&issuer_key_hash, &serial_number, &cert_status, &this_update,
+		&next_update, &revocation_time, &revocation_reason);
+	if (ret < 0) {
+		fail("error in gnutls_ocsp_resp_get_single: %s\n", gnutls_strerror(ret));
+	}
+
+	gnutls_free(issuer_key_hash.data);
+	gnutls_free(issuer_name_hash.data);
+	gnutls_free(serial_number.data);
+
+	/* test if everything works with null params */
+	ret = gnutls_ocsp_resp_get_single(resp, 0, &digest, NULL, NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL);
+	if (ret < 0) {
+		fail("error in gnutls_ocsp_resp_get_single: %s\n", gnutls_strerror(ret));
+	}
+
+	ret = gnutls_ocsp_resp_get_single(resp, 0, NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL, NULL, &revocation_reason);
+	if (ret < 0) {
+		fail("error in gnutls_ocsp_resp_get_single: %s\n", gnutls_strerror(ret));
+	}
+
+	return;
 }
 
 static void resp_import(void)
@@ -1266,8 +1308,8 @@ static void resp_import(void)
 	if (strlen(RESP1INFO) != d.size ||
 	    memcmp(RESP1INFO, d.data, strlen(RESP1INFO)) != 0) {
 		printf("expected (len %ld):\n%s\ngot (len %d):\n%.*s\n",
-		       strlen(RESP1INFO), RESP1INFO, (int) d.size,
-		       (int) d.size, d.data);
+			strlen(RESP1INFO), RESP1INFO, (int) d.size,
+			(int) d.size, d.data);
 		fail("ocsp response print failed\n");
 		exit(1);
 	}
@@ -1281,8 +1323,9 @@ static void resp_import(void)
 		exit(1);
 	}
 
-	/* print response */
+	check_ocsp_resp(resp);
 
+	/* print response */
 	ret = gnutls_ocsp_resp_print(resp, GNUTLS_OCSP_PRINT_FULL, &d);
 	if (ret != 0) {
 		fail("gnutls_ocsp_resp_print\n");
@@ -1291,8 +1334,8 @@ static void resp_import(void)
 
 	if (memcmp(RESP2INFO, d.data, strlen(RESP2INFO)) != 0) {
 		printf("expected (len %ld):\n%s\ngot (len %d):\n%.*s\n",
-		       strlen(RESP2INFO), RESP2INFO, (int) d.size,
-		       (int) d.size, d.data);
+			strlen(RESP2INFO), RESP2INFO, (int) d.size,
+			(int) d.size, d.data);
 		fail("ocsp response print failed\n");
 		exit(1);
 	}
@@ -1326,8 +1369,8 @@ static void resp_import(void)
 
 	if (memcmp(RESP3INFO, d.data, strlen(RESP3INFO)) != 0) {
 		printf("expected (len %ld):\n%s\ngot (len %d):\n%.*s\n",
-		       strlen(RESP3INFO), RESP3INFO, (int) d.size,
-		       (int) d.size, d.data);
+			strlen(RESP3INFO), RESP3INFO, (int) d.size,
+			(int) d.size, d.data);
 		fail("ocsp response 3 print failed\n");
 		exit(1);
 	}

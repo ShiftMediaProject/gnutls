@@ -1,6 +1,6 @@
 SMP=-j4
 
-GNUTLS_VERSION:=3.4.7
+GNUTLS_VERSION:=3.4.9
 GNUTLS_FILE:=gnutls-$(GNUTLS_VERSION).tar.xz
 GNUTLS_DIR:=gnutls-$(GNUTLS_VERSION)
 
@@ -8,9 +8,9 @@ OPENCONNECT_VERSION:=6.00
 OPENCONNECT_FILE:=openconnect-$(OPENCONNECT_VERSION).tar.gz
 OPENCONNECT_DIR:=openconnect-$(OPENCONNECT_VERSION)
 
-GMP_VERSION=6.0.0
-GMP_VERSIONA=6.0.0a
-GMP_FILE:=gmp-$(GMP_VERSIONA).tar.bz2
+GMP_VERSION=6.1.0
+GMP_VERSIONA=6.1.0
+GMP_FILE:=gmp-$(GMP_VERSIONA).tar.lz
 GMP_SERV_DIR:=gmp-$(GMP_VERSIONA)
 GMP_DIR:=gmp-$(GMP_VERSION)
 
@@ -22,16 +22,26 @@ LIBZ_VERSION=1.2.8
 LIBZ_FILE:=zlib-$(LIBZ_VERSION).tar.gz
 LIBZ_DIR:=zlib-$(LIBZ_VERSION)
 
-P11_KIT_VERSION=0.23.1
+P11_KIT_VERSION=0.23.2
 P11_KIT_FILE:=p11-kit-$(P11_KIT_VERSION).tar.gz
 P11_KIT_DIR:=p11-kit-$(P11_KIT_VERSION)
 
-NETTLE_VERSION=3.1
+NETTLE_VERSION=3.2
 NETTLE_FILE:=nettle-$(NETTLE_VERSION).tar.gz
 NETTLE_DIR:=nettle-$(NETTLE_VERSION)
 
-PKG_CONFIG_DIR:=$(PWD)/win32/lib/pkgconfig/
+ifeq ($(BITS),64)
+HOST:=x86_64-w64-mingw32
+CROSS_DIR:=$(PWD)/win64
+ZIPNAME:=$(GNUTLS_DIR)-w64.zip
+else
+HOST:=i686-w64-mingw32
 CROSS_DIR:=$(PWD)/win32
+ZIPNAME:=$(GNUTLS_DIR)-w32.zip
+GMP_FLAGS=--enable-fat
+endif
+
+PKG_CONFIG_DIR:=$(CROSS_DIR)/lib/pkgconfig/
 BIN_DIR:=$(CROSS_DIR)/bin
 LIB_DIR:=$(CROSS_DIR)/lib
 HEADERS_DIR:=$(CROSS_DIR)/include
@@ -40,30 +50,31 @@ LDFLAGS=
 #doesn't seem to work
 #LDFLAGS=-static-libgcc
 
+
 all: update-gpg-keys gnutls-w32
 
 upload: gnutls-w32 devpak
-	../build-aux/gnupload --to ftp.gnu.org:gnutls/w32 $(GNUTLS_DIR)-w32.zip
+	../build-aux/gnupload --to ftp.gnu.org:gnutls/w32 $(ZIPNAME)
 	../build-aux/gnupload --to ftp.gnu.org:gnutls/w32 gnutls-$(GNUTLS_VERSION)-1gn.DevPak
 
 update-gpg-keys:
 	gpg --recv-keys 96865171 B565716F D92765AF A8F4C2FD DB899F46
 
-$(GNUTLS_DIR)-w32.zip: $(LIB_DIR) $(BIN_DIR) $(GNUTLS_DIR)/.installed
+$(ZIPNAME): $(LIB_DIR) $(BIN_DIR) $(GNUTLS_DIR)/.installed
 	rm -rf $(CROSS_DIR)/etc $(CROSS_DIR)/share $(CROSS_DIR)/lib/include
 	cd $(CROSS_DIR) && zip -r $(PWD)/$@ *
-	gpg --sign --detach $(GNUTLS_DIR)-w32.zip
+	gpg --sign --detach $(ZIPNAME)
 
-gnutls-$(GNUTLS_VERSION)-1gn.DevPak: $(GNUTLS_DIR)-w32.zip devcpp.tar
+gnutls-$(GNUTLS_VERSION)-1gn.DevPak: $(ZIPNAME) devcpp.tar
 	rm -rf $(DEVCPP_DIR)
 	mkdir -p $(DEVCPP_DIR)
-	cd $(DEVCPP_DIR) && unzip ../$(GNUTLS_DIR)-w32.zip 
+	cd $(DEVCPP_DIR) && unzip ../$(ZIPNAME)
 	cd $(DEVCPP_DIR) && tar xf ../devcpp.tar && sed -i 's/@VERSION@/$(GNUTLS_VERSION)/g' gnutls.DevPackage
 	cd $(DEVCPP_DIR) && tar -cjf ../$@ .
 
 devpak: gnutls-$(GNUTLS_VERSION)-1gn.DevPak
 
-gnutls-w32: $(GNUTLS_DIR)-w32.zip
+gnutls-w32: $(ZIPNAME)
 
 openconnect-w32: $(OPENCONNECT_DIR)/.installed
 
@@ -81,7 +92,7 @@ CONFIG_ENV := PKG_CONFIG_PATH="$(PKG_CONFIG_DIR)"
 CONFIG_ENV += PKG_CONFIG_LIBDIR="$(PKG_CONFIG_DIR)"
 CONFIG_FLAGS1 := --prefix=$(CROSS_DIR) --enable-shared \
 	--libdir=$(LIB_DIR) --includedir=$(HEADERS_DIR)
-CONFIG_FLAGS := --host=i686-w64-mingw32 $(CONFIG_FLAGS1) --disable-static --bindir=$(BIN_DIR) --sbindir=$(BIN_DIR) \
+CONFIG_FLAGS := --host=$(HOST) $(CONFIG_FLAGS1) --disable-static --bindir=$(BIN_DIR) --sbindir=$(BIN_DIR) \
 	 --enable-threads=win32 
 
 $(P11_KIT_DIR)/.configured:
@@ -106,7 +117,7 @@ $(GMP_DIR)/.configured:
 	test -f $(GMP_FILE).sig || wget ftp://ftp.gmplib.org/pub/$(GMP_DIR)/$(GMP_FILE).sig
 	gpg --verify $(GMP_FILE).sig
 	test -d $(GMP_DIR) || tar -xf $(GMP_FILE)
-	cd $(GMP_DIR) && LDFLAGS="$(LDFLAGS)" $(CONFIG_ENV) ./configure $(CONFIG_FLAGS) --enable-fat --exec-prefix=$(LIB_DIR)  --oldincludedir=$(HEADERS_DIR) && cd ..
+	cd $(GMP_DIR) && LDFLAGS="$(LDFLAGS)" CC=$(HOST)-gcc $(CONFIG_ENV) ./configure $(GMP_FLAGS) $(CONFIG_FLAGS) --exec-prefix=$(LIB_DIR)  --oldincludedir=$(HEADERS_DIR) && cd ..
 	cp $(GMP_DIR)/COPYING.LESSERv3 $(CROSS_DIR)/COPYING.GMP
 	touch $@
 
@@ -135,18 +146,18 @@ $(NETTLE_DIR)/.installed: $(NETTLE_DIR)/.configured
 	cp $(NETTLE_DIR)/libnettle*.dll $(NETTLE_DIR)/libhogweed*.dll $(BIN_DIR)/
 	touch $@
 
-GCC_DLLS_PATH=/usr/i686-w64-mingw32/sys-root/mingw/bin/
-GCC_DLLS=libgcc_s_sjlj-1.dll libwinpthread-1.dll
+GCC_DLLS_PATH=/usr/lib/gcc/$(HOST)/4.9-win32/
+GCC_DLLS=libgcc_s_sjlj-1.dll libgcc_s_seh-1.dll libwinpthread-1.dll
 
 $(GNUTLS_DIR)/.installed: $(GNUTLS_DIR)/.configured
 	make -C $(GNUTLS_DIR) $(SMP)
 	-for j in $(GNUTLS_DIR)/tests $(GNUTLS_DIR)/tests/safe-renegotiation $(GNUTLS_DIR)/tests/slow;do \
-	for i in $(GCC_DLLS);do cp $(GCC_DLLS_PATH)/$$i $$j;done;done
+	for i in $(GCC_DLLS);do cp $(GCC_DLLS_PATH)/$$i $$j && echo $$i;done;done
 	sed -i 's/^"$$@" >$$log_file/echo $$@|grep exe >\/dev\/null; if [ $$? == 0 ];then wine "$$@" >$$log_file;else \/bin\/true >$$log_file;fi/g' $(GNUTLS_DIR)/build-aux/test-driver
-	make -C $(GNUTLS_DIR)/tests check $(SMP)
+	-make -C $(GNUTLS_DIR)/tests check $(SMP)
 	make -C $(GNUTLS_DIR) install -i
 	cp $(GNUTLS_DIR)/COPYING $(GNUTLS_DIR)/COPYING.LESSER $(CROSS_DIR)
-	-cp $(GCC_DLLS) $(BIN_DIR)/
+	-for i in $(GCC_DLLS);do cp $(GCC_DLLS_PATH)/$$i $(BIN_DIR)/ && echo $$i;done
 	touch $@
 
 $(GNUTLS_DIR)/.configured: $(NETTLE_DIR)/.installed $(P11_KIT_DIR)/.installed

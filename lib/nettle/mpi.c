@@ -23,11 +23,11 @@
 /* Here lie everything that has to do with large numbers, gmp.
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 #include <algorithms.h>
-#include <gnutls_num.h>
-#include <gnutls_mpi.h>
+#include <num.h>
+#include <mpi.h>
 #include <nettle/bignum.h> /* includes gmp.h */
 #include <gnettle.h>
 #include <random.h>
@@ -233,6 +233,9 @@ static void wrap_nettle_mpi_clear(bigint_t a)
 
 static int wrap_nettle_mpi_modm(bigint_t r, const bigint_t a, const bigint_t b)
 {
+	if (mpz_cmp_ui(TOMPZ(b), 0) == 0)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
 	mpz_mod(TOMPZ(r), TOMPZ(a), TOMPZ(b));
 	
 	return 0;

@@ -131,7 +131,7 @@ static void client(int fd, int server_init)
 		do {
 			ret =
 			    gnutls_record_recv(session, buffer,
-					       sizeof(buffer));
+						sizeof(buffer));
 
 			if (ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED) {
 				if (debug)
@@ -146,7 +146,7 @@ static void client(int fd, int server_init)
 			}
 		}
 		while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED
-		       || ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED);
+			|| ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED);
 
 		if (ret < 0) {
 			fail("recv: %s\n", gnutls_strerror(ret));
@@ -162,7 +162,7 @@ static void client(int fd, int server_init)
 				success("Ping sent.\n");
 		}
 		while (ret == GNUTLS_E_AGAIN
-		       || ret == GNUTLS_E_INTERRUPTED);
+			|| ret == GNUTLS_E_INTERRUPTED);
 
 		if (ret < 0) {
 			fail("ping: %s\n", gnutls_strerror(ret));
@@ -258,7 +258,7 @@ static void server(int fd, int server_init)
 		do {
 			ret =
 			    gnutls_record_recv(session, buffer,
-					       sizeof(buffer));
+						sizeof(buffer));
 
 			if (ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED) {
 				if (debug)
@@ -273,7 +273,7 @@ static void server(int fd, int server_init)
 			}
 		}
 		while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED
-		       || ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED);
+			|| ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED);
 	} else {
 		do {
 			ret =
@@ -284,7 +284,7 @@ static void server(int fd, int server_init)
 				success("Ping sent.\n");
 		}
 		while (ret == GNUTLS_E_AGAIN
-		       || ret == GNUTLS_E_INTERRUPTED);
+			|| ret == GNUTLS_E_INTERRUPTED);
 
 		if (ret < 0) {
 			fail("ping: %s\n", gnutls_strerror(ret));
@@ -331,9 +331,7 @@ static void start(int server_initiated)
 
 		server(fd[0], server_initiated);
 		wait(&status);
-		if (WEXITSTATUS(status) != 0)
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
+		check_wait_status(status);
 	} else {
 		close(fd[0]);
 		client(fd[1], server_initiated);

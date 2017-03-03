@@ -45,6 +45,7 @@ int main()
 #include <unistd.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/dtls.h>
+#include <signal.h>
 
 #include "utils.h"
 
@@ -318,6 +319,8 @@ void doit(void)
 	int fd[2];
 	int ret;
 
+	signal(SIGPIPE, SIG_IGN);
+
 	ret = socketpair(AF_UNIX, SOCK_STREAM, 0, fd);
 	if (ret < 0) {
 		perror("socketpair");
@@ -337,9 +340,7 @@ void doit(void)
 
 		server(fd[0]);
 		wait(&status);
-		if (WEXITSTATUS(status) != 0)
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
+		check_wait_status(status);
 	} else {
 		close(fd[0]);
 		client(fd[1]);

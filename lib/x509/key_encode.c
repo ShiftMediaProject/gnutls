@@ -21,17 +21,17 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
-#include <gnutls_global.h>
+#include "gnutls_int.h"
+#include "errors.h"
+#include <global.h>
 #include <libtasn1.h>
-#include <gnutls_datum.h>
+#include <datum.h>
 #include "common.h"
 #include "x509_int.h"
-#include <gnutls_num.h>
-#include <gnutls_pk.h>
-#include <gnutls_mpi.h>
-#include <gnutls_ecc.h>
+#include <num.h>
+#include <pk.h>
+#include <mpi.h>
+#include <ecc.h>
 
 static int _gnutls_x509_write_rsa_pubkey(gnutls_pk_params_st * params,
 					 gnutls_datum_t * der);
@@ -336,7 +336,7 @@ _gnutls_x509_write_dsa_pubkey(gnutls_pk_params_st * params,
 /* Encodes the RSA parameters into an ASN.1 RSA private key structure.
  */
 static int
-_gnutls_asn1_encode_rsa(ASN1_TYPE * c2, gnutls_pk_params_st * params)
+_gnutls_asn1_encode_rsa(ASN1_TYPE * c2, gnutls_pk_params_st * params, unsigned compat)
 {
 	int result, ret;
 	uint8_t null = '\0';
@@ -442,11 +442,34 @@ _gnutls_asn1_encode_rsa(ASN1_TYPE * c2, gnutls_pk_params_st * params)
 		goto cleanup;
 	}
 
-	if ((result = asn1_write_value(*c2, "otherPrimeInfos",
-				       NULL, 0)) != ASN1_SUCCESS) {
-		gnutls_assert();
-		ret = _gnutls_asn2err(result);
-		goto cleanup;
+	if (compat == 0 && (params->flags & GNUTLS_PK_FLAG_PROVABLE) && params->seed_size > 0) {
+		if ((result = asn1_write_value(*c2, "otherInfo",
+					       "seed", 1)) != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto cleanup;
+		}
+
+		if ((result = asn1_write_value(*c2, "otherInfo.seed.seed",
+					       params->seed, params->seed_size)) != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto cleanup;
+		}
+
+		if ((result = asn1_write_value(*c2, "otherInfo.seed.algorithm",
+					       gnutls_digest_get_oid(params->palgo), 1)) != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto cleanup;
+		}
+	} else {
+		if ((result = asn1_write_value(*c2, "otherInfo",
+					       NULL, 0)) != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto cleanup;
+		}
 	}
 
 	if ((result =
@@ -474,7 +497,7 @@ _gnutls_asn1_encode_ecc(ASN1_TYPE * c2, gnutls_pk_params_st * params)
 {
 	int ret;
 	uint8_t one = '\x01';
-	gnutls_datum pubkey = { NULL, 0 };
+	gnutls_datum_t pubkey = { NULL, 0 };
 	const char *oid;
 
 	oid = gnutls_ecc_curve_get_oid(params->flags);
@@ -560,7 +583,7 @@ cleanup:
 /* Encodes the DSA parameters into an ASN.1 DSAPrivateKey structure.
  */
 static int
-_gnutls_asn1_encode_dsa(ASN1_TYPE * c2, gnutls_pk_params_st * params)
+_gnutls_asn1_encode_dsa(ASN1_TYPE * c2, gnutls_pk_params_st * params, unsigned compat)
 {
 	int result, ret;
 	const uint8_t null = '\0';
@@ -620,6 +643,24 @@ _gnutls_asn1_encode_dsa(ASN1_TYPE * c2, gnutls_pk_params_st * params)
 		goto cleanup;
 	}
 
+	if (params->seed_size > 0 && compat == 0) {
+		if ((result = asn1_write_value(*c2, "seed.seed",
+					       params->seed, params->seed_size)) != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto cleanup;
+		}
+
+		if ((result = asn1_write_value(*c2, "seed.algorithm",
+					       gnutls_digest_get_oid(params->palgo), 1)) != ASN1_SUCCESS) {
+			gnutls_assert();
+			ret = _gnutls_asn2err(result);
+			goto cleanup;
+		}
+	} else {
+		asn1_write_value(*c2, "seed", NULL, 0);
+	}
+
 	if ((result =
 	     asn1_write_value(*c2, "version", &null, 1)) != ASN1_SUCCESS) {
 		gnutls_assert();
@@ -636,13 +677,13 @@ cleanup:
 }
 
 int _gnutls_asn1_encode_privkey(gnutls_pk_algorithm_t pk, ASN1_TYPE * c2,
-				gnutls_pk_params_st * params)
+				gnutls_pk_params_st * params, unsigned compat)
 {
 	switch (pk) {
 	case GNUTLS_PK_RSA:
-		return _gnutls_asn1_encode_rsa(c2, params);
+		return _gnutls_asn1_encode_rsa(c2, params, compat);
 	case GNUTLS_PK_DSA:
-		return _gnutls_asn1_encode_dsa(c2, params);
+		return _gnutls_asn1_encode_dsa(c2, params, compat);
 	case GNUTLS_PK_EC:
 		return _gnutls_asn1_encode_ecc(c2, params);
 	default:

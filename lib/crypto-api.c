@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2000-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2000-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -20,10 +21,10 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
-#include <gnutls_cipher_int.h>
-#include <gnutls_datum.h>
+#include "gnutls_int.h"
+#include "errors.h"
+#include <cipher_int.h>
+#include <datum.h>
 #include <gnutls/crypto.h>
 #include <algorithms.h>
 #include <random.h>
@@ -419,7 +420,7 @@ void gnutls_hmac_deinit(gnutls_hmac_hd_t handle, void *digest)
  *
  * Since: 2.10.0
  **/
-int gnutls_hmac_get_len(gnutls_mac_algorithm_t algorithm)
+unsigned gnutls_hmac_get_len(gnutls_mac_algorithm_t algorithm)
 {
 	return _gnutls_mac_get_algo_len(mac_to_entry(algorithm));
 }
@@ -549,7 +550,7 @@ void gnutls_hash_deinit(gnutls_hash_hd_t handle, void *digest)
  *
  * Since: 2.10.0
  **/
-int gnutls_hash_get_len(gnutls_digest_algorithm_t algorithm)
+unsigned gnutls_hash_get_len(gnutls_digest_algorithm_t algorithm)
 {
 	return _gnutls_hash_get_algo_len(hash_to_entry(algorithm));
 }
@@ -592,6 +593,8 @@ int gnutls_key_generate(gnutls_datum_t * key, unsigned int key_size)
 {
 	int ret;
 
+	FAIL_IF_LIB_ERROR;
+
 #ifdef ENABLE_FIPS140
 	/* The FIPS140 approved RNGs are not allowed to be used
 	 * to extract key sizes longer than their original seed.
@@ -608,7 +611,7 @@ int gnutls_key_generate(gnutls_datum_t * key, unsigned int key_size)
 		return GNUTLS_E_MEMORY_ERROR;
 	}
 
-	ret = _gnutls_rnd(GNUTLS_RND_RANDOM, key->data, key->size);
+	ret = gnutls_rnd(GNUTLS_RND_RANDOM, key->data, key->size);
 	if (ret < 0) {
 		gnutls_assert();
 		_gnutls_free_datum(key);
@@ -713,7 +716,7 @@ gnutls_aead_cipher_decrypt(gnutls_aead_cipher_hd_t handle,
 		return gnutls_assert_val(ret);
 
 	/* That assumes that AEAD ciphers are stream */
-	*ptext_len = ctext_len;
+	*ptext_len = ctext_len - tag_size;
 
 	return 0;
 }
@@ -734,8 +737,7 @@ gnutls_aead_cipher_decrypt(gnutls_aead_cipher_hd_t handle,
  *
  * This function will encrypt the given data using the algorithm
  * specified by the context. The output data will contain the
- * authentication tag. This function requires that 
- * gnutls_aead_cipher_set_nonce() is called before it.
+ * authentication tag.
  *
  * Returns: Zero or a negative error code on error.
  *
@@ -761,11 +763,11 @@ gnutls_aead_cipher_encrypt(gnutls_aead_cipher_hd_t handle,
 		return gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
 
 	ret = _gnutls_aead_cipher_encrypt(&h->ctx_enc,
-				     	  nonce, nonce_len,
-				     	  auth, auth_len,
-				     	  tag_size,
-				     	  ptext, ptext_len,
-				     	  ctext, *ctext_len);
+					  nonce, nonce_len,
+					  auth, auth_len,
+					  tag_size,
+					  ptext, ptext_len,
+					  ctext, *ctext_len);
 	if (unlikely(ret < 0))
 		return gnutls_assert_val(ret);
 

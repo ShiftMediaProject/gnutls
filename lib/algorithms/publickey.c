@@ -20,9 +20,9 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <algorithms.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <x509/common.h>
 
 
@@ -57,18 +57,18 @@ static const gnutls_pk_map pk_mappings[] = {
 };
 
 #define GNUTLS_PK_MAP_LOOP(b) \
-        const gnutls_pk_map *p; \
-                for(p = pk_mappings; p->kx_algorithm != 0; p++) { b }
+	const gnutls_pk_map *p; \
+		for(p = pk_mappings; p->kx_algorithm != 0; p++) { b }
 
 #define GNUTLS_PK_MAP_ALG_LOOP(a) \
-                        GNUTLS_PK_MAP_LOOP( if(p->kx_algorithm == kx_algorithm) { a; break; })
+			GNUTLS_PK_MAP_LOOP( if(p->kx_algorithm == kx_algorithm) { a; break; })
 
 
 /* returns the gnutls_pk_algorithm_t which is compatible with
  * the given gnutls_kx_algorithm_t.
  */
 gnutls_pk_algorithm_t
-_gnutls_map_pk_get_pk(gnutls_kx_algorithm_t kx_algorithm)
+_gnutls_map_kx_get_pk(gnutls_kx_algorithm_t kx_algorithm)
 {
 	gnutls_pk_algorithm_t ret = -1;
 
@@ -96,13 +96,15 @@ static const gnutls_pk_entry pk_algorithms[] = {
 	{"DSA", PK_DSA_OID, GNUTLS_PK_DSA},
 	{"GOST R 34.10-2001", PK_GOST_R3410_2001_OID, GNUTLS_PK_UNKNOWN},
 	{"GOST R 34.10-94", PK_GOST_R3410_94_OID, GNUTLS_PK_UNKNOWN},
-	{"EC", "1.2.840.10045.2.1", GNUTLS_PK_EC},
+	{"EC/ECDSA", "1.2.840.10045.2.1", GNUTLS_PK_ECDSA},
+	{"DH", NULL, GNUTLS_PK_DH},
+	{"ECDHX", NULL, GNUTLS_PK_ECDHX},
 	{0, 0, 0}
 };
 
 #define GNUTLS_PK_LOOP(b) \
 	{ const gnutls_pk_entry *p; \
-                for(p = pk_algorithms; p->name != NULL; p++) { b ; } }
+		for(p = pk_algorithms; p->name != NULL; p++) { b ; } }
 
 
 /**

@@ -63,6 +63,13 @@ extern void fail_ignore(const char *format, ...)
 extern void success(const char *format, ...)
     __attribute__ ((format(printf, 1, 2)));
 
+/* assumes test_name is defined */
+#define test_fail(fmt, ...) \
+	fail("%s: "fmt, test_name, ##__VA_ARGS__)
+
+#define test_success(fmt, ...) \
+	success("%s: "fmt, test_name, ##__VA_ARGS__)
+
 extern void c_print(const unsigned char *str, size_t len);
 extern void escapeprint(const char *str, size_t len);
 extern void hexprint(const void *str, size_t len);
@@ -70,13 +77,73 @@ extern void binprint(const void *str, size_t len);
 int disable_system_calls(void);
 void sec_sleep(int sec);
 
-void test_cli_serv(gnutls_certificate_credentials_t server_cred, const char *prio,
-              const gnutls_datum_t *ca_cert, const char *host);
+int
+test_cli_serv_anon(gnutls_anon_server_credentials_t server_cred,
+	      gnutls_anon_client_credentials_t client_cred,
+	      const char *prio);
+
+int
+test_cli_serv_psk(gnutls_psk_server_credentials_t server_cred,
+	      gnutls_psk_client_credentials_t client_cred,
+	      const char *prio);
+
+typedef void callback_func(gnutls_session_t, void *priv);
+void test_cli_serv(gnutls_certificate_credentials_t server_cred,
+		   gnutls_certificate_credentials_t client_cred,
+		   const char *prio, const char *host,
+		   void *priv,
+		   callback_func * client_cb, callback_func * server_cb);
+
+void
+test_cli_serv_cert(gnutls_certificate_credentials_t server_cred,
+	      gnutls_certificate_credentials_t client_cred,
+	      const char *serv_prio, const char *cli_prio, const char *host);
+
+void
+test_cli_serv_expect(gnutls_certificate_credentials_t server_cred,
+	      gnutls_certificate_credentials_t client_cred,
+	      const char *serv_prio, const char *cli_prio, const char *host,
+	      int serv_err, int cli_err);
+
+/* verification failed */
+unsigned
+test_cli_serv_vf(gnutls_certificate_credentials_t server_cred,
+	      gnutls_certificate_credentials_t client_cred,
+	      const char *prio, const char *host);
 
 #define TMPNAME_SIZE 128
 char *get_tmpname(char s[TMPNAME_SIZE]);
+void track_temp_files(void);
+void delete_temp_files(void);
 
 /* This must be implemented elsewhere. */
 extern void doit(void);
+
+/* calls fail() if status indicates an error  */
+inline static void _check_wait_status(int status, unsigned sigonly)
+{
+#if defined WEXITSTATUS && defined WIFSIGNALED
+	if (WEXITSTATUS(status) != 0 ||
+	    (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)) {
+		if (WIFSIGNALED(status)) {
+			fail("Child died with signal %d\n", WTERMSIG(status));
+		} else {
+			if (!sigonly)
+				fail("Child died with status %d\n",
+				     WEXITSTATUS(status));
+		}
+	}
+#endif
+}
+
+inline static void check_wait_status(int status)
+{
+	_check_wait_status(status, 0);
+}
+
+inline static void check_wait_status_for_sig(int status)
+{
+	_check_wait_status(status, 1);
+}
 
 #endif				/* UTILS_H */

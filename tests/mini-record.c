@@ -216,6 +216,9 @@ static void client(int fd, const char *prio)
 			gnutls_protocol_get_name
 			(gnutls_protocol_get_version(session)));
 
+	/* make sure we are not blocked forever */
+	gnutls_record_set_timeout(session, 10000);
+
 	do {
 		do {
 			ret = gnutls_record_recv(session, buffer, MAX_BUF);
@@ -326,7 +329,7 @@ static void server(int fd, const char *prio)
 		do {
 			ret =
 			    gnutls_record_send(session, buffer,
-					       sizeof(buffer));
+						sizeof(buffer));
 		} while (ret == GNUTLS_E_AGAIN
 			 || ret == GNUTLS_E_INTERRUPTED);
 
@@ -376,12 +379,11 @@ static void start(const char *prio)
 
 	if (child) {
 		/* parent */
-		close(fd[1]);
-		server(fd[0], prio);
-		kill(child, SIGTERM);
-	} else {
 		close(fd[0]);
 		client(fd[1], prio);
+	} else {
+		close(fd[1]);
+		server(fd[0], prio);
 		exit(0);
 	}
 }
@@ -397,21 +399,14 @@ static void ch_handler(int sig)
 {
 	int status;
 	wait(&status);
-	if (WEXITSTATUS(status) != 0 ||
-	    (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)) {
-		if (WIFSIGNALED(status))
-			fail("Child died with sigsegv\n");
-		else
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
-		terminate();
-	}
+	check_wait_status(status);
 	return;
 }
 
 void doit(void)
 {
 	signal(SIGCHLD, ch_handler);
+	signal(SIGPIPE, SIG_IGN);
 
 	start(AES_CBC);
 	start(AES_CBC_SHA256);

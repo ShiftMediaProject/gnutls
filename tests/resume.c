@@ -51,8 +51,8 @@ int main(int argc, char **argv)
 #include <gnutls/gnutls.h>
 #include <sys/wait.h>
 #include <signal.h>
-
 #include "utils.h"
+#include "cert-common.h"
 
 static void wrap_db_init(void);
 static void wrap_db_deinit(void);
@@ -69,7 +69,10 @@ struct params_res {
 	int enable_session_ticket_server;
 	int enable_session_ticket_client;
 	int expect_resume;
+	int first_no_ext_master;
+	int second_no_ext_master;
 	int try_alpn;
+	int try_resumed_data;
 };
 
 pid_t child;
@@ -80,17 +83,57 @@ struct params_res resume_tests[] = {
 	 .enable_session_ticket_server = 0,
 	 .enable_session_ticket_client = 0,
 	 .expect_resume = 1},
+	{.desc = "try to resume from db using resumed session's data",
+	 .enable_db = 1,
+	 .enable_session_ticket_server = 0,
+	 .enable_session_ticket_client = 0,
+	 .try_resumed_data = 1,
+	 .expect_resume = 1},
 	{.desc = "try to resume from db and check ALPN",
 	 .enable_db = 1,
 	 .enable_session_ticket_server = 0,
 	 .enable_session_ticket_client = 0,
 	 .try_alpn = 1,
 	 .expect_resume = 1},
+	{.desc = "try to resume from db (ext master secret -> none)",
+	 .enable_db = 1,
+	 .enable_session_ticket_server = 0,
+	 .enable_session_ticket_client = 0,
+	 .expect_resume = 0,
+	 .first_no_ext_master = 0,
+	 .second_no_ext_master = 1},
+	{.desc = "try to resume from db (none -> ext master secret)",
+	 .enable_db = 1,
+	 .enable_session_ticket_server = 0,
+	 .enable_session_ticket_client = 0,
+	 .expect_resume = 0,
+	 .first_no_ext_master = 1,
+	 .second_no_ext_master = 0},
 	{.desc = "try to resume from session ticket", 
 	 .enable_db = 0, 
 	 .enable_session_ticket_server = 1,
 	 .enable_session_ticket_client = 1,
 	 .expect_resume = 1},
+	{.desc = "try to resume from session ticket using resumed session's data", 
+	 .enable_db = 0, 
+	 .enable_session_ticket_server = 1,
+	 .enable_session_ticket_client = 1,
+	 .try_resumed_data = 1,
+	 .expect_resume = 1},
+	{.desc = "try to resume from session ticket (ext master secret -> none)", 
+	 .enable_db = 0, 
+	 .enable_session_ticket_server = 1,
+	 .enable_session_ticket_client = 1,
+	 .expect_resume = 0,
+	 .first_no_ext_master = 0,
+	 .second_no_ext_master = 1},
+	{.desc = "try to resume from session ticket (none -> ext master secret)", 
+	 .enable_db = 0, 
+	 .enable_session_ticket_server = 1,
+	 .enable_session_ticket_client = 1,
+	 .expect_resume = 0,
+	 .first_no_ext_master = 1,
+	 .second_no_ext_master = 0},
 	{.desc = "try to resume from session ticket (server only)",
 	  .enable_db = 0,
 	  .enable_session_ticket_server = 1,
@@ -125,7 +168,7 @@ static void tls_log_func(int level, const char *str)
 }
 
 static int hsk_hook_cb(gnutls_session_t session, unsigned int htype, unsigned post,
-		       unsigned int incoming, const gnutls_datum_t *_msg)
+			unsigned int incoming, const gnutls_datum_t *_msg)
 {
 	unsigned size;
 	gnutls_datum msg = {_msg->data, _msg->size};
@@ -207,8 +250,19 @@ static void client(int sds[], struct params_res *params)
 	int ret, ii;
 	gnutls_session_t session;
 	char buffer[MAX_BUF + 1];
+	unsigned int ext_master_secret_check = 0;
+	char prio_str[256];
+#ifdef USE_PSK
+# define PRIO_STR "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+PSK:+CURVE-ALL"
+	const gnutls_datum_t pskkey = { (void *) "DEADBEEF", 8 };
+	gnutls_psk_client_credentials_t pskcred;
+#elif defined(USE_ANON)
+# define PRIO_STR "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-ECDH:+ANON-DH:+CURVE-ALL"
 	gnutls_anon_client_credentials_t anoncred;
-	unsigned int ext_master_secret = 0;
+#elif defined(USE_X509)
+# define PRIO_STR "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ECDHE-RSA:+RSA:+CURVE-ALL"
+	gnutls_certificate_credentials_t clientx509cred;
+#endif
 
 	/* Need to enable anonymous KX specifically. */
 
@@ -223,31 +277,56 @@ static void client(int sds[], struct params_res *params)
 	}
 	global_init();
 
+#ifdef USE_PSK
+	gnutls_psk_allocate_client_credentials(&pskcred);
+	gnutls_psk_set_client_credentials(pskcred, "test", &pskkey, GNUTLS_PSK_KEY_HEX);
+#elif defined(USE_ANON)
 	gnutls_anon_allocate_client_credentials(&anoncred);
+#elif defined(USE_X509)
+	gnutls_certificate_allocate_credentials(&clientx509cred);
+#endif
+
 
 	for (t = 0; t < SESSIONS; t++) {
 		int sd = sds[t];
 
 		/* Initialize TLS session
 		 */
-		gnutls_init(&session,
-			    GNUTLS_CLIENT);
+		gnutls_init(&session, GNUTLS_CLIENT);
+
+		snprintf(prio_str, sizeof(prio_str), "%s", PRIO_STR);
 
 		/* Use default priorities */
-		if (params->enable_session_ticket_client) {
-			gnutls_priority_set_direct(session,
-						   "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH",
-						   NULL);
-		} else {
-			gnutls_priority_set_direct(session,
-						   "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH:%NO_TICKETS",
-						   NULL);
+		if (params->enable_session_ticket_client == 0) {
+			strcat(prio_str, ":%NO_TICKETS");
 		}
+
+		if (params->first_no_ext_master && t == 0) {
+			strcat(prio_str, ":%NO_SESSION_HASH");
+			ext_master_secret_check = 0;
+		}
+
+		if (params->second_no_ext_master && t > 0) {
+			strcat(prio_str, ":%NO_SESSION_HASH");
+			ext_master_secret_check = 0;
+		}
+
 		append_alpn(session, params, t);
+
+		ret = gnutls_priority_set_direct(session, prio_str, NULL);
+		if (ret < 0) {
+			fail("prio: %s\n", gnutls_strerror(ret));
+		}
 
 		/* put the anonymous credentials to the current session
 		 */
+#ifdef USE_PSK
+		gnutls_credentials_set(session, GNUTLS_CRD_PSK, pskcred);
+#elif defined(USE_ANON)
 		gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
+#elif defined(USE_X509)
+		gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, clientx509cred);
+#endif
 
 		if (t > 0) {
 			/* if this is not the first time we connect */
@@ -255,7 +334,7 @@ static void client(int sds[], struct params_res *params)
 						session_data.size);
 		}
 
-		if (ext_master_secret)
+		if (ext_master_secret_check)
 			gnutls_handshake_set_hook_function(session, GNUTLS_HANDSHAKE_SERVER_HELLO, GNUTLS_HOOK_PRE, hsk_hook_cb);
 		gnutls_transport_set_int(session, sd);
 
@@ -276,9 +355,9 @@ static void client(int sds[], struct params_res *params)
 				    ("client: Handshake was completed\n");
 		}
 
-		ext_master_secret = 0;
+		ext_master_secret_check = 0;
 		if (t == 0) {
-			ext_master_secret =  gnutls_session_ext_master_secret_status(session);
+			ext_master_secret_check =  gnutls_session_ext_master_secret_status(session);
 
 			/* get the session data size */
 			ret =
@@ -288,6 +367,14 @@ static void client(int sds[], struct params_res *params)
 				fail("Getting resume data failed\n");
 
 		} else {	/* the second time we connect */
+			if (params->try_resumed_data) {
+				gnutls_free(session_data.data);
+				ret =
+				    gnutls_session_get_data2(session,
+							     &session_data);
+				if (ret < 0)
+					fail("Getting resume data failed\n");
+			}
 
 			/* check if we actually resumed the previous session */
 			if (gnutls_session_is_resumed(session) != 0) {
@@ -296,7 +383,7 @@ static void client(int sds[], struct params_res *params)
 						success
 						    ("- Previous session was resumed\n");
 				} else
-					fail("- Previous session was resumed\n");
+					fail("- Previous session was resumed but NOT expected\n");
 			} else {
 				if (params->expect_resume) {
 					fail("*** Previous session was NOT resumed\n");
@@ -340,7 +427,13 @@ static void client(int sds[], struct params_res *params)
 	gnutls_free(session_data.data);
 
       end:
+#ifdef USE_PSK
+	gnutls_psk_free_client_credentials(pskcred);
+#elif defined(USE_ANON)
 	gnutls_anon_free_client_credentials(anoncred);
+#elif defined(USE_X509)
+	gnutls_certificate_free_credentials(clientx509cred);
+#endif
 }
 
 /* This is a sample TLS 1.0 echo server, for anonymous authentication only.
@@ -361,7 +454,7 @@ static gnutls_session_t initialize_tls_session(struct params_res *params)
 	 * are adequate.
 	 */
 	gnutls_priority_set_direct(session,
-				   "NONE:+VERS-TLS-ALL:+CIPHER-ALL:+MAC-ALL:+SIGN-ALL:+COMP-ALL:+ANON-DH",
+				   PRIO_STR,
 				   NULL);
 
 
@@ -382,7 +475,14 @@ static gnutls_session_t initialize_tls_session(struct params_res *params)
 }
 
 static gnutls_dh_params_t dh_params;
+
+#ifdef USE_PSK
+gnutls_psk_server_credentials_t pskcred;
+#elif defined(USE_ANON)
 gnutls_anon_server_credentials_t anoncred;
+#elif defined(USE_X509)
+gnutls_certificate_credentials_t serverx509cred;
+#endif
 
 static int generate_dh_params(void)
 {
@@ -403,12 +503,34 @@ static void global_stop(void)
 	if (debug)
 		success("global stop\n");
 
+#ifdef USE_PSK
+	gnutls_psk_free_server_credentials(pskcred);
+#elif defined(USE_ANON)
 	gnutls_anon_free_server_credentials(anoncred);
-
+#elif defined(USE_X509)
+	gnutls_certificate_free_credentials(serverx509cred);
+#endif
 	gnutls_dh_params_deinit(dh_params);
 
 	gnutls_global_deinit();
 }
+
+#ifdef USE_PSK
+static int
+pskfunc(gnutls_session_t session, const char *username,
+	gnutls_datum_t * key)
+{
+	if (debug)
+		printf("psk: username %s\n", username);
+	key->data = gnutls_malloc(4);
+	key->data[0] = 0xDE;
+	key->data[1] = 0xAD;
+	key->data[2] = 0xBE;
+	key->data[3] = 0xEF;
+	key->size = 4;
+	return 0;
+}
+#endif
 
 static void server(int sds[], struct params_res *params)
 {
@@ -425,14 +547,26 @@ static void server(int sds[], struct params_res *params)
 	}
 
 	global_init();
+
+#ifdef USE_PSK
+	gnutls_psk_allocate_server_credentials(&pskcred);
+	gnutls_psk_set_server_credentials_function(pskcred, pskfunc);
+#elif defined(USE_ANON)
 	gnutls_anon_allocate_server_credentials(&anoncred);
+#elif defined(USE_X509)
+	gnutls_certificate_allocate_credentials(&serverx509cred);
+	gnutls_certificate_set_x509_key_mem(serverx509cred,
+		&server_cert, &server_key, GNUTLS_X509_FMT_PEM);
+#endif
 
 	if (debug)
 		success("Launched, generating DH parameters...\n");
 
 	generate_dh_params();
 
+#if USE_ANON
 	gnutls_anon_set_server_dh_params(anoncred, dh_params);
+#endif
 
 	if (params->enable_db) {
 		wrap_db_init();
@@ -448,9 +582,16 @@ static void server(int sds[], struct params_res *params)
 
 		append_alpn(session, params, t);
 
+#ifdef USE_PSK
+		gnutls_credentials_set(session, GNUTLS_CRD_PSK, pskcred);
+#elif defined(USE_ANON)
 		gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
+#elif defined(USE_X509)
+		gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, serverx509cred);
+#endif
 		gnutls_transport_set_int(session, sd);
 		gnutls_handshake_set_timeout(session, 20 * 1000);
+
 		do {
 			ret = gnutls_handshake(session);
 		} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
@@ -552,8 +693,7 @@ void doit(void)
 			server(server_sds, &resume_tests[i]);
 
 			waitpid(child, &status, 0);
-			if (WEXITSTATUS(status) != 0 || (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV))
-				exit(1);
+			check_wait_status(status);
 			global_stop();
 		} else {
 			for (j = 0; j < SESSIONS; j++)
@@ -683,7 +823,7 @@ static gnutls_datum_t wrap_db_fetch(void *dbf, gnutls_datum_t key)
 				return res;
 
 			memcpy(res.data, cache_db[i].session_data,
-			       res.size);
+				res.size);
 
 #ifdef DEBUG_CACHE
 			if (debug) {
@@ -691,7 +831,7 @@ static gnutls_datum_t wrap_db_fetch(void *dbf, gnutls_datum_t key)
 				printf("data:\n");
 				for (j = 0; j < res.size; j++) {
 					printf("%02x ",
-					       res.data[j] & 0xFF);
+						res.data[j] & 0xFF);
 					if ((j + 1) % 16 == 0)
 						printf("\n");
 				}

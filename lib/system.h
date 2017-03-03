@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2010-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2010-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -23,14 +24,24 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <time.h>
 #include <sys/time.h>
 
-#ifndef _WIN32
-#include <sys/uio.h>		/* for writev */
-#else
+#ifdef _WIN32
+# if defined(__MINGW32__) && !defined(__MINGW64__) && __MINGW32_MAJOR_VERSION <= 3 && __MINGW32_MINOR_VERSION <= 20
+#  define NEED_CERT_ENUM_CRLS
+typedef PCCRL_CONTEXT WINAPI(*CertEnumCRLsInStoreFunc) (HCERTSTORE
+							 hCertStore,
+							 PCCRL_CONTEXT
+							 pPrevCrlContext);
+extern CertEnumCRLsInStoreFunc pCertEnumCRLsInStore;
+# else
+#  define pCertEnumCRLsInStore CertEnumCRLsInStore
+# endif
 #include <windows.h>		/* for Sleep */
+#else
+#include <sys/uio.h>		/* for writev */
 #endif
 
 #ifdef _POSIX_PATH_MAX
@@ -49,6 +60,10 @@ ssize_t system_write(gnutls_transport_ptr_t ptr, const void *data,
 ssize_t system_writev(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
 		      int iovec_cnt);
 ssize_t system_writev_nosignal(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
+		      int iovec_cnt);
+ssize_t system_writev_tfo(gnutls_session_t ptr, const giovec_t * iovec,
+		      int iovec_cnt);
+ssize_t system_writev_nosignal_tfo(gnutls_session_t ptr, const giovec_t * iovec,
 		      int iovec_cnt);
 #endif
 ssize_t system_read(gnutls_transport_ptr_t ptr, void *data,
@@ -95,6 +110,8 @@ inline static void gettime(struct timespec *t)
 int _gnutls_find_config_path(char *path, size_t max_size);
 int _gnutls_ucs2_to_utf8(const void *data, size_t size,
 			 gnutls_datum_t * output, unsigned bigendian);
+int _gnutls_utf8_to_ucs2(const void *data, size_t size,
+			 gnutls_datum_t * output);
 
 int gnutls_system_global_init(void);
 void gnutls_system_global_deinit(void);
@@ -105,16 +122,19 @@ void gnutls_system_global_deinit(void);
 # endif
 # include <arpa/inet.h>
 #else
+# undef inet_aton
 # define inet_aton _gnutls_inet_aton
 int inet_aton(const char *cp, struct in_addr *inp);
 #endif
 
 #ifndef HAVE_INET_PTON
+# undef inet_pton
 # define inet_pton _gnutls_inet_pton
 int inet_pton(int af, const char *src, void *dst);
 #endif
 
 #ifndef HAVE_INET_NTOP
+# undef inet_ntop
 # define inet_ntop _gnutls_inet_ntop
 const char *inet_ntop(int af, const void *src,
 		      char *dst, unsigned size);

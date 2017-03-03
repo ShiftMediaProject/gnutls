@@ -28,11 +28,11 @@
 
 #define BSECS 5
 
-int benchmark_must_finish = 0;
+volatile int benchmark_must_finish = 0;
 
 #if defined(_WIN32)
 #include <windows.h>
-DWORD WINAPI alarm_handler(LPVOID lpParameter)
+static DWORD WINAPI alarm_handler(LPVOID lpParameter)
 {
 	HANDLE wtimer = *((HANDLE *) lpParameter);
 	WaitForSingleObject(wtimer, INFINITE);

@@ -20,15 +20,14 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <common.h>
-#include <gnutls_x509.h>
+#include <x509.h>
 #include <x509_int.h>
-#include <gnutls_num.h>
-#include <gnutls_errors.h>
+#include <num.h>
+#include "errors.h"
 #include <extras/randomart.h>
-#include <c-ctype.h>
-#include <gnutls-idna.h>
+#include <pkcs7_int.h>
 
 #define addf _gnutls_buffer_append_printf
 #define adds _gnutls_buffer_append_str
@@ -52,7 +51,7 @@ static void print_dn(gnutls_buffer_st * str, const char *prefix,
 		goto cleanup;
 	}
 
-	ret = gnutls_x509_dn_get_str(dn, &output);
+	ret = gnutls_x509_dn_get_str2(dn, &output, 0);
 	if (ret < 0) {
 		addf(str, "%s: [error]\n", prefix);
 		goto cleanup;
@@ -96,7 +95,8 @@ static void print_pkcs7_info(gnutls_pkcs7_signature_info_st * info,
 	size_t max;
 	int ret;
 
-	print_dn(str, "\tSigner's issuer DN", &info->issuer_dn);
+	if (info->issuer_dn.size > 0)
+		print_dn(str, "\tSigner's issuer DN", &info->issuer_dn);
 	print_raw(str, "\tSigner's serial", &info->signer_serial);
 	print_raw(str, "\tSigner's issuer key ID", &info->issuer_keyid);
 	if (info->signing_time != -1) {
@@ -175,12 +175,22 @@ int gnutls_pkcs7_print(gnutls_pkcs7_t pkcs7,
 		       gnutls_certificate_print_formats_t format,
 		       gnutls_datum_t * out)
 {
-	unsigned i;
-	int count, ret;
+	int count, ret, i;
 	gnutls_pkcs7_signature_info_st info;
 	gnutls_buffer_st str;
+	const char *oid;
 
 	_gnutls_buffer_init(&str);
+
+	/* For backwards compatibility with structures using the default OID,
+	 * we don't print the eContent Type explicitly */
+	oid = gnutls_pkcs7_get_embedded_data_oid(pkcs7);
+	if (oid) {
+		if (strcmp(oid, DATA_OID) != 0
+		    && strcmp(oid, DIGESTED_DATA_OID) != 0) {
+			addf(&str, "eContent Type: %s\n", oid);
+		}
+	}
 
 	for (i = 0;; i++) {
 		if (i == 0)
@@ -191,6 +201,7 @@ int gnutls_pkcs7_print(gnutls_pkcs7_t pkcs7,
 			break;
 
 		print_pkcs7_info(&info, &str, format);
+		gnutls_pkcs7_signature_info_deinit(&info);
 	}
 
 	if (format == GNUTLS_CRT_PRINT_FULL) {

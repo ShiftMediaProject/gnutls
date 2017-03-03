@@ -167,7 +167,7 @@ void doit(void)
 
 	gnutls_init(&server, GNUTLS_SERVER);
 	gnutls_credentials_set(server, GNUTLS_CRD_CERTIFICATE,
-			       serverx509cred);
+				serverx509cred);
 	ret = gnutls_set_default_priority(server);
 	if (ret < 0)
 		exit(1);
@@ -190,7 +190,7 @@ void doit(void)
 		exit(1);
 
 	ret = gnutls_credentials_set(client, GNUTLS_CRD_CERTIFICATE,
-			       clientx509cred);
+				clientx509cred);
 	if (ret < 0)
 		exit(1);
 
@@ -259,6 +259,18 @@ void doit(void)
 			fprintf(stderr, "could not verify certificate: %.4x\n", status);
 			exit(1);
 		}
+	}
+
+	ret = gnutls_session_ext_master_secret_status(client);
+	if (ret != 1) {
+		fprintf(stderr, "Extended master secret wasn't negotiated by default (client ret: %d)\n", ret);
+		exit(1);
+	}
+
+	ret = gnutls_session_ext_master_secret_status(server);
+	if (ret != 1) {
+		fprintf(stderr, "Extended master secret wasn't negotiated by default (server ret: %d)\n", ret);
+		exit(1);
 	}
 
 	gnutls_bye(client, GNUTLS_SHUT_RDWR);

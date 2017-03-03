@@ -85,7 +85,7 @@ cert_callback(gnutls_session_t session,
 
 	if (nreqs != 1) {
 		fail("client: invoked to provide client cert, but %d CAs are requested by server.\n",
-		 	nreqs);
+		     nreqs);
 		return -1;
 	}
 
@@ -111,7 +111,7 @@ cert_callback(gnutls_session_t session,
 
 			if (val.value.size == strlen(EXPECT_RDN0)
 			    && strncmp((char *) val.value.data,
-				       EXPECT_RDN0, val.value.size) == 0) {
+					EXPECT_RDN0, val.value.size) == 0) {
 				if (debug)
 					success
 					    ("client: RND 0 correct.\n");
@@ -391,20 +391,7 @@ void doit(void)
 		close(sockets[1]);
 		server(sockets[0]);
 		wait(&status);
-
-#if defined WIFEXITED && defined WEXITSTATUS
-		if (WIFEXITED(status) && WEXITSTATUS(status)) {
-			fail("server: client failed with exit status %d\n",
-			     WEXITSTATUS(status));
-		}
-#endif
-
-#if defined WIFSIGNALED && defined WTERMSIG
-		if (WIFSIGNALED(status)) {
-			fail("server: client failed with fatal signal %d\n", WTERMSIG(status));
-		}
-#endif
-
+		check_wait_status(status);
 	} else {
 		close(sockets[0]);
 		client(sockets[1]);

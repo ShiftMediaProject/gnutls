@@ -20,19 +20,19 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
 #ifdef ENABLE_PSK
 
-#include "gnutls_errors.h"
-#include "gnutls_auth.h"
-#include "gnutls_auth.h"
+#include "errors.h"
+#include "auth.h"
+#include "auth.h"
 #include "debug.h"
-#include "gnutls_num.h"
+#include "num.h"
 #include <auth/psk.h>
 #include <auth/psk_passwd.h>
-#include <gnutls_str.h>
-#include <gnutls_datum.h>
+#include <str.h>
+#include <datum.h>
 
 
 static int _gnutls_proc_psk_client_kx(gnutls_session_t, uint8_t *, size_t);
@@ -292,9 +292,9 @@ _gnutls_proc_psk_client_kx(gnutls_session_t session, uint8_t * data,
  *
  * struct {
  *     select (KeyExchangeAlgorithm) {
- *         // other cases for rsa, diffie_hellman, etc.
- *         case psk:  // NEW
- *             uint8_t psk_identity_hint<0..2^16-1>;
+ *	 // other cases for rsa, diffie_hellman, etc.
+ *	 case psk:  // NEW
+ *	     uint8_t psk_identity_hint<0..2^16-1>;
  *     };
  * } ServerKeyExchange;
  *

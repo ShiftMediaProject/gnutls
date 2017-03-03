@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 #include <errno.h>
 #ifndef _WIN32
 #include <netinet/in.h>
@@ -93,13 +94,24 @@ const char *pkcs3_3072 =
 
 void _fail(const char *format, ...)
 {
-	char str[1024];
 	va_list arg_ptr;
 
 	va_start(arg_ptr, format);
-	vsnprintf(str, sizeof(str), format, arg_ptr);
+#ifdef HAVE_VASPRINTF
+	char *str = NULL;
+	vasprintf(&str, format, arg_ptr);
+
+	if (str)
+		fputs(str, stderr);
+#else
+	{
+		char str[1024];
+
+		vsnprintf(str, sizeof(str), format, arg_ptr);
+		fputs(str, stderr);
+	}
+#endif
 	va_end(arg_ptr);
-	fputs(str, stderr);
 	error_count++;
 	exit(1);
 }
@@ -204,14 +216,14 @@ void binprint(const void *_str, size_t len)
 	printf("\t;; ");
 	for (i = 0; i < len; i++) {
 		printf("%d%d%d%d%d%d%d%d ",
-		       (str[i] & 0xFF) & 0x80 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x40 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x20 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x10 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x08 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x04 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x02 ? 1 : 0,
-		       (str[i] & 0xFF) & 0x01 ? 1 : 0);
+			(str[i] & 0xFF) & 0x80 ? 1 : 0,
+			(str[i] & 0xFF) & 0x40 ? 1 : 0,
+			(str[i] & 0xFF) & 0x20 ? 1 : 0,
+			(str[i] & 0xFF) & 0x10 ? 1 : 0,
+			(str[i] & 0xFF) & 0x08 ? 1 : 0,
+			(str[i] & 0xFF) & 0x04 ? 1 : 0,
+			(str[i] & 0xFF) & 0x02 ? 1 : 0,
+			(str[i] & 0xFF) & 0x01 ? 1 : 0);
 		if ((i + 1) % 3 == 0)
 			printf(" ");
 		if ((i + 1) % 6 == 0 && i + 1 < len)
@@ -243,9 +255,31 @@ int main(int argc, char *argv[])
 
 	if (debug || error_count > 0)
 		printf("Self test `%s' finished with %d errors\n", argv[0],
-		       error_count);
+			error_count);
 
 	return error_count ? 1 : 0;
+}
+
+struct tmp_file_st {
+	char file[TMPNAME_SIZE];
+	struct tmp_file_st *next;
+};
+
+static struct tmp_file_st *temp_files = (void*)-1;
+
+static void append(const char *file)
+{
+	struct tmp_file_st *p;
+
+	if (temp_files == (void*)-1)
+		return;
+
+	p = calloc(1, sizeof(*p));
+
+	assert(p != NULL);
+	strcpy(p->file, file);
+	p->next = temp_files;
+	temp_files = p;
 }
 
 char *get_tmpname(char s[TMPNAME_SIZE])
@@ -272,5 +306,27 @@ char *get_tmpname(char s[TMPNAME_SIZE])
 	snprintf(p, TMPNAME_SIZE, "%s/tmpfile-%02x%02x%02x%02x%02x%02x.tmp", path, (unsigned)rnd[0], (unsigned)rnd[1],
 		(unsigned)rnd[2], (unsigned)rnd[3], (unsigned)rnd[4], (unsigned)rnd[5]);
 
+	append(p);
+
 	return p;
+}
+
+void track_temp_files(void)
+{
+	temp_files = NULL;
+}
+
+void delete_temp_files(void)
+{
+	struct tmp_file_st *p = temp_files;
+	struct tmp_file_st *next;
+
+	if (p == (void*)-1)
+		return;
+
+	while(p != NULL) {
+		next = p->next;
+		free(p);
+		p = next;
+	}
 }

@@ -74,6 +74,8 @@ int get_encrypt_status(int server);
 int get_sign_status(int server);
 void get_ip_addr_set(int type, void *crt);
 void get_dns_name_set(int type, void *crt);
+void get_other_name_set(int type, void *crt);
+void get_extensions_crt_set(int type, void *crt);
 void get_policy_set(gnutls_x509_crt_t);
 void get_uri_set(int type, void *crt);
 void get_email_set(int type, void *crt);
@@ -82,6 +84,7 @@ void get_dc_set(int type, void *crt);
 void get_ca_issuers_set(gnutls_x509_crt_t crt);
 void get_ocsp_issuer_set(gnutls_x509_crt_t crt);
 void crt_unique_ids_set(gnutls_x509_crt_t crt);
+void get_tlsfeatures_set(int type, void *crt);
 
 int get_key_agreement_status(void);
 int get_non_repudiation_status(void);
@@ -96,3 +99,5 @@ void get_organization_crq_set(gnutls_x509_crq_t crq);
 void get_country_crq_set(gnutls_x509_crq_t crq);
 void get_oid_crq_set(gnutls_x509_crq_t crq);
 const char *get_proxy_policy(char **policy, size_t * policylen);
+
+void crq_extensions_set(gnutls_x509_crt_t crt, gnutls_x509_crq_t crq);

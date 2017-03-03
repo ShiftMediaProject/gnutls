@@ -1,7 +1,7 @@
 /*
  * GnuTLS PKCS#11 support
- * Copyright (C) 2010-2014 Free Software Foundation, Inc.
- * Copyright (C) 2014 Red Hat
+ * Copyright (C) 2010-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2016 Red Hat
  * 
  * Authors: Nikos Mavrogiannopoulos
  *
@@ -19,10 +19,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <gnutls/pkcs11.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include <global.h>
+#include "errors.h"
 #include "x509/common.h"
 
 #include <pkcs11_int.h>
@@ -61,11 +61,14 @@ static int override_ext(gnutls_x509_crt_t crt, gnutls_datum_t *ext)
 	return ret;
 }
 
+/* This function re-encodes a certificate to contain its stapled extensions.
+ * That assumes that the certificate is not in the distrusted list.
+ */
 int pkcs11_override_cert_exts(struct pkcs11_session_info *sinfo, gnutls_datum_t *spki, gnutls_datum_t *der)
 {
 	int ret;
 	gnutls_datum_t new_der = {NULL, 0};
-	struct ck_attribute a[2];
+	struct ck_attribute a[3];
 	struct ck_attribute b[1];
 	unsigned long count;
 	unsigned ext_data_size = der->size;
@@ -75,6 +78,12 @@ int pkcs11_override_cert_exts(struct pkcs11_session_info *sinfo, gnutls_datum_t 
 	unsigned finalize = 0;
 	ck_rv_t rv;
 	ck_object_handle_t obj;
+	ck_bool_t tfalse = 0;
+
+	if (sinfo->trusted == 0) {
+		_gnutls_debug_log("p11: cannot override extensions on a non-p11-kit trust module\n");
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+	}
 
 	/* retrieve the extensions */
 	class = CKO_X_CERTIFICATE_EXTENSION;
@@ -86,7 +95,11 @@ int pkcs11_override_cert_exts(struct pkcs11_session_info *sinfo, gnutls_datum_t 
 	a[1].value = spki->data;
 	a[1].value_len = spki->size;
 
-	rv = pkcs11_find_objects_init(sinfo->module, sinfo->pks, a, 2);
+	a[2].type = CKA_X_DISTRUSTED;
+	a[2].value = &tfalse;
+	a[2].value_len = sizeof(tfalse);
+
+	rv = pkcs11_find_objects_init(sinfo->module, sinfo->pks, a, 3);
 	if (rv != CKR_OK) {
 		gnutls_assert();
 		_gnutls_debug_log
@@ -149,12 +162,12 @@ int pkcs11_override_cert_exts(struct pkcs11_session_info *sinfo, gnutls_datum_t 
 
 	ret = 0;
  cleanup:
- 	if (crt != NULL)
-	 	gnutls_x509_crt_deinit(crt);
+	if (crt != NULL)
+		gnutls_x509_crt_deinit(crt);
 	if (finalize != 0)
 		pkcs11_find_objects_final(sinfo);
- 	gnutls_free(ext_data);
- 	return ret;
+	gnutls_free(ext_data);
+	return ret;
 
 }
 
@@ -225,7 +238,7 @@ find_ext_cb(struct ck_function_list *module, struct pkcs11_session_info *sinfo,
 
 	ret = 0;
  cleanup:
- 	pkcs11_find_objects_final(sinfo);
+	pkcs11_find_objects_final(sinfo);
 	return ret;
 }
 
@@ -292,8 +305,8 @@ gnutls_pkcs11_obj_get_exts(gnutls_pkcs11_obj_t obj,
 
 	ret = 0;
  cleanup:
- 	if (deinit_spki)
- 		gnutls_free(spki.data);
+	if (deinit_spki)
+		gnutls_free(spki.data);
 	return ret;
 }
 

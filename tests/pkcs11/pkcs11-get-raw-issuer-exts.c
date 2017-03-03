@@ -108,6 +108,11 @@ void doit(void)
 		exit(1);
 	}
 
+	ret = gnutls_x509_crt_equals2(crt, &issuer);
+	if (ret != 0) {
+	    fail("exported certificates are equal!\n");
+	}
+
 	ret = gnutls_x509_crt_import(ocrt, &issuer, GNUTLS_X509_FMT_DER);
 	if (ret < 0) {
 		fail("%d: %s\n", ret, gnutls_strerror(ret));

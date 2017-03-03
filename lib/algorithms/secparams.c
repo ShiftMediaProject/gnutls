@@ -20,9 +20,9 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <algorithms.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <x509/common.h>
 
 typedef struct {
@@ -60,7 +60,7 @@ static const gnutls_sec_params_entry sec_params[] = {
 
 #define GNUTLS_SEC_PARAM_LOOP(b) \
 	{ const gnutls_sec_params_entry *p; \
-                for(p = sec_params; p->name != NULL; p++) { b ; } }
+		for(p = sec_params; p->name != NULL; p++) { b ; } }
 
 /**
  * gnutls_sec_param_to_pk_bits:
@@ -88,7 +88,7 @@ gnutls_sec_param_to_pk_bits(gnutls_pk_algorithm_t algo,
 	if (p->sec_param == param) {
 		if (algo == GNUTLS_PK_DSA)
 			ret = p->dsa_bits;
-		else if (algo == GNUTLS_PK_EC)
+		else if (IS_EC(algo))
 			ret = p->ecc_bits;
 		else
 			ret = p->pk_bits; break;
@@ -184,7 +184,7 @@ gnutls_pk_bits_to_sec_param(gnutls_pk_algorithm_t algo, unsigned int bits)
 	if (bits == 0)
 		return GNUTLS_SEC_PARAM_UNKNOWN;
 
-	if (algo == GNUTLS_PK_EC) {
+	if (IS_EC(algo)) {
 		GNUTLS_SEC_PARAM_LOOP(
 			if (p->ecc_bits > bits) {
 				break;

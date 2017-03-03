@@ -18,12 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <gnutls/pkcs11.h>
 #include <stdio.h>
 #include <string.h>
-#include <gnutls_errors.h>
-#include <gnutls_datum.h>
+#include "errors.h"
+#include <datum.h>
 #include <pkcs11_int.h>
 #include "pkcs11x.h"
 #include <x509/common.h>
@@ -33,7 +33,7 @@ static const ck_bool_t fval = 0;
 
 #define MAX_ASIZE 24
 
-static void mark_flags(unsigned flags, struct ck_attribute *a, unsigned *a_val)
+static void mark_flags(unsigned flags, struct ck_attribute *a, unsigned *a_val, unsigned trusted)
 {
 	static const unsigned long category = 2;
 
@@ -42,6 +42,17 @@ static void mark_flags(unsigned flags, struct ck_attribute *a, unsigned *a_val)
 		a[*a_val].value = (void *) &category;
 		a[*a_val].value_len = sizeof(category);
 		(*a_val)++;
+	}
+
+	if (flags & GNUTLS_PKCS11_OBJ_FLAG_MARK_DISTRUSTED) {
+		if (trusted) {
+			a[*a_val].type = CKA_X_DISTRUSTED;
+			a[*a_val].value = (void *) &tval;
+			a[*a_val].value_len = sizeof(tval);
+			(*a_val)++;
+		} else {
+			_gnutls_debug_log("p11: ignoring the distrusted flag as it is not valid on non-p11-kit-trust modules\n");
+		}
 	}
 
 	if (flags & GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED) {
@@ -104,13 +115,11 @@ gnutls_pkcs11_copy_x509_crt2(const char *token_url,
 	struct ck_attribute a[MAX_ASIZE];
 	ck_object_class_t class = CKO_CERTIFICATE;
 	ck_certificate_type_t type = CKC_X_509;
-	ck_object_handle_t obj;
+	ck_object_handle_t ctx;
 	unsigned a_val;
 	struct pkcs11_session_info sinfo;
 	
 	PKCS11_CHECK_INIT;
-
-	memset(&sinfo, 0, sizeof(sinfo));
 
 	ret = pkcs11_url_to_info(token_url, &info, 0);
 	if (ret < 0) {
@@ -162,12 +171,12 @@ gnutls_pkcs11_copy_x509_crt2(const char *token_url,
 		id_size = sizeof(id);
 		ret = gnutls_x509_crt_get_subject_key_id(crt, id, &id_size, NULL);
 		if (ret < 0) {
-		        id_size = sizeof(id);
+			id_size = sizeof(id);
 			ret = gnutls_x509_crt_get_key_id(crt, 0, id, &id_size);
 			if (ret < 0) {
 			  gnutls_assert();
 			  goto cleanup;
-	                }
+			}
 		}
 
 		a[1].value = id;
@@ -218,9 +227,9 @@ gnutls_pkcs11_copy_x509_crt2(const char *token_url,
 		a_val++;
 	}
 
-	mark_flags(flags, a, &a_val);
+	mark_flags(flags, a, &a_val, sinfo.trusted);
 
-	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &obj);
+	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &ctx);
 	if (rv != CKR_OK) {
 		gnutls_assert();
 		_gnutls_debug_log("p11: %s\n", pkcs11_strerror(rv));
@@ -381,14 +390,12 @@ gnutls_pkcs11_copy_pubkey(const char *token_url,
 	struct ck_attribute a[MAX_ASIZE];
 	gnutls_pk_algorithm_t pk;
 	ck_object_class_t class = CKO_PUBLIC_KEY;
-	ck_object_handle_t obj;
+	ck_object_handle_t ctx;
 	unsigned a_val;
 	ck_key_type_t type;
 	struct pkcs11_session_info sinfo;
 	
 	PKCS11_CHECK_INIT;
-
-	memset(&sinfo, 0, sizeof(sinfo));
 
 	ret = pkcs11_url_to_info(token_url, &info, 0);
 	if (ret < 0) {
@@ -456,7 +463,7 @@ gnutls_pkcs11_copy_pubkey(const char *token_url,
 	}
 	a_val++;
 
-	mark_flags(flags, a, &a_val);
+	mark_flags(flags, a, &a_val, sinfo.trusted);
 
 	a[a_val].type = CKA_VERIFY;
 	if (key_usage & GNUTLS_KEY_DIGITAL_SIGNATURE) {
@@ -480,7 +487,7 @@ gnutls_pkcs11_copy_pubkey(const char *token_url,
 		a_val++;
 	}
 
-	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &obj);
+	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &ctx);
 	if (rv != CKR_OK) {
 		gnutls_assert();
 		_gnutls_debug_log("p11: %s\n", pkcs11_strerror(rv));
@@ -494,7 +501,7 @@ gnutls_pkcs11_copy_pubkey(const char *token_url,
 	ret = 0;
 
       cleanup:
-      	clean_pubkey(a, a_val);
+	clean_pubkey(a, a_val);
 	pkcs11_close_session(&sinfo);
 	return ret;
 
@@ -530,15 +537,13 @@ gnutls_pkcs11_copy_attached_extension(const char *token_url,
 	struct p11_kit_uri *info = NULL;
 	ck_rv_t rv;
 	struct ck_attribute a[MAX_ASIZE];
-	ck_object_handle_t hobj;
+	ck_object_handle_t ctx;
 	unsigned a_vals;
 	struct pkcs11_session_info sinfo;
 	ck_object_class_t class;
 	gnutls_datum_t spki = {NULL, 0};
 	
 	PKCS11_CHECK_INIT;
-
-	memset(&sinfo, 0, sizeof(sinfo));
 
 	ret = pkcs11_url_to_info(token_url, &info, 0);
 	if (ret < 0) {
@@ -587,7 +592,7 @@ gnutls_pkcs11_copy_attached_extension(const char *token_url,
 		a[a_vals++].value_len = strlen(label);
 	}
 
-	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_vals, &hobj);
+	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_vals, &ctx);
 	if (rv != CKR_OK) {
 		gnutls_assert();
 		_gnutls_debug_log("p11: %s\n", pkcs11_strerror(rv));
@@ -636,7 +641,7 @@ gnutls_pkcs11_copy_x509_privkey2(const char *token_url,
 	uint8_t id[20];
 	struct ck_attribute a[32];
 	ck_object_class_t class = CKO_PRIVATE_KEY;
-	ck_object_handle_t obj;
+	ck_object_handle_t ctx;
 	ck_key_type_t type;
 	int a_val;
 	gnutls_pk_algorithm_t pk;
@@ -645,8 +650,6 @@ gnutls_pkcs11_copy_x509_privkey2(const char *token_url,
 	struct pkcs11_session_info sinfo;
 
 	PKCS11_CHECK_INIT;
-
-	memset(&sinfo, 0, sizeof(sinfo));
 
 	memset(&p, 0, sizeof(p));
 	memset(&q, 0, sizeof(q));
@@ -921,7 +924,7 @@ gnutls_pkcs11_copy_x509_privkey2(const char *token_url,
 	a[a_val].value_len = sizeof(type);
 	a_val++;
 
-	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &obj);
+	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &ctx);
 	if (rv != CKR_OK) {
 		gnutls_assert();
 		_gnutls_debug_log("p11: %s\n", pkcs11_strerror(rv));
@@ -980,8 +983,8 @@ struct delete_data_st {
 
 static int
 delete_obj_url_cb(struct ck_function_list *module, struct pkcs11_session_info *sinfo,
-	          struct ck_token_info *tinfo,
-	          struct ck_info *lib_info, void *input)
+		  struct ck_token_info *tinfo,
+		  struct ck_info *lib_info, void *input)
 {
 	struct delete_data_st *find_data = input;
 	struct ck_attribute a[4];
@@ -989,7 +992,7 @@ delete_obj_url_cb(struct ck_function_list *module, struct pkcs11_session_info *s
 	ck_object_class_t class;
 	ck_certificate_type_t type = (ck_certificate_type_t) - 1;
 	ck_rv_t rv;
-	ck_object_handle_t obj;
+	ck_object_handle_t ctx;
 	unsigned long count, a_vals;
 	int found = 0, ret;
 
@@ -1053,9 +1056,9 @@ delete_obj_url_cb(struct ck_function_list *module, struct pkcs11_session_info *s
 	}
 
 	while (pkcs11_find_objects
-	       (sinfo->module, sinfo->pks, &obj, 1, &count) == CKR_OK
+	       (sinfo->module, sinfo->pks, &ctx, 1, &count) == CKR_OK
 	       && count == 1) {
-		rv = pkcs11_destroy_object(sinfo->module, sinfo->pks, obj);
+		rv = pkcs11_destroy_object(sinfo->module, sinfo->pks, ctx);
 		if (rv != CKR_OK) {
 			_gnutls_debug_log
 			    ("p11: Cannot destroy object: %s\n",
@@ -1157,7 +1160,7 @@ gnutls_pkcs11_token_init(const char *token_url,
 		return ret;
 	}
 
-	ret = pkcs11_find_slot(&module, &slot, info, NULL, NULL);
+	ret = pkcs11_find_slot(&module, &slot, info, NULL, NULL, NULL);
 	p11_kit_uri_free(info);
 
 	if (ret < 0) {
@@ -1208,8 +1211,6 @@ gnutls_pkcs11_token_set_pin(const char *token_url,
 	struct pkcs11_session_info sinfo;
 
 	PKCS11_CHECK_INIT;
-
-	memset(&sinfo, 0, sizeof(sinfo));
 
 	ret = pkcs11_url_to_info(token_url, &info, 0);
 	if (ret < 0) {
@@ -1285,8 +1286,6 @@ gnutls_pkcs11_token_get_random(const char *token_url,
 	struct pkcs11_session_info sinfo;
 
 	PKCS11_CHECK_INIT;
-
-	memset(&sinfo, 0, sizeof(sinfo));
 
 	ret = pkcs11_url_to_info(token_url, &info, 0);
 	if (ret < 0) {

@@ -27,10 +27,10 @@
  * Original author Niels Möller.
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 #include <locks.h>
-#include <gnutls_num.h>
+#include <num.h>
 #include <nettle/yarrow.h>
 #include <nettle/salsa20.h>
 #include <rnd-common.h>
@@ -218,12 +218,6 @@ static int wrap_nettle_rnd_init(void **ctx)
 		return ret;
 	}
 
-	ret = _rnd_system_entropy_init();
-	if (ret < 0) {
-		gnutls_assert();
-		return ret;
-	}
-
 	/* initialize the main RNG */
 	yarrow256_init(&rnd_ctx.yctx, SOURCES, rnd_ctx.ysources);
 
@@ -255,15 +249,6 @@ static int wrap_nettle_rnd_init(void **ctx)
 		return gnutls_assert_val(ret);
 
 	return 0;
-}
-
-/* This is called when gnutls_global_init() is called for second time.
- * It must check whether any resources are still available.
- * The particular problem it solves is to verify that the urandom fd is still
- * open (for applications that for some reason closed all fds */
-static int wrap_nettle_rnd_check(void **ctx)
-{
-	return _rnd_system_entropy_check();
 }
 
 static int
@@ -373,7 +358,6 @@ int crypto_rnd_prio = INT_MAX;
 
 gnutls_crypto_rnd_st _gnutls_rnd_ops = {
 	.init = wrap_nettle_rnd_init,
-	.check = wrap_nettle_rnd_check,
 	.deinit = wrap_nettle_rnd_deinit,
 	.rnd = wrap_nettle_rnd,
 	.rnd_refresh = wrap_nettle_rnd_refresh,

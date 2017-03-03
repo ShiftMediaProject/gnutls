@@ -95,37 +95,37 @@ const gnutls_datum_t server_key = { server_key_pem,
 
 static int client_pull_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
 {
-        fd_set rfds;
-        struct timeval tv;
-        int ret;
-        int fd = (long int)ptr;
+	fd_set rfds;
+	struct timeval tv;
+	int ret;
+	int fd = (long int)ptr;
 
-        FD_ZERO(&rfds);
-        FD_SET(fd, &rfds);
+	FD_ZERO(&rfds);
+	FD_SET(fd, &rfds);
 
-        tv.tv_sec = 0;
-        tv.tv_usec = ms * 1000;
+	tv.tv_sec = 0;
+	tv.tv_usec = ms * 1000;
 
-        while (tv.tv_usec >= 1000000) {
-                tv.tv_usec -= 1000000;
-                tv.tv_sec++;
-        }
+	while (tv.tv_usec >= 1000000) {
+		tv.tv_usec -= 1000000;
+		tv.tv_sec++;
+	}
 
-        ret = select(fd + 1, &rfds, NULL, NULL, &tv);
-        if (ret <= 0)
-                return ret;
+	ret = select(fd + 1, &rfds, NULL, NULL, &tv);
+	if (ret <= 0)
+		return ret;
 
-        return ret;
+	return ret;
 }
 
 static ssize_t client_pull(gnutls_transport_ptr_t ptr, void *data, size_t len)
 {
-        int fd = (long int)ptr;
+	int fd = (long int)ptr;
 	ssize_t ret;
 
 	ret = recv(fd, data, len, 0);
 	if (ret > SERVER_MTU) {
-		fail("client: packet size beyond server MTU, got %zd bytes, expect max. %d bytes\n", ret, SERVER_MTU);
+		fail("client: packet size beyond server MTU, got %d bytes, expect max. %d bytes\n", (int)ret, SERVER_MTU);
 		exit(1);
 	}
 
@@ -165,7 +165,7 @@ static void client(int fd)
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, x509_cred);
 
 	gnutls_transport_set_int(session, fd);
-        gnutls_transport_set_pull_function(session, client_pull);
+	gnutls_transport_set_pull_function(session, client_pull);
 	gnutls_transport_set_pull_timeout_function(session, client_pull_timeout);
 
 	/* Perform the TLS handshake
@@ -309,9 +309,7 @@ void doit(void)
 		close(fd[0]);
 		server(fd[1]);
 		wait(&status);
-		if (WEXITSTATUS(status) != 0)
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
+		check_wait_status(status);
 	} else {
 		close(fd[1]);
 		client(fd[0]);

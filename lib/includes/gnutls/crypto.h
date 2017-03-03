@@ -56,9 +56,9 @@ int gnutls_cipher_add_auth(gnutls_cipher_hd_t handle,
 			   const void *text, size_t text_size);
 
 void gnutls_cipher_deinit(gnutls_cipher_hd_t handle);
-int gnutls_cipher_get_block_size(gnutls_cipher_algorithm_t algorithm);
-int gnutls_cipher_get_iv_size(gnutls_cipher_algorithm_t algorithm);
-int gnutls_cipher_get_tag_size(gnutls_cipher_algorithm_t algorithm);
+unsigned gnutls_cipher_get_block_size(gnutls_cipher_algorithm_t algorithm) __GNUTLS_CONST__;
+unsigned gnutls_cipher_get_iv_size(gnutls_cipher_algorithm_t algorithm) __GNUTLS_CONST__;
+unsigned gnutls_cipher_get_tag_size(gnutls_cipher_algorithm_t algorithm) __GNUTLS_CONST__;
 
 /* AEAD API
  */
@@ -89,7 +89,7 @@ void gnutls_aead_cipher_deinit(gnutls_aead_cipher_hd_t handle);
 typedef struct hash_hd_st *gnutls_hash_hd_t;
 typedef struct hmac_hd_st *gnutls_hmac_hd_t;
 
-size_t gnutls_mac_get_nonce_size(gnutls_mac_algorithm_t algorithm);
+size_t gnutls_mac_get_nonce_size(gnutls_mac_algorithm_t algorithm) __GNUTLS_CONST__;
 int gnutls_hmac_init(gnutls_hmac_hd_t * dig,
 		     gnutls_mac_algorithm_t algorithm,
 		     const void *key, size_t keylen);
@@ -98,7 +98,7 @@ void gnutls_hmac_set_nonce(gnutls_hmac_hd_t handle,
 int gnutls_hmac(gnutls_hmac_hd_t handle, const void *text, size_t textlen);
 void gnutls_hmac_output(gnutls_hmac_hd_t handle, void *digest);
 void gnutls_hmac_deinit(gnutls_hmac_hd_t handle, void *digest);
-int gnutls_hmac_get_len(gnutls_mac_algorithm_t algorithm);
+unsigned gnutls_hmac_get_len(gnutls_mac_algorithm_t algorithm) __GNUTLS_CONST__;
 int gnutls_hmac_fast(gnutls_mac_algorithm_t algorithm,
 		     const void *key, size_t keylen,
 		     const void *text, size_t textlen, void *digest);
@@ -108,7 +108,7 @@ int gnutls_hash_init(gnutls_hash_hd_t * dig,
 int gnutls_hash(gnutls_hash_hd_t handle, const void *text, size_t textlen);
 void gnutls_hash_output(gnutls_hash_hd_t handle, void *digest);
 void gnutls_hash_deinit(gnutls_hash_hd_t handle, void *digest);
-int gnutls_hash_get_len(gnutls_digest_algorithm_t algorithm);
+unsigned gnutls_hash_get_len(gnutls_digest_algorithm_t algorithm) __GNUTLS_CONST__;
 int gnutls_hash_fast(gnutls_digest_algorithm_t algorithm,
 		     const void *text, size_t textlen, void *digest);
 
@@ -153,17 +153,17 @@ typedef int (*gnutls_cipher_auth_func) (void *ctx, const void *data, size_t data
 typedef void (*gnutls_cipher_tag_func) (void *ctx, void *tag, size_t tagsize);
 
 typedef int (*gnutls_cipher_aead_encrypt_func) (void *ctx,
- 			     const void *nonce, size_t noncesize,
-			     const void *auth, size_t authsize,
-			     size_t tag_size,
-			     const void *plain, size_t plainsize,
-			     void *encr, size_t encrsize);
+			const void *nonce, size_t noncesize,
+			const void *auth, size_t authsize,
+			size_t tag_size,
+			const void *plain, size_t plainsize,
+			void *encr, size_t encrsize);
 typedef int (*gnutls_cipher_aead_decrypt_func) (void *ctx,
- 			     const void *nonce, size_t noncesize,
-			     const void *auth, size_t authsize,
-			     size_t tag_size,
-			     const void *encr, size_t encrsize,
-			     void *plain, size_t plainsize);
+			const void *nonce, size_t noncesize,
+			const void *auth, size_t authsize,
+			size_t tag_size,
+			const void *encr, size_t encrsize,
+			void *plain, size_t plainsize);
 typedef void (*gnutls_cipher_deinit_func) (void *ctx);
 
 int
@@ -221,6 +221,17 @@ gnutls_crypto_register_digest(gnutls_digest_algorithm_t digest,
 			   gnutls_digest_output_func output,
 			   gnutls_digest_deinit_func deinit,
 			   gnutls_digest_fast_func hash_fast);
+
+/* RSA-PKCS#1 1.5 helper functions */
+int
+gnutls_encode_ber_digest_info(gnutls_digest_algorithm_t hash,
+			      const gnutls_datum_t * digest,
+			      gnutls_datum_t * output);
+
+int
+gnutls_decode_ber_digest_info(const gnutls_datum_t * info,
+			      gnutls_digest_algorithm_t *hash,
+			      unsigned char *digest, unsigned int *digest_size);
 
 /* *INDENT-OFF* */
 #ifdef __cplusplus

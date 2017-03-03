@@ -25,9 +25,9 @@
 #ifndef EXT_SIGNATURE_H
 #define EXT_SIGNATURE_H
 
-#include <gnutls_extensions.h>
+#include <extensions.h>
 
-extern extension_entry_st ext_mod_sig;
+extern const extension_entry_st ext_mod_sig;
 
 gnutls_sign_algorithm_t
 _gnutls_session_get_sign_algo(gnutls_session_t session,

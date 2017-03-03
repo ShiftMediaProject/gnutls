@@ -22,6 +22,11 @@
 
 srcdir="${srcdir:-.}"
 CERTTOOL="${CERTTOOL:-../../src/certtool${EXEEXT}}"
+
+if ! test -x "${CERTTOOL}"; then
+	exit 77
+fi
+
 if ! test -z "${VALGRIND}"; then
 	VALGRIND="${LIBTOOL:-libtool} --mode=execute ${VALGRIND}"
 fi
@@ -58,7 +63,7 @@ while [ ${counter} -lt 200 ]; do
 	"${srcdir}/x509random.pl" > "${file}"
 	${VALGRIND} "${CERTTOOL}" -i --inder --infile "${file}" >/dev/null
 	ret=$?
-	if [ ${ret} != 0 -a ${ret} != 1 ]; then
+	if test ${ret} != 0 && test ${ret} != 1; then
 		echo "Unknown exit code with ${file}"
 		exit 1
 	fi
@@ -73,7 +78,7 @@ while [ ${counter} -lt 200 ]; do
 	"${srcdir}/asn1random.pl" > "${file}"
 	${VALGRIND} "${CERTTOOL}" -i --inder --infile "${file}" >/dev/null 2>/dev/null
 	ret=$?
-	if [ ${ret} != 0 -a ${ret} != 1 ]; then
+	if test ${ret} != 0 && test ${ret} != 1; then
 		echo "Unknown exit code with ${file}"
 		exit 1
 	fi

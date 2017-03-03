@@ -25,10 +25,10 @@
  * using intel's AES instruction set. 
  */
 
-#include <gnutls_errors.h>
-#include <gnutls_int.h>
+#include "errors.h"
+#include "gnutls_int.h"
 #include <gnutls/crypto.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <aes-x86.h>
 #include <sha-x86.h>
 #include <x86-common.h>
@@ -46,7 +46,7 @@ __attribute__((visibility("hidden")))
 #elif defined(__SUNPRO_C)
 __hidden
 #endif
-unsigned int _gnutls_x86_cpuid_s[3];
+unsigned int _gnutls_x86_cpuid_s[4];
 
 #ifndef bit_PCLMUL
 # define bit_PCLMUL 0x2
@@ -60,6 +60,19 @@ unsigned int _gnutls_x86_cpuid_s[3];
 # define bit_AES 0x2000000
 #endif
 
+#ifndef bit_AVX
+# define bit_AVX 0x10000000
+#endif
+
+#ifndef OSXSAVE_MASK
+/* OSXSAVE|FMA|MOVBE */
+# define OSXSAVE_MASK (0x8000000|0x1000|0x400000)
+#endif
+
+#ifndef bit_MOVBE
+# define bit_MOVBE 0x00400000
+#endif
+
 #define via_bit_PADLOCK (0x3 << 6)
 #define via_bit_PADLOCK_PHE (0x3 << 10)
 #define via_bit_PADLOCK_PHE_SHA512 (0x3 << 25)
@@ -70,9 +83,30 @@ unsigned int _gnutls_x86_cpuid_s[3];
 #define INTEL_AES_NI (1<<1)
 #define INTEL_SSSE3 (1<<2)
 #define INTEL_PCLMUL (1<<3)
+#define INTEL_AVX (1<<4)
 #define VIA_PADLOCK (1<<20)
 #define VIA_PADLOCK_PHE (1<<21)
 #define VIA_PADLOCK_PHE_SHA512 (1<<22)
+
+/* Based on the example in "How to detect New Instruction support in
+ * the 4th generation Intel Core processor family.
+ * https://software.intel.com/en-us/articles/how-to-detect-new-instruction-support-in-the-4th-generation-intel-core-processor-family
+ */
+static unsigned check_4th_gen_intel_features(unsigned ecx)
+{
+	uint32_t xcr0;
+
+	if ((ecx & OSXSAVE_MASK) != OSXSAVE_MASK)
+		return 0;
+
+#if defined(_MSC_VER)
+	xcr0 = _xgetbv(0);
+#else
+	__asm__ ("xgetbv" : "=a" (xcr0) : "c" (0) : "%edx");
+#endif
+	/* Check if xmm and ymm state are enabled in XCR0. */
+	return (xcr0 & 6) == 6;
+}
 
 static void capabilities_to_intel_cpuid(unsigned capabilities)
 {
@@ -103,6 +137,16 @@ static void capabilities_to_intel_cpuid(unsigned capabilities)
 			    ("SSSE3 acceleration requested but not available\n");
 		}
 	}
+
+	if (capabilities & INTEL_AVX) {
+		if ((b & bit_AVX) && check_4th_gen_intel_features(b)) {
+			_gnutls_x86_cpuid_s[1] |= bit_AVX|bit_MOVBE;
+		} else {
+			_gnutls_debug_log
+			    ("AVX acceleration requested but not available\n");
+		}
+	}
+
 	if (capabilities & INTEL_PCLMUL) {
 		if (b & bit_PCLMUL) {
 			_gnutls_x86_cpuid_s[1] |= bit_PCLMUL;
@@ -111,7 +155,9 @@ static void capabilities_to_intel_cpuid(unsigned capabilities)
 			    ("PCLMUL acceleration requested but not available\n");
 		}
 	}
+
 }
+
 
 static unsigned check_optimized_aes(void)
 {
@@ -124,6 +170,14 @@ static unsigned check_ssse3(void)
 }
 
 #ifdef ASM_X86_64
+static unsigned check_avx_movbe(void)
+{
+	if (check_4th_gen_intel_features(_gnutls_x86_cpuid_s[1]) == 0)
+		return 0;
+
+	return ((_gnutls_x86_cpuid_s[1] & bit_AVX));
+}
+
 static unsigned check_pclmul(void)
 {
 	return (_gnutls_x86_cpuid_s[1] & bit_PCLMUL);
@@ -275,7 +329,10 @@ void register_x86_padlock_crypto(unsigned capabilities)
 			gnutls_assert();
 		}
 #endif
+	} else {
+		_gnutls_priority_update_non_aesni();
 	}
+
 #ifdef HAVE_LIBNETTLE
 	phe = check_phe(edx);
 
@@ -608,22 +665,42 @@ void register_x86_intel_crypto(unsigned capabilities)
 #ifdef ASM_X86_64
 		if (check_pclmul()) {
 			/* register GCM ciphers */
-			_gnutls_debug_log
-			    ("Intel GCM accelerator was detected\n");
-			ret =
-			    gnutls_crypto_single_cipher_register
-			    (GNUTLS_CIPHER_AES_128_GCM, 80,
-			     &_gnutls_aes_gcm_pclmul, 0);
-			if (ret < 0) {
-				gnutls_assert();
-			}
+			if (check_avx_movbe()) {
+				_gnutls_debug_log
+				    ("Intel GCM accelerator (AVX) was detected\n");
+				ret =
+				    gnutls_crypto_single_cipher_register
+				    (GNUTLS_CIPHER_AES_128_GCM, 80,
+				     &_gnutls_aes_gcm_pclmul_avx, 0);
+				if (ret < 0) {
+					gnutls_assert();
+				}
 
-			ret =
-			    gnutls_crypto_single_cipher_register
-			    (GNUTLS_CIPHER_AES_256_GCM, 80,
-			     &_gnutls_aes_gcm_pclmul, 0);
-			if (ret < 0) {
-				gnutls_assert();
+				ret =
+				    gnutls_crypto_single_cipher_register
+				    (GNUTLS_CIPHER_AES_256_GCM, 80,
+				     &_gnutls_aes_gcm_pclmul_avx, 0);
+				if (ret < 0) {
+					gnutls_assert();
+				}
+			} else {
+				_gnutls_debug_log
+				    ("Intel GCM accelerator was detected\n");
+				ret =
+				    gnutls_crypto_single_cipher_register
+				    (GNUTLS_CIPHER_AES_128_GCM, 80,
+				     &_gnutls_aes_gcm_pclmul, 0);
+				if (ret < 0) {
+					gnutls_assert();
+				}
+
+				ret =
+				    gnutls_crypto_single_cipher_register
+				    (GNUTLS_CIPHER_AES_256_GCM, 80,
+				     &_gnutls_aes_gcm_pclmul, 0);
+				if (ret < 0) {
+					gnutls_assert();
+				}
 			}
 		} else
 #endif
@@ -644,6 +721,8 @@ void register_x86_intel_crypto(unsigned capabilities)
 				gnutls_assert();
 			}
 		}
+	} else {
+		_gnutls_priority_update_non_aesni();
 	}
 
 	return;
@@ -658,7 +737,7 @@ void register_x86_crypto(void)
 	if (p) {
 		capabilities = strtol(p, NULL, 0);
 	}
-	
+
 	register_x86_intel_crypto(capabilities);
 #ifdef ENABLE_PADLOCK
 	register_x86_padlock_crypto(capabilities);

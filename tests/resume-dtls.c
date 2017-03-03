@@ -413,8 +413,7 @@ void doit(void)
 				close(client_sds[j]);
 			server(server_sds, &resume_tests[i]);
 			wait(&status);
-			if (WEXITSTATUS(status) != 0 || (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV))
-				exit(1);
+			check_wait_status(status);
 		} else {
 			for (j = 0; j < SESSIONS; j++)
 				close(server_sds[j]);
@@ -540,14 +539,14 @@ static gnutls_datum_t wrap_db_fetch(void *dbf, gnutls_datum_t key)
 				return res;
 
 			memcpy(res.data, cache_db[i].session_data,
-			       res.size);
+				res.size);
 
 			if (debug) {
 				unsigned j;
 				printf("data:\n");
 				for (j = 0; j < res.size; j++) {
 					printf("%02x ",
-					       res.data[j] & 0xFF);
+						res.data[j] & 0xFF);
 					if ((j + 1) % 16 == 0)
 						printf("\n");
 				}

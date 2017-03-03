@@ -70,8 +70,6 @@ static void print_type(const unsigned char *buf, int size)
 			fprintf(stderr, "Client Key Exchange\n");
 		else if (buf[4] == 1)
 			fprintf(stderr, "Finished\n");
-		else if (buf[13] == 11)
-			fprintf(stderr, "Server Hello Done\n");
 		else
 			fprintf(stderr, "Unknown handshake\n");
 	} else if (buf[0] == 20) {
@@ -285,8 +283,7 @@ static void ch_handler(int sig)
 {
 	int status = 0;
 	wait(&status);
-	if (WEXITSTATUS(status) != 0)
-		fail("Child died with status %d\n", WEXITSTATUS(status));
+	check_wait_status(status);
 	return;
 }
 

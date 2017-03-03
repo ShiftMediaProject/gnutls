@@ -24,8 +24,12 @@
 #define GNUTLS_LOCKS_H
 
 #include <gnutls/gnutls.h>
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <system.h>
+
+#ifdef HAVE_STDATOMIC_H
+# include <stdatomic.h>
+#endif
 
 extern mutex_init_func gnutls_mutex_init;
 extern mutex_deinit_func gnutls_mutex_deinit;

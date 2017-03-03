@@ -248,7 +248,6 @@ static void client(int fd)
 				fail("received message sequence differs\n");
 				terminate();
 			}
-
 			if (((uint32_t)recv_msg_seq[current]) != useq) {
 				fail("received message sequence differs (current: %u, got: %u, expected: %u)\n",
 				     (unsigned)current, (unsigned)useq, (unsigned)recv_msg_seq[current]);
@@ -387,9 +386,7 @@ static void start(void)
 		close(fd[1]);
 		server(fd[0]);
 		wait(&status);
-		if (WEXITSTATUS(status) != 0)
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
+		check_wait_status(status);
 	} else {
 		close(fd[0]);
 		client(fd[1]);

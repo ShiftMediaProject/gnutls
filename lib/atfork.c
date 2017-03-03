@@ -22,8 +22,8 @@
  */
 
 #include <config.h>
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 
 #include <sys/socket.h>
 #include <errno.h>
@@ -62,7 +62,7 @@ unsigned int _gnutls_get_forkid(void)
 
 int _gnutls_detect_fork(unsigned int forkid)
 {
-	if (getpid() == forkid)
+	if ((unsigned int)getpid() == forkid)
 		return 0;
 	return 1;
 }

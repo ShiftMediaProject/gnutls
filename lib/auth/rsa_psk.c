@@ -27,17 +27,17 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
 #ifdef ENABLE_PSK
 
-#include "gnutls_auth.h"
-#include "gnutls_dh.h"
-#include "gnutls_errors.h"
-#include "gnutls_mpi.h"
-#include "gnutls_num.h"
+#include "auth.h"
+#include "dh.h"
+#include "errors.h"
+#include "mpi.h"
+#include "num.h"
 #include "gnutls_int.h"
-#include "gnutls_pk.h"
+#include "pk.h"
 #include "random.h"
 #include <abstract_int.h>
 #include <algorithms.h>
@@ -46,8 +46,8 @@
 #include <auth/psk_passwd.h>
 #include <auth/rsa_common.h>
 #include <cert.h>
-#include <gnutls_datum.h>
-#include <gnutls_state.h>
+#include <datum.h>
+#include <state.h>
 
 static int _gnutls_gen_rsa_psk_client_kx(gnutls_session_t session,
 					 gnutls_buffer_st * data);
@@ -156,7 +156,7 @@ _gnutls_gen_rsa_psk_client_kx(gnutls_session_t session,
 	}
 
 	/* Generate random */
-	ret = _gnutls_rnd(GNUTLS_RND_RANDOM, premaster_secret.data,
+	ret = gnutls_rnd(GNUTLS_RND_RANDOM, premaster_secret.data,
 			  premaster_secret.size);
 	if (ret < 0) {
 		gnutls_assert();
@@ -370,7 +370,7 @@ _gnutls_proc_rsa_psk_client_kx(gnutls_session_t session, uint8_t * data,
 
 		/* we do not need strong random numbers here.
 		 */
-		ret = _gnutls_rnd(GNUTLS_RND_NONCE, premaster_secret.data,
+		ret = gnutls_rnd(GNUTLS_RND_NONCE, premaster_secret.data,
 				  premaster_secret.size);
 		if (ret < 0) {
 			gnutls_assert();

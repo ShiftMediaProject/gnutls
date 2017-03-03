@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2000-2015 Free Software Foundation, Inc.
- * Copyright (C) 2015 Red Hat, Inc.
+ * Copyright (C) 2000-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -92,19 +92,15 @@ typedef struct {
 #include <gnutls/gnutls.h>
 #include <gnutls/dtls.h>
 #include <gnutls/abstract.h>
+#include <gnutls/socket.h>
 #include <system.h>
 
-/*
- * They are not needed any more. You can simply enable
- * the gnutls_log callback to get error descriptions.
-
-#define BUFFERS_DEBUG
-#define WRITE_DEBUG
-#define READ_DEBUG
-#define HANDSHAKE_DEBUG // Prints some information on handshake 
-#define COMPRESSION_DEBUG
-#define DEBUG
-*/
+/* in case we compile with system headers taking priority, we
+ * make sure that some new attributes are still available.
+ */
+#ifndef __GNUTLS_CONST__
+# define __GNUTLS_CONST__
+#endif
 
 /* The size of a handshake message should not
  * be larger than this value.
@@ -119,10 +115,7 @@ typedef struct {
 #define MAX_CIPHER_KEY_SIZE 32
 
 #define MAX_USERNAME_SIZE 128
-#define MAX_SERVER_NAME_SIZE 128
-
-#define SESSION_TICKET_KEY_NAME_SIZE 16
-#define SESSION_TICKET_KEY_SIZE 16
+#define MAX_SERVER_NAME_SIZE 256
 
 #define AEAD_EXPLICIT_DATA_SIZE 8
 #define AEAD_IMPLICIT_DATA_SIZE 4
@@ -131,13 +124,17 @@ typedef struct {
 #define GNUTLS_RANDOM_SIZE 32
 
 /* DTLS */
-#define DTLS_RECORD_WINDOW_SIZE 64
 #define DTLS_RETRANS_TIMEOUT 1000
 
 /* TLS Extensions */
 /* we can receive up to MAX_EXT_TYPES extensions.
  */
 #define MAX_EXT_TYPES 32
+
+/* TLS-internal extension (will be parsed after a ciphersuite is selected).
+ * This amends the gnutls_ext_parse_type_t. Not exported yet to allow more refining
+ * prior to finalizing an API. */
+#define _GNUTLS_EXT_TLS_POST_CS 177
 
 /* expire time for resuming sessions */
 #define DEFAULT_EXPIRE_TIME 3600
@@ -168,7 +165,7 @@ typedef enum record_flush_t {
  */
 #define MAX_RECORD_SEND_OVERHEAD(session) (MAX_CIPHER_BLOCK_SIZE/*iv*/+MAX_PAD_SIZE+((gnutls_compression_get(session)!=GNUTLS_COMP_NULL)?(EXTRA_COMP_SIZE):(0))+MAX_HASH_SIZE/*MAC*/)
 #define MAX_RECORD_SEND_SIZE(session) (IS_DTLS(session)? \
-	((size_t)gnutls_dtls_get_mtu(session)): \
+	(MIN((size_t)gnutls_dtls_get_mtu(session), (size_t)session->security_parameters.max_record_send_size+MAX_RECORD_SEND_OVERHEAD(session))): \
 	((size_t)session->security_parameters.max_record_send_size+MAX_RECORD_SEND_OVERHEAD(session)))
 #define MAX_PAD_SIZE 255
 #define EXTRA_COMP_SIZE 2048
@@ -177,6 +174,9 @@ typedef enum record_flush_t {
 #define DTLS_HANDSHAKE_HEADER_SIZE (TLS_HANDSHAKE_HEADER_SIZE+8)
 #define HANDSHAKE_HEADER_SIZE(session) (IS_DTLS(session) ? DTLS_HANDSHAKE_HEADER_SIZE : TLS_HANDSHAKE_HEADER_SIZE)
 #define MAX_HANDSHAKE_HEADER_SIZE DTLS_HANDSHAKE_HEADER_SIZE
+
+/* Maximum seed size for provable parameters */
+#define MAX_PVP_SEED_SIZE 256
 
 /* This is the maximum handshake message size we send without
    fragmentation. This currently ignores record layer overhead. */
@@ -189,13 +189,15 @@ typedef enum record_flush_t {
    processes before aborting. */
 #define MAX_HANDSHAKE_HELLO_VERIFY_REQUESTS 5
 
+#define MAX_PK_PARAM_SIZE 2048
+
 /* defaults for verification functions
  */
 #define DEFAULT_MAX_VERIFY_DEPTH 16
-#define DEFAULT_MAX_VERIFY_BITS 16*1024
+#define DEFAULT_MAX_VERIFY_BITS (MAX_PK_PARAM_SIZE*8)
 #define MAX_VERIFY_DEPTH 4096
 
-#include <gnutls_mem.h>
+#include <mem.h>
 
 #define MEMSUB(x,y) ((ssize_t)((ptrdiff_t)x-(ptrdiff_t)y))
 
@@ -217,29 +219,36 @@ typedef struct {
 	uint8_t pint[3];
 } uint24;
 
-#include <gnutls_mpi.h>
+#include <mpi.h>
 
 typedef enum handshake_state_t { STATE0 = 0, STATE1, STATE2,
 	STATE3, STATE4, STATE5, STATE6, STATE7, STATE8,
 	STATE9, STATE10, STATE11, STATE12, STATE13, STATE14,
-	STATE15, STATE16, STATE17, STATE18,
+	STATE15, STATE16, STATE17, STATE18, STATE19,
 	STATE20 = 20, STATE21, STATE22,
-	STATE30 = 30, STATE31, STATE40 = 40, STATE41, STATE50 = 50,
-	STATE60 = 60, STATE61, STATE62, 
+	STATE30 = 30, STATE31, STATE40 = 40, STATE41, STATE50 = 50
 } handshake_state_t;
+
+typedef enum bye_state_t {
+	BYE_STATE0 = 0, BYE_STATE1, BYE_STATE2
+} bye_state_t;
+
+#define BYE_STATE session->internals.bye_state
 
 typedef enum heartbeat_state_t {
 	SHB_SEND1 = 0,
 	SHB_SEND2,
-	SHB_RECV,
+	SHB_RECV
 } heartbeat_state_t;
 
 typedef enum recv_state_t {
 	RECV_STATE_0 = 0,
 	RECV_STATE_DTLS_RETRANSMIT,
+	RECV_STATE_FALSE_START_HANDLING, /* we are calling gnutls_handshake() within record_recv() */
+	RECV_STATE_FALSE_START /* gnutls_record_recv() should complete the handshake */
 } recv_state_t;
 
-#include <gnutls_str.h>
+#include "str.h"
 
 /* This is the maximum number of algorithms (ciphers or macs etc).
  * keep it synced with GNUTLS_MAX_ALGORITHM_NUM in gnutls.h
@@ -372,9 +381,11 @@ typedef struct auth_cred_st {
 
 struct gnutls_key_st {
 	/* For ECDH KX */
-	gnutls_pk_params_st ecdh_params;
+	gnutls_pk_params_st ecdh_params; /* private part */
+	/* public part */
 	bigint_t ecdh_x;
 	bigint_t ecdh_y;
+	gnutls_datum_t ecdhx; /* public key used in ECDHX (point) */
 
 	/* For DH KX */
 	gnutls_datum_t key;
@@ -393,9 +404,6 @@ struct gnutls_key_st {
 	bigint_t b;
 	bigint_t a;
 	bigint_t x;
-	/* RSA: e, m
-	 */
-	bigint_t rsa[2];
 
 	/* this is used to hold the peers authentication data 
 	 */
@@ -488,15 +496,19 @@ typedef struct {
 	bool extensions;	/* whether it supports extensions */
 	bool selectable_sighash;	/* whether signatures can be selected */
 	bool selectable_prf;	/* whether the PRF is ciphersuite-defined */
-	bool obsolete;		/* Do not use this protocol version as record version */
+
+	/* if SSL3 is disabled this flag indicates that this protocol is a placeholder,
+	 * otherwise it prevents this protocol from being set as record version */
+	bool obsolete;
+	bool false_start;	/* That version can be used with false start */
 } version_entry_st;
 
 
 /* STATE (cont) */
 
-#include <gnutls_hash_int.h>
-#include <gnutls_cipher_int.h>
-#include <gnutls_compress.h>
+#include <hash_int.h>
+#include <cipher_int.h>
+#include <compress.h>
 
 typedef struct {
 	uint8_t hash_algorithm;
@@ -602,7 +614,7 @@ struct record_state_st {
    0x0000-0xffff. */
 #define EPOCH_READ_CURRENT  70000
 #define EPOCH_WRITE_CURRENT 70001
-#define EPOCH_NEXT          70002
+#define EPOCH_NEXT	  70002
 
 struct record_parameters_st {
 	uint16_t epoch;
@@ -614,10 +626,10 @@ struct record_parameters_st {
 	bool etm;
 	const mac_entry_st *mac;
 
-	/* for DTLS */
-	uint64_t record_sw[DTLS_RECORD_WINDOW_SIZE];
-	unsigned int record_sw_head_idx;
-	unsigned int record_sw_size;
+	/* for DTLS sliding window */
+	uint64_t dtls_sw_next; /* The end point (next expected packet) of the sliding window without epoch */
+	uint64_t dtls_sw_bits;
+	unsigned dtls_sw_have_recv; /* whether at least a packet has been received */
 
 	record_state_st read;
 	record_state_st write;
@@ -660,6 +672,8 @@ struct gnutls_priority_st {
 	safe_renegotiation_t sr;
 	bool min_record_version;
 	bool server_precedence;
+	bool allow_key_usage_violation;
+	bool allow_server_key_usage_violation; /* for test suite purposes only */
 	bool allow_wrong_pms;
 	bool no_tickets;
 	bool no_etm;
@@ -685,11 +699,12 @@ struct gnutls_priority_st {
 #define DEFAULT_MAX_EMPTY_RECORDS 200
 
 #define ENABLE_COMPAT(x) \
-              (x)->allow_large_records = 1; \
-              (x)->no_etm = 1; \
-              (x)->no_ext_master_secret = 1; \
-              (x)->allow_wrong_pms = 1; \
-              (x)->dumbfw = 1
+	      (x)->allow_large_records = 1; \
+	      (x)->no_etm = 1; \
+	      (x)->no_ext_master_secret = 1; \
+	      (x)->allow_key_usage_violation = 1; \
+	      (x)->allow_wrong_pms = 1; \
+	      (x)->dumbfw = 1
 
 /* DH and RSA parameters types.
  */
@@ -743,6 +758,14 @@ typedef struct {
 	unsigned int packets_dropped;
 } dtls_st;
 
+typedef struct tfo_st {
+	int fd;
+	int flags;
+	bool connect_only; /* a previous sendmsg() failed, attempting connect() */
+	struct sockaddr_storage connect_addr;
+	socklen_t connect_addrlen;
+} tfo_st;
+
 typedef struct {
 	/* holds all the parsed data received by the record layer */
 	mbuffer_head_st record_buffer;
@@ -755,6 +778,7 @@ typedef struct {
 						 * message */
 	bool resumable;	/* TRUE or FALSE - if we can resume that session */
 	bool ticket_sent;	/* whether a session ticket was sent */
+	bye_state_t bye_state; /* used by gnutls_bye() */
 	handshake_state_t handshake_final_state;
 	handshake_state_t handshake_state;	/* holds
 						 * a number which indicates where
@@ -784,6 +808,7 @@ typedef struct {
 	bool resumed;	/* RESUME_TRUE or FALSE - if we are resuming a session */
 	bool resumption_requested;	/* non-zero if resumption was requested by client */
 	security_parameters_st resumed_security_parameters;
+	gnutls_datum_t resumption_data; /* copy of input to gnutls_session_set_data() */
 
 	/* These buffers are used in the handshake
 	 * protocol only. freed using _gnutls_handshake_io_buffer_clear();
@@ -812,7 +837,7 @@ typedef struct {
 						 * function.
 						 */
 
-	unsigned expire_time;	/* after expire_time seconds this session will expire */
+	time_t expire_time;	/* after expire_time seconds this session will expire */
 	struct mod_auth_st_int *auth_struct;	/* used in handshake packets and KX algorithms */
 
 	/* this is the highest version available
@@ -869,6 +894,8 @@ typedef struct {
 	int16_t selected_cert_list_length;
 	struct gnutls_privkey_st *selected_key;
 	bool selected_need_free;
+	gnutls_status_request_ocsp_func selected_ocsp_func;
+	void *selected_ocsp_func_ptr;
 
 	/* In case of a client holds the extensions we sent to the peer;
 	 * otherwise the extensions we received from the client.
@@ -990,8 +1017,8 @@ typedef struct {
 	recv_state_t recv_state;	/* state of the receive function */
 
 	bool sc_random_set;
-	bool no_replay_protection;	/* DTLS replay protection */
-	bool try_ext_master_secret;	/* whether to try negotiating the ext master secret */
+
+	unsigned flags; /* the flags in gnutls_init() */
 
 	/* a verify callback to override the verify callback from the credentials
 	 * structure */
@@ -1002,9 +1029,34 @@ typedef struct {
 	unsigned vc_status;
 	unsigned int additional_verify_flags; /* may be set by priorities or the vc functions */
 
-	/* whether this session uses non-blocking sockets */
-	bool blocking;
+	/* we append the verify flags because these can be set,
+	 * either by this function or by gnutls_session_set_verify_cert().
+	 * However, we ensure that a single profile is set. */
+#define ADD_PROFILE_VFLAGS(session, vflags) do { \
+	if ((session->internals.additional_verify_flags & GNUTLS_VFLAGS_PROFILE_MASK) && \
+	    (vflags & GNUTLS_VFLAGS_PROFILE_MASK)) \
+		session->internals.additional_verify_flags &= ~GNUTLS_VFLAGS_PROFILE_MASK; \
+	session->internals.additional_verify_flags |= vflags; \
+	} while(0)
 
+	/* the SHA256 hash of the peer's certificate */
+	uint8_t cert_hash[32];
+	bool cert_hash_set;
+
+	/* The saved username from PSK or SRP auth */
+	char saved_username[MAX_USERNAME_SIZE+1];
+	bool saved_username_set;
+
+	bool false_start_used; /* non-zero if false start was used for appdata */
+
+	/* Needed for TCP Fast Open (TFO), set by gnutls_transport_set_fastopen() */
+	tfo_st tfo;
+
+	struct gnutls_supplemental_entry_st *rsup;
+	unsigned rsup_size;
+
+	struct extension_entry_st *rexts;
+	unsigned rexts_size;
 	/* If you add anything here, check _gnutls_handshake_internal_state_clear().
 	 */
 } internals_st;
@@ -1053,6 +1105,7 @@ inline static unsigned get_num_version(gnutls_session_t session)
 }
 
 void _gnutls_priority_update_fips(void);
+void _gnutls_priority_update_non_aesni(void);
 
 #define timespec_sub_ms _gnutls_timespec_sub_ms
 unsigned int
@@ -1075,9 +1128,9 @@ inline static size_t max_user_send_size(gnutls_session_t session,
 {
 	size_t max;
 
-	if (IS_DTLS(session))
-		max = gnutls_dtls_get_data_mtu(session);
-	else {
+	if (IS_DTLS(session)) {
+		max = MIN(gnutls_dtls_get_data_mtu(session), session->security_parameters.max_record_send_size);
+	} else {
 		max = session->security_parameters.max_record_send_size;
 	}
 

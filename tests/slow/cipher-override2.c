@@ -8,17 +8,6 @@
 #include <gnutls/crypto.h>
 #include <gnutls/self-test.h>
 
-#ifndef HAVE_LIBNETTLE
-int main(int argc, char **argv)
-{
-	exit(77);
-}
-#else
-
-# include <nettle/aes.h>
-# include <nettle/cbc.h>
-# include <nettle/gcm.h>
-
 /* this tests whether the API to override ciphers works sanely,
  * when GNUTLS_E_NEED_FALLBACK is used.
  */
@@ -96,22 +85,22 @@ static void myaes_gcm_deinit(void *_ctx)
 
 static int
 myaes_gcm_encrypt(void *_ctx,
-			const void *nonce, size_t nonce_size,
-			const void *auth, size_t auth_size,
-			size_t tag_size,
-			const void *plain, size_t plain_size,
-		   	void *encr, size_t encr_size)
+		  const void *nonce, size_t nonce_size,
+		  const void *auth, size_t auth_size,
+		  size_t tag_size,
+		  const void *plain, size_t plain_size,
+		  void *encr, size_t encr_size)
 {
 	abort();
 }
 
 static int
 myaes_gcm_decrypt(void *_ctx,
-			const void *nonce, size_t nonce_size,
-			const void *auth, size_t auth_size,
-			size_t tag_size,
-		   	const void *encr, size_t encr_size,
-			void *plain, size_t plain_size)
+		  const void *nonce, size_t nonce_size,
+		  const void *auth, size_t auth_size,
+		  size_t tag_size,
+		  const void *encr, size_t encr_size,
+		  void *plain, size_t plain_size)
 {
 	abort();
 }
@@ -157,5 +146,3 @@ int main(int argc, char **argv)
 	gnutls_global_deinit();
 	return 0;
 }
-
-#endif

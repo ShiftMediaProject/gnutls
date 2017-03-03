@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright (C) 2006-2008, 2010, 2012 Free Software Foundation, Inc.
 #
@@ -21,7 +21,13 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 srcdir="${srcdir:-.}"
-SERV="${SERV:-../../src/gnutls-serv${EXEEXT}} -q"
+SERV="${SERV:-../../src/gnutls-serv${EXEEXT}}"
+
+if ! test -x "${SERV}"; then
+	exit 77
+fi
+
+SERV="${SERV} -q"
 
 . "${srcdir}/../scripts/common.sh"
 

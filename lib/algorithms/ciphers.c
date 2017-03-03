@@ -20,9 +20,9 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <algorithms.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <x509/common.h>
 
 
@@ -32,8 +32,9 @@
  * protecting communications" by Hugo Krawczyk - CRYPTO 2001
  *
  * On update, make sure to update MAX_CIPHER_BLOCK_SIZE and MAX_CIPHER_KEY_SIZE
- * as well. If any ciphers are removed, modify the is_legacy() functions
- * in priority.c.
+ * as well. If any ciphers are removed, remove them from the back-end but
+ * keep them in that list to allow backwards compatibility with applications
+ * that specify them (they will be a no-op).
  */
 static const cipher_entry_st algorithms[] = {
 	{ .name = "AES-256-CBC",
@@ -175,7 +176,7 @@ static const cipher_entry_st algorithms[] = {
 	  .explicit_iv = 8,
 	  .cipher_iv = 12,
 	  .tagsize = 16},
-        { .name = "3DES-CBC", 
+	{ .name = "3DES-CBC", 
 	  .id = GNUTLS_CIPHER_3DES_CBC,
 	  .blocksize = 8,
 	  .keysize = 24,
@@ -211,11 +212,11 @@ static const cipher_entry_st algorithms[] = {
 };
 
 #define GNUTLS_CIPHER_LOOP(b) \
-        const cipher_entry_st *p; \
-                for(p = algorithms; p->name != NULL; p++) { b ; }
+	const cipher_entry_st *p; \
+		for(p = algorithms; p->name != NULL; p++) { b ; }
 
 #define GNUTLS_ALG_LOOP(a) \
-                        GNUTLS_CIPHER_LOOP( if(p->id == algorithm) { a; break; } )
+			GNUTLS_CIPHER_LOOP( if(p->id == algorithm) { a; break; } )
 
 /* CIPHER functions */
 
@@ -248,7 +249,7 @@ const cipher_entry_st *cipher_name_to_entry(const char *name)
  *
  * Since: 2.10.0
  **/
-int gnutls_cipher_get_block_size(gnutls_cipher_algorithm_t algorithm)
+unsigned gnutls_cipher_get_block_size(gnutls_cipher_algorithm_t algorithm)
 {
 	size_t ret = 0;
 	GNUTLS_ALG_LOOP(ret = p->blocksize);
@@ -264,7 +265,7 @@ int gnutls_cipher_get_block_size(gnutls_cipher_algorithm_t algorithm)
  *
  * Since: 3.2.2
  **/
-int gnutls_cipher_get_tag_size(gnutls_cipher_algorithm_t algorithm)
+unsigned gnutls_cipher_get_tag_size(gnutls_cipher_algorithm_t algorithm)
 {
 	return _gnutls_cipher_get_tag_size(cipher_to_entry(algorithm));
 }
@@ -279,7 +280,7 @@ int gnutls_cipher_get_tag_size(gnutls_cipher_algorithm_t algorithm)
  *
  * Since: 3.2.0
  **/
-int gnutls_cipher_get_iv_size(gnutls_cipher_algorithm_t algorithm)
+unsigned gnutls_cipher_get_iv_size(gnutls_cipher_algorithm_t algorithm)
 {
 	size_t ret = 0;
 	GNUTLS_ALG_LOOP(ret = p->cipher_iv);

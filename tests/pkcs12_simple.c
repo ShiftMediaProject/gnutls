@@ -31,10 +31,12 @@
 #include <gnutls/x509.h>
 #include "utils.h"
 
+#ifdef ENABLE_NON_SUITEB_CURVES
 static void tls_log_func(int level, const char *str)
 {
 	fprintf(stderr, "<%d>| %s", level, str);
 }
+#endif
 
 void doit(void)
 {
@@ -83,8 +85,8 @@ void doit(void)
 
 	ret =
 	    gnutls_pkcs12_simple_parse(pkcs12, password, &pkey, &chain,
-				       &chain_size, &extras, &extras_size,
-				       NULL, 0);
+					&chain_size, &extras, &extras_size,
+					NULL, 0);
 	if (ret < 0)
 		fail("pkcs12_simple_parse failed %d: %s\n", ret,
 		     gnutls_strerror(ret));

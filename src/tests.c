@@ -116,7 +116,7 @@ char prio_str[512] = "";
 #define ALL_CIPHERS "+AES-128-GCM:+CAMELLIA-128-GCM:+AES-128-CBC:+CAMELLIA-128-CBC:+3DES-CBC:+ARCFOUR-128"
 #define BLOCK_CIPHERS "+3DES-CBC:+AES-128-CBC:+CAMELLIA-128-CBC"
 #define ALL_COMP "+COMP-NULL"
-#define ALL_MACS "+SHA1:+MD5"
+#define ALL_MACS "+SHA1:+MD5:+AEAD"
 #define ALL_CERTTYPES "+CTYPE-X509"
 #define ALL_KX "+RSA:+DHE-RSA:+DHE-DSS:+ANON-DH:+ECDHE-RSA:+ECDHE-ECDSA:+ANON-ECDH"
 #define INIT_STR "NONE:"
@@ -181,8 +181,6 @@ test_code_t test_server(gnutls_session_t session)
 
 static gnutls_datum_t pubkey = { NULL, 0 };
 
-static gnutls_ecc_curve_t curve = GNUTLS_ECC_CURVE_INVALID;
-
 test_code_t test_dhe(gnutls_session_t session)
 {
 #ifdef ENABLE_DHE
@@ -224,9 +222,55 @@ test_code_t test_ecdhe(gnutls_session_t session)
 	if (ret < 0)
 		return TEST_FAILED;
 
-	curve = gnutls_ecc_curve_get(session);
-
 	return ret;
+}
+
+static
+test_code_t test_ecdhe_curve(gnutls_session_t session, const char *curve, unsigned id)
+{
+	int ret;
+
+	if (tls_ext_ok == 0)
+		return TEST_IGNORE;
+
+	/* We always enable all the curves but set our selected as first. That is
+	 * because list of curves may be also used by the server to select a cert. */
+	sprintf(prio_str, INIT_STR
+		ALL_CIPHERS ":" ALL_COMP ":" ALL_CERTTYPES ":%s:" ALL_MACS
+		":+ECDHE-RSA:+ECDHE-ECDSA:%s:%s", protocol_all_str, curve, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+
+	if (ret < 0)
+		return TEST_FAILED;
+
+	if (gnutls_ecc_curve_get(session) != id)
+		return TEST_FAILED;
+
+	return TEST_SUCCEED;
+}
+
+test_code_t test_ecdhe_secp256r1(gnutls_session_t session)
+{
+	return test_ecdhe_curve(session, "+CURVE-SECP256R1", GNUTLS_ECC_CURVE_SECP256R1);
+}
+
+test_code_t test_ecdhe_secp384r1(gnutls_session_t session)
+{
+	return test_ecdhe_curve(session, "+CURVE-SECP384R1", GNUTLS_ECC_CURVE_SECP384R1);
+}
+
+test_code_t test_ecdhe_secp521r1(gnutls_session_t session)
+{
+	return test_ecdhe_curve(session, "+CURVE-SECP521R1", GNUTLS_ECC_CURVE_SECP521R1);
+}
+
+test_code_t test_ecdhe_x25519(gnutls_session_t session)
+{
+	return test_ecdhe_curve(session, "+CURVE-X25519", GNUTLS_ECC_CURVE_X25519);
 }
 
 test_code_t test_rfc7507(gnutls_session_t session)
@@ -252,7 +296,7 @@ test_code_t test_rfc7507(gnutls_session_t session)
 
 	ret = do_handshake(session);
 	if (ret < 0)
-		return TEST_IGNORE;
+		return TEST_IGNORE2;
 
 	if (handshake_output < 0)
 		return TEST_SUCCEED;
@@ -421,7 +465,7 @@ test_code_t test_dhe_group(gnutls_session_t session)
 		print = raw_to_string(prime.data, prime.size);
 		if (print) {
 			fprintf(fp, " Prime [%d bits]: %s\n", prime.size * 8,
-		        	print);
+				print);
 		}
 
 		gnutls_dh_get_pubkey(session, &pubkey2);
@@ -440,7 +484,7 @@ test_code_t test_dhe_group(gnutls_session_t session)
 		{
 			/* save the PKCS #3 params */
 			gnutls_dh_params_t dhp;
-			gnutls_datum p3;
+			gnutls_datum_t p3;
 			
 			ret2 = gnutls_dh_params_init(&dhp);
 			if (ret2 < 0)
@@ -461,15 +505,6 @@ test_code_t test_dhe_group(gnutls_session_t session)
 		fclose(fp);
 	}
 	return ret;
-}
-
-test_code_t test_ecdhe_curve(gnutls_session_t session)
-{
-	if (curve == GNUTLS_ECC_CURVE_INVALID)
-		return TEST_IGNORE;
-
-	ext_text = gnutls_ecc_curve_get_name(curve);
-	return TEST_SUCCEED;
 }
 
 test_code_t test_ssl3(gnutls_session_t session)
@@ -572,7 +607,7 @@ test_code_t test_aes_gcm(gnutls_session_t session)
 	int ret;
 
 	sprintf(prio_str, INIT_STR
-		"+AES-128-GCM:+AES-256-GCM:+AEAD:" ALL_COMP ":"
+		"+AES-128-GCM:+AES-256-GCM:" ALL_COMP ":"
 		ALL_CERTTYPES ":%s:" ALL_MACS ":" ALL_KX ":%s",
 		protocol_all_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
@@ -588,7 +623,7 @@ test_code_t test_aes_ccm(gnutls_session_t session)
 	int ret;
 
 	sprintf(prio_str, INIT_STR
-		"+AES-128-CCM:+AES-256-CCM:+AEAD:" ALL_COMP ":"
+		"+AES-128-CCM:+AES-256-CCM:" ALL_COMP ":"
 		ALL_CERTTYPES ":%s:" ALL_MACS ":" ALL_KX ":%s",
 		protocol_all_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
@@ -604,7 +639,7 @@ test_code_t test_aes_ccm_8(gnutls_session_t session)
 	int ret;
 
 	sprintf(prio_str, INIT_STR
-		"+AES-128-CCM-8:+AES-256-CCM-8:+AEAD:" ALL_COMP ":"
+		"+AES-128-CCM-8:+AES-256-CCM-8:" ALL_COMP ":"
 		ALL_CERTTYPES ":%s:" ALL_MACS ":" ALL_KX ":%s",
 		protocol_all_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
@@ -635,8 +670,8 @@ test_code_t test_camellia_gcm(gnutls_session_t session)
 	int ret;
 
 	sprintf(prio_str,
-		INIT_STR "+CAMELLIA-128-GCM:+AEAD:" ALL_COMP ":" ALL_CERTTYPES
-		":%s:" ALL_KX ":%s", protocol_str, rest);
+		INIT_STR "+CAMELLIA-128-GCM:" ALL_COMP ":" ALL_CERTTYPES
+		":%s:" ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
 
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
@@ -768,6 +803,20 @@ test_code_t test_arcfour(gnutls_session_t session)
 
 	sprintf(prio_str,
 		INIT_STR "+ARCFOUR-128:" ALL_COMP ":" ALL_CERTTYPES ":%s:"
+		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
+	_gnutls_priority_set_direct(session, prio_str);
+	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
+
+	ret = do_handshake(session);
+	return ret;
+}
+
+test_code_t test_chacha20(gnutls_session_t session)
+{
+	int ret;
+
+	sprintf(prio_str,
+		INIT_STR "+CHACHA20-POLY1305:" ALL_COMP ":" ALL_CERTTYPES ":%s:"
 		ALL_MACS ":" ALL_KX ":%s", protocol_str, rest);
 	_gnutls_priority_set_direct(session, prio_str);
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, xcred);
@@ -1305,12 +1354,12 @@ test_code_t test_chain_order(gnutls_session_t session)
 		return ret;
 
 	if (gnutls_certificate_type_get(session) != GNUTLS_CRT_X509)
-		return TEST_IGNORE;
+		return TEST_IGNORE2;
 
 	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
 	if (cert_list_size == 0) {
 		ext_text = "No certificates found!";
-		return TEST_IGNORE;
+		return TEST_IGNORE2;
 	}
 
 	if (cert_list_size == 1)

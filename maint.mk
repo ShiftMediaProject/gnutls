@@ -437,17 +437,26 @@ sc_require_config_h:
 	halt='the above files do not include <config.h>'		\
 	  $(_sc_search_regexp)
 
+# Print each file name for which the first #include does not match
+# $(config_h_header).  Like grep -m 1, this only looks at the first match.
+perl_config_h_first_ =							\
+  -e 'BEGIN {$$ret = 0}'						\
+  -e 'if (/^\# *include\b/) {'						\
+  -e '  if (not m{^\# *include $(config_h_header)}) {'			\
+  -e '    print "$$ARGV\n";'						\
+  -e '    $$ret = 1;'							\
+  -e '  }'								\
+  -e '  \# Move on to next file after first include'			\
+  -e '  close ARGV;'							\
+  -e '}'								\
+  -e 'END {exit $$ret}'
+
 # You must include <config.h> before including any other header file.
 # This can possibly be via a package-specific header, if given by cfg.mk.
 sc_require_config_h_first:
 	@if $(VC_LIST_EXCEPT) | grep '\.c$$' > /dev/null; then		\
-	  fail=0;							\
-	  for i in $$($(VC_LIST_EXCEPT) | grep '\.c$$'); do		\
-	    grep '^# *include\>' $$i | $(SED) 1q			\
-		| grep -E '^# *include $(config_h_header)' > /dev/null	\
-	      || { echo $$i; fail=1; };					\
-	  done;								\
-	  test $$fail = 1 &&						\
+	  files=$$($(VC_LIST_EXCEPT) | grep '\.c$$') &&			\
+	  perl -n $(perl_config_h_first_) $$files ||			\
 	    { echo '$(ME): the above files include some other header'	\
 		'before <config.h>' 1>&2; exit 1; } || :;		\
 	else :;								\
@@ -708,15 +717,6 @@ sc_changelog:
 	  $(_sc_search_regexp)
 
 # Ensure that each .c file containing a "main" function also
-# calls set_program_name.
-sc_program_name:
-	@require='set_program_name *\(.*\);'				\
-	in_vc_files='\.c$$'						\
-	containing='\<main *('						\
-	halt='the above files do not call set_program_name'		\
-	  $(_sc_search_regexp)
-
-# Ensure that each .c file containing a "main" function also
 # calls bindtextdomain.
 sc_bindtextdomain:
 	@require='bindtextdomain *\('					\
@@ -953,8 +953,13 @@ perl_filename_lineno_text_ =						\
     -e '    print "$$ARGV:$$n:$$v\n";'					\
     -e '  }'
 
+prohibit_doubled_words_ = \
+    the then in an on if is it but for or at and do to
+# expand the regex before running the check to avoid using expensive captures
+prohibit_doubled_word_expanded_ = \
+    $(join $(prohibit_doubled_words_),$(addprefix \s+,$(prohibit_doubled_words_)))
 prohibit_doubled_word_RE_ ?= \
-  /\b(then?|[iao]n|i[fst]|but|f?or|at|and|[dt]o)\s+\1\b/gims
+    /\b(?:$(subst $(_sp),|,$(prohibit_doubled_word_expanded_)))\b/gims
 prohibit_doubled_word_ =						\
     -e 'while ($(prohibit_doubled_word_RE_))'				\
     $(perl_filename_lineno_text_)
@@ -1123,6 +1128,21 @@ fix_po_file_diag = \
 'you have changed the set of files with translatable diagnostics;\n\
 apply the above patch\n'
 
+# Generate a list of files in which to search for translatable strings.
+perl_translatable_files_list_ =						\
+  -e 'foreach $$file (@ARGV) {'						\
+  -e '	\# Consider only file extensions with one or two letters'	\
+  -e '	$$file =~ /\...?$$/ or next;'					\
+  -e '	\# Ignore m4 and mk files'					\
+  -e '	$$file =~ /\.m[4k]$$/ and next;'				\
+  -e '	\# Ignore a .c or .h file with a corresponding .l or .y file'	\
+  -e '	$$file =~ /(.+)\.[ch]$$/ && (-e "$${1}.l" || -e "$${1}.y")'	\
+  -e '	  and next;'							\
+  -e '	\# Skip unreadable files'					\
+  -e '	-r $$file or next;'						\
+  -e '	print "$$file ";'						\
+  -e '}'
+
 # Verify that all source files using _() (more specifically, files that
 # match $(_gl_translatable_string_re)) are listed in po/POTFILES.in.
 po_file ?= $(srcdir)/po/POTFILES.in
@@ -1132,21 +1152,8 @@ sc_po_check:
 	@if test -f $(po_file); then					\
 	  grep -E -v '^(#|$$)' $(po_file)				\
 	    | grep -v '^src/false\.c$$' | sort > $@-1;			\
-	  files=;							\
-	  for file in $$($(VC_LIST_EXCEPT)) $(generated_files); do	\
-	    test -r $$file || continue;					\
-	    case $$file in						\
-	      *.m4|*.mk) continue ;;					\
-	      *.?|*.??) ;;						\
-	      *) continue;;						\
-	    esac;							\
-	    case $$file in						\
-	    *.[ch])							\
-	      base=`expr " $$file" : ' \(.*\)\..'`;			\
-	      { test -f $$base.l || test -f $$base.y; } && continue;;	\
-	    esac;							\
-	    files="$$files $$file";					\
-	  done;								\
+	  files=$$(perl $(perl_translatable_files_list_)		\
+	    $$($(VC_LIST_EXCEPT)) $(generated_files));			\
 	  grep -E -l '$(_gl_translatable_string_re)' $$files		\
 	    | $(SED) 's|^$(_dot_escaped_srcdir)/||' | sort -u > $@-2;	\
 	  diff -u -L $(po_file) -L $(po_file) $@-1 $@-2			\

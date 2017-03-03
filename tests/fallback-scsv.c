@@ -272,7 +272,7 @@ static void server(int fd, const char *prio, unsigned expect_fail)
 		do {
 			ret =
 			    gnutls_record_send(session, buffer,
-					       sizeof(buffer));
+						sizeof(buffer));
 		} while (ret == GNUTLS_E_AGAIN
 			 || ret == GNUTLS_E_INTERRUPTED);
 
@@ -324,14 +324,7 @@ static void start(const char *server_prio, const char *cli_prio, unsigned expect
 		close(fd[1]);
 		server(fd[0], server_prio, expect_fail);
 		waitpid(child, &status, 0);
-		if (WEXITSTATUS(status) != 0 ||
-		    (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)) {
-			if (WIFSIGNALED(status))
-				fail("Child died with sigsegv\n");
-			else
-				fail("Child died with status %d\n",
-				     WEXITSTATUS(status));
-		}
+		check_wait_status(status);
 	} else {
 		close(fd[0]);
 		client(fd[1], cli_prio, expect_fail);

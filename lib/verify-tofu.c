@@ -20,17 +20,17 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 #include <libtasn1.h>
-#include <gnutls_global.h>
-#include <gnutls_num.h>		/* MAX */
-#include <gnutls_sig.h>
-#include <gnutls_str.h>
-#include <gnutls_datum.h>
+#include <global.h>
+#include <num.h>		/* MAX */
+#include <tls-sig.h>
+#include "str.h"
+#include <datum.h>
 #include "x509_int.h"
+#include <nettle/base64.h>
 #include <common.h>
-#include <base64.h>
 #include <gnutls/abstract.h>
 #include <system.h>
 #include <locks.h>
@@ -211,7 +211,7 @@ static int parse_commitment_line(char *line,
 	/* hash and hex encode */
 	ret =
 	    _gnutls_hash_fast((gnutls_digest_algorithm_t)hash_algo->id, 
-	    			skey->data, skey->size, phash);
+				skey->data, skey->size, phash);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
@@ -369,15 +369,16 @@ static int verify_pubkey(const char *file,
 static int raw_pubkey_to_base64(const gnutls_datum_t * raw,
 				gnutls_datum_t * b64)
 {
-	int ret;
-	char *out;
+	size_t size;
 
-	ret = base64_encode_alloc((void *) raw->data, raw->size, &out);
-	if (ret == 0 || out == NULL)
+	size = BASE64_ENCODE_RAW_LENGTH(raw->size);
+
+	b64->data = gnutls_malloc(size);
+	if (b64->data == NULL)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
-	b64->data = (void *) out;
-	b64->size = ret;
+	base64_encode_raw(b64->data, raw->size, raw->data);
+	b64->size = size;
 
 	return 0;
 }
@@ -541,6 +542,13 @@ int store_commitment(const char *db_name, const char *host,
  * The @store variable if non-null specifies a custom backend for
  * the storage of entries. If it is NULL then the
  * default file backend will be used.
+ *
+ * Unless an alternative @tdb is provided, the storage format is a textual format
+ * consisting of a line for each host with fields separated by '|'. The contents of
+ * the fields are a format-identifier which is set to 'g0', the hostname that the
+ * rest of the data applies to, the numeric port or host name, the expiration
+ * time in seconds since the epoch (0 for no expiration), and a base64
+ * encoding of the raw (DER) public key information (SPKI) of the peer.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -727,8 +735,8 @@ int gnutls_tdb_init(gnutls_tdb_t * tdb)
  * trust storage structure. The function is of the following form.
  *
  * int gnutls_tdb_store_func(const char* db_name, const char* host,
- *                       const char* service, time_t expiration,
- *                       const gnutls_datum_t* pubkey);
+ *		       const char* service, time_t expiration,
+ *		       const gnutls_datum_t* pubkey);
  *
  * The @db_name should be used to pass any private data to this function.
  *
@@ -748,8 +756,8 @@ void gnutls_tdb_set_store_func(gnutls_tdb_t tdb,
  * trust storage structure. The function is of the following form.
  *
  * int gnutls_tdb_store_commitment_func(const char* db_name, const char* host,
- *                       const char* service, time_t expiration,
- *                       gnutls_digest_algorithm_t, const gnutls_datum_t* hash);
+ *		       const char* service, time_t expiration,
+ *		       gnutls_digest_algorithm_t, const gnutls_datum_t* hash);
  *
  * The @db_name should be used to pass any private data to this function.
  *
@@ -770,7 +778,7 @@ void gnutls_tdb_set_store_commitment_func(gnutls_tdb_t tdb,
  * trust storage structure. The function is of the following form.
  *
  * int gnutls_tdb_verify_func(const char* db_name, const char* host,
- *                      const char* service, const gnutls_datum_t* pubkey);
+ *		      const char* service, const gnutls_datum_t* pubkey);
  *
  * The verify function should return zero on a match, %GNUTLS_E_CERTIFICATE_KEY_MISMATCH
  * if there is a mismatch and any other negative error code otherwise.

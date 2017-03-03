@@ -21,9 +21,9 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_auth.h"
-#include "gnutls_errors.h"
-#include "gnutls_num.h"
+#include "auth.h"
+#include "errors.h"
+#include "num.h"
 #include <ext/srtp.h>
 
 static int _gnutls_srtp_recv_params(gnutls_session_t session,
@@ -39,7 +39,7 @@ static int _gnutls_srtp_pack(extension_priv_data_t _priv,
 static void _gnutls_srtp_deinit_data(extension_priv_data_t priv);
 
 
-extension_entry_st ext_mod_srtp = {
+const extension_entry_st ext_mod_srtp = {
 	.name = "SRTP",
 	.type = GNUTLS_EXTENSION_SRTP,
 	.parse_type = GNUTLS_EXT_APPLICATION,

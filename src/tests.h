@@ -19,7 +19,7 @@
  */
 
 typedef enum {
-	TEST_SUCCEED, TEST_FAILED, TEST_UNSURE, TEST_IGNORE
+	TEST_SUCCEED, TEST_FAILED, TEST_UNSURE, TEST_IGNORE/*keep socket*/, TEST_IGNORE2/*destroy socket*/
 } test_code_t;
 
 test_code_t test_chain_order(gnutls_session_t session);
@@ -39,6 +39,7 @@ test_code_t test_md5(gnutls_session_t state);
 test_code_t test_sha(gnutls_session_t state);
 test_code_t test_3des(gnutls_session_t state);
 test_code_t test_arcfour(gnutls_session_t state);
+test_code_t test_chacha20(gnutls_session_t state);
 test_code_t test_tls1(gnutls_session_t state);
 test_code_t test_tls1_nossl3(gnutls_session_t session);
 test_code_t test_safe_renegotiation(gnutls_session_t state);
@@ -69,7 +70,10 @@ test_code_t test_zlib(gnutls_session_t session);
 int _test_srp_username_callback(gnutls_session_t session,
 				char **username, char **password);
 
-test_code_t test_ecdhe_curve(gnutls_session_t session);
+test_code_t test_ecdhe_x25519(gnutls_session_t session);
+test_code_t test_ecdhe_secp521r1(gnutls_session_t session);
+test_code_t test_ecdhe_secp384r1(gnutls_session_t session);
+test_code_t test_ecdhe_secp256r1(gnutls_session_t session);
 test_code_t test_ecdhe(gnutls_session_t session);
 test_code_t test_aes_gcm(gnutls_session_t session);
 test_code_t test_aes_ccm(gnutls_session_t session);

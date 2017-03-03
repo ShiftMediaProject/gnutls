@@ -22,10 +22,10 @@
 #ifndef EXT_SERVER_NAME_H
 #define EXT_SERVER_NAME_H
 
-#include <gnutls_extensions.h>
+#include <extensions.h>
 
 typedef struct {
-	uint8_t name[MAX_SERVER_NAME_SIZE];
+	uint8_t name[MAX_SERVER_NAME_SIZE+1];
 	unsigned name_length;
 	gnutls_server_name_type_t type;
 } server_name_st;
@@ -38,6 +38,6 @@ typedef struct {
 	unsigned server_names_size;
 } server_name_ext_st;
 
-extern extension_entry_st ext_mod_server_name;
+extern const extension_entry_st ext_mod_server_name;
 
 #endif

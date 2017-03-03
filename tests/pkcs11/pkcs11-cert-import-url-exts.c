@@ -105,6 +105,11 @@ void doit(void)
 		exit(1);
 	}
 
+	ret = gnutls_x509_crt_equals(crt, ocrt);
+	if (ret != 0) {
+	    fail("exported certificates are equal!\n");
+	}
+
 	ret = gnutls_x509_crt_get_ca_status(ocrt, NULL);
 	if (ret < 0) {
 		fail("%d: %s\n", ret, gnutls_strerror(ret));

@@ -19,7 +19,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 AM_LIBTOOLFLAGS=--tag=CC
-AM_CFLAGS = $(WERROR_CFLAGS) $(WSTACK_CFLAGS) $(WARN_CFLAGS) $(NETTLE_CFLAGS)
+
+include $(top_srcdir)/lib/common.mk
+
 AM_CPPFLAGS = -I$(srcdir)/../../../gl		\
 	-I$(builddir)/../../../gl		\
 	-I$(srcdir)/../../includes	\
@@ -48,7 +50,7 @@ include files.mk
 
 if ASM_X86_64
 AM_CFLAGS += -DASM_X86_64 -DASM_X86
-libx86_la_SOURCES += aes-gcm-x86-pclmul.c
+libx86_la_SOURCES += aes-gcm-x86-pclmul.c aes-gcm-x86-pclmul-avx.c
 
 if WINDOWS
 libx86_la_SOURCES += $(X86_64_FILES_COFF)

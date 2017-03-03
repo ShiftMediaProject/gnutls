@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2011-2012 Free Software Foundation, Inc.
- * Copyright (C) 2015 Red Hat, Inc.
+ * Copyright (C) 2011-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -21,14 +21,14 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include "errors.h"
 #include <libtasn1.h>
-#include <gnutls_global.h>
-#include <gnutls_num.h>		/* MAX */
-#include <gnutls_sig.h>
-#include <gnutls_str.h>
-#include <gnutls_datum.h>
+#include <global.h>
+#include <num.h>		/* MAX */
+#include <tls-sig.h>
+#include <str.h>
+#include <datum.h>
 #include <hash-pjw-bare.h>
 #include "x509_int.h"
 #include <common.h>
@@ -225,7 +225,7 @@ add_new_ca_to_rdn_seq(gnutls_x509_trust_list_t list,
 
 #ifdef ENABLE_PKCS11
 /* Keeps the provided certificate in a structure that will be
- * deallocated on deinit. This is to handle get_issuer() with 
+ * deallocated on deinit. This is to handle get_issuer() with
  * pkcs11 trust modules when the GNUTLS_TL_GET_COPY flag isn't
  * given. It is not thread safe. */
 static int
@@ -254,7 +254,7 @@ trust_list_add_compat(gnutls_x509_trust_list_t list,
  * @list: The list
  * @clist: A list of CAs
  * @clist_size: The length of the CA list
- * @flags: should be 0 or an or'ed sequence of %GNUTLS_TL options.
+ * @flags: flags from %gnutls_trust_list_flags_t
  *
  * This function will add the given certificate authorities
  * to the trusted list. The list of CAs must not be deinitialized
@@ -289,7 +289,7 @@ gnutls_x509_trust_list_add_cas(gnutls_x509_trust_list_t list,
 		if (flags & GNUTLS_TL_NO_DUPLICATES || flags & GNUTLS_TL_NO_DUPLICATE_KEY) {
 			for (j=0;j<list->node[hash].trusted_ca_size;j++) {
 				if (flags & GNUTLS_TL_NO_DUPLICATES)
-					ret = _gnutls_check_if_same_cert(list->node[hash].trusted_cas[j], clist[i]);
+					ret = gnutls_x509_crt_equals(list->node[hash].trusted_cas[j], clist[i]);
 				else
 					ret = _gnutls_check_if_same_key(list->node[hash].trusted_cas[j], clist[i], 1);
 				if (ret != 0) {
@@ -346,7 +346,7 @@ gnutls_x509_trust_list_add_cas(gnutls_x509_trust_list_t list,
 
 static int
 advance_iter(gnutls_x509_trust_list_t list,
-             gnutls_x509_trust_list_iter_t iter)
+	     gnutls_x509_trust_list_iter_t iter)
 {
 	int ret;
 
@@ -408,8 +408,8 @@ advance_iter(gnutls_x509_trust_list_t list,
  **/
 int
 gnutls_x509_trust_list_iter_get_ca(gnutls_x509_trust_list_t list,
-                                   gnutls_x509_trust_list_iter_t *iter,
-                                   gnutls_x509_crt_t *crt)
+				   gnutls_x509_trust_list_iter_t *iter,
+				   gnutls_x509_crt_t *crt)
 {
 	int ret;
 
@@ -560,10 +560,10 @@ int ret;
 int
 gnutls_x509_trust_list_remove_cas(gnutls_x509_trust_list_t list,
 				  const gnutls_x509_crt_t * clist,
-				  int clist_size)
+				  unsigned clist_size)
 {
-	int i, r = 0;
-	unsigned j;
+	int r = 0;
+	unsigned j, i;
 	uint32_t hash;
 
 	for (i = 0; i < clist_size; i++) {
@@ -573,7 +573,7 @@ gnutls_x509_trust_list_remove_cas(gnutls_x509_trust_list_t list,
 		hash %= list->size;
 
 		for (j = 0; j < list->node[hash].trusted_ca_size; j++) {
-			if (_gnutls_check_if_same_cert
+			if (gnutls_x509_crt_equals
 			    (clist[i],
 			     list->node[hash].trusted_cas[j]) != 0) {
 
@@ -592,7 +592,7 @@ gnutls_x509_trust_list_remove_cas(gnutls_x509_trust_list_t list,
 		}
 
 		/* Add the CA (or plain) certificate to the black list as well.
-		 * This will prevent a subordinate CA from being valid, and 
+		 * This will prevent a subordinate CA from being valid, and
 		 * ensure that a server certificate will also get rejected.
 		 */
 		list->blacklisted =
@@ -680,7 +680,7 @@ gnutls_x509_trust_list_add_named_crt(gnutls_x509_trust_list_t list,
  * @list: The list
  * @crl_list: A list of CRLs
  * @crl_size: The length of the CRL list
- * @flags: if GNUTLS_TL_VERIFY_CRL is given the CRLs will be verified before being added.
+ * @flags: flags from %gnutls_trust_list_flags_t
  * @verification_flags: gnutls_certificate_verify_flags if flags specifies GNUTLS_TL_VERIFY_CRL
  *
  * This function will add the given certificate revocation lists
@@ -693,6 +693,8 @@ gnutls_x509_trust_list_add_named_crt(gnutls_x509_trust_list_t list,
  * and not added to the list (that assumes that gnutls_x509_trust_list_deinit()
  * will be called with all=1).
  *
+ * If GNUTLS_TL_VERIFY_CRL is given the CRLs will be verified before being added.
+ *
  * Returns: The number of added elements is returned.
  *
  * Since: 3.0
@@ -700,11 +702,11 @@ gnutls_x509_trust_list_add_named_crt(gnutls_x509_trust_list_t list,
 int
 gnutls_x509_trust_list_add_crls(gnutls_x509_trust_list_t list,
 				const gnutls_x509_crl_t * crl_list,
-				int crl_size, unsigned int flags,
+				unsigned crl_size, unsigned int flags,
 				unsigned int verification_flags)
 {
-	int ret, i, j = 0;
-	unsigned x;
+	int ret;
+	unsigned x, i, j = 0;
 	unsigned int vret = 0;
 	uint32_t hash;
 
@@ -745,9 +747,9 @@ gnutls_x509_trust_list_add_crls(gnutls_x509_trust_list_t list,
 					if (gnutls_x509_crl_get_this_update(crl_list[i]) >=
 					    gnutls_x509_crl_get_this_update(list->node[hash].crls[x])) {
 
-					    	gnutls_x509_crl_deinit(list->node[hash].crls[x]);
-					    	list->node[hash].crls[x] = crl_list[i];
-					    	goto next;
+						gnutls_x509_crl_deinit(list->node[hash].crls[x]);
+						list->node[hash].crls[x] = crl_list[i];
+						goto next;
 					} else {
 						/* The new is older, discard it */
 						gnutls_x509_crl_deinit(crl_list[i]);
@@ -820,7 +822,7 @@ static int shorten_clist(gnutls_x509_trust_list_t list,
 		hash %= list->size;
 
 		for (j = 0; j < list->node[hash].trusted_ca_size; j++) {
-			if (_gnutls_check_if_same_cert
+			if (gnutls_x509_crt_equals
 			    (certificate_list[i],
 			     list->node[hash].trusted_cas[j]) != 0) {
 				/* cut the list at the point of first the trusted certificate */
@@ -929,13 +931,15 @@ int trust_list_get_issuer_by_dn(gnutls_x509_trust_list_t list,
  * @list: The list
  * @cert: is the certificate to find issuer for
  * @issuer: Will hold the issuer if any. Should be treated as constant.
- * @flags: Use zero or %GNUTLS_TL_GET_COPY
+ * @flags: flags from %gnutls_trust_list_flags_t (%GNUTLS_TL_GET_COPY is applicable)
  *
  * This function will find the issuer of the given certificate.
  * If the flag %GNUTLS_TL_GET_COPY is specified a copy of the issuer
  * will be returned which must be freed using gnutls_x509_crt_deinit().
+ * In that case the provided @issuer must not be initialized.
+ *
  * Note that the flag %GNUTLS_TL_GET_COPY is required for this function
- * to work with PKCS #11 trust lists in a thread-safe way.
+ * to work with PKCS#11 trust lists in a thread-safe way.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -1130,7 +1134,7 @@ unsigned i, j;
 
 	for (i=0;i<cert_list_size;i++) {
 		for (j=0;j<blacklist_size;j++) {
-			if (_gnutls_check_if_same_cert(cert_list[i], blacklist[j]) != 0) {
+			if (gnutls_x509_crt_equals(cert_list[i], blacklist[j]) != 0) {
 				return 1;
 			}
 		}
@@ -1182,24 +1186,27 @@ gnutls_x509_trust_list_verify_crt(gnutls_x509_trust_list_t list,
  * @voutput: will hold the certificate verification output.
  * @func: If non-null will be called on each chain element verification with the output.
  *
- * This function will attempt to verify the given certificate and return
+ * This function will attempt to verify the given certificate chain and return
  * its status. The @voutput parameter will hold an OR'ed sequence of
- * %gnutls_certificate_status_t flags. When a chain of @cert_list_size with 
- * more than one certificates is provided, the verification status will apply
- * to the first certificate in the chain that failed verification. The
- * verification process starts from the end of the chain (from CA to end
- * certificate).
+ * %gnutls_certificate_status_t flags.
+ *
+ * When a certificate chain of @cert_list_size with more than one certificates is
+ * provided, the verification status will apply to the first certificate in the chain
+ * that failed verification. The verification process starts from the end of the chain
+ * (from CA to end certificate). The first certificate in the chain must be the end-certificate
+ * while the rest of the members may be sorted or not.
  *
  * Additionally a certificate verification profile can be specified
  * from the ones in %gnutls_certificate_verification_profiles_t by
  * ORing the result of GNUTLS_PROFILE_TO_VFLAGS() to the verification
  * flags.
  *
- * The acceptable @data types are %GNUTLS_DT_DNS_HOSTNAME and %GNUTLS_DT_KEY_PURPOSE_OID.
+ * Additional verification parameters are possible via the @data types; the
+ * acceptable types are %GNUTLS_DT_DNS_HOSTNAME and %GNUTLS_DT_KEY_PURPOSE_OID.
  * The former accepts as data a null-terminated hostname, and the latter a null-terminated
  * object identifier (e.g., %GNUTLS_KP_TLS_WWW_SERVER).
  * If a DNS hostname is provided then this function will compare
- * the hostname in the certificate against the given. If names do not match the 
+ * the hostname in the end certificate against the given. If names do not match the
  * %GNUTLS_CERT_UNEXPECTED_OWNER status flag will be set. In addition it
  * will consider certificates provided with gnutls_x509_trust_list_add_named_crt().
  *
@@ -1453,7 +1460,7 @@ gnutls_x509_trust_list_verify_named_crt(gnutls_x509_trust_list_t list,
 	*voutput = GNUTLS_CERT_INVALID | GNUTLS_CERT_SIGNER_NOT_FOUND;
 
 	for (i = 0; i < list->node[hash].named_cert_size; i++) {
-		if (_gnutls_check_if_same_cert(cert, list->node[hash].named_certs[i].cert) != 0) {	/* check if name matches */
+		if (gnutls_x509_crt_equals(cert, list->node[hash].named_certs[i].cert) != 0) {	/* check if name matches */
 			if (list->node[hash].named_certs[i].name_size ==
 			    name_size
 			    && memcmp(list->node[hash].named_certs[i].name,
@@ -1497,7 +1504,7 @@ _gnutls_trustlist_inlist(gnutls_x509_trust_list_t list,
 
 	for (i = 0; i < list->node[hash].trusted_ca_size; i++) {
 		ret =
-		    _gnutls_check_if_same_cert(cert,
+		    gnutls_x509_crt_equals(cert,
 					       list->node[hash].
 					       trusted_cas[i]);
 		if (ret != 0)

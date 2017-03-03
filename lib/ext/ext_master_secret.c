@@ -24,9 +24,9 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
-#include "gnutls_num.h"
-#include <gnutls_extensions.h>
+#include "errors.h"
+#include "num.h"
+#include <extensions.h>
 #include <ext/ext_master_secret.h>
 
 static int _gnutls_ext_master_secret_recv_params(gnutls_session_t session,
@@ -35,8 +35,8 @@ static int _gnutls_ext_master_secret_recv_params(gnutls_session_t session,
 static int _gnutls_ext_master_secret_send_params(gnutls_session_t session,
 					  gnutls_buffer_st * extdata);
 
-extension_entry_st ext_mod_ext_master_secret = {
-	.name = "EXT MASTER SECRET",
+const extension_entry_st ext_mod_ext_master_secret = {
+	.name = "Extended Master Secret",
 	.type = GNUTLS_EXTENSION_EXT_MASTER_SECRET,
 	.parse_type = GNUTLS_EXT_MANDATORY,
 
@@ -46,6 +46,16 @@ extension_entry_st ext_mod_ext_master_secret = {
 	.unpack_func = NULL,
 	.deinit_func = NULL
 };
+
+#ifdef ENABLE_SSL3
+static inline unsigned have_only_ssl3_enabled(gnutls_session_t session)
+{
+	if (session->internals.priorities.protocol.algorithms == 1 &&
+	    session->internals.priorities.protocol.priority[0] == GNUTLS_SSL3)
+	    return 1;
+	return 0;
+}
+#endif
 
 /* 
  * In case of a server: if an EXT_MASTER_SECRET extension type is received then it
@@ -58,7 +68,7 @@ _gnutls_ext_master_secret_recv_params(gnutls_session_t session,
 {
 	ssize_t data_size = _data_size;
 
-	if (session->internals.try_ext_master_secret == 0 ||
+	if ((session->internals.flags & GNUTLS_NO_EXTENSIONS) ||
 	    session->internals.priorities.no_ext_master_secret != 0) {
 		return 0;
 	}
@@ -67,6 +77,7 @@ _gnutls_ext_master_secret_recv_params(gnutls_session_t session,
 		return gnutls_assert_val(GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER);
 	}
 
+#ifdef ENABLE_SSL3
 	if (session->security_parameters.entity == GNUTLS_CLIENT) {
 		const version_entry_st *ver = get_version(session);
 
@@ -75,9 +86,10 @@ _gnutls_ext_master_secret_recv_params(gnutls_session_t session,
 
 		if (ver->id != GNUTLS_SSL3)
 			session->security_parameters.ext_master_secret = 1;
-	} else {
+	/* do not enable ext master secret if SSL 3.0 is the only protocol supported by server */
+	} else if (!have_only_ssl3_enabled(session))
+#endif
 		session->security_parameters.ext_master_secret = 1;
-	}
 
 	return 0;
 }
@@ -88,15 +100,16 @@ static int
 _gnutls_ext_master_secret_send_params(gnutls_session_t session,
 			       gnutls_buffer_st * extdata)
 {
-	if (session->internals.try_ext_master_secret == 0 ||
+	if ((session->internals.flags & GNUTLS_NO_EXTENSIONS) ||
 	    session->internals.priorities.no_ext_master_secret != 0) {
+	    session->security_parameters.ext_master_secret = 0;
 	    return 0;
 	}
 
 	/* this function sends the client extension data */
+#ifdef ENABLE_SSL3
 	if (session->security_parameters.entity == GNUTLS_CLIENT) {
-		if (session->internals.priorities.protocol.algorithms == 1 &&
-		    session->internals.priorities.protocol.priority[0] == GNUTLS_SSL3)
+		if (have_only_ssl3_enabled(session))
 		    return 0; /* this extension isn't available for SSL 3.0 */
 
 		return GNUTLS_E_INT_RET_0;
@@ -109,7 +122,14 @@ _gnutls_ext_master_secret_send_params(gnutls_session_t session,
 			return GNUTLS_E_INT_RET_0;
 	}
 
+
 	return 0;
+#else
+	if (session->security_parameters.entity == GNUTLS_CLIENT ||
+	    session->security_parameters.ext_master_secret != 0) 
+		return GNUTLS_E_INT_RET_0;
+	return 0;
+#endif
 }
 
 /**

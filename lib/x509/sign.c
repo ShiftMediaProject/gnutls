@@ -24,15 +24,15 @@
  * included here
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <libtasn1.h>
-#include <gnutls_global.h>
-#include <gnutls_num.h>		/* MAX */
-#include <gnutls_sig.h>
-#include <gnutls_str.h>
-#include <gnutls_datum.h>
+#include <global.h>
+#include <num.h>		/* MAX */
+#include <tls-sig.h>
+#include <str.h>
+#include <datum.h>
 #include <x509_int.h>
 #include <common.h>
 #include <gnutls/abstract.h>
@@ -45,35 +45,7 @@ int
 _gnutls_x509_get_tbs(ASN1_TYPE cert, const char *tbs_name,
 		     gnutls_datum_t * tbs)
 {
-	int result;
-	uint8_t *buf;
-	int buf_size;
-
-	buf_size = 0;
-	result = asn1_der_coding(cert, tbs_name, NULL, &buf_size, NULL);
-	if (result != ASN1_MEM_ERROR) {
-		gnutls_assert();
-		return _gnutls_asn2err(result);
-	}
-
-	buf = gnutls_malloc(buf_size);
-	if (buf == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_MEMORY_ERROR;
-	}
-
-	result = asn1_der_coding(cert, tbs_name, buf, &buf_size, NULL);
-
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		gnutls_free(buf);
-		return _gnutls_asn2err(result);
-	}
-
-	tbs->data = buf;
-	tbs->size = buf_size;
-
-	return 0;
+	return _gnutls_x509_der_encode(cert, tbs_name, tbs, 0);
 }
 
 /*-

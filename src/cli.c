@@ -41,6 +41,11 @@
 #include <netdb.h>
 #include <ctype.h>
 
+/* Get TCP_FASTOPEN */
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+
 #include <gnutls/gnutls.h>
 #include <gnutls/abstract.h>
 #include <gnutls/dtls.h>
@@ -48,6 +53,7 @@
 #include <gnutls/openpgp.h>
 #include <gnutls/pkcs11.h>
 #include <gnutls/crypto.h>
+#include <gnutls/socket.h>
 
 /* Gnulib portability files. */
 #include <read-file.h>
@@ -73,11 +79,12 @@
 /* global stuff here */
 int resume, starttls, insecure, ranges, rehandshake, udp, mtu,
     inline_commands;
-const char *hostname = NULL;
-const char *service = NULL;
+char *hostname = NULL;
+char service[32]="";
 int record_max_size;
 int fingerprint;
 int crlf;
+int fastopen;
 unsigned int verbose = 0;
 int print_cert;
 
@@ -114,7 +121,6 @@ static gnutls_certificate_credentials_t xcred;
 /* prototypes */
 
 static void check_rehandshake(socket_st * socket, int ret);
-static int do_handshake(socket_st * socket);
 static void init_global_tls_stuff(void);
 static int cert_verify_ocsp(gnutls_session_t session);
 
@@ -422,9 +428,7 @@ static int cert_verify_callback(gnutls_session_t session)
 	unsigned int status = 0;
 	int ssh = ENABLED_OPT(TOFU);
 	int strictssh = ENABLED_OPT(STRICT_TOFU);
-#ifdef HAVE_DANE
 	int dane = ENABLED_OPT(DANE);
-#endif
 	int ca_verify = ENABLED_OPT(CA_VERIFICATION);
 	const char *txt_service;
 
@@ -463,8 +467,8 @@ static int cert_verify_callback(gnutls_session_t session)
 		}
 	}
 
-#ifdef HAVE_DANE
 	if (dane) {		/* try DANE auth */
+#ifdef HAVE_DANE
 		int port;
 		unsigned vflags = 0;
 		unsigned int sflags =
@@ -502,9 +506,12 @@ static int cert_verify_callback(gnutls_session_t session)
 			if (status != 0 && !insecure && !ssh)
 				return -1;
 		}
-
-	}
+#else
+		fprintf(stderr, "*** DANE error: GnuTLS is not compiled with DANE support.\n");
+		if (!insecure && !ssh)
+			return -1;
 #endif
+	}
 
 	if (ssh) {		/* try ssh auth */
 		unsigned int list_size;
@@ -652,7 +659,7 @@ cert_callback(gnutls_session_t session,
 
 /* initializes a gnutls_session_t with some defaults.
  */
-static gnutls_session_t init_tls_session(const char *host)
+gnutls_session_t init_tls_session(const char *host)
 {
 	const char *err;
 	int ret;
@@ -666,14 +673,23 @@ static gnutls_session_t init_tls_session(const char *host)
 	} else
 		gnutls_init(&session, init_flags);
 
-	if ((ret =
-	     gnutls_priority_set_direct(session, priorities, &err)) < 0) {
-		if (ret == GNUTLS_E_INVALID_REQUEST)
-			fprintf(stderr, "Syntax error at: %s\n", err);
-		else
-			fprintf(stderr, "Error in priorities: %s\n",
-				gnutls_strerror(ret));
-		exit(1);
+	if (priorities == NULL) {
+		ret = gnutls_set_default_priority(session);
+		if (ret < 0) {
+			fprintf(stderr, "Error in setting priorities: %s\n",
+					gnutls_strerror(ret));
+			exit(1);
+		}
+	} else {
+		ret = gnutls_priority_set_direct(session, priorities, &err);
+		if (ret < 0) {
+			if (ret == GNUTLS_E_INVALID_REQUEST)
+				fprintf(stderr, "Syntax error at: %s\n", err);
+			else
+				fprintf(stderr, "Error in priorities: %s\n",
+					gnutls_strerror(ret));
+			exit(1);
+		}
 	}
 
 	/* allow the use of private ciphersuites.
@@ -735,21 +751,21 @@ static gnutls_session_t init_tls_session(const char *host)
 					GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 
 #ifdef ENABLE_DTLS_SRTP
-        if (HAVE_OPT(SRTP_PROFILES)) {
-                ret =
-                    gnutls_srtp_set_profile_direct(session,
-                                                   OPT_ARG(SRTP_PROFILES),
-                                                   &err);
-                if (ret == GNUTLS_E_INVALID_REQUEST)
-                        fprintf(stderr, "Syntax error at: %s\n", err);
-                else if (ret != 0)
-                        fprintf(stderr, "Error in profiles: %s\n",
-                                gnutls_strerror(ret));
-                else fprintf(stderr,"DTLS profile set to %s\n",
-                             OPT_ARG(SRTP_PROFILES));
+	if (HAVE_OPT(SRTP_PROFILES)) {
+		ret =
+		    gnutls_srtp_set_profile_direct(session,
+						   OPT_ARG(SRTP_PROFILES),
+						   &err);
+		if (ret == GNUTLS_E_INVALID_REQUEST)
+			fprintf(stderr, "Syntax error at: %s\n", err);
+		else if (ret != 0)
+			fprintf(stderr, "Error in profiles: %s\n",
+				gnutls_strerror(ret));
+		else fprintf(stderr,"DTLS profile set to %s\n",
+			     OPT_ARG(SRTP_PROFILES));
 
-                if (ret != 0) exit(1);
-        }
+		if (ret != 0) exit(1);
+	}
 #endif
 
 
@@ -884,40 +900,38 @@ static int try_rehandshake(socket_st * hd)
 
 static int try_resume(socket_st * hd)
 {
-	int ret;
+	int ret, socket_flags = 0;
+	gnutls_datum_t rdata = {NULL, 0};
 
-	char *session_data;
-	size_t session_data_size = 0;
-
-	gnutls_session_get_data(hd->session, NULL, &session_data_size);
-	session_data = (char *) malloc(session_data_size);
-	if (session_data == NULL)
-		return GNUTLS_E_MEMORY_ERROR;
-
-	gnutls_session_get_data(hd->session, session_data,
-				&session_data_size);
+	if (gnutls_session_is_resumed(hd->session) == 0) {
+		/* not resumed - obtain the session data */
+		ret = gnutls_session_get_data2(hd->session, &rdata);
+		if (ret < 0) {
+			rdata.data = NULL;
+		}
+	} else {
+		/* resumed - try to reuse the previous session data */
+		rdata.data = hd->rdata.data;
+		rdata.size = hd->rdata.size;
+		hd->rdata.data = NULL;
+	}
 
 	printf("- Disconnecting\n");
-	socket_bye(hd);
+	socket_bye(hd, 1);
+
+	canonicalize_host(hostname, service, sizeof(service));
 
 	printf
 	    ("\n\n- Connecting again- trying to resume previous session\n");
-	socket_open(hd, hostname, service, udp, CONNECT_MSG);
-
 	if (HAVE_OPT(STARTTLS_PROTO))
-	        socket_starttls(hd, OPT_ARG(STARTTLS_PROTO));
+		socket_flags |= SOCKET_FLAG_STARTTLS;
+	else if (fastopen)
+		socket_flags |= SOCKET_FLAG_FASTOPEN;
 
-	hd->session = init_tls_session(hostname);
-	gnutls_session_set_data(hd->session, session_data,
-				session_data_size);
-	free(session_data);
+	if (udp)
+		socket_flags |= SOCKET_FLAG_UDP;
 
-	ret = do_handshake(hd);
-	if (ret < 0) {
-		fprintf(stderr, "*** Resume handshake has failed\n");
-		gnutls_perror(ret);
-		return ret;
-	}
+	socket_open(hd, hostname, service, OPT_ARG(STARTTLS_PROTO), socket_flags, CONNECT_MSG, &rdata);
 
 	printf("- Resume Handshake was completed\n");
 	if (gnutls_session_is_resumed(hd->session) != 0)
@@ -1177,6 +1191,7 @@ int main(int argc, char **argv)
 	char *keyboard_buffer_ptr;
 	inline_cmds_st inline_cmds;
 	unsigned last_op_is_write = 0;
+	int socket_flags = 0;
 #ifndef _WIN32
 	struct sigaction new_action;
 #endif
@@ -1200,33 +1215,31 @@ int main(int argc, char **argv)
 
 	init_global_tls_stuff();
 
-	socket_open(&hd, hostname, service, udp, CONNECT_MSG);
+	canonicalize_host(hostname, service, sizeof(service));
+
+	if (udp)
+		socket_flags |= SOCKET_FLAG_UDP;
+	if (fastopen)
+		socket_flags |= SOCKET_FLAG_FASTOPEN;
+	if (verbose)
+		socket_flags |= SOCKET_FLAG_VERBOSE;
+	if (starttls)
+		socket_flags |= SOCKET_FLAG_RAW;
+	else if (HAVE_OPT(STARTTLS_PROTO))
+		socket_flags |= SOCKET_FLAG_STARTTLS;
+
+	socket_open(&hd, hostname, service, OPT_ARG(STARTTLS_PROTO), socket_flags, CONNECT_MSG, NULL);
 	hd.verbose = verbose;
 
-	if (HAVE_OPT(STARTTLS_PROTO))
-	        socket_starttls(&hd, OPT_ARG(STARTTLS_PROTO));
-
-	hd.session = init_tls_session(hostname);
-	if (starttls)
-		goto after_handshake;
-
-	ret = do_handshake(&hd);
-
-	if (ret < 0) {
-		fprintf(stderr, "*** Handshake has failed\n");
-		gnutls_perror(ret);
-		gnutls_deinit(hd.session);
-		return 1;
-	} else
+	if (hd.secure) {
 		printf("- Handshake was completed\n");
 
-	if (resume != 0)
-		if (try_resume(&hd))
-			return 1;
+		if (resume != 0)
+			if (try_resume(&hd))
+				return 1;
 
-	print_other_info(hd.session);
-
-      after_handshake:
+		print_other_info(hd.session);
+	}
 
 	/* Warning!  Do not touch this text string, it is used by external
 	   programs to search for when gnutls-cli has reached this point. */
@@ -1404,9 +1417,9 @@ int main(int argc, char **argv)
 	}
 
 	if (user_term != 0)
-		socket_bye(&hd);
+		socket_bye(&hd, 1);
 	else
-		gnutls_deinit(hd.session);
+		socket_bye(&hd, 0);
 
 #ifdef ENABLE_SRP
 	if (srp_cred)
@@ -1471,7 +1484,7 @@ void print_priority_list(void)
 
 static void cmd_parser(int argc, char **argv)
 {
-	const char *rest = NULL;
+	char *rest = NULL;
 
 	int optct = optionProcess(&gnutls_cliOptions, argc, argv);
 	argc -= optct;
@@ -1556,12 +1569,12 @@ static void cmd_parser(int argc, char **argv)
 	mtu = OPT_VALUE_MTU;
 
 	if (HAVE_OPT(PORT)) {
-		service = OPT_ARG(PORT);
+		snprintf(service, sizeof(service), "%s", OPT_ARG(PORT));
 	} else {
 		if (HAVE_OPT(STARTTLS_PROTO))
-			service = starttls_proto_to_service(OPT_ARG(STARTTLS_PROTO));
+			snprintf(service, sizeof(service), "%s", starttls_proto_to_service(OPT_ARG(STARTTLS_PROTO)));
 		else
-			service = "443";
+			strcpy(service, "443");
 	}
 
 	record_max_size = OPT_VALUE_RECORDSIZE;
@@ -1611,6 +1624,14 @@ static void cmd_parser(int argc, char **argv)
 
 	crlf = HAVE_OPT(CRLF);
 
+#ifdef TCP_FASTOPEN
+	fastopen = HAVE_OPT(FASTOPEN);
+#else
+	if (HAVE_OPT(FASTOPEN)) {
+		fprintf(stderr, "Warning: TCP Fast Open not supported on this OS\n");
+	}
+#endif
+
 	if (rest != NULL)
 		hostname = rest;
 
@@ -1642,12 +1663,18 @@ static void check_rehandshake(socket_st * socket, int ret)
 }
 
 
-static int do_handshake(socket_st * socket)
+int do_handshake(socket_st * socket)
 {
 	int ret;
 
-	gnutls_transport_set_int(socket->session, socket->fd);
-	set_read_funcs(socket->session);
+	if (fastopen && socket->connect_addrlen) {
+		gnutls_transport_set_fastopen(socket->session, socket->fd,
+					      (struct sockaddr*)&socket->connect_addr,
+					      socket->connect_addrlen, 0);
+		socket->connect_addrlen = 0;
+	} else {
+		set_read_funcs(socket->session);
+	}
 
 	do {
 		gnutls_handshake_set_timeout(socket->session,
@@ -1910,7 +1937,6 @@ static int cert_verify_ocsp(gnutls_session_t session)
 	}
 
 	for (it = 0; it < cert_list_size; it++) {
-		gnutls_x509_crt_init(&cert);
 		if (deinit_cert)
 			gnutls_x509_crt_deinit(cert);
 		gnutls_x509_crt_init(&cert);
@@ -1957,6 +1983,7 @@ static int cert_verify_ocsp(gnutls_session_t session)
 
 		/* verify and check the response for revoked cert */
 		ret = check_ocsp_response(cert, issuer, &resp, &nonce, verbose);
+		free(resp.data);
 		if (ret == 1)
 			ok++;
 		else if (ret == 0) {

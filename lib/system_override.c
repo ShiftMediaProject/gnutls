@@ -24,14 +24,14 @@
  * default berkeley sockets API per session.
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
-#include <gnutls_num.h>
-#include <gnutls_record.h>
-#include <gnutls_buffers.h>
-#include <gnutls_mbuffers.h>
-#include <gnutls_state.h>
-#include <gnutls_dtls.h>
+#include "gnutls_int.h"
+#include "errors.h"
+#include <num.h>
+#include <record.h>
+#include <buffers.h>
+#include <mbuffers.h>
+#include <state.h>
+#include <dtls.h>
 #include <system.h>
 
 #include <errno.h>
@@ -95,7 +95,9 @@ gnutls_transport_set_pull_function(gnutls_session_t session,
  * for the provided transport calls.
  *
  * As with select(), if the timeout value is zero the callback should return
- * zero if no data are immediately available.
+ * zero if no data are immediately available. The special value
+ * %GNUTLS_INDEFINITE_TIMEOUT indicates that the callback should wait indefinitely
+ * for data.
  *
  * @gnutls_pull_timeout_func is of the form,
  * int (*gnutls_pull_timeout_func)(gnutls_transport_ptr_t, unsigned int ms);

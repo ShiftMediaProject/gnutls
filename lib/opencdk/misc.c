@@ -31,8 +31,8 @@
 #include <opencdk.h>
 #include <main.h>
 #include <random.h>
-#include <gnutls_int.h>
-#include <gnutls_str.h>
+#include "gnutls_int.h"
+#include <str.h>
 
 
 u32 _cdk_buftou32(const byte * buf)
@@ -161,7 +161,7 @@ FILE *_cdk_tmpfile(void)
 	FILE *fp;
 	int fd, i;
 
-	_gnutls_rnd(GNUTLS_RND_NONCE, rnd, DIM(rnd));
+	gnutls_rnd(GNUTLS_RND_NONCE, rnd, DIM(rnd));
 	for (i = 0; i < DIM(rnd) - 1; i++) {
 		char c = letters[(unsigned char) rnd[i] % 26];
 		rnd[i] = c;

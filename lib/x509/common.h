@@ -26,7 +26,6 @@
 #include <algorithms.h>
 #include <abstract_int.h>
 #include <x509/x509_int.h>
-#include <stdbool.h>
 #include <fips.h>
 
 #define MAX_STRING_LEN 512
@@ -69,7 +68,23 @@
 #define SIG_GOST_R3410_2001_OID "1.2.643.2.2.3"
 #define ISO_SIG_RSA_SHA1_OID "1.3.14.3.2.29"
 
+#define SIG_DSA_SHA3_224_OID "2.16.840.1.101.3.4.3.5"
+#define SIG_DSA_SHA3_256_OID "2.16.840.1.101.3.4.3.6"
+#define SIG_DSA_SHA3_384_OID "2.16.840.1.101.3.4.3.7"
+#define SIG_DSA_SHA3_512_OID "2.16.840.1.101.3.4.3.8"
+
+#define SIG_ECDSA_SHA3_224_OID "2.16.840.1.101.3.4.3.9"
+#define SIG_ECDSA_SHA3_256_OID "2.16.840.1.101.3.4.3.10"
+#define SIG_ECDSA_SHA3_384_OID "2.16.840.1.101.3.4.3.11"
+#define SIG_ECDSA_SHA3_512_OID "2.16.840.1.101.3.4.3.12"
+
+#define SIG_RSA_SHA3_224_OID "2.16.840.1.101.3.4.3.13"
+#define SIG_RSA_SHA3_256_OID "2.16.840.1.101.3.4.3.14"
+#define SIG_RSA_SHA3_384_OID "2.16.840.1.101.3.4.3.15"
+#define SIG_RSA_SHA3_512_OID "2.16.840.1.101.3.4.3.16"
+
 #define XMPP_OID "1.3.6.1.5.5.7.8.5"
+#define KRB5_PRINCIPAL_OID "1.3.6.1.5.2.2"
 
 #define ASN1_NULL "\x05\x00"
 #define ASN1_NULL_SIZE 2
@@ -188,28 +203,20 @@ int
 _gnutls_x509_get_raw_field2(ASN1_TYPE c2, gnutls_datum_t * raw,
 			 const char *whom, gnutls_datum_t * dn);
 
-bool
+unsigned
 _gnutls_check_if_same_key(gnutls_x509_crt_t cert1,
 			  gnutls_x509_crt_t cert2,
 			  unsigned is_ca);
 
-bool
+unsigned
 _gnutls_check_if_same_key2(gnutls_x509_crt_t cert1,
 			   gnutls_datum_t *cert2bin);
 
-bool
+unsigned
 _gnutls_check_valid_key_id(gnutls_datum_t *key_id,
 			   gnutls_x509_crt_t cert, time_t now);
 
-bool
-_gnutls_check_if_same_cert(gnutls_x509_crt_t cert1,
-			   gnutls_x509_crt_t cert2);
-
-bool
-_gnutls_check_if_same_cert2(gnutls_x509_crt_t cert1,
-			    gnutls_datum_t * cert2bin);
-
-bool _gnutls_check_key_purpose(gnutls_x509_crt_t cert, const char *purpose, unsigned no_any);
+unsigned _gnutls_check_key_purpose(gnutls_x509_crt_t cert, const char *purpose, unsigned no_any);
 
 time_t _gnutls_x509_generalTime2gtime(const char *ttime);
 
@@ -224,19 +231,17 @@ int _gnutls_set_extension(ASN1_TYPE asn, const char *root,
 int _gnutls_strdatum_to_buf(gnutls_datum_t * d, void *buf,
 			    size_t * sizeof_buf);
 
-bool _gnutls_is_same_dn(gnutls_x509_crt_t cert1, gnutls_x509_crt_t cert2);
+unsigned _gnutls_is_same_dn(gnutls_x509_crt_t cert1, gnutls_x509_crt_t cert2);
 
 int _gnutls_copy_string(gnutls_datum_t* str, uint8_t *out, size_t *out_size);
 int _gnutls_copy_data(gnutls_datum_t* str, uint8_t *out, size_t *out_size);
-
-int _san_othername_to_virtual(const char *oid, size_t oid_size);
 
 int _gnutls_x509_decode_ext(const gnutls_datum_t *der, gnutls_x509_ext_st *out);
 int x509_raw_crt_to_raw_pubkey(const gnutls_datum_t * cert,
 			   gnutls_datum_t * rpubkey);
 
 int x509_crt_to_raw_pubkey(gnutls_x509_crt_t crt,
-                           gnutls_datum_t * rpubkey);
+			   gnutls_datum_t * rpubkey);
 
 typedef void (*gnutls_cert_vfunc)(gnutls_x509_crt_t);
 

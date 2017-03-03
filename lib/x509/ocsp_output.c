@@ -22,12 +22,12 @@
 /* Online Certificate Status Protocol - RFC 2560
  */
 
-#include <gnutls_int.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include "gnutls_int.h"
+#include <global.h>
+#include "errors.h"
 #include <libtasn1.h>
-#include <gnutls_pk.h>
-#include <gnutls_str.h>
+#include <pk.h>
+#include <str.h>
 #include "algorithms.h"
 
 #include <gnutls/ocsp.h>
@@ -278,11 +278,11 @@ print_resp(gnutls_buffer_st * str, gnutls_ocsp_resp_t resp,
 
 	/* responderID */
 	{
-		gnutls_datum_t dn;
+		gnutls_datum_t dn = {NULL, 0};
 
-		ret = gnutls_ocsp_resp_get_responder(resp, &dn);
-		if (ret < 0 || dn.data == NULL) {
-			if (dn.data == 0) {
+		ret = gnutls_ocsp_resp_get_responder2(resp, &dn, 0);
+		if (ret < 0) {
+			if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
 				ret = gnutls_ocsp_resp_get_responder_raw_id(resp, GNUTLS_OCSP_RESP_ID_KEY, &dn);
 
 				if (ret >= 0) {
@@ -292,15 +292,12 @@ print_resp(gnutls_buffer_st * str, gnutls_ocsp_resp_t resp,
 				}
 				gnutls_free(dn.data);
 			} else {
-				addf(str, "error: get_dn: %s\n",
+				addf(str, "error: get_responder2: %s\n",
 				     gnutls_strerror(ret));
 			}
 		} else {
-			if (dn.data != NULL) {
-				addf(str, _("\tResponder ID: %.*s\n"), dn.size,
-				     dn.data);
-				gnutls_free(dn.data);
-			}
+			addf(str, _("\tResponder ID: %s\n"), dn.data);
+			gnutls_free(dn.data);
 		}
 	}
 

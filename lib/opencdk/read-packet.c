@@ -33,7 +33,7 @@
 #include "packet.h"
 #include "types.h"
 #include <algorithms.h>
-#include <gnutls_str.h>
+#include <str.h>
 #include <minmax.h>
 
 /* The version of the MDC packet considering the lastest OpenPGP draft. */
@@ -41,8 +41,14 @@
 static int
 stream_read(cdk_stream_t s, void *buf, size_t buflen, size_t * r_nread)
 {
-	*r_nread = cdk_stream_read(s, buf, buflen);
-	return *r_nread > 0 ? 0 : _cdk_stream_get_errno(s);
+	int res = cdk_stream_read(s, buf, buflen);
+
+	if (res > 0) {
+		*r_nread = res;
+		return 0;
+	} else {
+		return (cdk_stream_eof(s) ? EOF : _cdk_stream_get_errno(s));
+	}
 }
 
 
@@ -50,13 +56,13 @@ stream_read(cdk_stream_t s, void *buf, size_t buflen, size_t * r_nread)
 static u32 read_32(cdk_stream_t s)
 {
 	byte buf[4];
-	size_t nread;
+	size_t nread = 0;
 
 	assert(s != NULL);
 
 	stream_read(s, buf, 4, &nread);
 	if (nread != 4)
-		return (u32) - 1;
+		return (u32) -1;
 	return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
 
@@ -65,7 +71,7 @@ static u32 read_32(cdk_stream_t s)
 static u16 read_16(cdk_stream_t s)
 {
 	byte buf[2];
-	size_t nread;
+	size_t nread = 0;
 
 	assert(s != NULL);
 
@@ -477,42 +483,62 @@ read_attribute(cdk_stream_t inp, size_t pktlen, cdk_pkt_userid_t attr,
 		return CDK_Out_Of_Core;
 	rc = stream_read(inp, buf, pktlen, &nread);
 	if (rc) {
-		cdk_free(buf);
-		return CDK_Inv_Packet;
+		gnutls_assert();
+		rc = CDK_Inv_Packet;
+		goto error;
 	}
+
 	p = buf;
 	len = *p++;
 	pktlen--;
+
 	if (len == 255) {
+		if (pktlen < 4) {
+			gnutls_assert();
+			rc = CDK_Inv_Packet;
+			goto error;
+		}
+
 		len = _cdk_buftou32(p);
 		p += 4;
 		pktlen -= 4;
 	} else if (len >= 192) {
 		if (pktlen < 2) {
-			cdk_free(buf);
-			return CDK_Inv_Packet;
+			gnutls_assert();
+			rc = CDK_Inv_Packet;
+			goto error;
 		}
+
 		len = ((len - 192) << 8) + *p + 192;
 		p++;
 		pktlen--;
 	}
 
-	if (*p != 1) {		/* Currently only 1, meaning an image, is defined. */
-		cdk_free(buf);
-		return CDK_Inv_Packet;
+	if (!len || *p != 1) {		/* Currently only 1, meaning an image, is defined. */
+		rc = CDK_Inv_Packet;
+		goto error;
 	}
+
 	p++;
 	len--;
 
-	if (len >= pktlen)
-		return CDK_Inv_Packet;
+	if (len >= pktlen) {
+		rc = CDK_Inv_Packet;
+		goto error;
+	}
+
 	attr->attrib_img = cdk_calloc(1, len);
 	if (!attr->attrib_img) {
-		cdk_free(buf);
-		return CDK_Out_Of_Core;
+		rc = CDK_Out_Of_Core;
+		goto error;
 	}
+
 	attr->attrib_len = len;
 	memcpy(attr->attrib_img, p, len);
+	cdk_free(buf);
+	return rc;
+
+ error:
 	cdk_free(buf);
 	return rc;
 }
@@ -547,7 +573,7 @@ read_user_id(cdk_stream_t inp, size_t pktlen, cdk_pkt_userid_t user_id)
 static cdk_error_t
 read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
 {
-	byte c, c1;
+	int c, c1;
 	size_t size, nread, n;
 	cdk_subpkt_t node;
 	cdk_error_t rc;
@@ -562,11 +588,18 @@ read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
 	*r_nbytes = 0;
 	c = cdk_stream_getc(inp);
 	n++;
+
 	if (c == 255) {
 		size = read_32(inp);
+		if (size == (u32)-1)
+			return CDK_Inv_Packet;
+
 		n += 4;
 	} else if (c >= 192 && c < 255) {
 		c1 = cdk_stream_getc(inp);
+		if (c1 == EOF)
+			return CDK_Inv_Packet;
+
 		n++;
 		if (c1 == 0)
 			return 0;
@@ -588,8 +621,10 @@ read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
 	node->size--;
 	rc = stream_read(inp, node->d, node->size, &nread);
 	n += nread;
-	if (rc)
+	if (rc) {
+		cdk_subpkt_free(node);
 		return rc;
+	}
 	*r_nbytes = n;
 	if (!*r_ctx)
 		*r_ctx = node;
@@ -831,17 +866,29 @@ static void
 read_old_length(cdk_stream_t inp, int ctb, size_t * r_len, size_t * r_size)
 {
 	int llen = ctb & 0x03;
+	int c;
 
 	if (llen == 0) {
-		*r_len = cdk_stream_getc(inp);
+		c = cdk_stream_getc(inp);
+		if (c == EOF)
+			goto fail;
+
+		*r_len = c;
 		(*r_size)++;
 	} else if (llen == 1) {
 		*r_len = read_16(inp);
+		if (*r_len == (u16)-1)
+			goto fail;
 		(*r_size) += 2;
 	} else if (llen == 2) {
 		*r_len = read_32(inp);
+		if (*r_len == (u32)-1) {
+			goto fail;
+		}
+
 		(*r_size) += 4;
 	} else {
+ fail:
 		*r_len = 0;
 		*r_size = 0;
 	}
@@ -856,15 +903,26 @@ read_new_length(cdk_stream_t inp,
 	int c, c1;
 
 	c = cdk_stream_getc(inp);
+	if (c == EOF)
+		return;
+
 	(*r_size)++;
 	if (c < 192)
 		*r_len = c;
 	else if (c >= 192 && c <= 223) {
 		c1 = cdk_stream_getc(inp);
+		if (c1 == EOF)
+			return;
+
 		(*r_size)++;
 		*r_len = ((c - 192) << 8) + c1 + 192;
 	} else if (c == 255) {
-		*r_len = read_32(inp);
+		c1 = read_32(inp);
+		if (c1 == (u32)-1) {
+			return;
+		}
+
+		*r_len = c1;
 		(*r_size) += 4;
 	} else {
 		*r_len = 1 << (c & 0x1f);
@@ -874,18 +932,22 @@ read_new_length(cdk_stream_t inp,
 
 
 /* Skip the current packet body. */
-static void skip_packet(cdk_stream_t inp, size_t pktlen)
+static cdk_error_t skip_packet(cdk_stream_t inp, size_t pktlen)
 {
 	byte buf[BUFSIZE];
 	size_t nread, buflen = DIM(buf);
 
 	while (pktlen > 0) {
-		stream_read(inp, buf, pktlen > buflen ? buflen : pktlen,
+		cdk_error_t rc;
+		rc = stream_read(inp, buf, pktlen > buflen ? buflen : pktlen,
 			    &nread);
+		if (rc)
+			return rc;
 		pktlen -= nread;
 	}
 
 	assert(pktlen == 0);
+	return 0;
 }
 
 
@@ -1086,7 +1148,9 @@ cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt)
 
 	default:
 		/* Skip all packets we don't understand */
-		skip_packet(inp, pktlen);
+		rc = skip_packet(inp, pktlen);
+		if (rc)
+			return gnutls_assert_val(rc);
 		break;
 	}
 

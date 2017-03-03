@@ -81,6 +81,8 @@ const char *dh_params_file = NULL;
 const char *x509_crlfile = NULL;
 const char *priorities = NULL;
 const char *status_response_ocsp = NULL;
+const char *sni_hostname = NULL;
+int sni_hostname_fatal = 0;
 
 gnutls_datum_t session_ticket_key;
 static void tcp_server(const char *name, int port);
@@ -135,6 +137,7 @@ LIST_TYPE_DECLARE(listener_item, char *http_request; char *http_response;
 		  int listen_socket; int fd;
 		  gnutls_session_t tls_session;
 		  int handshake_ok;
+		  int no_close;
 		  time_t start;
     );
 
@@ -152,7 +155,8 @@ static void listener_free(listener_item * j)
 	free(j->http_request);
 	free(j->http_response);
 	if (j->fd >= 0) {
-		gnutls_bye(j->tls_session, GNUTLS_SHUT_WR);
+		if (j->no_close == 0)
+			gnutls_bye(j->tls_session, GNUTLS_SHUT_WR);
 		shutdown(j->fd, 2);
 		close(j->fd);
 		gnutls_deinit(j->tls_session);
@@ -238,38 +242,6 @@ static void read_dh_params(void)
 
 }
 
-static char pkcs3[] =
-    "-----BEGIN DH PARAMETERS-----\n"
-    "MIGGAoGAtkxw2jlsVCsrfLqxrN+IrF/3W8vVFvDzYbLmxi2GQv9s/PQGWP1d9i22\n"
-    "P2DprfcJknWt7KhCI1SaYseOQIIIAYP78CfyIpGScW/vS8khrw0rlQiyeCvQgF3O\n"
-    "GeGOEywcw+oQT4SmFOD7H0smJe2CNyjYpexBXQ/A0mbTF9QKm1cCAQU=\n"
-    "-----END DH PARAMETERS-----\n";
-
-static int static_dh_params(void)
-{
-	gnutls_datum_t params = { (void *) pkcs3, sizeof(pkcs3) };
-	int ret;
-
-	if (gnutls_dh_params_init(&dh_params) < 0) {
-		fprintf(stderr, "Error in dh parameter initialization\n");
-		exit(1);
-	}
-
-	ret = gnutls_dh_params_import_pkcs3(dh_params, &params,
-					    GNUTLS_X509_FMT_PEM);
-
-	if (ret < 0) {
-		fprintf(stderr, "Error parsing dh params: %s\n",
-			safe_strerror(ret));
-		exit(1);
-	}
-
-	printf
-	    ("Set static Diffie-Hellman parameters, consider --dhparams.\n");
-
-	return 0;
-}
-
 static int
 get_params(gnutls_session_t session, gnutls_params_type_t type,
 	   gnutls_params_st * st)
@@ -316,6 +288,83 @@ int ret;
 	return 0;
 }
 
+/* callback used to verify if the host name advertised in client hello matches
+ * the one configured in server
+ */
+static int
+post_client_hello(gnutls_session_t session)
+{
+	int ret;
+	/* DNS names (only type supported) may be at most 256 byte long */
+	char *name;
+	size_t len = 256;
+	unsigned int type;
+	int i;
+
+	name = malloc(len);
+	if (name == NULL)
+		return GNUTLS_E_MEMORY_ERROR;
+
+	for (i=0; ; ) {
+		ret = gnutls_server_name_get(session, name, &len, &type, i);
+		if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
+			char *new_name;
+			new_name = realloc(name, len);
+			if (new_name == NULL) {
+				ret = GNUTLS_E_MEMORY_ERROR;
+				goto end;
+			}
+			name = new_name;
+			continue; /* retry call with same index */
+		}
+
+		/* check if it is the last entry in list */
+		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			break;
+		i++;
+		if (ret != GNUTLS_E_SUCCESS)
+			goto end;
+		/* unknown types need to be ignored */
+		if (type != GNUTLS_NAME_DNS)
+			continue;
+
+		if (strlen(sni_hostname) != len)
+			continue;
+		/* API guarantees that the name of type DNS will be null terminated */
+		if (!strncmp(name, sni_hostname, len)) {
+			ret = GNUTLS_E_SUCCESS;
+			goto end;
+		}
+	};
+	/* when there is no extension, we can't send the extension specific alert */
+	if (i == 0) {
+		fprintf(stderr, "Warning: client did not include SNI extension, using default host\n");
+		ret = GNUTLS_E_SUCCESS;
+		goto end;
+	}
+
+	if (sni_hostname_fatal == 1) {
+		/* abort the connection, propagate error up the stack */
+		ret = GNUTLS_E_UNRECOGNIZED_NAME;
+		goto end;
+	}
+
+	fprintf(stderr, "Warning: client provided unrecognized host name\n");
+	/* since we just want to send an alert, not abort the connection, we
+	 * need to send it ourselves
+	 */
+	do {
+		ret = gnutls_alert_send(session,
+					GNUTLS_AL_WARNING,
+					GNUTLS_A_UNRECOGNIZED_NAME);
+	} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+
+	/* continue handshake, fall through */
+end:
+	free(name);
+	return ret;
+}
+
 gnutls_session_t initialize_session(int dtls)
 {
 	gnutls_session_t session;
@@ -334,6 +383,9 @@ gnutls_session_t initialize_session(int dtls)
 	 */
 	gnutls_handshake_set_private_extensions(session, 1);
 
+	gnutls_handshake_set_timeout(session,
+				     GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+
 	if (nodb == 0) {
 		gnutls_db_set_retrieve_function(session, wrap_db_fetch);
 		gnutls_db_set_remove_function(session, wrap_db_delete);
@@ -346,6 +398,10 @@ gnutls_session_t initialize_session(int dtls)
 		gnutls_session_ticket_enable_server(session,
 						    &session_ticket_key);
 #endif
+
+	if (sni_hostname != NULL)
+		gnutls_handshake_set_post_client_hello_function(session,
+								&post_client_hello);
 
 	if (gnutls_priority_set_direct(session, priorities, &err) < 0) {
 		fprintf(stderr, "Syntax error at: %s\n", err);
@@ -385,21 +441,21 @@ gnutls_session_t initialize_session(int dtls)
 					GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 
 #ifdef ENABLE_DTLS_SRTP
-        if (HAVE_OPT(SRTP_PROFILES)) {
-                ret =
-                    gnutls_srtp_set_profile_direct(session,
-                                                   OPT_ARG(SRTP_PROFILES),
-                                                   &err);
-                if (ret == GNUTLS_E_INVALID_REQUEST)
-                        fprintf(stderr, "Syntax error at: %s\n", err);
-                else if (ret != 0)
-                        fprintf(stderr, "Error in profiles: %s\n",
-                                gnutls_strerror(ret));
-                else fprintf(stderr,"DTLS profile set to %s\n",
-                             OPT_ARG(SRTP_PROFILES));
+	if (HAVE_OPT(SRTP_PROFILES)) {
+		ret =
+		    gnutls_srtp_set_profile_direct(session,
+						   OPT_ARG(SRTP_PROFILES),
+						   &err);
+		if (ret == GNUTLS_E_INVALID_REQUEST)
+			fprintf(stderr, "Syntax error at: %s\n", err);
+		else if (ret != 0)
+			fprintf(stderr, "Error in profiles: %s\n",
+				gnutls_strerror(ret));
+		else fprintf(stderr,"DTLS profile set to %s\n",
+			     OPT_ARG(SRTP_PROFILES));
 
-                if (ret != 0) exit(1);
-        }
+		if (ret != 0) exit(1);
+	}
 #endif
 
 
@@ -631,7 +687,7 @@ const char *human_addr(const struct sockaddr *sa, socklen_t salen,
 	size_t l;
 
 	if (!buf || !buflen)
-		return NULL;
+		return "(error)";
 
 	*buf = 0;
 
@@ -653,8 +709,8 @@ const char *human_addr(const struct sockaddr *sa, socklen_t salen,
 
 	if (getnameinfo(sa, salen, buf, buflen, NULL, 0, NI_NUMERICHOST) !=
 	    0) {	
-		   return NULL;
-        }
+		return "(error)";
+	}
 
 	l = strlen(buf);
 	buf += l;
@@ -670,7 +726,7 @@ const char *human_addr(const struct sockaddr *sa, socklen_t salen,
 	if (getnameinfo(sa, salen, NULL, 0, buf, buflen, NI_NUMERICSERV) !=
 	    0) {
 		snprintf(buf, buflen, "%s", " unknown");
-        }
+	}
 
 	return save_buf;
 }
@@ -924,6 +980,7 @@ int main(int argc, char **argv)
 	int ret, mtu, port;
 	char name[256];
 	int cert_set = 0;
+	unsigned use_static_dh_params = 0;
 
 	cmd_parser(argc, argv);
 
@@ -987,7 +1044,7 @@ int main(int argc, char **argv)
 	} else if (dh_params_file) {
 		read_dh_params();
 	} else {
-		static_dh_params();
+		use_static_dh_params = 1;
 	}
 
 	if (gnutls_certificate_allocate_credentials(&cert_cred) < 0) {
@@ -1108,10 +1165,15 @@ int main(int argc, char **argv)
 		}
 	}
 
-	gnutls_certificate_set_params_function(cert_cred, get_params);
-/*     gnutls_certificate_set_dh_params(cert_cred, dh_params);
- *     gnutls_certificate_set_rsa_export_params(cert_cred, rsa_params);
- */
+	if (use_static_dh_params) {
+		ret = gnutls_certificate_set_known_dh_params(cert_cred, GNUTLS_SEC_PARAM_MEDIUM);
+		if (ret < 0) {
+			fprintf(stderr, "Error while setting DH parameters: %s\n", gnutls_strerror(ret));
+			exit(1);
+		}
+	} else {
+		gnutls_certificate_set_params_function(cert_cred, get_params);
+	}
 
 	/* this is a password file (created with the included srpcrypt utility) 
 	 * Read README.crypt prior to using SRP.
@@ -1162,16 +1224,31 @@ int main(int argc, char **argv)
 			}
 		}
 
-		gnutls_psk_set_server_params_function(psk_cred,
-						      get_params);
+		if (use_static_dh_params) {
+			ret = gnutls_psk_set_server_known_dh_params(psk_cred, GNUTLS_SEC_PARAM_MEDIUM);
+			if (ret < 0) {
+				fprintf(stderr, "Error while setting DH parameters: %s\n", gnutls_strerror(ret));
+				exit(1);
+			}
+		} else {
+			gnutls_psk_set_server_params_function(psk_cred,
+							      get_params);
+		}
 	}
 #endif
 
 #ifdef ENABLE_ANON
 	gnutls_anon_allocate_server_credentials(&dh_cred);
-	gnutls_anon_set_server_params_function(dh_cred, get_params);
 
-/*      gnutls_anon_set_server_dh_params(dh_cred, dh_params); */
+	if (use_static_dh_params) {
+		ret = gnutls_anon_set_server_known_dh_params(dh_cred, GNUTLS_SEC_PARAM_MEDIUM);
+		if (ret < 0) {
+			fprintf(stderr, "Error while setting DH parameters: %s\n", gnutls_strerror(ret));
+			exit(1);
+		}
+	} else {
+		gnutls_anon_set_server_params_function(dh_cred, get_params);
+	}
 #endif
 
 #ifdef ENABLE_SESSION_TICKETS
@@ -1214,6 +1291,7 @@ static void retry_handshake(listener_item *j)
 		do {
 			ret = gnutls_alert_send_appropriate(j->tls_session, r);
 		} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+		j->no_close = 1;
 	} else if (r == 0) {
 		if (gnutls_session_is_resumed(j->tls_session) != 0 && verbose != 0)
 			printf("*** This is a resumed session\n");
@@ -1357,6 +1435,7 @@ static void tcp_server(const char *name, int port)
 					    (j->tls_session, accept_fd);
 					set_read_funcs(j->tls_session);
 					j->handshake_ok = 0;
+					j->no_close = 0;
 
 					if (verbose != 0) {
 						ctt = ctime(&tt);
@@ -1398,7 +1477,7 @@ static void tcp_server(const char *name, int port)
 						if (r == GNUTLS_E_HEARTBEAT_PING_RECEIVED) {
 							gnutls_heartbeat_pong(j->tls_session, 0);
 						} else if (r == GNUTLS_E_REHANDSHAKE) {
-						    	try_rehandshake(j);
+							try_rehandshake(j);
 						} else {
 							j->http_state = HTTP_STATE_CLOSING;
 							if (r < 0) {
@@ -1410,6 +1489,7 @@ static void tcp_server(const char *name, int port)
 									ret = gnutls_alert_send_appropriate(j->tls_session, r);
 								} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
 								GERR(r);
+								j->no_close = 1;
 							}
 						}
 					} else {
@@ -1636,6 +1716,12 @@ static void cmd_parser(int argc, char **argv)
 
 	if (HAVE_OPT(OCSP_RESPONSE))
 		status_response_ocsp = OPT_ARG(OCSP_RESPONSE);
+
+	if (HAVE_OPT(SNI_HOSTNAME))
+		sni_hostname = OPT_ARG(SNI_HOSTNAME);
+
+	if (HAVE_OPT(SNI_HOSTNAME_FATAL))
+		sni_hostname_fatal = 1;
 
 }
 

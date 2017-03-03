@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright (C) 2013 Nikos Mavrogiannopoulos
 #
@@ -22,6 +22,10 @@ srcdir="${srcdir:-.}"
 DANETOOL="${DANETOOL:-../../src/danetool${EXEEXT}}"
 unset RETCODE
 
+if ! test -x "${DANETOOL}"; then
+	exit 77
+fi
+
 # Unfortunately it is extremely fragile and fails 99% of the
 # time.
 if test "${WINDIR}" != ""; then
@@ -36,7 +40,7 @@ echo ""
 echo "*** Testing good HTTPS hosts ***"
 # www.vulcano.cl dane.nox.su
 HOSTS="good.dane.verisignlabs.com www.freebsd.org www.kumari.net torproject.org fedoraproject.org"
-HOSTS="${HOSTS} nohats.ca"
+#HOSTS="${HOSTS} nohats.ca"
 for host in ${HOSTS}; do
 
 	nc -w 5 "${host}" 443 >/dev/null <<_EOF

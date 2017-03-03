@@ -20,52 +20,64 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
-#include <gnutls_datum.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include <datum.h>
+#include <global.h>
+#include "errors.h"
 #include <common.h>
-#include <gnutls_x509.h>
+#include <x509.h>
 #include <x509_b64.h>
 #include "x509_int.h"
 #include <algorithms.h>
-#include <gnutls_num.h>
+#include <num.h>
 #include <random.h>
 
 static int
-openssl_hash_password(const char *pass, gnutls_datum_t * key,
+openssl_hash_password(const char *_password, gnutls_datum_t * key,
 		      gnutls_datum_t * salt)
 {
 	unsigned char md5[16];
 	digest_hd_st hd;
 	unsigned int count = 0;
-	int err;
+	int ret;
+	char *password = NULL;
+
+	if (_password != NULL) {
+		gnutls_datum_t pout;
+		ret = _gnutls_utf8_password_normalize(_password, strlen(_password), &pout, 1);
+		if (ret < 0)
+			return gnutls_assert_val(ret);
+
+		password = (char*)pout.data;
+	}
 
 	while (count < key->size) {
-		err = _gnutls_hash_init(&hd, mac_to_entry(GNUTLS_MAC_MD5));
-		if (err) {
+		ret = _gnutls_hash_init(&hd, mac_to_entry(GNUTLS_MAC_MD5));
+		if (ret < 0) {
 			gnutls_assert();
-			return err;
+			goto cleanup;
 		}
+
 		if (count) {
-			err = _gnutls_hash(&hd, md5, sizeof(md5));
-			if (err) {
+			ret = _gnutls_hash(&hd, md5, sizeof(md5));
+			if (ret < 0) {
 			      hash_err:
 				_gnutls_hash_deinit(&hd, NULL);
 				gnutls_assert();
-				return err;
+				goto cleanup;
 			}
 		}
-		if (pass) {
-			err = _gnutls_hash(&hd, pass, strlen(pass));
-			if (err) {
+
+		if (password) {
+			ret = _gnutls_hash(&hd, password, strlen(password));
+			if (ret < 0) {
 				gnutls_assert();
 				goto hash_err;
 			}
 		}
-		err = _gnutls_hash(&hd, salt->data, 8);
-		if (err) {
+		ret = _gnutls_hash(&hd, salt->data, 8);
+		if (ret < 0) {
 			gnutls_assert();
 			goto hash_err;
 		}
@@ -80,8 +92,11 @@ openssl_hash_password(const char *pass, gnutls_datum_t * key,
 		memcpy(&key->data[count], md5, sizeof(md5));
 		count += sizeof(md5);
 	}
+	ret = 0;
 
-	return 0;
+ cleanup:
+	gnutls_free(password);
+	return ret;
 }
 
 struct pem_cipher {
@@ -291,8 +306,8 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 			}
 			keylen += ofs;
 
-			/* If there appears to be more padding than required, fail */
-			if (key_data_size - keylen > blocksize) {
+			/* If there appears to be more or less padding than required, fail */
+			if (key_data_size - keylen > blocksize || key_data_size < keylen+1) {
 				gnutls_assert();
 				goto fail;
 			}

@@ -22,20 +22,20 @@
 
 /* Functions for operating in an PSK passwd file are included here */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
 #ifdef ENABLE_PSK
 
 #include "x509_b64.h"
-#include "gnutls_errors.h"
+#include "errors.h"
 #include <auth/psk_passwd.h>
 #include <auth/psk.h>
-#include "gnutls_auth.h"
-#include "gnutls_dh.h"
+#include "auth.h"
+#include "dh.h"
 #include "debug.h"
-#include <gnutls_str.h>
-#include <gnutls_datum.h>
-#include <gnutls_num.h>
+#include <str.h>
+#include <datum.h>
+#include <num.h>
 #include <random.h>
 
 
@@ -94,7 +94,7 @@ static int _randomize_psk(gnutls_datum_t * psk)
 
 	psk->size = 16;
 
-	ret = _gnutls_rnd(GNUTLS_RND_NONCE, (char *) psk->data, 16);
+	ret = gnutls_rnd(GNUTLS_RND_NONCE, (char *) psk->data, 16);
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
@@ -194,8 +194,8 @@ _gnutls_psk_pwd_find_entry(gnutls_session_t session, char *username,
 cleanup:
 	if (fd != NULL)
 		fclose(fd);
-        
-        zeroize_key(line, line_size);
+
+	zeroize_key(line, line_size);
 	free(line);
 
 	return ret;

@@ -82,12 +82,27 @@ resumed one, and will share the same session ID with the previous one.
 @node Error handling
 @subsection Error handling
 
-In @acronym{GnuTLS} most functions return an integer type as a result.
-In almost all cases a zero or a positive number means success, and a
-negative number indicates failure, or a situation that some action has
-to be taken. Thus negative error codes may be fatal or not.
+There two types of @acronym{GnuTLS} functions. The first type returns
+a boolean value, true (non-zero) or false (zero) value; these functions
+are defined to return an unsigned integer type. The other type returns a
+signed integer type with zero (or a positive number) indicating
+success and a negative value indicating failure. For the latter
+type it is recommended to check for errors as following.
+@example
+    ret = gnutls_function();
+    if (ret < 0) @{
+        return -1;
+    @}
+@end example
+The above example checks for a failure condition rather than
+for explicit success (e.g., equality to zero). That has the advantage
+that future extensions of the API can be extended to provide
+additional information via positive returned values (see for example
+@funcref{gnutls_certificate_set_x509_key_file}).
 
-Fatal errors terminate the connection immediately and further sends
+For certain operations such as TLS handshake and TLS packet receive
+there is the notion of fatal and non-fatal error codes.
+Fatal errors terminate the TLS session immediately and further sends
 and receives will be disallowed.  Such an example is
 @code{GNUTLS_@-E_@-DECRYPTION_@-FAILED}. Non-fatal errors may warn about
 something, i.e., a warning alert was received, or indicate the some
@@ -108,10 +123,14 @@ See @ref{Error codes}, for a description of the available error codes.
 
 @node Common types
 @subsection Common types
+@cindex gnutls_datum_t
+@cindex giovec_t
 
 All strings that are to provided as input to @acronym{GnuTLS} functions
 should be in UTF-8 unless otherwise specified. Output strings are also
-in UTF-8 format unless otherwise specified.
+in UTF-8 format unless otherwise specified. When functions take as input
+passwords, they will normalize them using @xcite{rfc7613} rules (since
+GnuTLS 3.5.7).
 
 When data of a fixed size are provided to @acronym{GnuTLS} functions then
 the helper structure @code{gnutls_datum_t} is often used. Its definition is
@@ -123,6 +142,12 @@ shown below.
     unsigned int size;
   } gnutls_datum_t;
 @end verbatim
+
+In functions where this structure is a returned type, if the function succeeds,
+it is expected from the caller to use @code{gnutls_free()} to deinitialize the
+data element after use, unless otherwise specified. If the function fails, the
+contents of the @code{gnutls_datum_t} should be considered undefined and must
+not be deinitialized.
 
 Other functions that require data for scattered read use a structure similar
 to @code{struct iovec} typically used by @funcintref{readv}. It is shown
@@ -173,6 +198,7 @@ CPU. The currently available options are:
 @item 0x2: Enable AES-NI
 @item 0x4: Enable SSSE3
 @item 0x8: Enable PCLMUL
+@item 0x10: Enable AVX
 @item 0x100000: Enable VIA padlock
 @item 0x200000: Enable VIA PHE
 @item 0x400000: Enable VIA PHE SHA512
@@ -217,26 +243,15 @@ waiting for a return value of zero.
 
 The random generator of the cryptographic back-end, utilizes mutex locks (e.g., pthreads on GNU/Linux and CriticalSection on Windows)
 which are setup by @acronym{GnuTLS} on library initialization. Prior to version 3.3.0
-they were setup by calling @funcref{gnutls_global_init}. On special systems
+they were setup by calling @funcref{gnutls_global_init}.@footnote{On special systems
 you could manually specify the locking system using
 the function @funcref{gnutls_global_set_mutex} before calling any other
-GnuTLS function. Setting mutexes manually is not recommended.
-An example of non-native thread usage is shown below.
-
-@example
-#include <gnutls/gnutls.h>
-
-int main()
-@{
-   /* When the system mutexes are not to be used 
-    * gnutls_global_set_mutex() must be called explicitly
-    */
-   gnutls_global_set_mutex (mutex_init, mutex_deinit, 
-                            mutex_lock, mutex_unlock);
-@}
-@end example
-
-@showfuncdesc{gnutls_global_set_mutex}
+GnuTLS function. Setting mutexes manually is not recommended.}
+Note that, on Glibc systems the GnuTLS library does not link with the libpthread
+library by default, it utilizes the Glibc mutex stubs, which allows Glibc to
+use the non-multithreaded (and optimized) variants of its algorithms.
+That, however, for applications using GnuTLS that may potentially utilize mutexes,
+requires them to explicitly link with libpthread.
 
 @node Running in a sandbox
 @subsection Running in a sandbox
@@ -263,10 +278,10 @@ operation.
 @item getpid
 @item send
 @item recv
-@item writev
+@item sendmsg
 @item read (to read from /dev/urandom)
 @item getrandom (this is Linux-kernel specific)
-@item select
+@item poll
 @end itemize
 
 As well as any calls needed for memory allocation to work. Note however, that GnuTLS
@@ -366,7 +381,7 @@ See the function @funcref{gnutls_check_version}.
 
 On the other hand, it is often desirable to support more than one
 versions of the library. In that case you could utilize compile-time 
-feature checks using the the @code{GNUTLS_VERSION_NUMBER} macro. 
+feature checks using the @code{GNUTLS_VERSION_NUMBER} macro. 
 For example, to conditionally add code for GnuTLS 3.2.1 or later, you may use:
 @example
 #if GNUTLS_VERSION_NUMBER >= 0x030201
@@ -443,6 +458,8 @@ others is used to specify the type of the connection (server or client),
 and the underlying protocol type, i.e., datagram (UDP) or reliable (TCP).
 
 @showfuncdesc{gnutls_init}
+
+@showenumdesc{gnutls_init_flags_t,The @code{gnutls_init_@-flags_t} enumeration.}
 
 After the session initialization details on the allowed ciphersuites
 and protocol versions should be set using the priority functions
@@ -536,8 +553,6 @@ already.
 
 @showfuncC{gnutls_certificate_set_x509_key_file2,gnutls_certificate_set_x509_key_mem2,gnutls_certificate_set_x509_key}
 
-@showfuncC{gnutls_certificate_set_openpgp_key_file,gnutls_certificate_set_openpgp_key_mem,gnutls_certificate_set_openpgp_key}
-
 It is recommended to use the higher level functions such as @funcref{gnutls_certificate_set_x509_key_file2}
 which accept not only file names but URLs that specify objects stored in token,
 or system certificates and keys (see @ref{Application-specific keys}). For these cases, another important 
@@ -580,7 +595,7 @@ typedef struct gnutls_pcert_st
 } gnutls_pcert_st;
 @end verbatim
 
-@showfuncE{gnutls_pcert_import_x509,gnutls_pcert_import_openpgp,gnutls_pcert_import_x509_raw,gnutls_pcert_import_openpgp_raw,gnutls_pcert_deinit}
+@showfuncC{gnutls_pcert_import_x509,gnutls_pcert_import_x509_raw,gnutls_pcert_deinit}
 
 In a handshake, the negotiated cipher suite depends on the
 certificate's parameters, so some key exchange methods might not be
@@ -616,9 +631,12 @@ signed by server's acceptable signers.
 
 Certificate verification is possible by loading the trusted
 authorities into the credentials structure by using
-the following functions, applicable to X.509 and OpenPGP certificates.
+the following functions, applicable to X.509 certificates.
+In modern systems it is recommended to utilize @funcref{gnutls_certificate_set_x509_system_trust}
+which will load the trusted authorities from the system store.
 
-@showfuncD{gnutls_certificate_set_x509_system_trust,gnutls_certificate_set_x509_trust_file,gnutls_certificate_set_x509_trust_dir,gnutls_certificate_set_openpgp_keyring_file}
+@showfuncdesc{gnutls_certificate_set_x509_system_trust}
+@showfuncB{gnutls_certificate_set_x509_trust_file,gnutls_certificate_set_x509_trust_dir}
 
 The peer's certificate will be automatically verified if
 @funcref{gnutls_session_set_verify_cert} is called prior to handshake.
@@ -782,7 +800,9 @@ remaining until the next retransmission, or better the time until
 
 @menu
 * Asynchronous operation::
+* Reducing round-trips::
 * DTLS sessions::
+* DTLS and SCTP::
 @end menu
 
 @node Asynchronous operation
@@ -811,6 +831,9 @@ utilize @funcref{gnutls_record_check_pending},
 either before the @funcintref{poll} system call, or after a call to
 @funcref{gnutls_record_recv}. Data queued by @funcref{gnutls_record_send}
 (when interrupted) can be discarded using @funcref{gnutls_record_discard_queued}.
+
+An example of GnuTLS' usage with asynchronous operation can be found
+in @code{doc/examples/tlsproxy}.
 
 The following paragraphs describe the detailed requirements for non-blocking
 operation when using the TLS or DTLS protocols.
@@ -846,6 +869,31 @@ the function @funcref{gnutls_dtls_get_timeout}
 should be used to estimate when to call @funcref{gnutls_handshake} if
 no data have been received.
 
+@node Reducing round-trips
+@subsection Reducing round-trips
+
+The full TLS 1.2 handshake requires 2 round-trips to complete, and when
+combined with TCP's SYN and SYN-ACK negotiation it extends to 3 full
+round-trips. While, the abbreviated (resumed) TLS handshake drops that to 2.5
+round-trips, it still adds considerable latency, reducing its applicability
+to certain applications.
+
+In client side, it is possible to take advantage of the TCP fast open
+@xcite{RFC7413} mechanism on operating
+systems that support it. That can be done either by manually crafting the push and pull
+callbacks, or by utilizing @funcref{gnutls_transport_set_fastopen}. In that
+case the initial TCP handshake is eliminated, reducing the TLS handshake round-trip to 2.
+Note, that in that case any connection failures will be reported during the
+@funcref{gnutls_handshake} function call with error code
+@code{GNUTLS_E_PUSH_ERROR}.
+
+@showfuncdesc{gnutls_transport_set_fastopen}
+
+In non-resumed sessions it is possible to further reduce the round-trips to
+a single one by taking advantage of the @ref{False Start} TLS extension.
+This can be enabled by setting the @acronym{GNUTLS_ENABLE_FALSE_START} flag
+on @funcref{gnutls_init}.
+
 @node DTLS sessions
 @subsection DTLS sessions
 
@@ -875,6 +923,23 @@ a path MTU discovery mechanism @xcite{RFC4821}.
 
 @showfuncC{gnutls_dtls_set_mtu,gnutls_dtls_get_mtu,gnutls_dtls_get_data_mtu}
 
+@node DTLS and SCTP
+@subsection DTLS and SCTP
+
+Although DTLS can run under any reliable or unreliable layer, there are
+special requirements for SCTP according to @xcite{RFC6083}. We summarize the
+most important below, however for a full treatment we refer to @xcite{RFC6083}.
+
+@itemize
+@item The MTU set via @funcref{gnutls_dtls_set_mtu} must be 2^14.
+@item Replay detection must be disabled; use the flag @code{GNUTLS_NO_REPLAY_PROTECTION} with @funcref{gnutls_init}.
+@item Retransmission of messages must be disabled; use @funcref{gnutls_dtls_set_timeouts}
+   with a retransmission timeout larger than the total.
+@item Handshake, Alert and ChangeCipherSpec messages must be sent over stream 0 with unlimited reliability
+   and with the ordered delivery feature.
+@item During a rehandshake, the caching of messages with unknown epoch is
+   not handled by GnuTLS; this must be implemented in a special pull function.
+@end itemize
 
 @node TLS handshake
 @section TLS handshake
@@ -985,9 +1050,24 @@ are listed in @ref{The Alert Protocol}.
 @section Priority strings
 @cindex Priority strings
 
+@subheading How to use Priority Strings
+
 The GnuTLS priority strings specify the TLS session's handshake
-algorithms and options in a compact, easy-to-use format.  That string
-may contain a single initial keyword such as in
+algorithms and options in a compact, easy-to-use format. These
+strings are intended as a user-specified override of the library defaults.
+
+That is, applications should use the default settings
+(c.f. @funcref{gnutls_set_default_priority}), and provide the user 
+with access to priority strings for overriding the default behavior,
+on configuration files, or other UI. Following such a principle,
+makes the GnuTLS library as the default settings provider. That is
+necessary and a good practice, because TLS protocol hardening and
+phasing out of legacy algorithms, is easier to co-ordinate when happens
+in a single library.
+
+@subheading Using Priority Strings
+
+A priority string string may contain a single initial keyword such as in
 @ref{tab:prio-keywords} and may be followed by additional algorithm or
 special keywords. Note that their description is intentionally avoiding
 specific algorithm details, as the priority strings are not constant between
@@ -1005,6 +1085,9 @@ will be used to expand the provided keyword. That is used to impose system-speci
 It may be followed by additional options that will be appended to the
 system string (e.g., "@@SYSTEM:+SRP"). The system file should have the
 format 'KEYWORD=VALUE', e.g., 'SYSTEM=NORMAL:+ARCFOUR-128'.
+
+Since version 3.5.1 it is allowed to specify fallback keywords such
+as @@KEYWORD1,@@KEYWORD2, and the first valid keyword will be used.
 
 @item PERFORMANCE @tab
 All the known to be secure ciphersuites are enabled,
@@ -1095,8 +1178,11 @@ allowed.
 
 The order with which every algorithm or protocol
 is specified is significant. Algorithms specified before others
-will take precedence. The supported algorithms and protocols
-are shown in @ref{tab:prio-algorithms}. 
+will take precedence. The supported in the GnuTLS version corresponding
+to this document algorithms and protocols are shown in @ref{tab:prio-algorithms};
+to list the supported algorithms in your currently using version use
+@code{gnutls-cli -l}.
+
 To avoid collisions in order to specify a compression algorithm in
 the priority string you have to prefix it with "COMP-", protocol versions
 with "VERS-", signature algorithms with "SIGN-" and certificate types with "CTYPE-". 
@@ -1115,14 +1201,13 @@ appended with an algorithm will add this algorithm.
 @multitable @columnfractions .20 .70
 @headitem Type @tab Keywords
 @item Ciphers @tab
-AES-128-CBC, AES-256-CBC, AES-128-GCM, CAMELLIA-128-CBC,
-CAMELLIA-256-CBC, ARCFOUR-128, 3DES-CBC. Catch all
-name is CIPHER-ALL which will add all the algorithms from NORMAL
-priority.
+Examples are AES-128-GCM, AES-256-GCM, AES-256-CBC; see also
+@ref{tab:ciphers} for more options. Catch all name is CIPHER-ALL which will add
+all the algorithms from NORMAL priority.
 
 @item Key exchange @tab
 RSA, DHE-RSA, DHE-DSS, SRP, SRP-RSA, SRP-DSS,
-PSK, DHE-PSK, ECDHE-RSA, ANON-ECDH, ANON-DH. The
+PSK, DHE-PSK, ECDHE-RSA, ECDHE-ECDSA, ECDHE-PSK, ANON-ECDH, ANON-DH. The
 Catch all name is KX-ALL which will add all the algorithms from NORMAL
 priority.
 
@@ -1138,19 +1223,24 @@ COMP-NULL, COMP-DEFLATE. Catch all is COMP-ALL.
 @item TLS versions @tab
 VERS-TLS1.0, VERS-TLS1.1, VERS-TLS1.2,
 VERS-DTLS1.0, VERS-DTLS1.2. 
-Catch all are VERS-ALL, VERS-TLS-ALL and VERS-DTLS-ALL.
+Catch all are VERS-ALL, VERS-TLS-ALL and VERS-DTLS-ALL, and will enable
+all protocols from NORMAL priority.
 
 @item Signature algorithms @tab
-SIGN-RSA-SHA1, SIGN-RSA-SHA224, 
-SIGN-RSA-SHA256, SIGN-RSA-SHA384, SIGN-RSA-SHA512, SIGN-DSA-SHA1, 
-SIGN-DSA-SHA224, SIGN-DSA-SHA256, SIGN-RSA-MD5. Catch all
-is SIGN-ALL. This is only valid for TLS 1.2 and later.
+SIGN-RSA-SHA1, SIGN-RSA-SHA224,
+SIGN-RSA-SHA256, SIGN-RSA-SHA384, SIGN-RSA-SHA512, SIGN-DSA-SHA1,
+SIGN-DSA-SHA224, SIGN-DSA-SHA256, SIGN-RSA-MD5, SIGN-ECDSA-SHA1,
+SIGN-ECDSA-SHA224, SIGN-ECDSA-SHA256, SIGN-ECDSA-SHA384, SIGN-ECDSA-SHA512.
+Catch all which enables all algorithms from NORMAL priority is SIGN-ALL.
+This option is only considered for TLS 1.2 and later.
 
 @item Elliptic curves @tab
-CURVE-SECP192R1, CURVE-SECP224R1, CURVE-SECP256R1, CURVE-SECP384R1, CURVE-SECP521R1. Catch all is CURVE-ALL.
+CURVE-SECP192R1, CURVE-SECP224R1, CURVE-SECP256R1, CURVE-SECP384R1,
+CURVE-SECP521R1, and CURVE-X25519.
+Catch all which enables all curves from NORMAL priority is CURVE-ALL.
 
 @item Certificate type @tab
-CTYPE-OPENPGP, CTYPE-X509. Catch all is CTYPE-ALL.
+The options CTYPE-OPENPGP (deprecated), and CTYPE-X509 are available. Catch all is CTYPE-ALL.
 
 @end multitable
 @caption{The supported algorithm keywords in priority strings.}
@@ -1178,12 +1268,13 @@ problematic clients and servers is achieved. More specifically this
 string would disable TLS record random padding, tolerate packets
 over the maximum allowed TLS record, and add a padding to TLS Client
 Hello packet to prevent it being in the 256-512 range which is known
-to be causing issues with a commonly used firewall.
+to be causing issues with a commonly used firewall (see the %DUMBFW option).
 
 @item %DUMBFW @tab
 will add a private extension with bogus data that make the client
 hello exceed 512 bytes. This avoids a black hole behavior in some
-firewalls. This is a non-standard TLS extension, use with care.
+firewalls. This is the @xcite{rfc7685} client hello padding extension, also enabled
+with %COMPAT.
 
 @item %NO_EXTENSIONS @tab
 will prevent the sending of any TLS extensions in client side. Note
@@ -1204,7 +1295,9 @@ and not the client's.
 
 @item %SSL3_RECORD_VERSION @tab
 will use SSL3.0 record version in client hello.
-This is the default.
+By default GnuTLS will set the minimum supported version as the
+client hello record version (do not confuse that version with the
+proposed handshake version at the client hello).
 
 @item %LATEST_RECORD_VERSION @tab
 will use the latest TLS version record version in client hello.
@@ -1307,7 +1400,7 @@ Enabling the 128-bit secure ciphers, while disabling TLS 1.0 and enabling compre
 
 Enabling the 128-bit and 192-bit secure ciphers, while disabling all TLS versions 
 except TLS 1.2:
-    "SECURE128:+SECURE192:-VERS-TLS-ALL:+VERS-TLS1.2"
+    "SECURE128:+SECURE192:-VERS-ALL:+VERS-TLS1.2"
 @end example
 
 @node Selecting cryptographic key sizes
@@ -1553,7 +1646,9 @@ The high level functionality provided by the DANE library is shown below.
 
 Note that the @code{dane_state_t} structure that is accepted by both
 verification functions is optional. It is required when many queries
-are performed to facilitate caching.
+are performed to optimize against multiple re-initializations of the
+resolving back-end and loading of DNSSEC keys.
+
 The following flags are returned by the verify functions to
 indicate the status of the verification.
 
@@ -1572,8 +1667,15 @@ you may use danetool (see @ref{danetool Invocation}).
 In TLS there is no distinction between rekey, re-authentication, and re-negotiation.
 All of these use cases are handled by the TLS' rehandshake process. For that reason
 in GnuTLS rehandshake is not transparent to the application, and the application
-must take control of that process. The following paragraphs explain how to safely
-use the rehandshake process.
+must explicitly take control of that process. In addition GnuTLS since version 3.5.0 will not
+allow the peer to switch identities during a rehandshake.
+The threat addressed by that behavior depends on the application protocol,
+but primarily it protects applications from being misled
+by a rehandshake which switches the peer's identity. Applications can
+disable this protection by using the @code{GNUTLS_ALLOW_ID_CHANGE} flag in
+@funcref{gnutls_init}.
+
+The following paragraphs explain how to safely use the rehandshake process.
 
 @subsubsection Client side
 
@@ -1587,10 +1689,7 @@ of type GNUTLS_A_NO_RENEGOTIATION.
 
 Due to limitations of early protocol versions, it is required to check whether
 safe renegotiation is in place, i.e., using @funcref{gnutls_safe_renegotiation_status},
-which ensures that the server remains the same as the initial. For older servers,
-which do not support renegotiation, it is required on the second handshake
-to verify that their certificate/credentials remained the same as in the initial
-session.
+which ensures that the server remains the same as the initial.
 
 @showfuncdesc{gnutls_safe_renegotiation_status}
 
@@ -1609,38 +1708,42 @@ the discussion in @ref{Safe renegotiation}).
 @cindex parameter generation
 @cindex generating parameters
 
-Several TLS ciphersuites require additional parameters that
-need to be generated or provided by the application. The
-Diffie-Hellman based ciphersuites (ANON-DH or DHE), require
-the group parameters to be provided. Those can either be
-be generated on the fly using @funcref{gnutls_dh_params_generate2}
-or imported from pregenerated data using @funcref{gnutls_dh_params_import_pkcs3}.
-The parameters can be used in a @acronym{TLS} session by calling
-@funcref{gnutls_certificate_set_dh_params} or
-@funcref{gnutls_anon_set_server_dh_params} for anonymous sessions.
+Few TLS ciphersuites require additional parameters that
+need to be generated or provided by the application. In particular,
+the Diffie-Hellman based ciphersuites (ANON-DH or DHE), require
+the group parameters to be provided. 
+Applications can specify these parameters in a @acronym{TLS} credentials
+structure by calling
+@funcref{gnutls_certificate_set_known_dh_params},
+@funcref{gnutls_anon_set_server_known_dh_params}, or
+@funcref{gnutls_psk_set_server_known_dh_params}, depending on the type
+of the credentials.
 
-@showfuncD{gnutls_dh_params_generate2,gnutls_dh_params_import_pkcs3,gnutls_certificate_set_dh_params,gnutls_anon_set_server_dh_params}
+@showfuncC{gnutls_certificate_set_known_dh_params,gnutls_anon_set_server_known_dh_params,gnutls_psk_set_server_known_dh_params}
 
-Due to the time-consuming calculations required for the generation
-of Diffie-Hellman parameters we suggest against performing generation
-of them within an application. The @code{certtool} tool can be used to 
-generate or export known safe values that can be stored in code
-or in a configuration file to provide the ability to replace. We also
-recommend the usage of @funcref{gnutls_sec_param_to_pk_bits} 
-(see @ref{Selecting cryptographic key sizes}) to determine
-the bit size of the generated parameters.
+The functions above will set DH parameters pre-configured in the library
+based on the security level provided. The GnuTLS' included parameters are
+the FFDHE parameters from @xcite{RFC7919}.
 
-Note that the information stored in the generated PKCS #3 structure
-changed with GnuTLS 3.0.9. Since that version the @code{privateValueLength}
-member of the structure is set, allowing the server utilizing the
-parameters to use keys of the size of the security parameter. This
-provides better performance in key exchange.
+@subsubsection Legacy parameter generation
+Note that older than 3.5.6 versions of GnuTLS provided functions
+to generate or import arbitrary DH parameters from a file. This
+practice is still supported but discouraged in current versions.
+There is no known advantage from using random parameters, while there
+have been several occasions where applications were utilizing incorrect,
+or insecure parameters. This is the main reason GnuTLS includes the
+well-known parameters of @xcite{RFC7919} and recommends to applications
+utilizing them.
 
-To allow renewal of the parameters within an application without
-accessing the credentials, which are a shared structure,
-an alternative interface is available using a callback function.  
+In older applications which require to specify explicit DH parameters, we recommend
+using @code{certtool} (of GnuTLS 3.5.6 or later) with the @code{--get-dh-params}
+option to obtain the FFDHE parameters descussed above. The output
+parameters of the tool are in PKCS#3 format and can be imported by
+most existing applications.
 
-@showfuncdesc{gnutls_certificate_set_params_function}
+The following functions are still supported but considered obsolete.
+
+@showfuncC{gnutls_dh_params_generate2,gnutls_dh_params_import_pkcs3,gnutls_certificate_set_dh_params}
 
 
 @node Deriving keys for other applications/protocols
@@ -1746,7 +1849,7 @@ NORMAL:%COMPAT
 For very old broken peers that do not tolerate TLS version numbers over TLS 1.0
 another priority string is:
 @verbatim
-NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:%COMPAT
+NORMAL:-VERS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:%COMPAT
 @end verbatim
 This priority string will in addition to above, only enable SSL 3.0 and 
 TLS 1.0 as protocols. 

@@ -1,0 +1,31 @@
+os:
+ - osx
+
+language: c
+compiler:
+  - clang
+
+git:
+  submodules: false
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+
+before_install:
+  - git submodule update --init
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
+        brew install pkg-config autoconf automake autogen libtool nettle valgrind p11-kit libtasn1 gettext;
+    fi
+
+script:
+  - PATH=/usr/local/opt/gettext/bin:$PATH make autoreconf
+  - PATH=/usr/local/opt/gettext/bin:$PATH ./configure --disable-full-test-suite --disable-valgrind-tests --disable-doc --disable-guile --disable-dependency-tracking
+  - make -j$(sysctl -n hw.ncpu)
+  - make -j$(sysctl -n hw.ncpu) check gl_public_submodule_commit=
+
+after_failure:
+  - for i in tests/*.log;do echo "" && echo $i && cat $i;done
+

@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2003-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2003-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -20,16 +21,16 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <libtasn1.h>
 
-#include <gnutls_datum.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include <datum.h>
+#include <global.h>
+#include "errors.h"
 #include <common.h>
 #include <x509_b64.h>
 #include <x509_int.h>
-#include <gnutls_x509.h>
+#include <x509.h>
 
 static int crl_reinit(gnutls_x509_crl_t crl)
 {
@@ -194,6 +195,9 @@ gnutls_x509_crl_import(gnutls_x509_crl_t crl,
  *
  * If buf is %NULL then only the size will be filled.
  *
+ * This function does not output a fully RFC4514 compliant string, if
+ * that is required see gnutls_x509_crl_get_issuer_dn3().
+ *
  * Returns: %GNUTLS_E_SHORT_MEMORY_BUFFER if the provided buffer is
  * not long enough, and in that case the sizeof_buf will be updated
  * with the required size, and 0 on success.
@@ -210,7 +214,7 @@ gnutls_x509_crl_get_issuer_dn(const gnutls_x509_crl_t crl, char *buf,
 
 	return _gnutls_x509_parse_dn(crl->crl,
 				     "tbsCertList.issuer.rdnSequence",
-				     buf, sizeof_buf);
+				     buf, sizeof_buf, GNUTLS_X509_DN_FLAG_COMPAT);
 }
 
 /**
@@ -241,7 +245,7 @@ gnutls_x509_crl_get_issuer_dn(const gnutls_x509_crl_t crl, char *buf,
  **/
 int
 gnutls_x509_crl_get_issuer_dn_by_oid(gnutls_x509_crl_t crl,
-				     const char *oid, int indx,
+				     const char *oid, unsigned indx,
 				     unsigned int raw_flag, void *buf,
 				     size_t * sizeof_buf)
 {
@@ -281,7 +285,7 @@ gnutls_x509_crl_get_issuer_dn_by_oid(gnutls_x509_crl_t crl,
  **/
 int
 gnutls_x509_crl_get_dn_oid(gnutls_x509_crl_t crl,
-			   int indx, void *oid, size_t * sizeof_oid)
+			   unsigned indx, void *oid, size_t * sizeof_oid)
 {
 	if (crl == NULL) {
 		gnutls_assert();
@@ -303,6 +307,9 @@ gnutls_x509_crl_get_dn_oid(gnutls_x509_crl_t crl,
  * described in RFC4514. The output string will be ASCII or UTF-8
  * encoded, depending on the certificate data.
  *
+ * This function does not output a fully RFC4514 compliant string, if
+ * that is required see gnutls_x509_crl_get_issuer_dn3().
+ *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
  *
@@ -317,7 +324,41 @@ gnutls_x509_crl_get_issuer_dn2(gnutls_x509_crl_t crl, gnutls_datum_t * dn)
 	}
 
 	return _gnutls_x509_get_dn(crl->crl,
-				   "tbsCertList.issuer.rdnSequence", dn);
+				   "tbsCertList.issuer.rdnSequence",
+				   dn, GNUTLS_X509_DN_FLAG_COMPAT);
+}
+
+/**
+ * gnutls_x509_crl_get_issuer_dn3:
+ * @crl: should contain a #gnutls_x509_crl_t type
+ * @dn: a pointer to a structure to hold the name
+ * @flags: zero or %GNUTLS_X509_DN_FLAG_COMPAT
+ *
+ * This function will allocate buffer and copy the name of the CRL issuer.
+ * The name will be in the form "C=xxxx,O=yyyy,CN=zzzz" as
+ * described in RFC4514. The output string will be ASCII or UTF-8
+ * encoded, depending on the certificate data.
+ *
+ * When the flag %GNUTLS_X509_DN_FLAG_COMPAT is specified, the output
+ * format will match the format output by previous to 3.5.6 versions of GnuTLS
+ * which was not not fully RFC4514-compliant.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error value.
+ *
+ * Since: 3.5.7
+ **/
+int
+gnutls_x509_crl_get_issuer_dn3(gnutls_x509_crl_t crl, gnutls_datum_t * dn, unsigned flags)
+{
+	if (crl == NULL) {
+		gnutls_assert();
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	return _gnutls_x509_get_dn(crl->crl,
+				   "tbsCertList.issuer.rdnSequence",
+				   dn, flags);
 }
 
 /**
@@ -358,6 +399,46 @@ int gnutls_x509_crl_get_signature_algorithm(gnutls_x509_crl_t crl)
 	_gnutls_free_datum(&sa);
 
 	return result;
+}
+
+/**
+ * gnutls_x509_crl_get_signature_oid:
+ * @crl: should contain a #gnutls_x509_crl_t type
+ * @oid: a pointer to a buffer to hold the OID (may be null)
+ * @oid_size: initially holds the size of @oid
+ *
+ * This function will return the OID of the signature algorithm
+ * that has been used to sign this CRL. This is function
+ * is useful in the case gnutls_x509_crl_get_signature_algorithm()
+ * returned %GNUTLS_SIGN_UNKNOWN.
+ *
+ * Returns: zero or a negative error code on error.
+ *
+ * Since: 3.5.0
+ **/
+int gnutls_x509_crl_get_signature_oid(gnutls_x509_crl_t crl, char *oid, size_t *oid_size)
+{
+	char str[MAX_OID_SIZE];
+	int len, result, ret;
+	gnutls_datum_t out;
+
+	len = sizeof(str);
+	result = asn1_read_value(crl->crl, "signatureAlgorithm.algorithm", str, &len);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+
+	out.data = (void*)str;
+	out.size = len;
+
+	ret = _gnutls_copy_string(&out, (void*)oid, oid_size);
+	if (ret < 0) {
+		gnutls_assert();
+		return ret;
+	}
+
+	return 0;
 }
 
 /**
@@ -533,7 +614,7 @@ int gnutls_x509_crl_get_crt_count(gnutls_x509_crl_t crl)
  *   negative error value.
  **/
 int
-gnutls_x509_crl_get_crt_serial(gnutls_x509_crl_t crl, int indx,
+gnutls_x509_crl_get_crt_serial(gnutls_x509_crl_t crl, unsigned indx,
 			       unsigned char *serial,
 			       size_t * serial_size, time_t * t)
 {
@@ -611,8 +692,8 @@ void gnutls_x509_crl_iter_deinit(gnutls_x509_crl_iter_t iter)
 int
 gnutls_x509_crl_iter_crt_serial(gnutls_x509_crl_t crl,
 				gnutls_x509_crl_iter_t *iter,
-			        unsigned char *serial,
-			        size_t * serial_size, time_t * t)
+				unsigned char *serial,
+				size_t * serial_size, time_t * t)
 {
 
 	int result, _serial_size;
@@ -1038,7 +1119,7 @@ gnutls_x509_crl_get_number(gnutls_x509_crl_t crl, void *ret,
  * Since: 2.8.0
  **/
 int
-gnutls_x509_crl_get_extension_oid(gnutls_x509_crl_t crl, int indx,
+gnutls_x509_crl_get_extension_oid(gnutls_x509_crl_t crl, unsigned indx,
 				  void *oid, size_t * sizeof_oid)
 {
 	int result;
@@ -1084,7 +1165,7 @@ gnutls_x509_crl_get_extension_oid(gnutls_x509_crl_t crl, int indx,
  * Since: 2.8.0
  **/
 int
-gnutls_x509_crl_get_extension_info(gnutls_x509_crl_t crl, int indx,
+gnutls_x509_crl_get_extension_info(gnutls_x509_crl_t crl, unsigned indx,
 				   void *oid, size_t * sizeof_oid,
 				   unsigned int *critical)
 {
@@ -1156,7 +1237,7 @@ gnutls_x509_crl_get_extension_info(gnutls_x509_crl_t crl, int indx,
  * Since: 2.8.0
  **/
 int
-gnutls_x509_crl_get_extension_data(gnutls_x509_crl_t crl, int indx,
+gnutls_x509_crl_get_extension_data(gnutls_x509_crl_t crl, unsigned indx,
 				   void *data, size_t * sizeof_data)
 {
 	int result, len;

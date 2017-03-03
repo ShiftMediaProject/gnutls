@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <certtool-cfg.h>
 #include <gnutls/x509.h>
+#include <gnutls/x509-ext.h>
 #include <string.h>
 #include <limits.h>
 #include <inttypes.h>
@@ -37,16 +38,19 @@
 #include <autoopts/options.h>
 #include <intprops.h>
 #include <gnutls/crypto.h>
+#include <libtasn1.h>
 
 /* for inet_pton */
 #include <sys/types.h>
 
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #elif HAVE_WS2TCPIP_H
 #include <ws2tcpip.h>
 #endif
+
+/* From gnulib for inet_pton() */
+#include <arpa/inet.h>
 
 /* Gnulib portability files. */
 #include <getpass.h>
@@ -71,7 +75,7 @@ struct cfg_options {
 	unsigned type;
 
 	/* used when parsing */
-	unsigned found; 
+	unsigned found;
 };
 
 static struct cfg_options available_options[] = {
@@ -83,12 +87,21 @@ static struct cfg_options available_options[] = {
 	{ .name = "dns_name", .type = OPTION_MULTI_LINE },
 	{ .name = "ip_address", .type = OPTION_MULTI_LINE },
 	{ .name = "email", .type = OPTION_MULTI_LINE },
+	{ .name = "krb5_principal", .type = OPTION_MULTI_LINE },
+	{ .name = "other_name", .type = OPTION_MULTI_LINE },
+	{ .name = "other_name_utf8", .type = OPTION_MULTI_LINE },
+	{ .name = "other_name_octet", .type = OPTION_MULTI_LINE },
+	{ .name = "xmpp_name", .type = OPTION_MULTI_LINE },
 	{ .name = "key_purpose_oid", .type = OPTION_MULTI_LINE },
 	{ .name = "nc_exclude_dns", .type = OPTION_MULTI_LINE },
+	{ .name = "nc_exclude_ip", .type = OPTION_MULTI_LINE },
 	{ .name = "nc_exclude_email", .type = OPTION_MULTI_LINE },
 	{ .name = "nc_permit_dns", .type = OPTION_MULTI_LINE },
+	{ .name = "nc_permit_ip", .type = OPTION_MULTI_LINE },
 	{ .name = "nc_permit_email", .type = OPTION_MULTI_LINE },
 	{ .name = "dn_oid", .type = OPTION_MULTI_LINE },
+	{ .name = "add_extension", .type = OPTION_MULTI_LINE },
+	{ .name = "add_critical_extension", .type = OPTION_MULTI_LINE },
 	{ .name = "crl_dist_points", .type = OPTION_MULTI_LINE },
 	{ .name = "ocsp_uri", .type = OPTION_MULTI_LINE },
 	{ .name = "ca_issuers_uri", .type = OPTION_MULTI_LINE },
@@ -118,6 +131,7 @@ static struct cfg_options available_options[] = {
 	{ .name = "path_len", .type = OPTION_NUMERIC },
 	{ .name = "ca", .type = OPTION_BOOLEAN },
 	{ .name = "honor_crq_extensions", .type = OPTION_BOOLEAN },
+	{ .name = "honor_crq_ext", .type = OPTION_MULTI_LINE },
 	{ .name = "tls_www_client", .type = OPTION_BOOLEAN },
 	{ .name = "tls_www_server", .type = OPTION_BOOLEAN },
 	{ .name = "signing_key", .type = OPTION_BOOLEAN },
@@ -131,6 +145,7 @@ static struct cfg_options available_options[] = {
 	{ .name = "key_agreement", .type = OPTION_BOOLEAN },
 	{ .name = "data_encipherment", .type = OPTION_BOOLEAN },
 	{ .name = "non_repudiation", .type = OPTION_BOOLEAN },
+	{ .name = "tls_feature", .type = OPTION_MULTI_LINE },
 };
 
 typedef struct _cfg_ctx {
@@ -156,7 +171,16 @@ typedef struct _cfg_ctx {
 	char **uri;
 	char **ip_addr;
 	char **email;
+	char **krb5_principal;
+	char **other_name;
+	char **other_name_utf8;
+	char **other_name_octet;
+	char **xmpp_name;
 	char **dn_oid;
+	char **extensions;
+	char **crit_extensions;
+	char **permitted_nc_ip;
+	char **excluded_nc_ip;
 	char **permitted_nc_dns;
 	char **excluded_nc_dns;
 	char **permitted_nc_email;
@@ -189,10 +213,12 @@ typedef struct _cfg_ctx {
 	char **key_purpose_oids;
 	int crl_next_update;
 	int64_t crl_number;
-	int crq_extensions;
+	int honor_crq_extensions;
 	char *proxy_policy_language;
+	char **exts_to_honor;
 	char **ocsp_uris;
 	char **ca_issuers_uris;
+	char **tls_features;
 } cfg_ctx;
 
 cfg_ctx cfg;
@@ -213,12 +239,12 @@ void cfg_init(void)
       i = 0; \
       s_name = malloc(sizeof(char*)*MAX_ENTRIES); \
       do { \
-        if (val && !strcmp(val->pzName, name)==0) \
-          continue; \
-        s_name[i] = strdup(val->v.strVal); \
-        i++; \
-          if (i>=MAX_ENTRIES) \
-            break; \
+	if (val && !strcmp(val->pzName, name)==0) \
+	  continue; \
+	s_name[i] = strdup(val->v.strVal); \
+	i++; \
+	  if (i>=MAX_ENTRIES) \
+	    break; \
       } while((val = optionNextValue(pov, val)) != NULL); \
       s_name[i] = NULL; \
     } \
@@ -230,30 +256,36 @@ void cfg_init(void)
   { \
     char str[512]; \
     char * p; \
+    int len; \
     if (s_name == NULL) { \
       i = 0; \
       s_name = malloc(sizeof(char*)*MAX_ENTRIES); \
       do { \
-        if (val && !strcmp(val->pzName, name)==0) \
-          continue; \
-        strncpy(str, val->v.strVal, sizeof(str)-1); \
-        str[sizeof(str)-1] = 0; \
-        if ((p=strchr(str, ' ')) == NULL && (p=strchr(str, '\t')) == NULL) { \
-          fprintf(stderr, "Error parsing %s\n", name); \
-          exit(1); \
-        } \
-        p[0] = 0; \
-        p++; \
-        s_name[i] = strdup(str); \
-        while(*p==' ' || *p == '\t') p++; \
-        if (p[0] == 0) { \
-          fprintf(stderr, "Error (2) parsing %s\n", name); \
-          exit(1); \
-        } \
-        s_name[i+1] = strdup(p); \
-        i+=2; \
-        if (i>=MAX_ENTRIES) \
-          break; \
+	if (val && !strcmp(val->pzName, name)==0) \
+	  continue; \
+	len = strlen(val->v.strVal); \
+	if (sizeof(str) > (unsigned)len) { \
+		strcpy(str, val->v.strVal); \
+	} else { \
+		memcpy(str, val->v.strVal, sizeof(str)-1); \
+		str[sizeof(str)-1] = 0; \
+	} \
+	if ((p=strchr(str, ' ')) == NULL && (p=strchr(str, '\t')) == NULL) { \
+	  fprintf(stderr, "Error parsing %s\n", name); \
+	  exit(1); \
+	} \
+	p[0] = 0; \
+	p++; \
+	s_name[i] = strdup(str); \
+	while(*p==' ' || *p == '\t') p++; \
+	if (p[0] == 0) { \
+	  fprintf(stderr, "Error (2) parsing %s\n", name); \
+	  exit(1); \
+	} \
+	s_name[i+1] = strdup(p); \
+	i+=2; \
+	if (i>=MAX_ENTRIES) \
+	  break; \
       } while((val = optionNextValue(pov, val)) != NULL); \
       s_name[i] = NULL; \
     } \
@@ -269,8 +301,8 @@ void cfg_init(void)
 /* READ_NUMERIC only returns a long */
 #define CHECK_LONG_OVERFLOW(x) \
       if (x == LONG_MAX) { \
-      	fprintf(stderr, "overflow in number\n"); \
-      	exit(1); \
+        fprintf(stderr, "overflow in number\n"); \
+        exit(1); \
       }
 
 #define READ_NUMERIC(name, s_name) \
@@ -278,9 +310,9 @@ void cfg_init(void)
   if (val != NULL) \
     { \
       if (val->valType == OPARG_TYPE_NUMERIC) \
-        s_name = val->v.longVal; \
+	s_name = val->v.longVal; \
       else if (val->valType == OPARG_TYPE_STRING) \
-        s_name = strtol(val->v.strVal, NULL, 10); \
+	s_name = strtol(val->v.strVal, NULL, 10); \
     }
 
 #define HEX_DECODE(hex, output, output_size) \
@@ -309,7 +341,7 @@ unsigned len, cmp;
 			cmp = strcasecmp(val->pzName, available_options[j].name);
 
 		if (cmp == 0) {
-			if (available_options[j].type != OPTION_MULTI_LINE && 
+			if (available_options[j].type != OPTION_MULTI_LINE &&
 			    available_options[j].found != 0) {
 			    fprintf(stderr, "Warning: multiple options found for '%s'; only the first will be taken into account.\n", available_options[j].name);
 			}
@@ -448,17 +480,27 @@ int template_parse(const char *template)
 	READ_MULTI_LINE("dc", cfg.dc);
 	READ_MULTI_LINE("dns_name", cfg.dns_name);
 	READ_MULTI_LINE("uri", cfg.uri);
+	READ_MULTI_LINE("krb5_principal", cfg.krb5_principal);
+	READ_MULTI_LINE_TOKENIZED("other_name", cfg.other_name);
+	READ_MULTI_LINE_TOKENIZED("other_name_octet", cfg.other_name_octet);
+	READ_MULTI_LINE_TOKENIZED("other_name_utf8", cfg.other_name_utf8);
 
+	READ_MULTI_LINE("xmpp_name", cfg.xmpp_name);
 	READ_MULTI_LINE("ip_address", cfg.ip_addr);
 	READ_MULTI_LINE("email", cfg.email);
 	READ_MULTI_LINE("key_purpose_oid", cfg.key_purpose_oids);
 
+	READ_MULTI_LINE("nc_exclude_ip", cfg.excluded_nc_ip);
 	READ_MULTI_LINE("nc_exclude_dns", cfg.excluded_nc_dns);
 	READ_MULTI_LINE("nc_exclude_email", cfg.excluded_nc_email);
+	READ_MULTI_LINE("nc_permit_ip", cfg.permitted_nc_ip);
 	READ_MULTI_LINE("nc_permit_dns", cfg.permitted_nc_dns);
 	READ_MULTI_LINE("nc_permit_email", cfg.permitted_nc_email);
 
 	READ_MULTI_LINE_TOKENIZED("dn_oid", cfg.dn_oid);
+
+	READ_MULTI_LINE_TOKENIZED("add_extension", cfg.extensions);
+	READ_MULTI_LINE_TOKENIZED("add_critical_extension", cfg.crit_extensions);
 
 	READ_MULTI_LINE("crl_dist_points", cfg.crl_dist_points);
 
@@ -485,7 +527,9 @@ int template_parse(const char *template)
 	READ_MULTI_LINE("ca_issuers_uri", cfg.ca_issuers_uris);
 
 	READ_BOOLEAN("ca", cfg.ca);
-	READ_BOOLEAN("honor_crq_extensions", cfg.crq_extensions);
+	READ_BOOLEAN("honor_crq_extensions", cfg.honor_crq_extensions);
+	READ_MULTI_LINE("honor_crq_ext", cfg.exts_to_honor);
+
 	READ_BOOLEAN("tls_www_client", cfg.tls_www_client);
 	READ_BOOLEAN("tls_www_server", cfg.tls_www_server);
 	READ_BOOLEAN("signing_key", cfg.signing_key);
@@ -500,6 +544,8 @@ int template_parse(const char *template)
 	READ_BOOLEAN("data_encipherment", cfg.data_encipherment);
 	READ_BOOLEAN("key_agreement", cfg.key_agreement);
 	READ_BOOLEAN("non_repudiation", cfg.non_repudiation);
+
+	READ_MULTI_LINE("tls_feature", cfg.tls_features);
 
 	optionUnloadNested(pov);
 
@@ -920,13 +966,46 @@ void crt_constraints_set(gnutls_x509_crt_t crt)
 
 	if (batch) {
 		if (cfg.permitted_nc_dns == NULL && cfg.permitted_nc_email == NULL &&
-			cfg.excluded_nc_dns == NULL && cfg.excluded_nc_email == NULL)
+			cfg.excluded_nc_dns == NULL && cfg.excluded_nc_email == NULL &&
+			cfg.permitted_nc_ip == NULL && cfg.excluded_nc_ip == NULL)
 			return; /* nothing to do */
 
 		ret = gnutls_x509_name_constraints_init(&nc);
 		if (ret < 0) {
 			fprintf(stderr, "nc_init: %s\n", gnutls_strerror(ret));
 			exit(1);
+		}
+
+		if (cfg.permitted_nc_ip) {
+			for (i = 0; cfg.permitted_nc_ip[i] != NULL; i++) {
+				ret = gnutls_x509_cidr_to_rfc5280(cfg.permitted_nc_ip[i], &name);
+				if (ret < 0) {
+					fprintf(stderr, "error parsing IP constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+				ret = gnutls_x509_name_constraints_add_permitted(nc, GNUTLS_SAN_IPADDRESS, &name);
+				if (ret < 0) {
+					fprintf(stderr, "error adding constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+				free(name.data);
+			}
+		}
+
+		if (cfg.excluded_nc_ip) {
+			for (i = 0; cfg.excluded_nc_ip[i] != NULL; i++) {
+				ret = gnutls_x509_cidr_to_rfc5280(cfg.excluded_nc_ip[i], &name);
+				if (ret < 0) {
+					fprintf(stderr, "error parsing IP constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+				ret = gnutls_x509_name_constraints_add_excluded(nc, GNUTLS_SAN_IPADDRESS, &name);
+				if (ret < 0) {
+					fprintf(stderr, "error adding constraint: %s\n", gnutls_strerror(ret));
+					exit(1);
+				}
+				free(name.data);
+			}
 		}
 
 		if (cfg.permitted_nc_dns) {
@@ -942,6 +1021,7 @@ void crt_constraints_set(gnutls_x509_crt_t crt)
 				}
 			}
 		}
+
 
 		if (cfg.excluded_nc_dns) {
 			for (i = 0; cfg.excluded_nc_dns[i] != NULL; i++) {
@@ -1062,6 +1142,140 @@ void get_oid_crt_set(gnutls_x509_crt_t crt)
 
 			if (ret < 0) {
 				fprintf(stderr, "set_dn_oid: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+	}
+}
+
+#define ACTION_NONE  0
+#define ENCODE_OCTET_STRING 1
+static unsigned char *decode_ext_string(char *str, unsigned int *ret_size)
+{
+	char *p, *p2;
+	unsigned char *tmp;
+	unsigned char *raw;
+	unsigned int raw_size;
+	unsigned action = ACTION_NONE;
+	unsigned char tag[ASN1_MAX_TL_SIZE];
+	unsigned int tag_len;
+	int ret, res;
+
+	p = strchr(str, '(');
+	if (p != 0) {
+		if (strncmp(str, "octet_string", 12) == 0) {
+			action = ENCODE_OCTET_STRING;
+		} else {
+			fprintf(stderr, "cannot parse: %s\n", str);
+			exit(1);
+		}
+		p++;
+		p2 = strchr(p, ')');
+		if (p2 == NULL) {
+			fprintf(stderr, "there is no terminating parenthesis in: %s\n", str);
+			exit(1);
+		}
+		*p2 = 0;
+	} else {
+		p = str;
+	}
+
+	if (strncmp(p, "0x", 2) == 0)
+		p+=2;
+	HEX_DECODE(p, raw, raw_size);
+
+	switch(action) {
+		case ENCODE_OCTET_STRING:
+			tag_len = sizeof(tag);
+			res = asn1_encode_simple_der(ASN1_ETYPE_OCTET_STRING, raw, raw_size, tag, &tag_len);
+			if (res != ASN1_SUCCESS) {
+				fprintf(stderr, "error in DER encoding: %s\n", asn1_strerror(res));
+				exit(1);
+			}
+			tmp = gnutls_malloc(raw_size+tag_len);
+			if (tmp == NULL) {
+				fprintf(stderr, "error in allocation\n");
+				exit(1);
+			}
+			memcpy(tmp, tag, tag_len);
+			memcpy(tmp+tag_len, raw, raw_size);
+			gnutls_free(raw);
+			raw = tmp;
+			raw_size += tag_len;
+			break;
+	}
+
+	*ret_size = raw_size;
+	return raw;
+}
+
+void get_extensions_crt_set(int type, void *crt)
+{
+	int ret, i;
+	unsigned char *raw = NULL;
+	unsigned raw_size;
+
+	if (batch) {
+		if (!cfg.extensions)
+			return;
+		for (i = 0; cfg.extensions[i] != NULL; i += 2) {
+			if (cfg.extensions[i + 1] == NULL) {
+				fprintf(stderr,
+					"extensions: %s does not have an argument.\n",
+					cfg.extensions[i]);
+				exit(1);
+			}
+
+			/* convert hex to bin */
+			raw = decode_ext_string(cfg.extensions[i+1], &raw_size);
+
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_extension_by_oid(crt,
+							  cfg.extensions[i],
+							  raw, raw_size, 0);
+			else
+				ret =
+				    gnutls_x509_crq_set_extension_by_oid(crt,
+							  cfg.extensions[i],
+							  raw, raw_size, 0);
+
+			gnutls_free(raw);
+			if (ret < 0) {
+				fprintf(stderr, "set_extensions: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+
+		if (!cfg.crit_extensions)
+			return;
+		for (i = 0; cfg.crit_extensions[i] != NULL; i += 2) {
+			if (cfg.crit_extensions[i + 1] == NULL) {
+				fprintf(stderr,
+					"extensions: %s does not have an argument.\n",
+					cfg.crit_extensions[i]);
+				exit(1);
+			}
+			/* convert hex to bin */
+			raw = decode_ext_string(cfg.crit_extensions[i+1], &raw_size);
+
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_extension_by_oid(crt,
+							  cfg.crit_extensions[i],
+							  raw, raw_size, 1);
+			else
+				ret =
+				    gnutls_x509_crq_set_extension_by_oid(crt,
+							  cfg.crit_extensions[i],
+							  raw, raw_size, 1);
+
+			gnutls_free(raw);
+
+			if (ret < 0) {
+				fprintf(stderr, "set_extensions: %s\n",
 					gnutls_strerror(ret));
 				exit(1);
 			}
@@ -1251,18 +1465,18 @@ time_t get_date(const char* date)
 	struct timespec r;
 
 	if (date==NULL || parse_datetime(&r, date, NULL) == 0) {
-	        fprintf(stderr, "Cannot parse date: %s\n", date);
-	        exit(1);
-        }
-        
-        return r.tv_sec;
+		fprintf(stderr, "Cannot parse date: %s\n", date);
+		exit(1);
+	}
+
+	return r.tv_sec;
 }
 
 time_t get_activation_date(void)
 {
 
 	if (batch && cfg.activation_date != NULL) {
-       		return get_date(cfg.activation_date);
+		return get_date(cfg.activation_date);
 	}
 
 	return time(NULL);
@@ -1272,7 +1486,7 @@ time_t get_crl_revocation_date(void)
 {
 
 	if (batch && cfg.revocation_date != NULL) {
-       		return get_date(cfg.revocation_date);
+		return get_date(cfg.revocation_date);
 	}
 
 	return time(NULL);
@@ -1282,7 +1496,7 @@ time_t get_crl_this_update_date(void)
 {
 
 	if (batch && cfg.this_update_date != NULL) {
-       		return get_date(cfg.this_update_date);
+		return get_date(cfg.this_update_date);
 	}
 
 	return time(NULL);
@@ -1294,26 +1508,26 @@ time_t days_to_secs(int days)
 time_t secs = days;
 time_t now = time(NULL);
 
-       	if (secs != (time_t)-1) {
-      	        if (INT_MULTIPLY_OVERFLOW(secs, 24*60*60)) {
-                        goto overflow;
-	        } else {
-    	                secs *= 24*60*60;
-      	        }
-        }
-                                
-        if (secs != (time_t)-1) {
-                if (INT_ADD_OVERFLOW(secs, now)) {
-                        goto overflow;
-                } else {
-                        secs += now;
-                }
-        }
-        
-        return secs;
+	if (secs != (time_t)-1) {
+		if (INT_MULTIPLY_OVERFLOW(secs, 24*60*60)) {
+			goto overflow;
+		} else {
+			secs *= 24*60*60;
+		}
+	}
+
+	if (secs != (time_t)-1) {
+		if (INT_ADD_OVERFLOW(secs, now)) {
+			goto overflow;
+		} else {
+			secs += now;
+		}
+	}
+
+	return secs;
  overflow:
- 	fprintf(stderr, "Overflow while parsing days\n");
- 	exit(1);
+	fprintf(stderr, "Overflow while parsing days\n");
+	exit(1);
 }
 
 static
@@ -1321,13 +1535,13 @@ time_t get_int_date(const char *txt_val, int int_val, const char *msg)
 {
 	if (batch) {
 		if (txt_val == NULL) {
-		        time_t secs;
-		        
-        		if (int_val == 0 || int_val < -2)
-        		        secs = days_to_secs(365);
-                        else {
-                                secs = days_to_secs(int_val);
-                        }
+			time_t secs;
+
+			if (int_val == 0 || int_val < -2)
+				secs = days_to_secs(365);
+			else {
+				secs = days_to_secs(int_val);
+			}
 
 			return secs;
 		} else
@@ -1365,11 +1579,11 @@ int get_ca_status(void)
 int get_crq_extensions_status(void)
 {
 	if (batch) {
-		return cfg.crq_extensions;
+		return cfg.honor_crq_extensions;
 	} else {
 		return
 		    read_yesno
-		    ("Do you want to honour the extensions from the request? (y/N): ",
+		    ("Do you want to honour all the extensions from the request? (y/N): ",
 		     0);
 	}
 }
@@ -1704,6 +1918,234 @@ void get_dns_name_set(int type, void *crt)
 			gnutls_strerror(ret));
 		exit(1);
 	}
+}
+
+static int set_krb5_principal(int type, void *crt)
+{
+	int ret = 0, i;
+
+	if (batch) {
+		if (!cfg.krb5_principal)
+			return 0;
+
+		for (i = 0; cfg.krb5_principal[i] != NULL; i ++) {
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_subject_alt_name
+				    (crt, GNUTLS_SAN_OTHERNAME_KRB5PRINCIPAL,
+				     cfg.krb5_principal[i], strlen(cfg.krb5_principal[i]),
+				     GNUTLS_FSAN_APPEND);
+			else
+				ret =
+				    gnutls_x509_crq_set_subject_alt_name
+				    (crt, GNUTLS_SAN_OTHERNAME_KRB5PRINCIPAL,
+				     cfg.krb5_principal[i], strlen(cfg.krb5_principal[i]),
+				     GNUTLS_FSAN_APPEND);
+
+			if (ret < 0)
+				break;
+		}
+	}
+
+	if (ret < 0) {
+		fprintf(stderr, "set_subject_alt_name(GNUTLS_SAN_OTHERNAME_KRB5PRINCIPAL): %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	return ret;
+}
+
+static int set_othername(int type, void *crt)
+{
+	int ret = 0, i;
+	uint8_t *binname = NULL;
+	unsigned binnamelen = 0;
+	const char *oid;
+
+	if (batch) {
+		if (!cfg.other_name)
+			return 0;
+
+		for (i = 0; cfg.other_name[i] != NULL; i += 2) {
+			oid = cfg.other_name[i];
+
+			if (cfg.other_name[i + 1] == NULL) {
+				fprintf(stderr,
+					"other_name: %s does not have an argument.\n",
+					cfg.other_name[i]);
+				exit(1);
+			}
+
+			HEX_DECODE (cfg.other_name[i+1], binname, binnamelen);
+			if (binnamelen == 0)
+				break;
+
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_subject_alt_othername
+				    (crt, oid,
+				     binname, binnamelen,
+				     GNUTLS_FSAN_APPEND);
+			else
+				ret =
+				    gnutls_x509_crq_set_subject_alt_othername
+				    (crt, oid,
+				     binname, binnamelen,
+				     GNUTLS_FSAN_APPEND);
+			free (binname);
+			binname = NULL;
+
+			if (ret < 0)
+				break;
+		}
+	}
+
+	if (ret < 0) {
+		fprintf(stderr, "set_subject_alt_othername: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	return ret;
+}
+
+static int set_othername_utf8(int type, void *crt)
+{
+	int ret = 0, i;
+	const char *oid;
+
+	if (batch) {
+		if (!cfg.other_name_utf8)
+			return 0;
+
+		for (i = 0; cfg.other_name_utf8[i] != NULL; i += 2) {
+			oid = cfg.other_name_utf8[i];
+
+			if (cfg.other_name_utf8[i + 1] == NULL) {
+				fprintf(stderr,
+					"other_name_utf8: %s does not have an argument.\n",
+					cfg.other_name_utf8[i]);
+				exit(1);
+			}
+
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_subject_alt_othername
+				    (crt, oid,
+				     cfg.other_name_utf8[i + 1], strlen(cfg.other_name_utf8[i + 1]),
+				     GNUTLS_FSAN_APPEND|GNUTLS_FSAN_ENCODE_UTF8_STRING);
+			else
+				ret =
+				    gnutls_x509_crq_set_subject_alt_othername
+				    (crt, oid,
+				     cfg.other_name_utf8[i + 1], strlen(cfg.other_name_utf8[i + 1]),
+				     GNUTLS_FSAN_APPEND|GNUTLS_FSAN_ENCODE_UTF8_STRING);
+
+			if (ret < 0)
+				break;
+		}
+	}
+
+	if (ret < 0) {
+		fprintf(stderr, "set_subject_alt_othername: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	return ret;
+}
+
+static int set_othername_octet(int type, void *crt)
+{
+	int ret = 0, i;
+	const char *oid;
+
+	if (batch) {
+		if (!cfg.other_name_octet)
+			return 0;
+
+		for (i = 0; cfg.other_name_octet[i] != NULL; i += 2) {
+			oid = cfg.other_name_octet[i];
+
+			if (cfg.other_name_octet[i + 1] == NULL) {
+				fprintf(stderr,
+					"other_name_octet: %s does not have an argument.\n",
+					cfg.other_name_octet[i]);
+				exit(1);
+			}
+
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_subject_alt_othername
+				    (crt, oid,
+				     cfg.other_name_octet[i + 1], strlen(cfg.other_name_octet[i + 1]),
+				     GNUTLS_FSAN_APPEND|GNUTLS_FSAN_ENCODE_OCTET_STRING);
+			else
+				ret =
+				    gnutls_x509_crq_set_subject_alt_othername
+				    (crt, oid,
+				     cfg.other_name_octet[i + 1], strlen(cfg.other_name_octet[i + 1]),
+				     GNUTLS_FSAN_APPEND|GNUTLS_FSAN_ENCODE_OCTET_STRING);
+
+			if (ret < 0)
+				break;
+		}
+	}
+
+	if (ret < 0) {
+		fprintf(stderr, "set_subject_alt_othername: %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	return ret;
+}
+
+static int set_xmpp_name(int type, void *crt)
+{
+	int ret = 0, i;
+
+	if (batch) {
+		if (!cfg.xmpp_name)
+			return 0;
+
+		for (i = 0; cfg.xmpp_name[i] != NULL; i ++) {
+			if (type == TYPE_CRT)
+				ret =
+				    gnutls_x509_crt_set_subject_alt_name
+				    (crt, GNUTLS_SAN_OTHERNAME_XMPP,
+				     cfg.xmpp_name[i], strlen(cfg.xmpp_name[i]),
+				     GNUTLS_FSAN_APPEND);
+			else
+				ret =
+				    gnutls_x509_crq_set_subject_alt_name
+				    (crt, GNUTLS_SAN_OTHERNAME_XMPP,
+				     cfg.xmpp_name[i], strlen(cfg.xmpp_name[i]),
+				     GNUTLS_FSAN_APPEND);
+
+			if (ret < 0)
+				break;
+		}
+	}
+
+	if (ret < 0) {
+		fprintf(stderr, "set_subject_alt_name(XMPP): %s\n",
+			gnutls_strerror(ret));
+		exit(1);
+	}
+
+	return ret;
+}
+
+
+void get_other_name_set(int type, void *crt)
+{
+	set_othername(type, crt);
+	set_othername_octet(type, crt);
+	set_othername_utf8(type, crt);
+	set_xmpp_name(type, crt);
+	set_krb5_principal(type, crt);
 }
 
 void get_policy_set(gnutls_x509_crt_t crt)
@@ -2201,4 +2643,70 @@ void get_oid_crq_set(gnutls_x509_crq_t crq)
 		}
 	}
 
+}
+
+void get_tlsfeatures_set(int type, void *crt)
+{
+	int ret, i;
+	unsigned int feature;
+
+	if (batch) {
+		if (!cfg.tls_features)
+			return;
+
+		gnutls_x509_tlsfeatures_t features;
+		ret = gnutls_x509_tlsfeatures_init(&features);
+		if (ret < 0) {
+			fprintf(stderr, "gnutls_x509_tlsfeatures_init: %s\n",
+				gnutls_strerror(ret));
+			exit(1);
+		}
+
+		for (i = 0; cfg.tls_features[i]; ++i) {
+			feature = strtoul(cfg.tls_features[i], 0, 10);
+			ret = gnutls_x509_tlsfeatures_add(features, feature);
+			if (ret < 0) {
+				fprintf(stderr, "gnutls_x509_tlsfeatures_add: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+
+		if (type == TYPE_CRT) {
+			ret = gnutls_x509_crt_set_tlsfeatures(crt, features);
+			if (ret < 0) {
+				fprintf(stderr, "gnutls_x509_crt_set_tlsfeatures: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+		else {
+			ret = gnutls_x509_crq_set_tlsfeatures(crt, features);
+			if (ret < 0) {
+				fprintf(stderr, "gnutls_x509_crq_set_tlsfeatures: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
+		}
+
+		gnutls_x509_tlsfeatures_deinit(features);
+	}
+}
+
+void crq_extensions_set(gnutls_x509_crt_t crt, gnutls_x509_crq_t crq)
+{
+	int ret, i;
+
+	if (batch) {
+		if (!cfg.exts_to_honor)
+			return;
+
+		for (i = 0; cfg.exts_to_honor[i]; ++i) {
+			ret = gnutls_x509_crt_set_crq_extension_by_oid(crt, crq, cfg.exts_to_honor[i], 0);
+			if (ret < 0) {
+				fprintf(stderr, "setting extension failed: %s: %s\n", cfg.exts_to_honor[i],
+					gnutls_strerror(ret));
+			}
+		}
+	}
 }

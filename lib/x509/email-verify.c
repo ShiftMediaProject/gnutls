@@ -19,13 +19,12 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_str.h>
+#include "gnutls_int.h"
+#include <str.h>
 #include <x509_int.h>
 #include <common.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <system.h>
-#include <gnutls-idna.h>
 
 static int has_embedded_null(const char *str, unsigned size)
 {
@@ -45,23 +44,25 @@ static int has_embedded_null(const char *str, unsigned size)
  *
  * Returns: non-zero for a successful match, and zero on failure.
  **/
-int
+unsigned
 gnutls_x509_crt_check_email(gnutls_x509_crt_t cert,
 			    const char *email, unsigned int flags)
 {
 	char rfc822name[MAX_CN];
 	size_t rfc822namesize;
 	int found_rfc822name = 0;
-	int ret = 0, rc;
+	int ret = 0;
 	int i = 0;
 	char *a_email;
-	char *a_rfc822name;
+	gnutls_datum_t out;
 
 	/* convert the provided email to ACE-Labels domain. */
-	rc = idna_to_ascii_8z (email, &a_email, 0);
-	if (rc != IDNA_SUCCESS) {
-		_gnutls_debug_log("unable to convert email %s to IDNA format: %s\n", email, idna_strerror (rc));
+	ret = _gnutls_idna_email_map(email, strlen(email), &out);
+	if (ret < 0) {
+		_gnutls_debug_log("unable to convert email %s to IDNA format\n", email);
 		a_email = (char*)email;
+	} else {
+		a_email = (char*)out.data;
 	}
 
 	/* try matching against:
@@ -92,15 +93,12 @@ gnutls_x509_crt_check_email(gnutls_x509_crt_t cert,
 				continue;
 			}
 
-			rc = idna_to_ascii_8z (rfc822name, &a_rfc822name, 0);
-			if (rc != IDNA_SUCCESS) {
-				_gnutls_debug_log("unable to convert rfc822name %s to IDNA format: %s\n", rfc822name, idna_strerror (rc));
+			if (!_gnutls_str_is_print(rfc822name, rfc822namesize)) {
+				_gnutls_debug_log("invalid (non-ASCII) email in certificate %.*s", (int)rfc822namesize, rfc822name);
 				continue;
 			}
 
-			ret = _gnutls_hostname_compare(a_rfc822name, strlen(a_rfc822name), a_email, GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS);
-			idn_free(a_rfc822name);
-
+			ret = _gnutls_hostname_compare(rfc822name, rfc822namesize, a_email, GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS);
 			if (ret != 0) {
 				ret = 1;
 				goto cleanup;
@@ -138,17 +136,13 @@ gnutls_x509_crt_check_email(gnutls_x509_crt_t cert,
 			goto cleanup;
 		}
 
-		rc = idna_to_ascii_8z (rfc822name, &a_rfc822name, 0);
-		if (rc != IDNA_SUCCESS) {
-			_gnutls_debug_log("unable to convert EMAIL %s to IDNA format: %s\n", rfc822name, idna_strerror (rc));
+		if (!_gnutls_str_is_print(rfc822name, rfc822namesize)) {
+			_gnutls_debug_log("invalid (non-ASCII) email in certificate DN %.*s", (int)rfc822namesize, rfc822name);
 			ret = 0;
 			goto cleanup;
 		}
 
-		ret = _gnutls_hostname_compare(a_rfc822name, strlen(a_rfc822name), a_email, GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS);
-
-		idn_free(a_rfc822name);
-
+		ret = _gnutls_hostname_compare(rfc822name, rfc822namesize, a_email, GNUTLS_VERIFY_DO_NOT_ALLOW_WILDCARDS);
 		if (ret != 0) {
 			ret = 1;
 			goto cleanup;
@@ -159,8 +153,8 @@ gnutls_x509_crt_check_email(gnutls_x509_crt_t cert,
 	 */
 	ret = 0;
  cleanup:
- 	if (a_email != email) {
- 		idn_free(a_email);
+	if (a_email != email) {
+		gnutls_free(a_email);
 	}
- 	return ret;
+	return ret;
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2003-2014 Free Software Foundation, Inc.
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -20,19 +21,18 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <libtasn1.h>
-#include <gnutls_datum.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
-#include <gnutls_str.h>
-#include <gnutls_x509.h>
-#include <gnutls_num.h>
+#include <datum.h>
+#include <global.h>
+#include "errors.h"
+#include <str.h>
+#include <x509.h>
+#include <num.h>
 #include <x509_b64.h>
 #include "x509_int.h"
 #include "extras/hex.h"
 #include <common.h>
-#include <c-ctype.h>
 
 static int
 data2hex(const void *data, size_t data_size,
@@ -132,17 +132,6 @@ static const struct oid_to_string _oid2str[] = {
 
 	{NULL, 0, NULL, 0, NULL, 0}
 };
-
-int _san_othername_to_virtual(const char *oid, size_t size)
-{
-	if (oid) {
-		if ((unsigned) size == (sizeof(XMPP_OID)-1)
-		    && memcmp(oid, XMPP_OID, sizeof(XMPP_OID)-1) == 0)
-			return GNUTLS_SAN_OTHERNAME_XMPP;
-	}
-
-	return GNUTLS_SAN_OTHERNAME;
-} 
 
 static const struct oid_to_string *get_oid_entry(const char *oid)
 {
@@ -295,7 +284,6 @@ make_printable_string(unsigned etype, const gnutls_datum_t * input,
 {
 	int printable = 0;
 	int ret;
-	unsigned int i;
 
 	if (etype == ASN1_ETYPE_BMP_STRING) {
 		ret = _gnutls_ucs2_to_utf8(input->data, input->size, out, 1);
@@ -305,15 +293,10 @@ make_printable_string(unsigned etype, const gnutls_datum_t * input,
 		} else
 			printable = 1;
 	} else if (etype == ASN1_ETYPE_TELETEX_STRING) {
-		int ascii = 0;
 		/* HACK: if the teletex string contains only ascii
 		 * characters then treat it as printable.
 		 */
-		for (i = 0; i < input->size; i++)
-			if (!c_isascii(input->data[i]))
-				ascii = 1;
-
-		if (ascii == 0) {
+		if (_gnutls_str_is_print((char*)input->data, input->size)) {
 			out->data = gnutls_malloc(input->size + 1);
 			if (out->data == NULL)
 				return
@@ -419,7 +402,7 @@ decode_complex_string(const struct oid_to_string *oentry, void *value,
 	/* Refuse to deal with strings containing NULs. */
 	if (strlen((void *) out->data) != (size_t) out->size) {
 		_gnutls_free_datum(out);
-		return gnutls_assert_val(GNUTLS_E_ASN1_DER_ERROR);
+		return gnutls_assert_val(GNUTLS_E_ASN1_EMBEDDED_NULL_IN_STRING);
 	}
 
 	return 0;
@@ -519,413 +502,6 @@ data2hex(const void *data, size_t data_size,
 
 	return 0;
 }
-
-
-/* TIME functions 
- * Convertions between generalized or UTC time to time_t
- *
- */
-
-/* This is an emulation of the struct tm.
- * Since we do not use libc's functions, we don't need to
- * depend on the libc structure.
- */
-typedef struct fake_tm {
-	int tm_mon;
-	int tm_year;		/* FULL year - ie 1971 */
-	int tm_mday;
-	int tm_hour;
-	int tm_min;
-	int tm_sec;
-} fake_tm;
-
-/* The mktime_utc function is due to Russ Allbery (rra@stanford.edu),
- * who placed it under public domain:
- */
-
-/* The number of days in each month. 
- */
-static const int MONTHDAYS[] = {
-	31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-};
-
-    /* Whether a given year is a leap year. */
-#define ISLEAP(year) \
-        (((year) % 4) == 0 && (((year) % 100) != 0 || ((year) % 400) == 0))
-
-/*
- **  Given a struct tm representing a calendar time in UTC, convert it to
- **  seconds since epoch.  Returns (time_t) -1 if the time is not
- **  convertable.  Note that this function does not canonicalize the provided
- **  struct tm, nor does it allow out of range values or years before 1970.
- */
-static time_t mktime_utc(const struct fake_tm *tm)
-{
-	time_t result = 0;
-	int i;
-
-/* We do allow some ill-formed dates, but we don't do anything special
- * with them and our callers really shouldn't pass them to us.  Do
- * explicitly disallow the ones that would cause invalid array accesses
- * or other algorithm problems. 
- */
-	if (tm->tm_mon < 0 || tm->tm_mon > 11 || tm->tm_year < 1970)
-		return (time_t) - 1;
-
-/* Convert to a time_t. 
- */
-	for (i = 1970; i < tm->tm_year; i++)
-		result += 365 + ISLEAP(i);
-	for (i = 0; i < tm->tm_mon; i++)
-		result += MONTHDAYS[i];
-	if (tm->tm_mon > 1 && ISLEAP(tm->tm_year))
-		result++;
-	result = 24 * (result + tm->tm_mday - 1) + tm->tm_hour;
-	result = 60 * result + tm->tm_min;
-	result = 60 * result + tm->tm_sec;
-	return result;
-}
-
-
-/* this one will parse dates of the form:
- * month|day|hour|minute|sec* (2 chars each)
- * and year is given. Returns a time_t date.
- */
-static time_t time2gtime(const char *ttime, int year)
-{
-	char xx[4];
-	struct fake_tm etime;
-
-	if (strlen(ttime) < 8) {
-		gnutls_assert();
-		return (time_t) - 1;
-	}
-
-	etime.tm_year = year;
-
-	/* In order to work with 32 bit
-	 * time_t.
-	 */
-	if (sizeof(time_t) <= 4 && etime.tm_year >= 2038)
-		return (time_t) 2145914603;	/* 2037-12-31 23:23:23 */
-
-	if (etime.tm_year < 1970)
-		return (time_t) 0;
-
-	xx[2] = 0;
-
-/* get the month
- */
-	memcpy(xx, ttime, 2);	/* month */
-	etime.tm_mon = atoi(xx) - 1;
-	ttime += 2;
-
-/* get the day
- */
-	memcpy(xx, ttime, 2);	/* day */
-	etime.tm_mday = atoi(xx);
-	ttime += 2;
-
-/* get the hour
- */
-	memcpy(xx, ttime, 2);	/* hour */
-	etime.tm_hour = atoi(xx);
-	ttime += 2;
-
-/* get the minutes
- */
-	memcpy(xx, ttime, 2);	/* minutes */
-	etime.tm_min = atoi(xx);
-	ttime += 2;
-
-	if (strlen(ttime) >= 2) {
-		memcpy(xx, ttime, 2);
-		etime.tm_sec = atoi(xx);
-	} else
-		etime.tm_sec = 0;
-
-	return mktime_utc(&etime);
-}
-
-
-/* returns a time_t value that contains the given time.
- * The given time is expressed as:
- * YEAR(2)|MONTH(2)|DAY(2)|HOUR(2)|MIN(2)|SEC(2)*
- *
- * (seconds are optional)
- */
-static time_t utcTime2gtime(const char *ttime)
-{
-	char xx[3];
-	int year;
-
-	if (strlen(ttime) < 10) {
-		gnutls_assert();
-		return (time_t) - 1;
-	}
-	xx[2] = 0;
-/* get the year
- */
-	memcpy(xx, ttime, 2);	/* year */
-	year = atoi(xx);
-	ttime += 2;
-
-	if (year > 49)
-		year += 1900;
-	else
-		year += 2000;
-
-	return time2gtime(ttime, year);
-}
-
-/* returns a time_t value that contains the given time.
- * The given time is expressed as:
- * YEAR(4)|MONTH(2)|DAY(2)|HOUR(2)|MIN(2)|SEC(2)*
- */
-time_t _gnutls_x509_generalTime2gtime(const char *ttime)
-{
-	char xx[5];
-	int year;
-
-	if (strlen(ttime) < 12) {
-		gnutls_assert();
-		return (time_t) - 1;
-	}
-
-	if (strchr(ttime, 'Z') == 0) {
-		gnutls_assert();
-		/* sorry we don't support it yet
-		 */
-		return (time_t) - 1;
-	}
-	xx[4] = 0;
-
-/* get the year
- */
-	memcpy(xx, ttime, 4);	/* year */
-	year = atoi(xx);
-	ttime += 4;
-
-	return time2gtime(ttime, year);
-}
-
-/* tag will contain ASN1_TAG_UTCTime or ASN1_TAG_GENERALIZEDTime */
-static int
-gtime_to_suitable_time(time_t gtime, char *str_time, size_t str_time_size, unsigned *tag)
-{
-	size_t ret;
-	struct tm _tm;
-
-	if (gtime == (time_t)-1
-#if SIZEOF_LONG == 8
-		|| gtime >= 253402210800
-#endif
-	 ) {
-        	if (tag)
-        		*tag = ASN1_TAG_GENERALIZEDTime;
-        	snprintf(str_time, str_time_size, "99991231235959Z");
-        	return 0;
-	}
-
-	if (!gmtime_r(&gtime, &_tm)) {
-		gnutls_assert();
-		return GNUTLS_E_INTERNAL_ERROR;
-	}
-
-	if (_tm.tm_year >= 150) {
-		if (tag)
-        		*tag = ASN1_TAG_GENERALIZEDTime;
-		ret = strftime(str_time, str_time_size, "%Y%m%d%H%M%SZ", &_tm);
-	} else {
-		if (tag)
-        		*tag = ASN1_TAG_UTCTime;
-		ret = strftime(str_time, str_time_size, "%y%m%d%H%M%SZ", &_tm);
-	}
-	if (!ret) {
-		gnutls_assert();
-		return GNUTLS_E_SHORT_MEMORY_BUFFER;
-	}
-
-	return 0;
-}
-
-static int
-gtime_to_generalTime(time_t gtime, char *str_time, size_t str_time_size)
-{
-	size_t ret;
-	struct tm _tm;
-	
-	if (gtime == (time_t)-1
-#if SIZEOF_LONG == 8
-		|| gtime >= 253402210800
-#endif
-	 ) {
-        	snprintf(str_time, str_time_size, "99991231235959Z");
-        	return 0;
-	}
-
-	if (!gmtime_r(&gtime, &_tm)) {
-		gnutls_assert();
-		return GNUTLS_E_INTERNAL_ERROR;
-	}
-
-	ret = strftime(str_time, str_time_size, "%Y%m%d%H%M%SZ", &_tm);
-	if (!ret) {
-		gnutls_assert();
-		return GNUTLS_E_SHORT_MEMORY_BUFFER;
-	}
-
-	return 0;
-}
-
-
-/* Extracts the time in time_t from the ASN1_TYPE given. When should
- * be something like "tbsCertList.thisUpdate".
- */
-#define MAX_TIME 64
-time_t _gnutls_x509_get_time(ASN1_TYPE c2, const char *where, int force_general)
-{
-	char ttime[MAX_TIME];
-	char name[128];
-	time_t c_time = (time_t) - 1;
-	int len, result;
-
-	len = sizeof(ttime) - 1;
-	result = asn1_read_value(c2, where, ttime, &len);
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		return (time_t) (-1);
-	}
-
-	if (force_general != 0) {
-		c_time = _gnutls_x509_generalTime2gtime(ttime);
-	} else {
-		_gnutls_str_cpy(name, sizeof(name), where);
-
-		/* choice */
-		if (strcmp(ttime, "generalTime") == 0) {
-			if (name[0] == 0)
-				_gnutls_str_cpy(name, sizeof(name),
-						"generalTime");
-			else
-				_gnutls_str_cat(name, sizeof(name),
-						".generalTime");
-			len = sizeof(ttime) - 1;
-			result = asn1_read_value(c2, name, ttime, &len);
-			if (result == ASN1_SUCCESS)
-				c_time =
-				    _gnutls_x509_generalTime2gtime(ttime);
-		} else {	/* UTCTIME */
-			if (name[0] == 0)
-				_gnutls_str_cpy(name, sizeof(name), "utcTime");
-			else
-				_gnutls_str_cat(name, sizeof(name), ".utcTime");
-			len = sizeof(ttime) - 1;
-			result = asn1_read_value(c2, name, ttime, &len);
-			if (result == ASN1_SUCCESS)
-				c_time = utcTime2gtime(ttime);
-		}
-
-		/* We cannot handle dates after 2031 in 32 bit machines.
-		 * a time_t of 64bits has to be used.
-		 */
-		if (result != ASN1_SUCCESS) {
-			gnutls_assert();
-			return (time_t) (-1);
-		}
-	}
-
-	return c_time;
-}
-
-/* Sets the time in time_t in the ASN1_TYPE given. Where should
- * be something like "tbsCertList.thisUpdate".
- */
-int
-_gnutls_x509_set_time(ASN1_TYPE c2, const char *where, time_t tim,
-		      int force_general)
-{
-	char str_time[MAX_TIME];
-	char name[128];
-	int result, len;
-	unsigned tag;
-
-	if (force_general != 0) {
-		result =
-		    gtime_to_generalTime(tim, str_time, sizeof(str_time));
-		if (result < 0)
-			return gnutls_assert_val(result);
-		len = strlen(str_time);
-		result = asn1_write_value(c2, where, str_time, len);
-		if (result != ASN1_SUCCESS)
-			return gnutls_assert_val(_gnutls_asn2err(result));
-
-		return 0;
-	}
-
-	result = gtime_to_suitable_time(tim, str_time, sizeof(str_time), &tag);
-	if (result < 0) {
-		gnutls_assert();
-		return result;
-	}
-
-	_gnutls_str_cpy(name, sizeof(name), where);
-	if (tag == ASN1_TAG_UTCTime) {
-		if ((result = asn1_write_value(c2, where, "utcTime", 1)) < 0) {
-			gnutls_assert();
-			return _gnutls_asn2err(result);
-		}
-		_gnutls_str_cat(name, sizeof(name), ".utcTime");
-	} else {
-		if ((result = asn1_write_value(c2, where, "generalTime", 1)) < 0) {
-			gnutls_assert();
-			return _gnutls_asn2err(result);
-		}
-		_gnutls_str_cat(name, sizeof(name), ".generalTime");
-	}
-
-	len = strlen(str_time);
-	result = asn1_write_value(c2, name, str_time, len);
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		return _gnutls_asn2err(result);
-	}
-
-	return 0;
-}
-
-/* This will set a DER encoded Time element. To be used in fields
- * which are of the ANY.
- */
-int
-_gnutls_x509_set_raw_time(ASN1_TYPE c2, const char *where, time_t tim)
-{
-	char str_time[MAX_TIME];
-	uint8_t buf[128];
-	int result, len, der_len;
-	unsigned tag;
-
-	result =
-	    gtime_to_suitable_time(tim, str_time, sizeof(str_time), &tag);
-	if (result < 0)
-		return gnutls_assert_val(result);
-	len = strlen(str_time);
-
-	buf[0] = tag;
-	asn1_length_der(len, buf+1, &der_len);
-
-	if ((unsigned)len > sizeof(buf)-der_len-1) {
-		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
-	}
-
-	memcpy(buf+1+der_len, str_time, len);
-
-	result = asn1_write_value(c2, where, buf, len+1+der_len);
-	if (result != ASN1_SUCCESS)
-		return gnutls_assert_val(_gnutls_asn2err(result));
-	return 0;
-}
-
 
 gnutls_x509_subject_alt_name_t _gnutls_x509_san_find_type(char *str_type)
 {
@@ -1078,7 +654,7 @@ _gnutls_x509_decode_string(unsigned int etype,
 
 		if (len != (size_t) output->size) {
 			_gnutls_free_datum(output);
-			ret = gnutls_assert_val(GNUTLS_E_ASN1_DER_ERROR);
+			ret = gnutls_assert_val(GNUTLS_E_ASN1_EMBEDDED_NULL_IN_STRING);
 		}
 	}
 
@@ -1602,7 +1178,7 @@ _gnutls_x509_get_pk_algorithm(ASN1_TYPE src, const char *src_name,
  * returns them into signed_data.
  */
 int
-_gnutls_x509_get_signed_data(ASN1_TYPE src,  const gnutls_datum *der,
+_gnutls_x509_get_signed_data(ASN1_TYPE src,  const gnutls_datum_t *der,
 			     const char *src_name,
 			     gnutls_datum_t * signed_data)
 {
@@ -1729,7 +1305,8 @@ _gnutls_x509_get_signature(ASN1_TYPE src, const char *src_name,
 
 	return 0;
 
-      cleanup:
+ cleanup:
+	gnutls_free(signature->data);
 	return result;
 }
 
@@ -2040,13 +1617,13 @@ int x509_raw_crt_to_raw_pubkey(const gnutls_datum_t * cert,
 	return ret;
 }
 
-bool
+unsigned
 _gnutls_check_valid_key_id(gnutls_datum_t *key_id,
-                           gnutls_x509_crt_t cert, time_t now)
+			   gnutls_x509_crt_t cert, time_t now)
 {
 	uint8_t id[MAX_KEY_ID_SIZE];
 	size_t id_size;
-	bool result = 0;
+	unsigned result = 0;
 
 	if (now > gnutls_x509_crt_get_expiration_time(cert) ||
 	    now < gnutls_x509_crt_get_activation_time(cert)) {
@@ -2074,7 +1651,14 @@ _gnutls_check_valid_key_id(gnutls_datum_t *key_id,
  * equal to the original).
  * @func: the function to call to elements outside the sort.
  *
+ * This function is intentionally kept simple to be easily verified
+ * so that it can be used with untrusted chains. The introduction
+ * of the func parameter added significant complexity in that aspect.
+ * If more demanding use-cases need to be handled, consider splitting
+ * that function.
+ *
  * Returns the sorted list which may be the original clist.
+ *
  */
 gnutls_x509_crt_t *_gnutls_sort_clist(gnutls_x509_crt_t
 				     sorted[DEFAULT_MAX_VERIFY_DEPTH],
@@ -2085,7 +1669,7 @@ gnutls_x509_crt_t *_gnutls_sort_clist(gnutls_x509_crt_t
 	int prev;
 	unsigned int j, i;
 	int issuer[DEFAULT_MAX_VERIFY_DEPTH];	/* contain the index of the issuers */
-	unsigned insorted[DEFAULT_MAX_VERIFY_DEPTH]; /* non zero if clist[i] used in sorted list */
+	bool insorted[DEFAULT_MAX_VERIFY_DEPTH]; /* non zero if clist[i] used in sorted list */
 	unsigned orig_size = *clist_size;
 
 	/* Do not bother sorting if too many certificates are given.
@@ -2100,7 +1684,8 @@ gnutls_x509_crt_t *_gnutls_sort_clist(gnutls_x509_crt_t
 	}
 
 	/* Find the issuer of each certificate and store it
-	 * in issuer array.
+	 * in issuer array. O(n^2) so consider that before
+	 * increasing DEFAULT_MAX_VERIFY_DEPTH.
 	 */
 	for (i = 0; i < *clist_size; i++) {
 		for (j = 1; j < *clist_size; j++) {
@@ -2115,7 +1700,7 @@ gnutls_x509_crt_t *_gnutls_sort_clist(gnutls_x509_crt_t
 		}
 	}
 
-	/* always included */
+	/* the first element is always included */
 	sorted[0] = clist[0];
 	insorted[0] = 1;
 

@@ -25,11 +25,11 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
-#include "gnutls_num.h"
+#include "errors.h"
+#include "num.h"
 #include <ext/cert_type.h>
-#include <gnutls_state.h>
-#include <gnutls_num.h>
+#include <state.h>
+#include <num.h>
 
 #ifdef ENABLE_OPENPGP
 
@@ -44,8 +44,8 @@ static int _gnutls_cert_type_recv_params(gnutls_session_t session,
 static int _gnutls_cert_type_send_params(gnutls_session_t session,
 					 gnutls_buffer_st * extdata);
 
-extension_entry_st ext_mod_cert_type = {
-	.name = "CERT TYPE",
+const extension_entry_st ext_mod_cert_type = {
+	.name = "Certificate Type",
 	.type = GNUTLS_EXTENSION_CERT_TYPE,
 	.parse_type = GNUTLS_EXT_TLS,
 

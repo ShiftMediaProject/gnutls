@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include "common.h"
 
 #include <gnutls/gnutls.h>
 #include <gnutls/ocsp.h>
@@ -204,10 +205,11 @@ int send_ocsp_request(const char *server,
 		 (unsigned int) req.size);
 	headers_size = strlen(headers);
 
-	socket_open(&hd, hostname, service, 0, CONNECT_MSG);
+	socket_open(&hd, hostname, service, NULL, SOCKET_FLAG_RAW|SOCKET_FLAG_SKIP_INIT, CONNECT_MSG, NULL);
 
 	socket_send(&hd, headers, headers_size);
 	socket_send(&hd, req.data, req.size);
+	gnutls_free(req.data);
 
 	do {
 		ret = socket_recv(&hd, buffer, sizeof(buffer));
@@ -220,7 +222,7 @@ int send_ocsp_request(const char *server,
 		return -1;
 	}
 
-	socket_bye(&hd);
+	socket_bye(&hd, 0);
 
 	p = memmem(ud.data, ud.size, "\r\n\r\n", 4);
 	if (p == NULL) {
@@ -237,6 +239,8 @@ int send_ocsp_request(const char *server,
 	memcpy(resp_data->data, p, resp_data->size);
 
 	free(ud.data);
+	if (url != server)
+		free(url);
 
 	return 0;
 }
@@ -405,7 +409,7 @@ check_ocsp_response(gnutls_x509_crt_t cert,
 	}
 
 	if (nonce) {
-	        gnutls_datum_t rnonce;
+		gnutls_datum_t rnonce;
 
 		ret = gnutls_ocsp_resp_get_nonce(resp, NULL, &rnonce);
 		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
@@ -426,7 +430,7 @@ check_ocsp_response(gnutls_x509_crt_t cert,
 			exit(1);
 		}
 
-	        gnutls_free(rnonce.data);
+		gnutls_free(rnonce.data);
 	}
 
  finish_ok:

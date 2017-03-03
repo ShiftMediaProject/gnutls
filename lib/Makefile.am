@@ -20,7 +20,7 @@
 
 ACLOCAL_AMFLAGS = -I ../m4 -I ../gl/m4
 
-EXTRA_DIST = priority_options.gperf
+EXTRA_DIST = priority_options.gperf common.mk
 BUILT_SOURCES = pkix_asn1_tab.c gnutls_asn1_tab.c priority_options.h
 
 SUBDIRS = includes x509 auth ext algorithms extras accelerated
@@ -31,7 +31,8 @@ endif
 
 localedir = $(datadir)/locale
 
-AM_CFLAGS = $(WERROR_CFLAGS) $(WSTACK_CFLAGS) $(WARN_CFLAGS) $(NETTLE_CFLAGS)
+include $(top_srcdir)/lib/common.mk
+
 AM_CPPFLAGS = \
 	-DLOCALEDIR=\"$(localedir)\"		\
 	-I$(srcdir)/../gl			\
@@ -50,6 +51,11 @@ SUBDIRS += openpgp
 AM_CPPFLAGS += -I$(srcdir)/opencdk
 endif
 
+if !HAVE_LIBUNISTRING
+SUBDIRS += unistring
+AM_CPPFLAGS += -I$(srcdir)/unistring/ -I$(builddir)/unistring/
+endif
+
 if ENABLE_MINITASN1
 AM_CPPFLAGS += -I$(srcdir)/minitasn1
 endif
@@ -61,34 +67,29 @@ DISTCLEANFILES = $(pkgconfig_DATA)
 
 lib_LTLIBRARIES = libgnutls.la
 
-SRP_COBJECTS = gnutls_srp.c
+SRP_COBJECTS = srp.c
 
-PSK_COBJECTS = gnutls_psk.c
+PSK_COBJECTS = psk.c
 
-COBJECTS = gnutls_range.c gnutls_record.c \
-	gnutls_compress.c debug.c gnutls_cipher.c	\
-	gnutls_mbuffers.c gnutls_buffers.c gnutls_handshake.c		\
-	gnutls_num.c gnutls_errors.c gnutls_dh.c gnutls_kx.c		\
-	gnutls_priority.c gnutls_hash_int.c gnutls_cipher_int.c		\
-	gnutls_session.c gnutls_db.c x509_b64.c gnutls_extensions.c	\
-	gnutls_auth.c gnutls_v2_compat.c gnutls_datum.c			\
-	gnutls_session_pack.c gnutls_mpi.c gnutls_pk.c gnutls_cert.c	\
-	gnutls_global.c gnutls_constate.c gnutls_anon_cred.c		\
-	pkix_asn1_tab.c gnutls_asn1_tab.c				\
-	gnutls_mem.c gnutls_ui.c vasprintf.c vasprintf.h		\
-	gnutls_sig.c gnutls_ecc.c gnutls_alert.c gnutls_privkey_raw.c	\
-	system.c inet_ntop.c gnutls_str.c gnutls_state.c gnutls_x509.c \
-	gnutls_helper.c gnutls_supplemental.c	\
-	random.c crypto-api.c gnutls_privkey.c gnutls_pcert.c		\
-	gnutls_pubkey.c locks.c gnutls_dtls.c system_override.c	\
-	crypto-backend.c verify-tofu.c pin.c tpm.c fips.c \
-	safe-memfuncs.c inet_pton.c atfork.c atfork.h \
-	system-keys.h urls.c urls.h auto-verify.c
+COBJECTS = range.c record.c compress.c debug.c cipher.c			\
+	mbuffers.c buffers.c handshake.c num.c errors.c dh.c kx.c	\
+	priority.c hash_int.c cipher_int.c session.c db.c x509_b64.c	\
+	extensions.c auth.c sslv2_compat.c datum.c session_pack.c mpi.c \
+	pk.c cert.c global.c constate.c anon_cred.c pkix_asn1_tab.c gnutls_asn1_tab.c	\
+	mem.c fingerprint.c tls-sig.c ecc.c alert.c privkey_raw.c		\
+	system/certs.c system/threads.c system/fastopen.c system/sockets.c	\
+	system/inet_ntop.c str-iconv.c system/vasprintf.c vasprintf.h system.c \
+	str.c str-unicode.c str-idna.c state.c x509.c file.c supplemental.c	\
+	random.c crypto-api.c privkey.c pcert.c	pubkey.c locks.c dtls.c		\
+	system_override.c crypto-backend.c verify-tofu.c pin.c tpm.c fips.c	\
+	safe-memfuncs.c system/inet_pton.c atfork.c atfork.h randomart.c \
+	system-keys.h urls.c urls.h prf.c auto-verify.c dh-session.c \
+	cert-session.c handshake-checks.c dtls-sw.c dh-primes.c
 
 if WINDOWS
-COBJECTS += system-keys-win.c
+COBJECTS += system/keys-win.c
 else
-COBJECTS += system-keys-dummy.c
+COBJECTS += system/keys-dummy.c
 endif
 
 if ENABLE_SELF_CHECKS
@@ -104,43 +105,51 @@ if ENABLE_NETTLE
 SUBDIRS += nettle
 endif
 
-HFILES = abstract_int.h debug.h gnutls_compress.h gnutls_cipher.h	\
-	gnutls_buffers.h gnutls_errors.h gnutls_int.h gnutls_dtls.h	\
-	gnutls_handshake.h gnutls_num.h algorithms.h		\
-	gnutls_dh.h gnutls_kx.h gnutls_hash_int.h gnutls_cipher_int.h	\
-	gnutls_db.h gnutls_auth.h gnutls_extensions.h	\
-	x509_b64.h gnutls_v2_compat.h gnutls_datum.h \
-	gnutls_mpi.h gnutls_pk.h gnutls_record.h		\
-	gnutls_constate.h gnutls_global.h gnutls_sig.h gnutls_mem.h	\
-	gnutls_session_pack.h gnutls_str.h gnutls_str_array.h		\
-	gnutls_state.h gnutls_x509.h crypto-backend.h			\
-	gnutls_srp.h auth/srp.h auth/srp_passwd.h	\
-	gnutls_helper.h gnutls_supplemental.h crypto.h random.h system.h\
-	locks.h gnutls_mbuffers.h gnutls_ecc.h pin.h fips.h \
+HFILES = abstract_int.h debug.h compress.h cipher.h	\
+	buffers.h errors.h gnutls_int.h dtls.h	\
+	handshake.h num.h algorithms.h		\
+	dh.h kx.h hash_int.h cipher_int.h	\
+	db.h auth.h extensions.h	\
+	x509_b64.h sslv2_compat.h datum.h \
+	mpi.h pk.h record.h		\
+	constate.h global.h tls-sig.h mem.h	\
+	session_pack.h str.h str_array.h		\
+	state.h x509.h crypto-backend.h			\
+	srp.h auth/srp_kx.h auth/srp_passwd.h	\
+	file.h supplemental.h crypto.h random.h system.h\
+	locks.h mbuffers.h ecc.h pin.h fips.h \
 	priority_options.h
 
 if ENABLE_PKCS11
 HFILES += pkcs11_int.h pkcs11x.h
 endif
 
-# Separate so we can create the documentation
-
 libgnutls_la_SOURCES = $(HFILES) $(COBJECTS) $(SRP_COBJECTS)	\
 	$(PSK_COBJECTS) \
 	gnutls.asn pkix.asn libgnutls.map
 
 libgnutls_la_LDFLAGS = -no-undefined \
-	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
+	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) $(COMMON_LINK_FLAGS)
 
 libgnutls_la_LIBADD = ../gl/libgnu.la x509/libgnutls_x509.la \
 	ext/libgnutls_ext.la \
 	auth/libgnutls_auth.la algorithms/libgnutls_alg.la \
 	extras/libgnutls_extras.la
 thirdparty_libadd = $(LTLIBZ) $(LTLIBINTL) $(LIBSOCKET) $(LTLIBNSL) \
-	$(LTLIBICONV) $(P11_KIT_LIBS) $(LIB_SELECT)
+	$(P11_KIT_LIBS) $(LIB_SELECT)
+
+if HAVE_LIBIDN2
+thirdparty_libadd += -lidn2
+endif
 
 if HAVE_LIBIDN
 thirdparty_libadd += $(LIBIDN_LIBS)
+endif
+
+if HAVE_LIBUNISTRING
+thirdparty_libadd += $(LTLIBUNISTRING)
+else
+libgnutls_la_LIBADD += unistring/libunistring.la
 endif
 
 if ENABLE_NETTLE
@@ -156,11 +165,11 @@ thirdparty_libadd += $(LTLIBRT)
 endif
 
 if ENABLE_FIPS140
-thirdparty_libadd += $(FIPS140_LIBS)
+thirdparty_libadd += $(FIPS140_LIBS) $(LTLIBDL)
 endif
 
 if ENABLE_TROUSERS
-thirdparty_libadd += $(LIBDL)
+thirdparty_libadd += $(LTLIBDL)
 endif
 
 if ENABLE_OPENPGP
@@ -188,7 +197,7 @@ endif
 if HAVE_LD_OUTPUT_DEF
 libgnutls_la_LDFLAGS += -Wl,--output-def,libgnutls-$(DLL_VERSION).def
 libgnutls-$(DLL_VERSION).def: libgnutls.la
-defexecdir = $(bindir)
+defexecdir = $(libdir)
 defexec_DATA = libgnutls-$(DLL_VERSION).def
 DISTCLEANFILES += $(defexec_DATA)
 endif

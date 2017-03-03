@@ -41,6 +41,7 @@ struct pkcs11_session_info {
 	ck_session_handle_t pks;
 	ck_slot_id_t sid;
 	unsigned int init;
+	unsigned int trusted; /* whether module is marked as trusted */
 };
 
 struct gnutls_pkcs11_obj_st {
@@ -95,7 +96,7 @@ int pkcs11_url_to_info(const char *url, struct p11_kit_uri **info, unsigned flag
 int
 pkcs11_find_slot(struct ck_function_list **module, ck_slot_id_t * slot,
 		 struct p11_kit_uri *info, struct ck_token_info *_tinfo,
-		 struct ck_slot_info *_slot_info);
+		 struct ck_slot_info *_slot_info, unsigned int *trusted);
 
 int pkcs11_read_pubkey(struct ck_function_list *module,
 		       ck_session_handle_t pks, ck_object_handle_t obj,
@@ -350,7 +351,9 @@ _gnutls_pkcs11_get_random(struct ck_function_list *module,
 
 const char *pkcs11_strerror(ck_rv_t rv);
 
-inline static bool is_object_pkcs11_url(const char *url)
+/* Returns 1 if the provided URL is an object, rather than
+ * a token. */
+inline static bool is_pkcs11_url_object(const char *url)
 {
 	if (strstr(url, "id=") != 0 || strstr(url, "object=") != 0)
 		return 1;

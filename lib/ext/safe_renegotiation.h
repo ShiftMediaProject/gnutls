@@ -23,7 +23,7 @@
 #ifndef EXT_SAFE_RENEGOTIATION_H
 #define EXT_SAFE_RENEGOTIATION_H
 
-#include <gnutls_extensions.h>
+#include <extensions.h>
 
 typedef struct {
 	uint8_t client_verify_data[MAX_VERIFY_DATA_SIZE];
@@ -38,7 +38,7 @@ typedef struct {
 	unsigned int connection_using_safe_renegotiation:1;
 } sr_ext_st;
 
-extern extension_entry_st ext_mod_sr;
+extern const extension_entry_st ext_mod_sr;
 
 int _gnutls_ext_sr_finished(gnutls_session_t session, void *vdata,
 			    size_t vdata_size, int dir);

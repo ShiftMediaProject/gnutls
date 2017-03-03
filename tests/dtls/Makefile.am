@@ -19,7 +19,7 @@
 # along with this file; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-dist_check_SCRIPTS = dtls dtls-nb
+dist_check_SCRIPTS = dtls dtls-nb dtls-resume
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 AM_CPPFLAGS = \
@@ -40,7 +40,7 @@ LDADD = ../../lib/libgnutls.la \
 if !WINDOWS
 
 check_PROGRAMS = dtls-stress
-TESTS = dtls
+TESTS = dtls dtls-resume
 
 endif
 

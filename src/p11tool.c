@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 }
 
 static
-unsigned opt_to_flags(unsigned *key_usage)
+unsigned opt_to_flags(common_info_st *cinfo, unsigned *key_usage)
 {
 	unsigned flags = 0;
 	
@@ -80,11 +80,22 @@ unsigned opt_to_flags(unsigned *key_usage)
 		} else {
 			flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_NOT_PRIVATE;
 		}
+	} else { /* if not given mark as private the private objects, and public the public ones */
+		if (cinfo->privkey)
+			flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_PRIVATE;
+		else if (cinfo->pubkey || cinfo->cert)
+			flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_NOT_PRIVATE;
+		/* else set the defaults of the token */
 	}
 
-	if (ENABLED_OPT(MARK_TRUSTED))
+	if (HAVE_OPT(MARK_DISTRUSTED)) {
 		flags |=
-		    GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED;
+		    GNUTLS_PKCS11_OBJ_FLAG_MARK_DISTRUSTED;
+	} else {
+		if (ENABLED_OPT(MARK_TRUSTED))
+			flags |=
+			    GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED;
+	}
 
 	if (ENABLED_OPT(MARK_SIGN))
 		*key_usage |= GNUTLS_KEY_DIGITAL_SIGNATURE;
@@ -175,9 +186,6 @@ static void cmd_parser(int argc, char **argv)
 
 	memset(&cinfo, 0, sizeof(cinfo));
 
-	flags = opt_to_flags(&key_usage);
-	cinfo.key_usage = key_usage;
-
 	if (HAVE_OPT(SECRET_KEY))
 		cinfo.secret_key = OPT_ARG(SECRET_KEY);
 
@@ -241,6 +249,9 @@ static void cmd_parser(int argc, char **argv)
 		sec_param = OPT_ARG(SEC_PARAM);
 	}
 
+	flags = opt_to_flags(&cinfo, &key_usage);
+	cinfo.key_usage = key_usage;
+
 	/* handle actions 
 	 */
 	if (HAVE_OPT(LIST_TOKENS)) {
@@ -278,6 +289,8 @@ static void cmd_parser(int argc, char **argv)
 			    flags, detailed_url, &cinfo);
 	} else if (HAVE_OPT(EXPORT)) {
 		pkcs11_export(outfile, url, flags, &cinfo);
+	} else if (HAVE_OPT(EXPORT_STAPLED)) {
+		pkcs11_export(outfile, url, flags|GNUTLS_PKCS11_OBJ_FLAG_OVERWRITE_TRUSTMOD_EXT, &cinfo);
 	} else if (HAVE_OPT(EXPORT_CHAIN)) {
 		pkcs11_export_chain(outfile, url, flags, &cinfo);
 	} else if (HAVE_OPT(WRITE)) {
@@ -285,9 +298,13 @@ static void cmd_parser(int argc, char **argv)
 			     flags, &cinfo);
 	} else if (HAVE_OPT(TEST_SIGN)) {
 		pkcs11_test_sign(outfile, url, flags, &cinfo);
-	} else if (HAVE_OPT(INITIALIZE))
+	} else if (HAVE_OPT(INITIALIZE)) {
 		pkcs11_init(outfile, url, label, &cinfo);
-	else if (HAVE_OPT(DELETE))
+	} else if (HAVE_OPT(INITIALIZE_PIN)) {
+		pkcs11_set_pin(outfile, url, &cinfo, 0);
+	} else if (HAVE_OPT(INITIALIZE_SO_PIN)) {
+		pkcs11_set_pin(outfile, url, &cinfo, 1);
+	} else if (HAVE_OPT(DELETE))
 		pkcs11_delete(outfile, url, flags, &cinfo);
 	else if (HAVE_OPT(GENERATE_ECC)) {
 		key_type = GNUTLS_PK_EC;

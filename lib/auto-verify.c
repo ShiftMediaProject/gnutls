@@ -21,7 +21,7 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
+#include "errors.h"
 #include <auth/cert.h>
 #include <gnutls/gnutls.h>
 
@@ -31,26 +31,26 @@
 /* The actual verification callback. */
 static int auto_verify_cb(gnutls_session_t session)
 {
-        unsigned int status;
-        int ret;
+	unsigned int status;
+	int ret;
 
-        if (session->internals.vc_elements == 0) {
-        	ret = gnutls_certificate_verify_peers2(session, &status);
+	if (session->internals.vc_elements == 0) {
+		ret = gnutls_certificate_verify_peers2(session, &status);
 	} else {
-	        ret = gnutls_certificate_verify_peers(session, session->internals.vc_data,
+		ret = gnutls_certificate_verify_peers(session, session->internals.vc_data,
 						      session->internals.vc_elements, &status);
-        }
-        if (ret < 0) {
-                return gnutls_assert_val(GNUTLS_E_CERTIFICATE_ERROR);
-        }
+	}
+	if (ret < 0) {
+		return gnutls_assert_val(GNUTLS_E_CERTIFICATE_ERROR);
+	}
 
-        session->internals.vc_status = status;
+	session->internals.vc_status = status;
 
-        if (status != 0)        /* Certificate is not trusted */
-                return gnutls_assert_val(GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR);
+	if (status != 0)	/* Certificate is not trusted */
+		return gnutls_assert_val(GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR);
 
-        /* notify gnutls to continue handshake normally */
-        return 0;
+	/* notify gnutls to continue handshake normally */
+	return 0;
 }
 
 /**
@@ -70,6 +70,9 @@ static int auto_verify_cb(gnutls_session_t session)
  * will be performed. For a more advanced verification function check
  * gnutls_session_set_verify_cert2().
  *
+ * If @flags is provided which contain a profile, this function should be
+ * called after any session priority setting functions.
+ *
  * The gnutls_session_set_verify_cert() function is intended to be used by TLS
  * clients to verify the server's certificate.
  *
@@ -88,8 +91,9 @@ void gnutls_session_set_verify_cert(gnutls_session_t session,
 		session->internals.vc_elements = 0;
 	}
 
-	if (flags)
-		session->internals.additional_verify_flags |= flags;
+	if (flags) {
+		ADD_PROFILE_VFLAGS(session, flags);
+	}
 
 	gnutls_session_set_verify_function(session, auto_verify_cb);
 }
@@ -109,6 +113,9 @@ void gnutls_session_set_verify_cert(gnutls_session_t session,
  * The acceptable typed data are the same as in gnutls_certificate_verify_peers(),
  * and once set must remain valid for the lifetime of the session. More precisely
  * they should be available during any subsequent handshakes.
+ *
+ * If @flags is provided which contain a profile, this function should be
+ * called after any session priority setting functions.
  *
  * Since: 3.4.6
  **/

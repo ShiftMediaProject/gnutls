@@ -19,14 +19,14 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 HEADER_FILES = $(top_srcdir)/lib/includes/gnutls/gnutls.h.in \
-	$(top_srcdir)/lib/includes/gnutls/x509.h $(top_srcdir)/lib/includes/gnutls/openpgp.h \
+	$(top_srcdir)/lib/includes/gnutls/x509.h \
 	$(top_srcdir)/lib/includes/gnutls/pkcs12.h $(top_srcdir)/lib/includes/gnutls/pkcs11.h \
 	$(top_srcdir)/lib/includes/gnutls/abstract.h $(top_srcdir)/lib/includes/gnutls/compat.h \
 	$(top_srcdir)/lib/includes/gnutls/dtls.h $(top_srcdir)/lib/includes/gnutls/crypto.h \
 	$(top_srcdir)/lib/includes/gnutls/ocsp.h $(top_srcdir)/lib/includes/gnutls/tpm.h \
 	$(top_srcdir)/libdane/includes/gnutls/dane.h $(top_srcdir)/lib/includes/gnutls/x509-ext.h \
 	$(top_srcdir)/lib/includes/gnutls/urls.h $(top_srcdir)/lib/includes/gnutls/system-keys.h \
-	$(top_srcdir)/lib/includes/gnutls/pkcs7.h
+	$(top_srcdir)/lib/includes/gnutls/pkcs7.h $(top_srcdir)/lib/includes/gnutls/socket.h
 
 C_SOURCE_FILES = $(top_srcdir)/lib/*/*.c $(top_srcdir)/lib/*.c $(top_srcdir)/libdane/*.c
 C_X509_SOURCE_FILES = $(top_srcdir)/lib/x509/*.c $(top_srcdir)/lib/*.c

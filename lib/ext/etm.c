@@ -24,9 +24,9 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
-#include "gnutls_num.h"
-#include <gnutls_extensions.h>
+#include "errors.h"
+#include "num.h"
+#include <extensions.h>
 #include <ext/etm.h>
 
 static int _gnutls_ext_etm_recv_params(gnutls_session_t session,
@@ -35,8 +35,8 @@ static int _gnutls_ext_etm_recv_params(gnutls_session_t session,
 static int _gnutls_ext_etm_send_params(gnutls_session_t session,
 					  gnutls_buffer_st * extdata);
 
-extension_entry_st ext_mod_etm = {
-	.name = "ENCRYPT THEN MAC",
+const extension_entry_st ext_mod_etm = {
+	.name = "Encrypt-then-MAC",
 	.type = GNUTLS_EXTENSION_ETM,
 	.parse_type = GNUTLS_EXT_MANDATORY,
 

@@ -26,15 +26,15 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_auth.h"
-#include "gnutls_errors.h"
-#include "gnutls_dh.h"
-#include "gnutls_num.h"
-#include "gnutls_sig.h"
-#include <gnutls_datum.h>
-#include <gnutls_x509.h>
-#include <gnutls_state.h>
-#include <gnutls_pk.h>
+#include "auth.h"
+#include "errors.h"
+#include "dh.h"
+#include "num.h"
+#include "tls-sig.h"
+#include <datum.h>
+#include <x509.h>
+#include <state.h>
+#include <pk.h>
 #include <auth/dh_common.h>
 #include <algorithms.h>
 #include <auth/psk.h>
@@ -71,6 +71,10 @@ _gnutls_proc_dh_common_client_kx(gnutls_session_t session,
 	_n_Y = n_Y;
 
 	DECR_LEN(data_size, n_Y);
+
+	if (data_size != 0)
+		return gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
+
 	if (_gnutls_mpi_init_scan_nz(&session->key.client_Y, &data[2], _n_Y)) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
@@ -86,7 +90,6 @@ _gnutls_proc_dh_common_client_kx(gnutls_session_t session,
 		gnutls_assert();
 		goto error;
 	}
-
 
 	if (psk_key == NULL) {
 		session->key.key.data = tmp_dh_key.data;
@@ -104,9 +107,9 @@ _gnutls_proc_dh_common_client_kx(gnutls_session_t session,
 	}
 
 	ret = 0;
-error:
+ error:
 	_gnutls_mpi_release(&session->key.client_Y);
-      	gnutls_pk_params_clear(&session->key.dh_params);
+	gnutls_pk_params_clear(&session->key.dh_params);
 
 	return ret;
 }
@@ -170,8 +173,8 @@ _gnutls_gen_dh_common_client_kx_int(gnutls_session_t session,
 
 	ret = data->length;
 
-      error:
-      	gnutls_pk_params_clear(&session->key.dh_params);
+ error:
+	gnutls_pk_params_clear(&session->key.dh_params);
 	return ret;
 }
 
@@ -214,9 +217,6 @@ _gnutls_proc_dh_common_server_kx(gnutls_session_t session,
 	ssize_t data_size = _data_size;
 	
 	/* just in case we are resuming a session */
-	if (session->key.client_Y)
-		_gnutls_mpi_release(&session->key.client_Y);
-
 	gnutls_pk_params_release(&session->key.dh_params);
 
 	gnutls_pk_params_init(&session->key.dh_params);
@@ -262,8 +262,11 @@ _gnutls_proc_dh_common_server_kx(gnutls_session_t session,
 
 	if (_gnutls_mpi_init_scan_nz(&session->key.dh_params.params[DH_P], data_p, _n_p) != 0) {
 		gnutls_assert();
+		/* we release now because session->key.dh_params.params_nr is not yet set */
+		_gnutls_mpi_release(&session->key.dh_params.params[DH_G]);
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
+
 	session->key.dh_params.params_nr = 3; /* include empty q */
 	session->key.dh_params.algo = GNUTLS_PK_DH;
 

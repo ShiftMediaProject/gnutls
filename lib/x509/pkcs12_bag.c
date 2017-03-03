@@ -24,13 +24,14 @@
 /* Functions that relate on PKCS12 Bag packet parsing.
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 
-#include <gnutls_datum.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
+#include <datum.h>
+#include <global.h>
+#include "errors.h"
 #include <common.h>
 #include "x509_int.h"
+#include "pkcs7_int.h"
 
 /**
  * gnutls_pkcs12_bag_init:
@@ -55,7 +56,7 @@ int gnutls_pkcs12_bag_init(gnutls_pkcs12_bag_t * bag)
 
 static inline void _pkcs12_bag_free_data(gnutls_pkcs12_bag_t bag)
 {
-	int i;
+	unsigned i;
 
 	for (i = 0; i < bag->bag_elements; i++) {
 		_gnutls_free_datum(&bag->element[i].data);
@@ -91,11 +92,10 @@ void gnutls_pkcs12_bag_deinit(gnutls_pkcs12_bag_t bag)
  *
  * This function will return the bag's type.
  *
- * Returns: On error a negative error value (when casted as integer) or
- *   one of the #gnutls_pkcs12_bag_type_t enumerations.
+ * Returns: On error a negative error value or one of the #gnutls_pkcs12_bag_type_t enumerations.
  **/
-gnutls_pkcs12_bag_type_t
-gnutls_pkcs12_bag_get_type(gnutls_pkcs12_bag_t bag, int indx)
+int
+gnutls_pkcs12_bag_get_type(gnutls_pkcs12_bag_t bag, unsigned indx)
 {
 	if (bag == NULL) {
 		gnutls_assert();
@@ -140,7 +140,7 @@ int gnutls_pkcs12_bag_get_count(gnutls_pkcs12_bag_t bag)
  *   negative error value.
  **/
 int
-gnutls_pkcs12_bag_get_data(gnutls_pkcs12_bag_t bag, int indx,
+gnutls_pkcs12_bag_get_data(gnutls_pkcs12_bag_t bag, unsigned indx,
 			   gnutls_datum_t * data)
 {
 	if (bag == NULL) {
@@ -517,7 +517,7 @@ gnutls_pkcs12_bag_set_crl(gnutls_pkcs12_bag_t bag, gnutls_x509_crl_t crl)
  *   negative error value. or a negative error code on error.
  **/
 int
-gnutls_pkcs12_bag_set_key_id(gnutls_pkcs12_bag_t bag, int indx,
+gnutls_pkcs12_bag_set_key_id(gnutls_pkcs12_bag_t bag, unsigned indx,
 			     const gnutls_datum_t * id)
 {
 	int ret;
@@ -558,7 +558,7 @@ gnutls_pkcs12_bag_set_key_id(gnutls_pkcs12_bag_t bag, int indx,
  *   negative error value. or a negative error code on error.
  **/
 int
-gnutls_pkcs12_bag_get_key_id(gnutls_pkcs12_bag_t bag, int indx,
+gnutls_pkcs12_bag_get_key_id(gnutls_pkcs12_bag_t bag, unsigned indx,
 			     gnutls_datum_t * id)
 {
 	if (bag == NULL) {
@@ -591,7 +591,7 @@ gnutls_pkcs12_bag_get_key_id(gnutls_pkcs12_bag_t bag, int indx,
  *   negative error value. or a negative error code on error.
  **/
 int
-gnutls_pkcs12_bag_get_friendly_name(gnutls_pkcs12_bag_t bag, int indx,
+gnutls_pkcs12_bag_get_friendly_name(gnutls_pkcs12_bag_t bag, unsigned indx,
 				    char **name)
 {
 	if (bag == NULL) {
@@ -625,7 +625,7 @@ gnutls_pkcs12_bag_get_friendly_name(gnutls_pkcs12_bag_t bag, int indx,
  *   negative error value. or a negative error code on error.
  **/
 int
-gnutls_pkcs12_bag_set_friendly_name(gnutls_pkcs12_bag_t bag, int indx,
+gnutls_pkcs12_bag_set_friendly_name(gnutls_pkcs12_bag_t bag, unsigned indx,
 				    const char *name)
 {
 	if (bag == NULL) {
@@ -811,7 +811,7 @@ gnutls_pkcs12_bag_enc_info(gnutls_pkcs12_bag_t bag, unsigned int *schema, unsign
 {
 	int ret;
 	struct pbkdf2_params kdf;
-	const struct pbes2_schema_st *p;
+	const struct pkcs_cipher_schema_st *p;
 
 	if (bag == NULL) {
 		gnutls_assert();

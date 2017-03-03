@@ -44,7 +44,7 @@ static void cmd_parser(int argc, char **argv);
 
 /* global stuff here */
 int resume;
-const char *hostname = NULL;
+char *hostname = NULL;
 int port;
 int record_max_size;
 int fingerprint;
@@ -147,9 +147,10 @@ static const TLS_TEST tls_tests[] = {
 	{"for ephemeral EC Diffie-Hellman support", test_ecdhe, "yes",
 	 "no",
 	 "dunno"},
-	{"ephemeral EC Diffie-Hellman group info", test_ecdhe_curve, NULL,
-	 "N/A",
-	 "N/A"},
+	{"for curve SECP256r1 (RFC4492)", test_ecdhe_secp256r1, "yes", "no", "dunno"},
+	{"for curve SECP384r1 (RFC4492)", test_ecdhe_secp384r1, "yes", "no", "dunno"},
+	{"for curve SECP521r1 (RFC4492)", test_ecdhe_secp521r1, "yes", "no", "dunno"},
+	{"for curve X25519 (draft-ietf-tls-rfc4492bis-07)", test_ecdhe_x25519, "yes", "no", "dunno"},
 	{"for AES-128-GCM cipher (RFC5288) support", test_aes_gcm, "yes", "no",
 	 "dunno"},
 	{"for AES-128-CCM cipher (RFC6655) support", test_aes_ccm, "yes", "no",
@@ -164,6 +165,8 @@ static const TLS_TEST tls_tests[] = {
 	 "dunno"},
 	{"for 3DES-CBC cipher (RFC2246) support", test_3des, "yes", "no", "dunno"},
 	{"for ARCFOUR 128 cipher (RFC2246) support", test_arcfour, "yes", "no",
+	 "dunno"},
+	{"for CHACHA20-POLY1305 cipher (RFC7905) support", test_chacha20, "yes", "no",
 	 "dunno"},
 	{"for MD5 MAC support", test_md5, "yes", "no", "dunno"},
 	{"for SHA1 MAC support", test_sha, "yes", "no", "dunno"},
@@ -185,11 +188,28 @@ static const TLS_TEST tls_tests[] = {
 
 const char *ip;
 
+gnutls_session_t init_tls_session(const char *host)
+{
+	gnutls_session_t state = NULL;
+	gnutls_init(&state, GNUTLS_CLIENT | GNUTLS_NO_EXTENSIONS);
+
+	set_read_funcs(state);
+	if (host && is_ip(host) == 0)
+		gnutls_server_name_set(state, GNUTLS_NAME_DNS,
+				       host, strlen(host));
+
+	return state;
+}
+
+int do_handshake(socket_st * socket)
+{
+	return 0; /* we do it locally */
+}
+
 int main(int argc, char **argv)
 {
 	int ret;
 	int i;
-	gnutls_session_t state;
 	char portname[6];
 	socket_st hd;
 	char app_proto[32] = "";
@@ -248,6 +268,8 @@ int main(int argc, char **argv)
 	i = 0;
 
 	printf("GnuTLS debug client %s\n", gnutls_check_version(NULL));
+
+	canonicalize_host(hostname, portname, sizeof(portname));
 	printf("Checking %s:%s\n", hostname, portname);
 	do {
 
@@ -263,19 +285,8 @@ int main(int argc, char **argv)
 			break;
 		}
 
-		socket_open(&hd, hostname, portname, 0, NULL);
+		socket_open(&hd, hostname, portname, app_proto, SOCKET_FLAG_STARTTLS|SOCKET_FLAG_RAW, NULL, NULL);
 		hd.verbose = verbose;
-
-		socket_starttls(&hd, app_proto);
-
-		gnutls_init(&state, GNUTLS_CLIENT | GNUTLS_NO_EXTENSIONS);
-
-		gnutls_transport_set_ptr(state, (gnutls_transport_ptr_t)
-					 gl_fd_to_handle(hd.fd));
-		set_read_funcs(state);
-		if (hostname && is_ip(hostname) == 0)
-			gnutls_server_name_set(state, GNUTLS_NAME_DNS,
-					       hostname, strlen(hostname));
 
 		do {
 			if (strcmp(app_proto, "https") != 0 && tls_tests[i].https_only != 0) {
@@ -283,9 +294,9 @@ int main(int argc, char **argv)
 				break;
 			}
 
-			ret = tls_tests[i].func(state);
+			ret = tls_tests[i].func(hd.session);
 
-			if (ret != TEST_IGNORE) {
+			if (ret != TEST_IGNORE && ret != TEST_IGNORE2) {
 				printf("%58s...", tls_tests[i].test_name);
 				fflush(stdout);
 			}
@@ -309,9 +320,7 @@ int main(int argc, char **argv)
 		while (ret == TEST_IGNORE
 		       && tls_tests[i].test_name != NULL);
 
-		gnutls_deinit(state);
-
-		socket_bye(&hd);
+		socket_bye(&hd, 1);
 
 		i++;
 	}
@@ -331,7 +340,8 @@ int main(int argc, char **argv)
 
 static void cmd_parser(int argc, char **argv)
 {
-	const char *rest = NULL;
+	char *rest = NULL;
+	static char lh[] = "localhost";
 	int optct = optionProcess(&gnutls_cli_debugOptions, argc, argv);
 	argc -= optct;
 	argv += optct;
@@ -349,7 +359,7 @@ static void cmd_parser(int argc, char **argv)
 	}
 
 	if (rest == NULL)
-		hostname = "localhost";
+		hostname = lh;
 	else
 		hostname = rest;
 

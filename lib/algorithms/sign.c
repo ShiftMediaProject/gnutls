@@ -20,9 +20,9 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <algorithms.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <x509/common.h>
 
 /* signature algorithms;
@@ -96,6 +96,33 @@ static const gnutls_sign_entry sign_algorithms[] = {
 	 GNUTLS_PK_DSA, GNUTLS_DIG_SHA384, {5, 2}},
 	{"DSA-SHA512", SIG_DSA_SHA512_OID, GNUTLS_SIGN_DSA_SHA512,
 	 GNUTLS_PK_DSA, GNUTLS_DIG_SHA512, {6, 2}},
+
+	{"ECDSA-SHA3-224", SIG_ECDSA_SHA3_224_OID, GNUTLS_SIGN_ECDSA_SHA3_224,
+	 GNUTLS_PK_EC, GNUTLS_DIG_SHA3_224, TLS_SIGN_AID_UNKNOWN},
+	{"ECDSA-SHA3-256", SIG_ECDSA_SHA3_256_OID, GNUTLS_SIGN_ECDSA_SHA3_256,
+	 GNUTLS_PK_EC, GNUTLS_DIG_SHA3_256, TLS_SIGN_AID_UNKNOWN},
+	{"ECDSA-SHA3-384", SIG_ECDSA_SHA3_384_OID, GNUTLS_SIGN_ECDSA_SHA3_384,
+	 GNUTLS_PK_EC, GNUTLS_DIG_SHA3_384, TLS_SIGN_AID_UNKNOWN},
+	{"ECDSA-SHA3-512", SIG_ECDSA_SHA3_512_OID, GNUTLS_SIGN_ECDSA_SHA3_512,
+	 GNUTLS_PK_EC, GNUTLS_DIG_SHA3_512, TLS_SIGN_AID_UNKNOWN},
+
+	{"RSA-SHA3-224", SIG_RSA_SHA3_224_OID, GNUTLS_SIGN_RSA_SHA3_224,
+	 GNUTLS_PK_RSA, GNUTLS_DIG_SHA3_224, TLS_SIGN_AID_UNKNOWN},
+	{"RSA-SHA3-256", SIG_RSA_SHA3_256_OID, GNUTLS_SIGN_RSA_SHA3_256,
+	 GNUTLS_PK_RSA, GNUTLS_DIG_SHA3_256, TLS_SIGN_AID_UNKNOWN},
+	{"RSA-SHA3-384", SIG_RSA_SHA3_384_OID, GNUTLS_SIGN_RSA_SHA3_384,
+	 GNUTLS_PK_RSA, GNUTLS_DIG_SHA3_384, TLS_SIGN_AID_UNKNOWN},
+	{"RSA-SHA3-512", SIG_RSA_SHA3_512_OID, GNUTLS_SIGN_RSA_SHA3_512,
+	 GNUTLS_PK_RSA, GNUTLS_DIG_SHA3_512, TLS_SIGN_AID_UNKNOWN},
+
+	{"DSA-SHA3-224", SIG_DSA_SHA3_224_OID, GNUTLS_SIGN_DSA_SHA3_224,
+	 GNUTLS_PK_DSA, GNUTLS_DIG_SHA3_224, TLS_SIGN_AID_UNKNOWN},
+	{"DSA-SHA3-256", SIG_DSA_SHA3_256_OID, GNUTLS_SIGN_DSA_SHA3_256,
+	 GNUTLS_PK_DSA, GNUTLS_DIG_SHA3_256, TLS_SIGN_AID_UNKNOWN},
+	{"DSA-SHA3-384", SIG_DSA_SHA3_384_OID, GNUTLS_SIGN_DSA_SHA3_384,
+	 GNUTLS_PK_DSA, GNUTLS_DIG_SHA3_384, TLS_SIGN_AID_UNKNOWN},
+	{"DSA-SHA3-512", SIG_DSA_SHA3_512_OID, GNUTLS_SIGN_DSA_SHA3_512,
+	 GNUTLS_PK_DSA, GNUTLS_DIG_SHA3_512, TLS_SIGN_AID_UNKNOWN},
 	{0, 0, 0, 0, 0, TLS_SIGN_AID_UNKNOWN}
 };
 
@@ -265,6 +292,7 @@ const char *gnutls_sign_get_oid(gnutls_sign_algorithm_t sign)
 	const char *ret = NULL;
 
 	GNUTLS_SIGN_ALG_LOOP(ret = p->oid);
+
 	return ret;
 }
 
@@ -341,8 +369,9 @@ const sign_algorithm_st *_gnutls_sign_to_tls_aid(gnutls_sign_algorithm_t
 
 	GNUTLS_SIGN_ALG_LOOP(ret = &p->aid);
 
-	if (ret != NULL
-	    && memcmp(ret, &unknown_tls_aid, sizeof(*ret)) == 0)
+	if (ret != NULL &&
+	    ret->hash_algorithm == unknown_tls_aid.hash_algorithm &&
+	    ret->sign_algorithm == unknown_tls_aid.sign_algorithm)
 		return NULL;
 
 	return ret;

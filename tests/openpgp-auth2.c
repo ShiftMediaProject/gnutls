@@ -177,7 +177,7 @@ void doit(void)
 
 		if (debug)
 			printf("server process %i (child %i)\n", getpid(),
-			       child);
+				child);
 
 		err = gnutls_init(&session, GNUTLS_SERVER);
 		if (err != 0)
@@ -229,7 +229,7 @@ void doit(void)
 
 		received =
 		    gnutls_record_recv(session, greetings,
-				       sizeof(greetings));
+					sizeof(greetings));
 		if (received != sizeof(g_message)
 		    || memcmp(greetings, g_message, sizeof(g_message)))
 			fail("server received %li vs. %li\n",
@@ -254,15 +254,7 @@ void doit(void)
 		if (done != child)
 			fail("who's that?! %d\n", done);
 
-		if (WIFEXITED(status)) {
-			if (WEXITSTATUS(status) != 0)
-				fail("child exited with status %d\n",
-				     WEXITSTATUS(status));
-		} else if (WIFSIGNALED(status))
-			fail("child stopped by signal %d\n",
-			     WTERMSIG(status));
-		else
-			fail("child failed: %d\n", status);
+		check_wait_status(status);
 	}
 
 	gnutls_global_deinit();

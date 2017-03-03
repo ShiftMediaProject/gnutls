@@ -212,6 +212,8 @@ static void client(int fd, const char *prio, int ign)
 		exit(1);
 	}
 
+	gnutls_record_set_timeout(session, 10000);
+
 	/* Test receiving */
 	do {
 		do {
@@ -412,7 +414,6 @@ static void start(const char *prio, int ign)
 		/* parent */
 		close(fd[1]);
 		server(fd[0], prio, ign);
-		kill(child, SIGTERM);
 	} else {
 		close(fd[0]);
 		client(fd[1], prio, ign);
@@ -437,15 +438,7 @@ static void ch_handler(int sig)
 {
 	int status = 0;
 	wait(&status);
-	if (WEXITSTATUS(status) != 0 ||
-	    (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)) {
-		if (WIFSIGNALED(status))
-			fail("Child died with sigsegv\n");
-		else
-			fail("Child died with status %d\n",
-			     WEXITSTATUS(status));
-		terminate();
-	}
+	check_wait_status(status);
 	return;
 }
 

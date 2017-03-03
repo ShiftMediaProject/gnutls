@@ -268,21 +268,30 @@ _rsa_generate_fips186_4_keypair(struct rsa_public_key *pub,
 	struct dss_params_validation_seeds cert;
 	unsigned l = n_size / 2;
 
-	if (n_size == 2048) {
-		if (seed_length != 14 * 2) {
-			return 0;
-		}
-	} else {
-		if (seed_length != 16 * 2) {
+	if (_gnutls_fips_mode_enabled() != 0) {
+		if (n_size == 2048) {
+			if (seed_length != 14 * 2) {
+				_gnutls_debug_log("Seed length must be 28 bytes (it is %d)\n", seed_length);
+				return 0;
+			}
+		} else if (n_size == 3072) {
+			if (seed_length != 16 * 2) {
+				_gnutls_debug_log("Seed length must be 32 bytes (it is %d)\n", seed_length);
+				return 0;
+			}
+		} else {
+			_gnutls_debug_log("Unsupported size for modulus\n");
 			return 0;
 		}
 	}
 
 	if (!mpz_tstbit(pub->e, 0)) {
+		_gnutls_debug_log("Unacceptable e (it is even)\n");
 		return 0;
 	}
 
 	if (mpz_cmp_ui(pub->e, 65536) <= 0) {
+		_gnutls_debug_log("Unacceptable e\n");
 		return 0;
 	}
 
@@ -333,7 +342,6 @@ _rsa_generate_fips186_4_keypair(struct rsa_public_key *pub,
 	} while (mpz_cmp(t, r) <= 0);
 
 	memset(&cert, 0, sizeof(cert));
-	memset(seed, 0, seed_length);
 
 	mpz_mul(pub->n, key->p, key->q);
 
@@ -374,6 +382,10 @@ _rsa_generate_fips186_4_keypair(struct rsa_public_key *pub,
 	return ret;
 }
 
+/* Not entirely accurate but a good precision
+ */
+#define SEED_LENGTH(bits) (_gnutls_pk_bits_to_subgroup_bits(bits)/8)
+
 /* This generates p,q params using the B.3.2.2 algorithm in FIPS 186-4.
  * 
  * The hash function used is SHA384.
@@ -385,23 +397,38 @@ rsa_generate_fips186_4_keypair(struct rsa_public_key *pub,
 			       void *random_ctx, nettle_random_func * random,
 			       void *progress_ctx,
 			       nettle_progress_func * progress,
+			       unsigned *rseed_size,
+			       void *rseed,
 			       /* Desired size of modulo, in bits */
 			       unsigned n_size)
 {
-	uint8_t seed[32];
+	uint8_t seed[128];
 	unsigned seed_length;
+	int ret;
 
-	if (n_size != 2048 && n_size != 3072) {
-		return 0;
+	if (_gnutls_fips_mode_enabled() != 0) {
+		if (n_size != 2048 && n_size != 3072) {
+			_gnutls_debug_log("The size of a prime can only be 2048 or 3072\n");
+			return 0;
+		}
 	}
 
-	if (n_size == 2048)
-		seed_length = 14 * 2;
-	else
-		seed_length = 16 * 2;
+	seed_length = SEED_LENGTH(n_size);
+	if (seed_length > sizeof(seed))
+		return 0;
 
 	random(random_ctx, seed_length, seed);
 
-	return _rsa_generate_fips186_4_keypair(pub, key, seed_length, seed,
+	if (rseed && rseed_size) {
+		if (*rseed_size < seed_length) {
+			return 0;
+		}
+		memcpy(rseed, seed, seed_length);
+		*rseed_size = seed_length;
+	}
+
+	ret = _rsa_generate_fips186_4_keypair(pub, key, seed_length, seed,
 					       progress_ctx, progress, n_size);
+	gnutls_memset(seed, 0, seed_length);
+	return ret;
 }

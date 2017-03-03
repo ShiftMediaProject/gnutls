@@ -23,7 +23,7 @@
 #ifndef ALGORITHMS_H
 #define ALGORITHMS_H
 
-#include "gnutls_auth.h"
+#include "auth.h"
 
 #define GNUTLS_RENEGO_PROTECTION_REQUEST_MAJOR 0x00
 #define GNUTLS_RENEGO_PROTECTION_REQUEST_MINOR 0xFF
@@ -34,6 +34,8 @@
 /* would allow for 256 ciphersuites */
 #define MAX_CIPHERSUITE_SIZE 512
 
+#define IS_EC(x) (((x)==GNUTLS_PK_ECDSA)||((x)==GNUTLS_PK_ECDHX))
+
 /* Functions for version handling. */
 const version_entry_st *version_to_entry(gnutls_protocol_t c);
 const version_entry_st *_gnutls_version_lowest(gnutls_session_t session);
@@ -43,9 +45,7 @@ int _gnutls_version_priority(gnutls_session_t session,
 int _gnutls_version_is_supported(gnutls_session_t session,
 				 const gnutls_protocol_t version);
 gnutls_protocol_t _gnutls_version_get(uint8_t major, uint8_t minor);
-
-gnutls_mac_algorithm_t
-        gnutls_oid_to_mac(const char *oid);
+unsigned _gnutls_version_is_too_high(gnutls_session_t session, uint8_t major, uint8_t minor);
 
 /* Functions for feature checks */
 inline static int
@@ -268,9 +268,9 @@ inline static int _gnutls_cipher_get_tag_size(const cipher_entry_st * e)
 }
 
 /* Functions for key exchange. */
-int _gnutls_kx_needs_dh_params(gnutls_kx_algorithm_t algorithm);
+bool _gnutls_kx_needs_dh_params(gnutls_kx_algorithm_t algorithm);
+bool _gnutls_kx_allows_false_start(gnutls_session_t session);
 int _gnutls_kx_cert_pk_params(gnutls_kx_algorithm_t algorithm);
-int _gnutls_kx_needs_rsa_params(gnutls_kx_algorithm_t algorithm);
 mod_auth_st *_gnutls_kx_auth_struct(gnutls_kx_algorithm_t algorithm);
 int _gnutls_kx_is_ok(gnutls_kx_algorithm_t algorithm);
 
@@ -286,9 +286,8 @@ gnutls_credentials_type_t _gnutls_map_kx_get_cred(gnutls_kx_algorithm_t
 
 /* DSA + RSA + ECC */
 #define GNUTLS_DISTINCT_PK_ALGORITHMS 3
-gnutls_pk_algorithm_t _gnutls_map_pk_get_pk(gnutls_kx_algorithm_t
+gnutls_pk_algorithm_t _gnutls_map_kx_get_pk(gnutls_kx_algorithm_t
 					    kx_algorithm);
-const char *gnutls_pk_get_oid(gnutls_pk_algorithm_t pk);
 
 enum encipher_type { CIPHER_ENCRYPT = 0, CIPHER_SIGN = 1, CIPHER_IGN };
 
@@ -319,6 +318,7 @@ struct gnutls_ecc_curve_entry_st {
 	const char *name;
 	const char *oid;
 	gnutls_ecc_curve_t id;
+	gnutls_pk_algorithm_t pk;
 	int tls_id;		/* The RFC4492 namedCurve ID */
 	int size;		/* the size in bytes */
 };

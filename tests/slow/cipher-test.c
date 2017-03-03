@@ -14,9 +14,17 @@
  * cpu instructions (AES-NI or padlock).
  */
 
+#if defined(WIN32)
+int main(int argc, char **argv)
+{
+	exit(77);
+}
+#else
+# include <unistd.h>
+
 static void handle_sigill(int sig)
 {
-	exit(0);
+	_exit(0);
 }
 
 static void tls_log_func(int level, const char *str)
@@ -58,3 +66,5 @@ int main(int argc, char **argv)
 	gnutls_global_deinit();
 	return 0;
 }
+
+#endif

@@ -54,6 +54,11 @@ typedef struct common_info {
 	int empty_password;
 	unsigned int crq_extensions;
 	unsigned int v1_cert;
+	/* for key generation */
+	unsigned provable;
+
+	unsigned char *seed;
+	unsigned seed_size;
 
 	const char *pin;
 	const char *so_pin;
@@ -65,8 +70,15 @@ typedef struct common_info {
 	/* when printing PKCS #11 objects, only print urls */
 	unsigned int only_urls;
 	unsigned int verbose;
+
+	/* set to non zero when no compatibility structs need to be exported */
+	unsigned no_compat;
 } common_info_st;
 
+int cipher_to_flags(const char *cipher);
+
+void
+print_private_key(FILE *outfile, common_info_st * cinfo, gnutls_x509_privkey_t key);
 gnutls_pubkey_t load_public_key_or_import(int mand,
 					  gnutls_privkey_t privkey,
 					  common_info_st * info);
@@ -121,5 +133,7 @@ extern unsigned char *lbuffer;
 extern unsigned long lbuffer_size;
 
 void fix_lbuffer(unsigned long);
+
+void decode_seed(gnutls_datum_t *seed, const char *hex, unsigned hex_size);
 
 #endif

@@ -42,19 +42,27 @@ if HAVE_GUILE
 SUBDIRS += guile
 endif
 
+if ENABLE_MANPAGES
+SUBDIRS += doc/manpages
+endif
+
 if ENABLE_DOC
 SUBDIRS += doc
 endif
 
-ACLOCAL_AMFLAGS = -I m4 -I gl/m4 -I src/libopts/m4 -I src/gl/m4
+ACLOCAL_AMFLAGS = -I m4 -I gl/m4 -I src/libopts/m4 -I src/gl/m4 -I lib/unistring/m4
 
-EXTRA_DIST = cfg.mk maint.mk .clcopying
-
-README-alpha: README.md
-	cp $^ $@
-	chmod 444 $@
+EXTRA_DIST = cfg.mk maint.mk .clcopying CONTRIBUTING.md README.md LICENSE AUTHORS NEWS \
+	ChangeLog THANKS INSTALL.md
 
 TMPFILE="abi-temp.xml"
+
+pic-check:
+	@echo "Checking for position dependent code"
+	readelf -d $(builddir)/lib/.libs/libgnutls.so|grep TEXTREL; if test $$? = 0;then \
+	eu-findtextrel $(builddir)/lib/.libs/libgnutls.so; \
+	false; \
+	fi
 
 abi-check:
 	@rm -f $(TMPFILE)
@@ -67,23 +75,55 @@ abi-check:
 		abi-compliance-checker -abi -lib gnutls -old "$(srcdir)/devel/ABI-$$(uname -m).dump" -new $(TMPFILE) -skip-symbols $(srcdir)/devel/abi-unchecked-symbols 
 	@echo "Checking libgnutls-dane ABI"
 	@echo "<version>$(VERSION)</version>" >$(TMPFILE)
-	@echo "<headers>$(srcdir)/libdane/includes/gnutls</headers>" >>$(TMPFILE)
+	@echo "<headers>$(srcdir)/libdane/includes/gnutls" >>$(TMPFILE)
+	@echo "$(srcdir)/lib/includes/gnutls" >>$(TMPFILE)
+	@echo "$(builddir)/lib/includes/gnutls</headers>" >>$(TMPFILE)
 	@echo "<libs>$(builddir)/libdane/.libs</libs>" >>$(TMPFILE)
 	test ! -f "$(srcdir)/devel/ABI-dane-$$(uname -m).dump" || abi-compliance-checker -abi -lib gnutls-dane -old "$(srcdir)/devel/ABI-dane-$$(uname -m).dump" -new $(TMPFILE)
 	@rm -f $(TMPFILE)
 
-dist-hook: abi-check
+symbol-check:
+	@objdump -T $(srcdir)/lib/.libs/libgnutls.so  | grep -v ' \*UND\*' | awk '{print $$7 "@" $$6;}' | grep -v GNUTLS_FIPS140 | grep -v GNUTLS_PRIVATE | grep -v '@\.init' |  sort -u >symbols.last.tmp
+	@diff -u symbols.last symbols.last.tmp >/dev/null 2>&1; if test $$? != 0;then \
+		diff -u symbols.last symbols.last.tmp | grep -v '\-\-\-' >symbols.diff.tmp 2>&1; \
+		if grep -e '^-' symbols.diff.tmp;then \
+			echo "*******************************************"; \
+			echo "Symbols were removed from the library."; \
+			echo "Check symbols.diff.tmp for more information"; \
+			echo "*******************************************"; \
+			false; \
+		else \
+			echo "*************************************************************"; \
+			echo "Symbols were added in the library; check symbols.diff.tmp for"; \
+			echo "correctness; then use 'make files-update'"; \
+			echo "*************************************************************"; \
+			false; \
+		fi \
+	else \
+		test -f symbols.diff.tmp && cat symbols.diff.tmp; \
+		echo "**************************"; \
+		echo "No symbol changes detected"; \
+		echo "**************************"; \
+	fi
+	rm -f symbols.last.tmp symbols.diff.tmp
+
+@CODE_COVERAGE_RULES@
+
+local-code-coverage-output: code-coverage-capture
+	cat GnuTLS-$(VERSION)-coverage/index.html|grep headerCovTableEntryLo|head -1|sed 's/^.*>\([0-9]\+\.[0-9]\+\s*%\)<.*$$/ coverage lines: \1/' || true
+
+files-update:
+	make -C doc/ compare-makefile || mv doc/tmp-compare-makefile doc/Makefile.am
+	make -C doc/manpages compare-makefile || mv doc/manpages/tmp-compare-makefile doc/manpages/Makefile.am
+	make -C . symbol-check || mv symbols.last.tmp symbols.last
+	@echo "******************************************************************************************"
+	@echo "updated auto-generated files; please use git diff to verify the correctness of the changes"
+	@echo "******************************************************************************************"
+
+dist-hook: symbol-check abi-check
 	make -C doc/ compare-makefile
 	make -C doc/ compare-exported
 	make -C doc/manpages compare-makefile
-	@echo "*****************************************************************"
-	@echo "Checking symbol changes. If the next step fails, verify that the"
-	@echo "symbols added or removed are correct and copy symbols.last.tmp as"
-	@echo "symbols.last"
-	@echo "*****************************************************************"
-	objdump -T $(srcdir)/lib/.libs/libgnutls.so.30  | grep -v ' \*UND\*' | awk '{print $$7 "@" $$6;}' | grep -v GNUTLS_FIPS140 | grep -v GNUTLS_PRIVATE |  sort -u >symbols.last.tmp
-	diff -u symbols.last symbols.last.tmp >/dev/null 2>&1
-	rm -f symbols.last.tmp
 	rm -f ChangeLog
 	make ChangeLog
 	cp -f ChangeLog $(distdir)/

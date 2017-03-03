@@ -58,6 +58,25 @@ flag = {
 };
 
 flag = {
+    name      = provable;
+    descrip   = "Generate a private key or parameters from a seed using a provable method";
+    doc = "This will use the FIPS-186-4 algorithms (i.e., Shawe-Taylor) for provable key generation. When specified the private keys or parameters will be generated from a seed, and can be proven to be correctly generated from the seed. You may specify --seed or allow GnuTLS to generate one (recommended). This option can be combined with --generate-privkey or --generate-dh-params.";
+};
+
+flag = {
+    name      = verify-provable-privkey;
+    descrip   = "Verify a private key generated from a seed using a provable method";
+    doc = "This will use the FIPS-186-4 algorithms for provable key generation. You may specify --seed or use the seed stored in the private key structure.";
+};
+
+flag = {
+    name      = seed;
+    descrip   = "When generating a private key use the given hex-encoded seed";
+    arg-type  = string;
+    doc = "";
+};
+
+flag = {
     name      = generate-request;
     value     = q;
     descrip   = "Generate a PKCS #10 certificate request";
@@ -111,16 +130,26 @@ flag = {
 };
 
 flag = {
+    name      = verify-allow-broken;
+    descrip   = "Allow broken algorithms, such as MD5 for verification";
+    doc = "This can be combined with --p7-verify, --verify or --verify-chain.";
+};
+
+flag = {
     name      = generate-dh-params;
     descrip   = "Generate PKCS #3 encoded Diffie-Hellman parameters";
-    doc = "";
+    doc = "The will generate random parameters to be used with
+Diffie-Hellman key exchange. The output parameters will be in PKCS #3
+format. Note that it is recommended to use the --get-dh-params option
+instead.";
 };
 
 flag = {
     name      = get-dh-params;
     descrip   = "Get the included PKCS #3 encoded Diffie-Hellman parameters";
-    doc = "Returns stored DH parameters in GnuTLS. Those parameters are used in the SRP protocol. The parameters returned by fresh generation
-are more efficient since GnuTLS 3.0.9.";
+    doc = "Returns stored DH parameters in GnuTLS. Those parameters returned
+are defined in RFC7919, and can be considered standard parameters for a TLS
+key exchange.";
 };
 
 flag = {
@@ -147,14 +176,14 @@ flag = {
     name      = load-request;
     descrip   = "Loads a certificate request file";
     arg-type  = string;
-    doc = "";
+    doc = "This option can be used with a file";
 };
 
 flag = {
     name      = load-certificate;
     descrip   = "Loads a certificate file";
     arg-type  = string;
-    doc = "This can be either a file or a PKCS #11 URL";
+    doc = "This option can be used with a file";
 };
 
 flag = {
@@ -168,21 +197,21 @@ flag = {
     name      = load-ca-certificate;
     descrip   = "Loads the certificate authority's certificate file";
     arg-type  = string;
-    doc = "This can be either a file or a PKCS #11 URL";
+    doc = "This option can be used with a file";
 };
 
 flag = {
     name      = load-crl;
     descrip   = "Loads the provided CRL";
     arg-type  = string;
-    doc = "";
+    doc = "This option can be used with a file";
 };
 
 flag = {
     name      = load-data;
-    descrip   = "Loads auxilary data";
+    descrip   = "Loads auxiliary data";
     arg-type  = string;
-    doc = "";
+    doc = "This option can be used with a file";
 };
 
 flag = {
@@ -296,14 +325,14 @@ flag = {
 flag = {
     name      = p7-sign;
     descrip   = "Signs using a PKCS #7 structure";
-    doc       = "This option generates a PKCS #7 structure containing a signature for the provided data. The data are stored within the structure. The signer certificate has to be specified using --load-certificate and --load-privkey.";
+    doc       = "This option generates a PKCS #7 structure containing a signature for the provided data from infile. The data are stored within the structure. The signer certificate has to be specified using --load-certificate and --load-privkey.";
 };
 
 
 flag = {
     name      = p7-detached-sign;
     descrip   = "Signs using a detached PKCS #7 structure";
-    doc       = "This option generates a PKCS #7 structure containing a signature for the provided data. The signer certificate has to be specified using --load-certificate and --load-privkey.";
+    doc       = "This option generates a PKCS #7 structure containing a signature for the provided data from infile. The signer certificate has to be specified using --load-certificate and --load-privkey.";
 };
 
 flag = {
@@ -316,6 +345,8 @@ flag = {
 
 flag = {
     name      = p7-time;
+    disable   = "no";
+    disabled;
     descrip   = "Will include a timestamp in the PKCS #7 structure";
     doc       = "This option will include a timestamp in the generated signature";
 };
@@ -381,7 +412,6 @@ flag = {
     name      = to-p12;
     descrip   = "Generate a PKCS #12 structure";
     doc = "It requires a certificate, a private key and possibly a CA certificate to be specified.";
-    flags-must = load-certificate;
 };
 
 flag = {
@@ -424,7 +454,7 @@ flag = {
     name      = hash;
     arg-type  = string;
     descrip   = "Hash algorithm to use for signing";
-    doc = "Available hash functions are SHA1, RMD160, SHA256, SHA384, SHA512.";
+    doc = "Available hash functions are SHA1, RMD160, SHA256, SHA384, SHA512, SHA3-224, SHA3-256, SHA3-384, SHA3-512.";
 };
 
 flag = {
@@ -702,8 +732,8 @@ cn = "Cindy Lauper"
 # any OID here.
 # For example set the X.520 Title and the X.520 Pseudonym
 # by using OID and string pairs.
-#dn_oid = 2.5.4.12 Dr. 
-#dn_oid = 2.5.4.65 jackal
+#dn_oid = "2.5.4.12 Dr."
+#dn_oid = "2.5.4.65 jackal"
 
 # This is deprecated and should not be used in new
 # certificates.
@@ -742,6 +772,18 @@ expiration_days = 700
 #dns_name = "www.none.org"
 #dns_name = "www.morethanone.org"
 
+# An othername defined by an OID and a hex encoded string
+#other_name = "1.3.6.1.5.2.2 302ca00d1b0b56414e5245494e2e4f5247a11b3019a006020400000002a10f300d1b047269636b1b0561646d696e"
+#other_name_utf8 = "1.2.4.5.6 A UTF8 string"
+#other_name_octet = "1.2.4.5.6 A string that will be encoded as ASN.1 octet string"
+
+# Allows writing an XmppAddr Identifier
+#xmpp_name = juliet@@im.example.com
+
+# Names used in PKINIT
+#krb5_principal = user@@REALM.COM
+#krb5_principal = HTTP/user@@REALM.COM
+
 # A subject alternative name URI
 #uri = "http://www.example.com"
 
@@ -750,6 +792,15 @@ expiration_days = 700
 
 # An email in case of a person
 email = "none@@none.org"
+
+# TLS feature (rfc7633) extension. That can is used to indicate mandatory TLS
+# extension features to be provided by the server. In practice this is used
+# to require the Status Request (extid: 5) extension from the server. That is,
+# to require the server holding this certificate to provide a stapled OCSP response.
+# You can have multiple lines for multiple TLS features.
+
+# To ask for OCSP status request use:
+#tls_feature = 5
 
 # Challenge password used in certificate requests
 challenge_password = 123456
@@ -855,10 +906,25 @@ encryption_key
 
 ### end of key purpose OIDs
 
+### Adding arbitrary extensions
+# This requires to provide the extension OIDs, as well as the extension data in
+# hex format. The following two options are available since GnuTLS 3.5.3.
+#add_extension = "1.2.3.4 0x0AAB01ACFE"
+
+# As above but encode the data as an octet string
+#add_extension = "1.2.3.4 octet_string(0x0AAB01ACFE)"
+
+# For portability critical extensions shouldn't be set to certificates.
+#add_critical_extension = "5.6.7.8 0x1AAB01ACFE"
+
 # When generating a certificate from a certificate
 # request, then honor the extensions stored in the request
 # and store them in the real certificate.
 #honor_crq_extensions
+
+# Alternatively only specific extensions can be copied.
+#honor_crq_ext = 2.5.29.17
+#honor_crq_ext = 2.5.29.15
 
 # Path length contraint. Sets the maximum number of
 # certificates that can be used to certify this certificate.
@@ -895,6 +961,11 @@ encryption_key
 
 # Exclude all e-mail addresses of example.com
 #nc_exclude_email = example.com
+
+# IP
+#nc_permit_ip = 192.168.0.0/16
+#nc_exclude_ip = 192.168.5.0/24
+#nc_permit_ip = fc0a:eef2:e7e7:a56e::/64
 
 
 # Options for proxy certificates

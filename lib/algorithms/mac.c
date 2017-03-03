@@ -20,9 +20,9 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <algorithms.h>
-#include <gnutls_errors.h>
+#include "errors.h"
 #include <x509/common.h>
 
 #define MAC_OID_SHA1 "1.2.840.113549.2.7"
@@ -42,6 +42,14 @@ static const mac_entry_st hash_algorithms[] = {
 	 64},
 	{"SHA224", HASH_OID_SHA224, MAC_OID_SHA224, GNUTLS_MAC_SHA224, 28, 28, 0, 0, 1,
 	 64},
+	{"SHA3-256", HASH_OID_SHA3_256, NULL, GNUTLS_MAC_SHA3_256, 32, 32, 0, 0, 1,
+	 136},
+	{"SHA3-384", HASH_OID_SHA3_384, NULL, GNUTLS_MAC_SHA3_384, 48, 48, 0, 0, 1,
+	 104},
+	{"SHA3-512", HASH_OID_SHA3_512, NULL, GNUTLS_MAC_SHA3_512, 64, 64, 0, 0, 1,
+	 72},
+	{"SHA3-224", HASH_OID_SHA3_224, NULL, GNUTLS_MAC_SHA3_224, 28, 28, 0, 0, 1,
+	 144},
 	{"UMAC-96", NULL, NULL, GNUTLS_MAC_UMAC_96, 12, 16, 8, 0, 1, 0},
 	{"UMAC-128", NULL, NULL, GNUTLS_MAC_UMAC_128, 16, 16, 8, 0, 1, 0},
 	{"AEAD", NULL, NULL, GNUTLS_MAC_AEAD, 0, 0, 0, 1, 1, 0},
@@ -54,11 +62,11 @@ static const mac_entry_st hash_algorithms[] = {
 
 
 #define GNUTLS_HASH_LOOP(b) \
-        const mac_entry_st *p; \
-                for(p = hash_algorithms; p->name != NULL; p++) { b ; }
+	const mac_entry_st *p; \
+		for(p = hash_algorithms; p->name != NULL; p++) { b ; }
 
 #define GNUTLS_HASH_ALG_LOOP(a) \
-                        GNUTLS_HASH_LOOP( if(p->id == algorithm) { a; break; } )
+			GNUTLS_HASH_LOOP( if(p->id == algorithm) { a; break; } )
 
 const mac_entry_st *_gnutls_mac_to_entry(gnutls_mac_algorithm_t c)
 {
@@ -164,7 +172,7 @@ gnutls_mac_algorithm_t gnutls_mac_get_id(const char *name)
 	GNUTLS_HASH_LOOP(
 		if (strcasecmp(p->name, name) == 0) {
 			if (p->placeholder != 0 || _gnutls_mac_exists(p->id))
-  				ret = p->id;
+				ret = p->id;
 			break;
 		}
 	);
@@ -286,7 +294,9 @@ gnutls_digest_algorithm_t gnutls_oid_to_digest(const char *oid)
 
 	GNUTLS_HASH_LOOP(
 		if (p->oid && strcmp(oid, p->oid) == 0) {
-			ret = (gnutls_digest_algorithm_t) p->id; 
+			if (_gnutls_digest_exists((gnutls_digest_algorithm_t)p->id)) {
+				ret = (gnutls_digest_algorithm_t) p->id;
+			}
 			break;
 		}
 	);

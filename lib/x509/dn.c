@@ -20,199 +20,232 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <libtasn1.h>
-#include <gnutls_datum.h>
-#include <gnutls_global.h>
-#include <gnutls_errors.h>
-#include <gnutls_str.h>
+#include <datum.h>
+#include <global.h>
+#include "errors.h"
+#include <str.h>
 #include <common.h>
-#include <gnutls_num.h>
+#include <num.h>
 
 /* This file includes all the required to parse an X.509 Distriguished
  * Name (you need a parser just to read a name in the X.509 protocols!!!)
  */
 
-int
-_gnutls_x509_get_dn(ASN1_TYPE asn1_struct,
-		    const char *asn1_rdn_name, gnutls_datum_t * dn)
+static int append_elements(ASN1_TYPE asn1_struct, const char *asn1_rdn_name, gnutls_buffer_st *str, int k1, unsigned last)
 {
-	gnutls_buffer_st out_str;
-	int k2, k1, result;
+	int k2, result, max_k2;
+	int len;
+	uint8_t value[MAX_STRING_LEN];
 	char tmpbuffer1[ASN1_MAX_NAME_SIZE];
 	char tmpbuffer2[ASN1_MAX_NAME_SIZE];
 	char tmpbuffer3[ASN1_MAX_NAME_SIZE];
-	uint8_t value[MAX_STRING_LEN];
-	gnutls_datum_t td = { NULL, 0 }, tvd = {
-	NULL, 0};
 	const char *ldap_desc;
 	char oid[MAX_OID_SIZE];
-	int len;
+	gnutls_datum_t td = { NULL, 0 };
+	gnutls_datum_t tvd = { NULL, 0 };
 
-	_gnutls_buffer_init(&out_str);
+	/* create a string like "tbsCertList.issuer.rdnSequence.?1"
+	 */
+	if (asn1_rdn_name[0] != 0)
+		snprintf(tmpbuffer1, sizeof(tmpbuffer1), "%s.?%u",
+			 asn1_rdn_name, k1);
+	else
+		snprintf(tmpbuffer1, sizeof(tmpbuffer1), "?%u",
+			 k1);
 
-	k1 = 0;
-	do {
-		k1++;
-		/* create a string like "tbsCertList.issuer.rdnSequence.?1"
-		 */
-		if (asn1_rdn_name[0] != 0)
-			snprintf(tmpbuffer1, sizeof(tmpbuffer1), "%s.?%u",
-				 asn1_rdn_name, k1);
+	len = sizeof(value) - 1;
+	result =
+	    asn1_read_value(asn1_struct, tmpbuffer1, value, &len);
+
+	if (result != ASN1_VALUE_NOT_FOUND && result != ASN1_SUCCESS) { /* expected */
+		gnutls_assert();
+		result = _gnutls_asn2err(result);
+		goto cleanup;
+	}
+
+	k2 = 0;
+
+	result = asn1_number_of_elements(asn1_struct, tmpbuffer1, &max_k2);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		result = _gnutls_asn2err(result);
+		goto cleanup;
+	}
+
+	do {		/* Move to the attibute type and values
+				 */
+		k2++;
+
+		if (tmpbuffer1[0] != 0)
+			snprintf(tmpbuffer2, sizeof(tmpbuffer2),
+				 "%s.?%u", tmpbuffer1, k2);
 		else
-			snprintf(tmpbuffer1, sizeof(tmpbuffer1), "?%u",
-				 k1);
+			snprintf(tmpbuffer2, sizeof(tmpbuffer2),
+				 "?%u", k2);
+
+		/* Try to read the RelativeDistinguishedName attributes.
+		 */
 
 		len = sizeof(value) - 1;
 		result =
-		    asn1_read_value(asn1_struct, tmpbuffer1, value, &len);
+		    asn1_read_value(asn1_struct, tmpbuffer2, value,
+				    &len);
 
-		if (result == ASN1_ELEMENT_NOT_FOUND) {
-			if (k1 == 1) {
-				gnutls_assert();
-				result = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
-				goto cleanup;
-			}
+		if (result == ASN1_ELEMENT_NOT_FOUND)
 			break;
-		}
-
-		if (result != ASN1_VALUE_NOT_FOUND) {
+		if (result != ASN1_VALUE_NOT_FOUND && result != ASN1_SUCCESS) { /* expected */
 			gnutls_assert();
 			result = _gnutls_asn2err(result);
 			goto cleanup;
 		}
 
-		k2 = 0;
+		/* Read the OID 
+		 */
+		_gnutls_str_cpy(tmpbuffer3, sizeof(tmpbuffer3),
+				tmpbuffer2);
+		_gnutls_str_cat(tmpbuffer3, sizeof(tmpbuffer3),
+				".type");
 
-		do {		/* Move to the attibute type and values
-				 */
-			k2++;
+		len = sizeof(oid) - 1;
+		result =
+		    asn1_read_value(asn1_struct, tmpbuffer3, oid,
+				    &len);
 
-			if (tmpbuffer1[0] != 0)
-				snprintf(tmpbuffer2, sizeof(tmpbuffer2),
-					 "%s.?%u", tmpbuffer1, k2);
-			else
-				snprintf(tmpbuffer2, sizeof(tmpbuffer2),
-					 "?%u", k2);
-
-			/* Try to read the RelativeDistinguishedName attributes.
-			 */
-
-			len = sizeof(value) - 1;
-			result =
-			    asn1_read_value(asn1_struct, tmpbuffer2, value,
-					    &len);
-
-			if (result == ASN1_ELEMENT_NOT_FOUND)
-				break;
-			if (result != ASN1_VALUE_NOT_FOUND) {
-				gnutls_assert();
-				result = _gnutls_asn2err(result);
-				goto cleanup;
-			}
-
-			/* Read the OID 
-			 */
-			_gnutls_str_cpy(tmpbuffer3, sizeof(tmpbuffer3),
-					tmpbuffer2);
-			_gnutls_str_cat(tmpbuffer3, sizeof(tmpbuffer3),
-					".type");
-
-			len = sizeof(oid) - 1;
-			result =
-			    asn1_read_value(asn1_struct, tmpbuffer3, oid,
-					    &len);
-
-			if (result == ASN1_ELEMENT_NOT_FOUND)
-				break;
-			else if (result != ASN1_SUCCESS) {
-				gnutls_assert();
-				result = _gnutls_asn2err(result);
-				goto cleanup;
-			}
-
-			/* Read the Value 
-			 */
-			_gnutls_str_cpy(tmpbuffer3, sizeof(tmpbuffer3),
-					tmpbuffer2);
-			_gnutls_str_cat(tmpbuffer3, sizeof(tmpbuffer3),
-					".value");
-
-			len = 0;
-
-			result =
-			    _gnutls_x509_read_value(asn1_struct,
-						    tmpbuffer3, &tvd);
-			if (result < 0) {
-				gnutls_assert();
-				goto cleanup;
-			}
-#define STR_APPEND(y) if ((result=_gnutls_buffer_append_str( &out_str, y)) < 0) { \
-	gnutls_assert(); \
-	goto cleanup; \
-}
-#define DATA_APPEND(x,y) if ((result=_gnutls_buffer_append_data( &out_str, x,y)) < 0) { \
-	gnutls_assert(); \
-	goto cleanup; \
-}
-			/*   The encodings of adjoining RelativeDistinguishedNames are separated
-			 *   by a comma character (',' ASCII 44).
-			 */
-
-			/*   Where there is a multi-valued RDN, the outputs from adjoining
-			 *   AttributeTypeAndValues are separated by a plus ('+' ASCII 43)
-			 *   character.
-			 */
-			if (k1 != 1) {	/* the first time do not append a comma */
-				if (k2 != 1) {	/* adjoining multi-value RDN */
-					STR_APPEND("+");
-				} else {
-					STR_APPEND(",");
-				}
-			}
-
-			ldap_desc =
-			    gnutls_x509_dn_oid_name(oid,
-						    GNUTLS_X509_DN_OID_RETURN_OID);
-
-			STR_APPEND(ldap_desc);
-			STR_APPEND("=");
-
-			result =
-			    _gnutls_x509_dn_to_string(oid, tvd.data,
-						      tvd.size, &td);
-			if (result < 0) {
-				gnutls_assert();
-				_gnutls_debug_log
-				    ("Cannot parse OID: '%s' with value '%s'\n",
-				     oid, _gnutls_bin2hex(tvd.data,
-							  tvd.size,
-							  tmpbuffer3,
-							  sizeof
-							  (tmpbuffer3),
-							  NULL));
-				goto cleanup;
-			}
-
-			DATA_APPEND(td.data, td.size);
-			_gnutls_free_datum(&td);
-			_gnutls_free_datum(&tvd);
+		if (result == ASN1_ELEMENT_NOT_FOUND)
+			break;
+		else if (result != ASN1_SUCCESS) {
+			gnutls_assert();
+			result = _gnutls_asn2err(result);
+			goto cleanup;
 		}
-		while (1);
+
+		/* Read the Value 
+		 */
+		_gnutls_str_cpy(tmpbuffer3, sizeof(tmpbuffer3),
+				tmpbuffer2);
+		_gnutls_str_cat(tmpbuffer3, sizeof(tmpbuffer3),
+				".value");
+
+		len = 0;
+
+		result =
+		    _gnutls_x509_read_value(asn1_struct,
+					    tmpbuffer3, &tvd);
+		if (result < 0) {
+			gnutls_assert();
+			goto cleanup;
+		}
+#define STR_APPEND(y) if ((result=_gnutls_buffer_append_str( str, y)) < 0) { \
+	gnutls_assert(); \
+	goto cleanup; \
+}
+#define DATA_APPEND(x,y) if ((result=_gnutls_buffer_append_data( str, x,y)) < 0) { \
+	gnutls_assert(); \
+	goto cleanup; \
+}
+		/*   The encodings of adjoining RelativeDistinguishedNames are separated
+		 *   by a comma character (',' ASCII 44).
+		 */
+
+		ldap_desc =
+		    gnutls_x509_dn_oid_name(oid,
+					    GNUTLS_X509_DN_OID_RETURN_OID);
+
+		STR_APPEND(ldap_desc);
+		STR_APPEND("=");
+
+		result =
+		    _gnutls_x509_dn_to_string(oid, tvd.data,
+					      tvd.size, &td);
+		if (result < 0) {
+			gnutls_assert();
+			_gnutls_debug_log
+			    ("Cannot parse OID: '%s' with value '%s'\n",
+			     oid, _gnutls_bin2hex(tvd.data,
+						  tvd.size,
+						  tmpbuffer3,
+						  sizeof
+						  (tmpbuffer3),
+						  NULL));
+			goto cleanup;
+		}
+
+		DATA_APPEND(td.data, td.size);
+		_gnutls_free_datum(&td);
+		_gnutls_free_datum(&tvd);
+
+		/*   Where there is a multi-valued RDN, the outputs from adjoining
+		 *   AttributeTypeAndValues are separated by a plus ('+' ASCII 43)
+		 *   character.
+		 */
+		if (k2 < max_k2) {
+			STR_APPEND("+");
+		} else if (!last) {
+			STR_APPEND(",");
+		}
 	}
 	while (1);
 
-	result = _gnutls_buffer_to_datum(&out_str, dn, 1);
-	if (result < 0)
-		gnutls_assert();
+	result = 0;
 
-	goto cleanup1;
-
-      cleanup:
-	_gnutls_buffer_clear(&out_str);
-      cleanup1:
+ cleanup:
 	_gnutls_free_datum(&td);
 	_gnutls_free_datum(&tvd);
+	return result;
+}
+
+int
+_gnutls_x509_get_dn(ASN1_TYPE asn1_struct,
+		    const char *asn1_rdn_name, gnutls_datum_t * dn,
+		    unsigned flags)
+{
+	gnutls_buffer_st out_str;
+	int i, k1, result;
+
+	_gnutls_buffer_init(&out_str);
+
+	result = asn1_number_of_elements(asn1_struct, asn1_rdn_name, &k1);
+	if (result != ASN1_SUCCESS) {
+		if (result == ASN1_ELEMENT_NOT_FOUND || result == ASN1_VALUE_NOT_FOUND) {
+			result = gnutls_assert_val(GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE);
+		} else {
+			gnutls_assert();
+			result = _gnutls_asn2err(result);
+		}
+		goto cleanup;
+	}
+
+	if (k1 == 0) {
+		gnutls_assert();
+		result = GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE;
+		goto cleanup;
+	}
+
+	if (flags & GNUTLS_X509_DN_FLAG_COMPAT) {
+		for (i=0;i<k1;i++) {
+			result = append_elements(asn1_struct, asn1_rdn_name, &out_str, i+1, (i==(k1-1))?1:0);
+			if (result < 0) {
+				gnutls_assert();
+				goto cleanup;
+			}
+		}
+	} else {
+		while (k1 > 0) {
+			result = append_elements(asn1_struct, asn1_rdn_name, &out_str, k1, k1==1?1:0);
+			if (result < 0) {
+				gnutls_assert();
+				goto cleanup;
+			}
+			k1--;
+		}
+	}
+
+	return _gnutls_buffer_to_datum(&out_str, dn, 1);
+
+ cleanup:
+	_gnutls_buffer_clear(&out_str);
 	return result;
 
 }
@@ -227,7 +260,7 @@ _gnutls_x509_get_dn(ASN1_TYPE asn1_struct,
 int
 _gnutls_x509_parse_dn(ASN1_TYPE asn1_struct,
 		      const char *asn1_rdn_name, char *buf,
-		      size_t * buf_size)
+		      size_t * buf_size, unsigned flags)
 {
 	int ret;
 	gnutls_datum_t dn = {NULL, 0};
@@ -242,7 +275,7 @@ _gnutls_x509_parse_dn(ASN1_TYPE asn1_struct,
 	else
 		*buf_size = 0;
 
-	ret = _gnutls_x509_get_dn(asn1_struct, asn1_rdn_name, &dn);
+	ret = _gnutls_x509_get_dn(asn1_struct, asn1_rdn_name, &dn, flags);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
@@ -687,9 +720,13 @@ _gnutls_x509_set_dn_oid(ASN1_TYPE asn1_struct,
 		return _gnutls_asn2err(result);
 	}
 
-	_gnutls_str_cpy(asn1_rdn_name, sizeof(asn1_rdn_name), asn1_name);
-	_gnutls_str_cat(asn1_rdn_name, sizeof(asn1_rdn_name),
+	if (asn1_name[0] != 0) {
+		_gnutls_str_cpy(asn1_rdn_name, sizeof(asn1_rdn_name), asn1_name);
+		_gnutls_str_cat(asn1_rdn_name, sizeof(asn1_rdn_name),
 			".rdnSequence");
+	} else {
+		_gnutls_str_cpy(asn1_rdn_name, sizeof(asn1_rdn_name), "rdnSequence");
+	}
 
 	/* create a new element 
 	 */
@@ -737,86 +774,6 @@ _gnutls_x509_set_dn_oid(ASN1_TYPE asn1_struct,
 	return 0;
 }
 
-/**
- * gnutls_x509_dn_init:
- * @dn: the object to be initialized
- *
- * This function initializes a #gnutls_x509_dn_t type.
- *
- * The object returned must be deallocated using
- * gnutls_x509_dn_deinit().
- *
- * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
- *
- * Since: 2.4.0
- **/
-int gnutls_x509_dn_init(gnutls_x509_dn_t * dn)
-{
-	int result;
-
-	*dn = gnutls_calloc(1, sizeof(gnutls_x509_dn_st));
-
-	if ((result =
-	     asn1_create_element(_gnutls_get_pkix(),
-				 "PKIX1.Name", &(*dn)->asn)) != ASN1_SUCCESS) {
-		gnutls_assert();
-		gnutls_free(*dn);
-		return _gnutls_asn2err(result);
-	}
-
-	return 0;
-}
-
-/**
- * gnutls_x509_dn_import:
- * @dn: the structure that will hold the imported DN
- * @data: should contain a DER encoded RDN sequence
- *
- * This function parses an RDN sequence and stores the result to a
- * #gnutls_x509_dn_t type. The data must have been initialized
- * with gnutls_x509_dn_init(). You may use gnutls_x509_dn_get_rdn_ava() to
- * decode the DN.
- *
- * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
- *
- * Since: 2.4.0
- **/
-int gnutls_x509_dn_import(gnutls_x509_dn_t dn, const gnutls_datum_t * data)
-{
-	int result;
-	char err[ASN1_MAX_ERROR_DESCRIPTION_SIZE];
-
-	if (data->data == NULL || data->size == 0)
-		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
-
-	result = _asn1_strict_der_decode(&dn->asn,
-				   data->data, data->size, err);
-	if (result != ASN1_SUCCESS) {
-		/* couldn't decode DER */
-		_gnutls_debug_log("ASN.1 Decoding error: %s\n", err);
-		gnutls_assert();
-		return _gnutls_asn2err(result);
-	}
-
-	return 0;
-}
-
-/**
- * gnutls_x509_dn_deinit:
- * @dn: a DN uint8_t object pointer.
- *
- * This function deallocates the DN object as returned by
- * gnutls_x509_dn_import().
- *
- * Since: 2.4.0
- **/
-void gnutls_x509_dn_deinit(gnutls_x509_dn_t dn)
-{
-	asn1_delete_structure(&dn->asn);
-	gnutls_free(dn);
-}
 
 /**
  * gnutls_x509_rdn_get:
@@ -827,6 +784,9 @@ void gnutls_x509_dn_deinit(gnutls_x509_dn_t dn)
  * This function will return the name of the given RDN sequence.  The
  * name will be in the form "C=xxxx,O=yyyy,CN=zzzz" as described in
  * RFC4514.
+ *
+ * This function does not output a fully RFC4514 compliant string, if
+ * that is required see gnutls_x509_rdn_get2().
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, or
  * %GNUTLS_E_SHORT_MEMORY_BUFFER is returned and *@buf_size is
@@ -864,7 +824,56 @@ gnutls_x509_rdn_get(const gnutls_datum_t * idn,
 		return _gnutls_asn2err(result);
 	}
 
-	result = _gnutls_x509_parse_dn(dn, "rdnSequence", buf, buf_size);
+	result = _gnutls_x509_parse_dn(dn, "rdnSequence", buf, buf_size, GNUTLS_X509_DN_FLAG_COMPAT);
+
+	asn1_delete_structure(&dn);
+	return result;
+
+}
+
+/**
+ * gnutls_x509_rdn_get2:
+ * @idn: should contain a DER encoded RDN sequence
+ * @buf: a pointer to a structure to hold the peer's name
+ * @buf_size: holds the size of @buf
+ * @flags: 
+ *
+ * This function will return the name of the given RDN sequence.  The
+ * name will be in the form "C=xxxx,O=yyyy,CN=zzzz" as described in
+ * RFC4514.
+ *
+ * When the flag %GNUTLS_X509_DN_FLAG_COMPAT is specified, the output
+ * format will match the format output by previous to 3.5.6 versions of GnuTLS
+ * which was not not fully RFC4514-compliant.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, or
+ * %GNUTLS_E_SHORT_MEMORY_BUFFER is returned and *@buf_size is
+ * updated if the provided buffer is not long enough, otherwise a
+ * negative error value.
+ **/
+int
+gnutls_x509_rdn_get2(const gnutls_datum_t * idn,
+		     gnutls_datum_t *str, unsigned flags)
+{
+	int result;
+	ASN1_TYPE dn = ASN1_TYPE_EMPTY;
+
+	if ((result =
+	     asn1_create_element(_gnutls_get_pkix(),
+				 "PKIX1.Name", &dn)) != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+
+	result = _asn1_strict_der_decode(&dn, idn->data, idn->size, NULL);
+	if (result != ASN1_SUCCESS) {
+		/* couldn't decode DER */
+		gnutls_assert();
+		asn1_delete_structure(&dn);
+		return _gnutls_asn2err(result);
+	}
+
+	result = _gnutls_x509_get_dn(dn, "rdnSequence", str, flags);
 
 	asn1_delete_structure(&dn);
 	return result;
@@ -892,7 +901,7 @@ gnutls_x509_rdn_get(const gnutls_datum_t * idn,
  **/
 int
 gnutls_x509_rdn_get_by_oid(const gnutls_datum_t * idn, const char *oid,
-			   int indx, unsigned int raw_flag,
+			   unsigned indx, unsigned int raw_flag,
 			   void *buf, size_t * buf_size)
 {
 	int result;
@@ -948,7 +957,7 @@ gnutls_x509_rdn_get_by_oid(const gnutls_datum_t * idn, const char *oid,
  **/
 int
 gnutls_x509_rdn_get_oid(const gnutls_datum_t * idn,
-			int indx, void *buf, size_t * buf_size)
+			unsigned indx, void *buf, size_t * buf_size)
 {
 	int result;
 	ASN1_TYPE dn = ASN1_TYPE_EMPTY;
@@ -1000,71 +1009,4 @@ _gnutls_x509_compare_raw_dn(const gnutls_datum_t * dn1,
 		return 0;
 	}
 	return 1;		/* they match */
-}
-
-/**
- * gnutls_x509_dn_export:
- * @dn: Holds the uint8_t DN object
- * @format: the format of output params. One of PEM or DER.
- * @output_data: will contain a DN PEM or DER encoded
- * @output_data_size: holds the size of output_data (and will be
- *   replaced by the actual size of parameters)
- *
- * This function will export the DN to DER or PEM format.
- *
- * If the buffer provided is not long enough to hold the output, then
- * *@output_data_size is updated and %GNUTLS_E_SHORT_MEMORY_BUFFER
- * will be returned.
- *
- * If the structure is PEM encoded, it will have a header
- * of "BEGIN NAME".
- *
- * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
- **/
-int
-gnutls_x509_dn_export(gnutls_x509_dn_t dn,
-		      gnutls_x509_crt_fmt_t format, void *output_data,
-		      size_t * output_data_size)
-{
-	if (dn == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
-
-	return _gnutls_x509_export_int_named(dn->asn, "rdnSequence",
-					     format, "NAME",
-					     output_data,
-					     output_data_size);
-}
-
-/**
- * gnutls_x509_dn_export2:
- * @dn: Holds the uint8_t DN object
- * @format: the format of output params. One of PEM or DER.
- * @out: will contain a DN PEM or DER encoded
- *
- * This function will export the DN to DER or PEM format.
- *
- * The output buffer is allocated using gnutls_malloc().
- *
- * If the structure is PEM encoded, it will have a header
- * of "BEGIN NAME".
- *
- * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
- *   negative error value.
- *
- * Since: 3.1.3
- **/
-int
-gnutls_x509_dn_export2(gnutls_x509_dn_t dn,
-		       gnutls_x509_crt_fmt_t format, gnutls_datum_t * out)
-{
-	if (dn == NULL) {
-		gnutls_assert();
-		return GNUTLS_E_INVALID_REQUEST;
-	}
-
-	return _gnutls_x509_export_int_named2(dn->asn, "rdnSequence",
-					      format, "NAME", out);
 }

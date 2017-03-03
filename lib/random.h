@@ -25,39 +25,18 @@
 
 #include <gnutls/crypto.h>
 #include <crypto-backend.h>
+#include "nettle/rnd-common.h"
 
 extern int crypto_rnd_prio;
 extern void *gnutls_rnd_ctx;
 extern gnutls_crypto_rnd_st _gnutls_rnd_ops;
 
-inline static int
-_gnutls_rnd(gnutls_rnd_level_t level, void *data, size_t len)
-{
-	if (len > 0) {
-		return _gnutls_rnd_ops.rnd(gnutls_rnd_ctx, level, data,
-					   len);
-	}
-	return 0;
-}
-
-inline static void _gnutls_rnd_refresh(void)
-{
-	_gnutls_rnd_ops.rnd_refresh(gnutls_rnd_ctx);
-}
-
 void _gnutls_rnd_deinit(void);
-int _gnutls_rnd_init(void);
+int _gnutls_rnd_preinit(void);
 
 inline static int _gnutls_rnd_check(void)
 {
-	if (_gnutls_rnd_ops.check)
-		return _gnutls_rnd_ops.check(gnutls_rnd_ctx);
-	else
-		return 0;
+	return _rnd_system_entropy_check();
 }
-
-#ifndef _WIN32
-extern int _gnutls_urandom_fd;
-#endif
 
 #endif

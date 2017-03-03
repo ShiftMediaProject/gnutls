@@ -22,18 +22,22 @@
 
 #ifndef AUTH_CERT_H
 #define AUTH_CERT_H
-#include "gnutls_auth.h"
+#include "auth.h"
 #include <auth/dh_common.h>
 #include <x509/x509_int.h>
 #include <openpgp/openpgp_int.h>
 #include <gnutls/abstract.h>
 #include <gnutls/compat.h>
-#include <gnutls_str_array.h>
+#include <str_array.h>
 
 typedef struct {
 	gnutls_pcert_st *cert_list;	/* a certificate chain */
 	unsigned int cert_list_length;	/* its length */
 	gnutls_str_array_t names;	/* the names in the first certificate */
+
+	gnutls_status_request_ocsp_func ocsp_func;
+	void *ocsp_func_ptr; /* corresponding OCSP response function + ptr */
+	char *ocsp_response_file; /* corresponding OCSP response file */
 } certs_st;
 
 /* This structure may be complex, but it's the only way to
@@ -41,6 +45,8 @@ typedef struct {
  */
 typedef struct gnutls_certificate_credentials_st {
 	gnutls_dh_params_t dh_params;
+	unsigned deinit_dh_params; /* if the internal values are set */
+
 	/* this callback is used to retrieve the DH or RSA
 	 * parameters.
 	 */
@@ -81,9 +87,8 @@ typedef struct gnutls_certificate_credentials_st {
 	char pin_tmp[GNUTLS_PKCS11_MAX_PIN_LEN];
 
 	/* OCSP */
-	gnutls_status_request_ocsp_func ocsp_func;
-	void *ocsp_func_ptr;
-	char *ocsp_response_file;
+	gnutls_status_request_ocsp_func glob_ocsp_func;
+	void *glob_ocsp_func_ptr; /* corresponding OCSP response function */
 } certificate_credentials_st;
 
 typedef struct rsa_info_st {
@@ -131,9 +136,6 @@ int _gnutls_get_selected_cert(gnutls_session_t session,
 int _gnutls_server_select_cert(struct gnutls_session_int *,
 			       gnutls_pk_algorithm_t *, size_t);
 void _gnutls_selected_certs_deinit(gnutls_session_t session);
-void _gnutls_selected_certs_set(gnutls_session_t session,
-				gnutls_pcert_st * certs, int ncerts,
-				gnutls_privkey_t key, int need_free);
 
 int _gnutls_get_auth_info_pcert(gnutls_pcert_st * gcert,
 				gnutls_certificate_type_t type,

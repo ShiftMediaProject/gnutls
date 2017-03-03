@@ -50,6 +50,18 @@ flag = {
 };
 
 flag = {
+    name      = initialize-pin;
+    descrip   = "Initializes/Resets a PKCS #11 token user PIN";
+    doc = "";
+};
+
+flag = {
+    name      = initialize-so-pin;
+    descrip   = "Initializes/Resets a PKCS #11 token security officer PIN";
+    doc = "";
+};
+
+flag = {
     name      = set-pin;
     arg-type  = string;
     descrip   = "Specify the PIN to use on token initialization";
@@ -113,24 +125,54 @@ flag = {
     name      = export;
     descrip   = "Export the object specified by the URL";
     doc = "";
+    flags-cant = export-stapled;
+    flags-cant = export-chain;
+    flags-cant = export-pubkey;
+};
+
+flag = {
+    name      = export-stapled;
+    descrip   = "Export the certificate object specified by the URL";
+    doc = "Exports the certificate specified by the URL while including any attached extensions to it.
+Since attached extensions are a p11-kit extension, this option is only
+available on p11-kit registered trust modules.";
+    flags-cant = export;
+    flags-cant = export-chain;
+    flags-cant = export-pubkey;
 };
 
 flag = {
     name      = export-chain;
     descrip   = "Export the certificate specified by the URL and its chain of trust";
     doc = "Exports the certificate specified by the URL and generates its chain of trust based on the stored certificates in the module.";
+    flags-cant = export-stapled;
+    flags-cant = export;
+    flags-cant = export-pubkey;
 };
 
 flag = {
     name      = export-pubkey;
     descrip   = "Export the public key for a private key";
     doc = "Exports the public key for the specified private key";
+    flags-cant = export-stapled;
+    flags-cant = export;
+    flags-cant = export-chain;
 };
 
 flag = {
     name      = info;
     descrip   = "List information on an available object in a token";
     doc = "";
+};
+
+flag = {
+    name      = trusted;
+    aliases   = mark-trusted;
+};
+
+flag = {
+    name      = distrusted;
+    aliases   = mark-distrusted;
 };
 
 flag = {
@@ -142,25 +184,31 @@ flag = {
 flag = {
     name      = generate-rsa;
     descrip   = "Generate an RSA private-public key pair";
-    doc = "Generates an RSA private-public key pair on the specified token.";
+    doc = "Generates an RSA private-public key pair on the specified token.
+Should be combined with --sec-param or --bits.";
 };
 
 flag = {
     name      = generate-dsa;
     descrip   = "Generate a DSA private-public key pair";
-    doc = "Generates a DSA private-public key pair on the specified token.";
+    doc = "Generates a DSA private-public key pair on the specified token.
+Should be combined with --sec-param or --bits.";
 };
+
 flag = {
     name      = generate-ecc;
     descrip   = "Generate an ECDSA private-public key pair";
-    doc = "Generates an ECDSA private-public key pair on the specified token.";
+    doc = "Generates an ECDSA private-public key pair on the specified token.
+Should be combined with --curve, --sec-param or --bits.";
 };
 
 flag = {
     name      = bits;
     arg-type  = number;
-    descrip   = "Specify the number of bits for key generate";
-    doc      = "";
+    descrip   = "Specify the number of bits for the key generate";
+    doc      = "For applications which have no key-size restrictions the
+--sec-param option is recommended, as the sec-param levels will adapt
+to the acceptable security levels with the new versions of gnutls.";
 };
 
 flag = {
@@ -204,7 +252,8 @@ flag = {
 flag = {
     name      = write;
     descrip   = "Writes the loaded objects to a PKCS #11 token";
-    doc = "It can be used to write private keys, certificates or secret keys to a token. Must be combined with a --load option.";
+    doc = "It can be used to write private, public keys, certificates or secret keys to a token. Must be combined with
+    one of --load-privkey, --load-pubkey, --load-certificate option.";
 };
 
 flag = {
@@ -241,6 +290,16 @@ flag = {
     disabled;
     descrip   = "Marks the object to be written as trusted";
     doc = "Marks the object to be generated/written with the CKA_TRUST flag.";
+    flags_cant = mark-distrusted;
+};
+
+flag = {
+    name      = mark-distrusted;
+    descrip   = "When retrieving objects, it requires the objects to be distrusted (blacklisted)";
+    doc = "Ensures that the objects retrieved have the CKA_X_TRUST flag.
+This is p11-kit trust module extension, thus this flag is only valid with
+p11-kit registered trust modules.";
+    flags_cant = mark-trusted;
 };
 
 flag = {
@@ -270,14 +329,8 @@ flag = {
 flag = {
     name      = mark-private;
     disable   = "no";
-    enabled;
     descrip   = "Marks the object to be written as private";
     doc = "Marks the object to be generated/written with the CKA_PRIVATE flag. The written object will require a PIN to be used.";
-};
-
-flag = {
-    name      = trusted;
-    aliases   = mark-trusted;
 };
 
 flag = {

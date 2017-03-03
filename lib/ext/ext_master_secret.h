@@ -23,8 +23,8 @@
 #ifndef EXT_EXT_MASTER_SECRET_H
 #define EXT_EXT_MASTER_SECRET_H
 
-#include <gnutls_extensions.h>
+#include <extensions.h>
 
-extern extension_entry_st ext_mod_ext_master_secret;
+extern const extension_entry_st ext_mod_ext_master_secret;
 
 #endif

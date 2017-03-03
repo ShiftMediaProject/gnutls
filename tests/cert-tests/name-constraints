@@ -23,23 +23,23 @@
 srcdir="${srcdir:-.}"
 CERTTOOL="${CERTTOOL:-../../src/certtool${EXEEXT}}"
 DIFF="${DIFF:-diff}"
-if ! test -z "${VALGRIND}"; then
-	VALGRIND="${LIBTOOL:-libtool} --mode=execute ${VALGRIND}"
-fi
-TMPFILE=tmp.$$.pem
 
-export TZ="UTC"
-
-# Check for datefudge
-TSTAMP=`datefudge -s "2006-09-23" date -u +%s || true`
-if test "$TSTAMP" != "1158969600"; then
-	echo $TSTAMP
-	echo "You need datefudge to run this test"
+if ! test -x "${CERTTOOL}"; then
 	exit 77
 fi
 
+if ! test -z "${VALGRIND}"; then
+	VALGRIND="${LIBTOOL:-libtool} --mode=execute ${VALGRIND}"
+fi
+
+TMPFILE=tmp.$$.pem
+
+. ${srcdir}/../scripts/common.sh
+
+check_for_datefudge
+
 datefudge -s "2016-04-22" \
-	${VALGRIND} "${CERTTOOL}" -e --infile "${srcdir}/name-constraints-ip.pem"
+	${VALGRIND} "${CERTTOOL}" -e --infile "${srcdir}/data/name-constraints-ip.pem"
 rc=$?
 
 if test "${rc}" != "0"; then
@@ -47,7 +47,7 @@ if test "${rc}" != "0"; then
 	exit 1
 fi
 
-${VALGRIND} "${CERTTOOL}" -i --infile "${srcdir}/name-constraints-ip2.pem" --outfile "${TMPFILE}"
+${VALGRIND} "${CERTTOOL}" -i --infile "${srcdir}/data/name-constraints-ip2.pem" --outfile "${TMPFILE}"
 rc=$?
 
 if test "${rc}" != "0"; then
@@ -55,7 +55,7 @@ if test "${rc}" != "0"; then
 	exit 1
 fi
 
-${DIFF} "${TMPFILE}" "${srcdir}/name-constraints-ip2.pem" >/dev/null 2>&1
+${DIFF} "${TMPFILE}" "${srcdir}/data/name-constraints-ip2.pem" >/dev/null 2>&1
 rc=$?
 
 if test "${rc}" != "0"; then

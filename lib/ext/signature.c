@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2002-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2002-2016 Free Software Foundation, Inc.
+ * Copyright (C) 2015-2016 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -25,12 +26,12 @@
  */
 
 #include "gnutls_int.h"
-#include "gnutls_errors.h"
-#include "gnutls_num.h"
+#include "errors.h"
+#include "num.h"
 #include <gnutls/gnutls.h>
 #include <ext/signature.h>
-#include <gnutls_state.h>
-#include <gnutls_num.h>
+#include <state.h>
+#include <num.h>
 #include <algorithms.h>
 #include <abstract_int.h>
 
@@ -48,8 +49,8 @@ static int signature_algorithms_pack(extension_priv_data_t epriv,
 static int signature_algorithms_unpack(gnutls_buffer_st * ps,
 				       extension_priv_data_t * _priv);
 
-extension_entry_st ext_mod_sig = {
-	.name = "SIGNATURE ALGORITHMS",
+const extension_entry_st ext_mod_sig = {
+	.name = "Signature Algorithms",
 	.type = GNUTLS_EXTENSION_SIGNATURE_ALGORITHMS,
 	.parse_type = GNUTLS_EXT_TLS,
 
@@ -150,12 +151,12 @@ _gnutls_sign_algorithm_parse_data(gnutls_session_t session,
 		     gnutls_sign_get_name(sig));
 
 		if (sig != GNUTLS_SIGN_UNKNOWN) {
-			priv->sign_algorithms[priv->
-					      sign_algorithms_size++] =
-			    sig;
 			if (priv->sign_algorithms_size ==
 			    MAX_SIGNATURE_ALGORITHMS)
 				break;
+			priv->sign_algorithms[priv->
+					      sign_algorithms_size++] =
+			    sig;
 		}
 	}
 
@@ -195,7 +196,7 @@ _gnutls_signature_algorithm_recv_params(gnutls_session_t session,
 	} else {
 		/* SERVER SIDE - we must check if the sent cert type is the right one
 		 */
-		if (data_size > 2) {
+		if (data_size >= 2) {
 			uint16_t len;
 
 			DECR_LEN(data_size, 2);
@@ -273,7 +274,7 @@ _gnutls_session_get_sign_algo(gnutls_session_t session,
 	unsigned int cert_algo;
 
 	if (unlikely(ver == NULL))
-		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
+		return gnutls_assert_val(GNUTLS_SIGN_UNKNOWN);
 
 	cert_algo = gnutls_pubkey_get_pk_algorithm(cert->pubkey, NULL);
 
@@ -283,10 +284,8 @@ _gnutls_session_get_sign_algo(gnutls_session_t session,
 					 &epriv);
 	priv = epriv;
 
-	if (ret < 0 || !_gnutls_version_has_selectable_sighash(ver)
-	    || priv->sign_algorithms_size == 0)
+	if (ret < 0 || !_gnutls_version_has_selectable_sighash(ver)) {
 		/* none set, allow SHA-1 only */
-	{
 		ret = gnutls_pk_to_sign(cert_algo, GNUTLS_DIG_SHA1);
 
 		if (!client_cert && _gnutls_session_sign_algo_enabled(session, ret) < 0)
@@ -454,7 +453,8 @@ gnutls_sign_algorithm_get_requested(gnutls_session_t session,
  * @session: is a #gnutls_session_t type.
  *
  * Returns the signature algorithm that is (or will be) used in this 
- * session by the server to sign data.
+ * session by the server to sign data. This function should be
+ * used only with TLS 1.2 or later.
  *
  * Returns: The sign algorithm or %GNUTLS_SIGN_UNKNOWN.
  *
@@ -470,7 +470,8 @@ int gnutls_sign_algorithm_get(gnutls_session_t session)
  * @session: is a #gnutls_session_t type.
  *
  * Returns the signature algorithm that is (or will be) used in this 
- * session by the client to sign data.
+ * session by the client to sign data. This function should be
+ * used only with TLS 1.2 or later.
  *
  * Returns: The sign algorithm or %GNUTLS_SIGN_UNKNOWN.
  *

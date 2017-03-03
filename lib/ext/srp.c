@@ -20,17 +20,17 @@
  *
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <ext/srp.h>
 
 #ifdef ENABLE_SRP
 
-#include "gnutls_auth.h"
-#include <auth/srp.h>
-#include "gnutls_errors.h"
+#include "auth.h"
+#include <auth/srp_kx.h>
+#include "errors.h"
 #include "algorithms.h"
-#include <gnutls_num.h>
-#include <gnutls_extensions.h>
+#include <num.h>
+#include <extensions.h>
 
 static int _gnutls_srp_unpack(gnutls_buffer_st * ps,
 			      extension_priv_data_t * _priv);
@@ -42,7 +42,7 @@ static int _gnutls_srp_recv_params(gnutls_session_t state,
 static int _gnutls_srp_send_params(gnutls_session_t state,
 				   gnutls_buffer_st * extdata);
 
-extension_entry_st ext_mod_srp = {
+const extension_entry_st ext_mod_srp = {
 	.name = "SRP",
 	.type = GNUTLS_EXTENSION_SRP,
 	.parse_type = GNUTLS_EXT_TLS,

@@ -27,8 +27,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
 # WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-DSA_CERT="${srcdir}/../dsa/cert.dsa.1024.pem"
-DSA_KEY="${srcdir}/../dsa/dsa.1024.pem"
+DSA_CERT="${srcdir}/../key-tests/data/cert.dsa.1024.pem"
+DSA_KEY="${srcdir}/../key-tests/data/dsa.1024.pem"
 
 RSA_CERT="${srcdir}/../certs/cert-rsa-2432.pem"
 RSA_KEY="${srcdir}/../certs/rsa-2432.pem"
@@ -56,3 +56,5 @@ SERV_DSA_CERT="${srcdir}/../../doc/credentials/x509/cert-dsa.pem"
 SERV_DSA_KEY="${srcdir}/../../doc/credentials/x509/key-dsa.pem"
 
 SERV_PSK="${srcdir}/../../doc/credentials/psk-passwd.txt"
+
+DH_PARAMS="${srcdir}/params.dh"

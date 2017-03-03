@@ -18,9 +18,9 @@
  *
  */
 
-#include <gnutls_int.h>
-#include <gnutls_errors.h>
-#include <gnutls_str.h>
+#include "gnutls_int.h"
+#include "errors.h"
+#include "str.h"
 #include "urls.h"
 #include "system-keys.h"
 
@@ -31,19 +31,25 @@ unsigned _gnutls_custom_urls_size = 0;
 
 /**
  * gnutls_url_is_supported:
- * @url: A PKCS 11 url
+ * @url: A URI to be tested
  *
- * Check whether url is supported.  Depending on the system libraries
- * GnuTLS may support pkcs11 or tpmkey URLs.
+ * Check whether the provided @url is supported.  Depending on the system libraries
+ * GnuTLS may support pkcs11, tpmkey or other URLs.
  *
  * Returns: return non-zero if the given URL is supported, and zero if
  * it is not known.
  *
  * Since: 3.1.0
  **/
-int gnutls_url_is_supported(const char *url)
+unsigned gnutls_url_is_supported(const char *url)
 {
 	unsigned i;
+
+	for (i=0;i<_gnutls_custom_urls_size;i++) {
+		if (strncmp(url, _gnutls_custom_urls[i].name, _gnutls_custom_urls[i].name_size) == 0)
+			return 1;
+	}
+
 #ifdef ENABLE_PKCS11
 	if (strncmp(url, PKCS11_URL, sizeof(PKCS11_URL)-1) == 0)
 		return 1;
@@ -54,11 +60,6 @@ int gnutls_url_is_supported(const char *url)
 #endif
 	if (strncmp(url, SYSTEM_URL, sizeof(SYSTEM_URL)-1) == 0)
 		return _gnutls_system_url_is_supported(url);
-
-	for (i=0;i<_gnutls_custom_urls_size;i++) {
-		if (strncmp(url, _gnutls_custom_urls[i].name, _gnutls_custom_urls[i].name_size) == 0)
-			return 1;
-	}
 
 	return 0;
 }
@@ -95,7 +96,8 @@ int _gnutls_url_is_known(const char *url)
  *
  * The provided structure and callback functions must be valid throughout
  * the lifetime of the process. The registration of an existing URL type
- * will fail with %GNUTLS_E_INVALID_REQUEST.
+ * will fail with %GNUTLS_E_INVALID_REQUEST. Since GnuTLS 3.5.0 this function
+ * can be used to override the builtin URLs.
  *
  * This function is not thread safe.
  *

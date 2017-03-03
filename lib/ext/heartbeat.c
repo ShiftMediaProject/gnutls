@@ -22,16 +22,14 @@
  */
 
 /* This file implements the TLS heartbeat extension.
- * It was originally implemented during Google SoC 2012 by by Olga Smolenchuk,
- * and later rewritten by Nikos Mavrogiannopoulos.
  */
 
-#include <gnutls_errors.h>
-#include <gnutls_int.h>
-#include <gnutls_dtls.h>
-#include <gnutls_record.h>
+#include "errors.h"
+#include "gnutls_int.h"
+#include <dtls.h>
+#include <record.h>
 #include <ext/heartbeat.h>
-#include <gnutls_extensions.h>
+#include <extensions.h>
 #include <random.h>
 
 #ifdef ENABLE_HEARTBEAT
@@ -151,6 +149,9 @@ heartbeat_send_data(gnutls_session_t session, const void *data,
  * flag %GNUTLS_HEARTBEAT_WAIT, or you need to handle retransmissions
  * and timeouts manually.
  *
+ * The total TLS data transmitted as part of the ping message are given by
+ * the following formula: MAX(16, @data_size)+gnutls_record_overhead_size()+3.
+ *
  * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
  *
  * Since: 3.1.2
@@ -194,7 +195,7 @@ gnutls_heartbeat_ping(gnutls_session_t session, size_t data_size,
 			return gnutls_assert_val(ret);
 
 		ret =
-		    _gnutls_rnd(GNUTLS_RND_NONCE,
+		    gnutls_rnd(GNUTLS_RND_NONCE,
 				session->internals.hb_local_data.data,
 				data_size);
 		if (ret < 0)
@@ -229,7 +230,7 @@ gnutls_heartbeat_ping(gnutls_session_t session, size_t data_size,
 
 	case SHB_RECV:
 		ret =
-		    _gnutls_recv_int(session, GNUTLS_HEARTBEAT, -1, NULL,
+		    _gnutls_recv_int(session, GNUTLS_HEARTBEAT,
 				     NULL, 0, NULL,
 				     session->internals.
 				     hb_actual_retrans_timeout_ms);
@@ -519,8 +520,8 @@ _gnutls_heartbeat_unpack(gnutls_buffer_st * ps,
 	return ret;
 }
 
-extension_entry_st ext_mod_heartbeat = {
-	.name = "HEARTBEAT",
+const extension_entry_st ext_mod_heartbeat = {
+	.name = "Heartbeat",
 	.type = GNUTLS_EXTENSION_HEARTBEAT,
 	.parse_type = GNUTLS_EXT_TLS,
 

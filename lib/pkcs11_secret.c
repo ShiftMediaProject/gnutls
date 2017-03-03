@@ -18,12 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#include <gnutls_int.h>
+#include "gnutls_int.h"
 #include <gnutls/pkcs11.h>
 #include <stdio.h>
 #include <string.h>
-#include <gnutls_errors.h>
-#include <gnutls_datum.h>
+#include "errors.h"
+#include <datum.h>
 #include <pkcs11_int.h>
 #include <random.h>
 
@@ -54,7 +54,7 @@ gnutls_pkcs11_copy_secret_key(const char *token_url, gnutls_datum_t * key,
 	ck_rv_t rv;
 	struct ck_attribute a[12];
 	ck_object_class_t class = CKO_SECRET_KEY;
-	ck_object_handle_t obj;
+	ck_object_handle_t ctx;
 	ck_key_type_t keytype = CKK_GENERIC_SECRET;
 	ck_bool_t tval = 1;
 	int a_val;
@@ -72,7 +72,7 @@ gnutls_pkcs11_copy_secret_key(const char *token_url, gnutls_datum_t * key,
 	}
 
 	/* generate a unique ID */
-	ret = _gnutls_rnd(GNUTLS_RND_NONCE, id, sizeof(id));
+	ret = gnutls_rnd(GNUTLS_RND_NONCE, id, sizeof(id));
 	if (ret < 0) {
 		gnutls_assert();
 		return ret;
@@ -129,7 +129,7 @@ gnutls_pkcs11_copy_secret_key(const char *token_url, gnutls_datum_t * key,
 	a[a_val].value_len = sizeof(tval);
 	a_val++;
 
-	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &obj);
+	rv = pkcs11_create_object(sinfo.module, sinfo.pks, a, a_val, &ctx);
 	if (rv != CKR_OK) {
 		gnutls_assert();
 		_gnutls_debug_log("p11: %s\n", pkcs11_strerror(rv));

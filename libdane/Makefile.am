@@ -20,7 +20,8 @@
 
 ACLOCAL_AMFLAGS = -I ../m4 -I ../gl/m4
 
-AM_CFLAGS = $(WERROR_CFLAGS) $(WSTACK_CFLAGS) $(WARN_CFLAGS)
+include $(top_srcdir)/lib/common.mk
+
 AM_CPPFLAGS = \
 	-I$(srcdir)/../gl		\
 	-I$(builddir)/../gl		\
@@ -28,11 +29,12 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/../lib/includes	\
 	-I$(srcdir)/includes		\
 	-I$(builddir)/includes		\
+	-I$(srcdir)/../lib/minitasn1	\
 	-I$(srcdir)/../lib
 
 SUBDIRS = includes
 
-libgnutls_dane_la_LDFLAGS = -no-undefined
+libgnutls_dane_la_LDFLAGS = -no-undefined $(COMMON_LINK_FLAGS)
 
 lib_LTLIBRARIES = libgnutls-dane.la
 

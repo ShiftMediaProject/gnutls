@@ -37,6 +37,13 @@
 #include <gnutls/crypto.h>
 #include <time.h>
 #include <common.h>
+#include <unistd.h>
+
+#ifndef _WIN32
+# include <signal.h>
+#else
+#include <ws2tcpip.h>
+#endif
 
 #ifdef ENABLE_PKCS11
 #include <gnutls/pkcs11.h>
@@ -1050,17 +1057,19 @@ pin_callback(void *user, int attempt, const char *token_url,
 		}
 	}
 
-	printf("Token '%s' with URL '%s' ", token_label, token_url);
-	printf("requires %s PIN\n", desc);
-
 	password = getenv(env);
 	if (password == NULL) /* compatibility */
 		password = getenv("GNUTLS_PIN");
 
 	if (password == NULL && (info == NULL || info->batch == 0)) {
+		fprintf(stderr, "Token '%s' with URL '%s' ", token_label, token_url);
+		fprintf(stderr, "requires %s PIN\n", desc);
+
 		password = getpass("Enter PIN: ");
 	} else {
 		if (flags & GNUTLS_PIN_WRONG) {
+			fprintf(stderr, "Token '%s' with URL '%s' ", token_label, token_url);
+			fprintf(stderr, "requires %s PIN\n", desc);
 			fprintf(stderr, "Cannot continue with a wrong password in the environment.\n");
 			exit(1);
 		}
@@ -1124,3 +1133,18 @@ void pkcs11_common(common_info_st *c)
 }
 
 #endif
+
+void sockets_init(void)
+{
+#ifdef _WIN32
+	WORD wVersionRequested;
+	WSADATA wsaData;
+
+	wVersionRequested = MAKEWORD(1, 1);
+	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
+		perror("WSA_STARTUP_ERROR");
+	}
+#else
+	signal(SIGPIPE, SIG_IGN);
+#endif
+}
