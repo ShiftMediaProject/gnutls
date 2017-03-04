@@ -1065,7 +1065,7 @@ size_t n, n2 = 0, line_size;
 			} while (l>0);
 
 			_gnutls_debug_log("resolved '%.*s' to '%s', next '%.*s'\n",
-					  ss_len, ss, p ? : "", ss_next_len, ss_next ? : "");
+					  ss_len, ss, p ? ss_next_len : ss_next);
 			ss = ss_next;
 			fclose(fp);
 			fp = NULL;
