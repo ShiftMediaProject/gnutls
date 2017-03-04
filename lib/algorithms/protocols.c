@@ -342,19 +342,26 @@ gnutls_protocol_t _gnutls_version_get(uint8_t major, uint8_t minor)
 
 int
 _gnutls_version_is_supported(gnutls_session_t session,
-			     const gnutls_protocol_t version)
+				 const gnutls_protocol_t version)
 {
 	int ret = 0;
 
-	GNUTLS_VERSION_LOOP(
-		if(p->id == version) {
 #ifndef ENABLE_SSL3
+	GNUTLS_VERSION_LOOP(
+		if (p->id == version) {
 			if (p->obsolete != 0) return 0;
-#endif
 			ret = p->supported && p->transport == session->internals.transport;
 			break;
 		}
 	)
+#else
+	GNUTLS_VERSION_LOOP(
+		if (p->id == version) {
+			ret = p->supported && p->transport == session->internals.transport;
+			break;
+		}
+	)
+#endif
 
 	if (ret == 0)
 		return 0;
