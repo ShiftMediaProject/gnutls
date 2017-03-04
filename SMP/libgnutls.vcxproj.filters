@@ -91,6 +91,42 @@
     <Filter Include="Source Files\lib\accelerated\x86\coff">
       <UniqueIdentifier>{8c3b1839-8bb4-46d1-9a23-50782c575e2b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\lib\system">
+      <UniqueIdentifier>{76aa5080-e372-4c96-a1c7-83f54eb77073}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\nettle\int">
+      <UniqueIdentifier>{b4e1b395-c5b4-4cca-bf0c-8b2dd4d759d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\nettle\int">
+      <UniqueIdentifier>{10367618-d480-419d-a5fe-8ec68eb12027}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\unistring">
+      <UniqueIdentifier>{abc680d5-b39e-4f85-87c0-e0aa59d89e9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\unistring\unictype">
+      <UniqueIdentifier>{b9ad9166-4729-4357-995d-373469886c60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\unistring\uninorm">
+      <UniqueIdentifier>{fd64761c-61cb-4651-be22-593c83c644d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\unistring\unistr">
+      <UniqueIdentifier>{ad287a87-3bf8-43f1-bc30-847e503bab04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\unistring">
+      <UniqueIdentifier>{5a6accd0-2489-4547-87f7-47aa7007346e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\unistring\unicase">
+      <UniqueIdentifier>{73e37f29-8dea-41f2-a47c-b7c615301f3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\unistring\unictype">
+      <UniqueIdentifier>{cec5d9f9-5fa1-4465-b15c-90bc17c739c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\unistring\uninorm">
+      <UniqueIdentifier>{9fdad55e-e7bb-48d5-b9bb-69e4a0a05bdc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\unistring\unistring">
+      <UniqueIdentifier>{61d0ba14-cae2-4b4d-ba92-1e608145d2aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -160,9 +196,6 @@
       <Filter>Header Files\lib\auth</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\auth\rsa_common.h">
-      <Filter>Header Files\lib\auth</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\auth\srp.h">
       <Filter>Header Files\lib\auth</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\auth\srp_passwd.h">
@@ -252,152 +285,11 @@
     <ClInclude Include="..\lib\opencdk\types.h">
       <Filter>Header Files\lib\opencdk</Filter>
     </ClInclude>
-    <ClInclude Include="..\lib\openpgp\gnutls_openpgp.h">
-      <Filter>Header Files\lib\openpgp</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib\openpgp\openpgp_int.h">
       <Filter>Header Files\lib\openpgp</Filter>
     </ClInclude>
-    <ClInclude Include="..\lib\nettle\egd.h">
-      <Filter>Header Files\lib\nettle</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib\nettle\gnettle.h">
       <Filter>Header Files\lib\nettle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\vasprintf.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_global.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_handshake.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_hash_int.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_helper.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_int.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_kx.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_mbuffers.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_mem.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_mpi.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_num.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_pk.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_record.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_session_pack.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_sig.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_srp.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_state.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_str.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_str_array.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_supplemental.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_v2_compat.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_x509.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\locks.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\pin.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\random.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\system.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\x509_b64.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\abstract_int.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\algorithms.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\crypto.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\crypto-backend.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\debug.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_auth.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_buffers.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_cipher.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_cipher_int.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_compress.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_constate.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_datum.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_db.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_dh.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_dtls.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_ecc.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_errors.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\gnutls_extensions.h">
-      <Filter>Header Files\lib</Filter>
     </ClInclude>
     <ClInclude Include="version.h">
       <Filter>Header Files</Filter>
@@ -407,12 +299,6 @@
     </ClInclude>
     <ClInclude Include="..\lib\includes\gnutls\x509-ext.h">
       <Filter>Header Files\lib\includes\gnutls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\fips.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\priority_options.h">
-      <Filter>Header Files\lib</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\nettle\rnd-common.h">
       <Filter>Header Files\lib\nettle</Filter>
@@ -453,17 +339,347 @@
     <ClInclude Include="..\lib\includes\gnutls\pkcs7.h">
       <Filter>Header Files\lib\includes\gnutls</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\auth\srp_kx.h">
+      <Filter>Header Files\lib\auth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\includes\gnutls\socket.h">
+      <Filter>Header Files\lib\includes\gnutls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\abstract_int.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\algorithms.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
     <ClInclude Include="..\lib\atfork.h">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\lib\urls.h">
+    <ClInclude Include="..\lib\auth.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\buffers.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\cipher.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\cipher_int.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\compress.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\constate.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\crypto.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\crypto-backend.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\datum.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\db.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\debug.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\dh.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\dtls.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\ecc.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\errors.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\extensions.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\file.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\fips.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\global.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\gnutls_int.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\handshake.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\hash_int.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\kx.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\locks.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\mbuffers.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\mem.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\mpi.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\num.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\pin.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\pk.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\random.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\record.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\session_pack.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\srp.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\sslv2_compat.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\state.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\str.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\str_array.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\supplemental.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\system.h">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\system-keys.h">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\lib\x509\gnutls-idna.h">
+    <ClInclude Include="..\lib\tls-sig.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\urls.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\vasprintf.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509_b64.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\priority_options.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\dsa-fips.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\rsa-fips.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\openpgp\openpgp.h">
+      <Filter>Header Files\lib\openpgp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\ip.h">
       <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\ip-in-cidr.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\krb5.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\pkcs7_int.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\virt-san.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\x509_ext_int.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unicase\special-casing-table.h">
+      <Filter>Header Files\lib\unistring\unicase</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Pc.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Pd.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Pe.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Pf.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Pi.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Po.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Ps.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_S.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Sc.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Sk.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Sm.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_So.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Z.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Zl.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Zp.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Zs.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\combiningclass.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\pr_default_ignorable_code_point.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\pr_join_control.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\pr_not_a_character.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\bitmap.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_C.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Cc.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Cf.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Cn.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Co.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Cs.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_L.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_LC.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Ll.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Lm.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Lo.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Lt.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Lu.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_M.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Mc.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Me.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Mn.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_N.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Nd.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_Nl.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_No.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_of.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unictype\categ_P.h">
+      <Filter>Header Files\lib\unistring\unictype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\composition-table.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\decompose-internal.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\decomposition-table.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\decomposition-table1.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\decomposition-table2.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\normalize-internal.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\uninorm\u-normalize-internal.h">
+      <Filter>Header Files\lib\unistring\uninorm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\unistring\unistr\u-cpy.h">
+      <Filter>Header Files\lib\unistring\unistring</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -570,9 +786,6 @@
       <Filter>Source Files\lib\auth</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\auth\rsa_psk.c">
-      <Filter>Source Files\lib\auth</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\auth\srp.c">
       <Filter>Source Files\lib\auth</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\auth\srp_passwd.c">
@@ -749,9 +962,6 @@
     <ClCompile Include="..\lib\openpgp\extras.c">
       <Filter>Source Files\lib\openpgp</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\openpgp\gnutls_openpgp.c">
-      <Filter>Source Files\lib\openpgp</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\nettle\mac.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
@@ -764,9 +974,6 @@
     <ClCompile Include="..\lib\nettle\cipher.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\nettle\egd.c">
-      <Filter>Source Files\lib\nettle</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\nettle\init.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
@@ -774,9 +981,6 @@
       <Filter>Source Files\gl</Filter>
     </ClCompile>
     <ClCompile Include="..\gl\read-file.c">
-      <Filter>Source Files\gl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\gl\base64.c">
       <Filter>Source Files\gl</Filter>
     </ClCompile>
     <ClCompile Include="..\gl\hash-pjw-bare.c">
@@ -799,186 +1003,6 @@
     </ClCompile>
     <ClCompile Include="..\lib\x509\x509_ext.c">
       <Filter>Source Files\lib\x509</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\crypto-api.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\crypto-backend.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\debug.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\fips.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_alert.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_anon_cred.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_asn1_tab.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_auth.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_buffers.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_cert.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_cipher.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_cipher_int.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_compress.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_constate.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_datum.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_db.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_dh.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_dtls.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_ecc.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_errors.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_extensions.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_global.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_handshake.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_hash_int.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_helper.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_kx.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_mbuffers.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_mem.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_mpi.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_num.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_pcert.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_pk.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_priority.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_privkey.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_privkey_raw.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_psk.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_pubkey.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_range.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_record.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_session.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_session_pack.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_sig.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_srp.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_state.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_str.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_supplemental.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_ui.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_v2_compat.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\gnutls_x509.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\inet_pton.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\locks.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\pin.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\pkix_asn1_tab.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\random.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system_override.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\tpm.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\vasprintf.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\verify-tofu.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509_b64.c">
-      <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\accelerated\x86\x86-common.c">
       <Filter>Source Files\lib\accelerated\x86</Filter>
@@ -1028,24 +1052,6 @@
     <ClCompile Include="..\lib\extras\hex.c">
       <Filter>Source Files\lib\extras</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\inet_ntop.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\safe-memfuncs.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system-keys-win.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\urls.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\atfork.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\auto-verify.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\x509\email-verify.c">
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
@@ -1061,10 +1067,550 @@
     <ClCompile Include="..\gl\secure_getenv.c">
       <Filter>Source Files\gl</Filter>
     </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-gcm-x86-pclmul-avx.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\auth\srp_kx.c">
+      <Filter>Source Files\lib\auth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\alert.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\anon_cred.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\crypto-backend.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\atfork.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\auth.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\auto-verify.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\buffers.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\cert.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\cert-session.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\cipher.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\cipher_int.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\compress.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\constate.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\crypto-api.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pk.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\datum.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\db.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\debug.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\dh.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\dh-primes.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\dh-session.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\dtls.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\dtls-sw.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\ecc.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\errors.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\extensions.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\file.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\fingerprint.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\fips.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\global.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\gnutls_asn1_tab.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\handshake.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\handshake-checks.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\hash_int.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\kx.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\locks.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\mbuffers.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\mem.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\mpi.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\num.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pcert.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pin.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system_override.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\tls-sig.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\tpm.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\urls.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\verify-tofu.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509_b64.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pkix_asn1_tab.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\prf.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\priority.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\privkey.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\privkey_raw.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\psk.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pubkey.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\random.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\randomart.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\range.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\record.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\safe-memfuncs.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\session.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\session_pack.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\srp.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\sslv2_compat.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\state.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\str.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\str-iconv.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\str-idna.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\str-unicode.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\supplemental.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\certs.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\fastopen.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\inet_ntop.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\inet_pton.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\keys-win.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\sockets.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\threads.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\vasprintf.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\sysrng-windows.c">
+      <Filter>Source Files\lib\nettle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\dsa-keygen-fips186.c">
+      <Filter>Source Files\lib\nettle\int</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\dsa-validate.c">
+      <Filter>Source Files\lib\nettle\int</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\provable-prime.c">
+      <Filter>Source Files\lib\nettle\int</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\rsa-keygen-fips186.c">
+      <Filter>Source Files\lib\nettle\int</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\openpgp\openpgp.c">
+      <Filter>Source Files\lib\openpgp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\ip.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\krb5.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\pkcs7-crypt.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\privkey_pkcs8_pbes1.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\tls_features.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\virt-san.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Sm.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_So.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_test.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Z.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Zl.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Zp.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Zs.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\combiningclass.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\pr_default_ignorable_code_point.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\pr_join_control.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\pr_not_a_character.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_and.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_and_not.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_byname.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_C.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Cc.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Cf.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Cn.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Co.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Cs.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_L.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_LC.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Ll.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Lm.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Lo.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_longname.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Lt.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Lu.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_M.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Mc.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Me.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Mn.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_N.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_name.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Nd.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Nl.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_No.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_none.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_of.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_or.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_P.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Pc.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Pd.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Pe.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Pf.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Pi.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Po.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Ps.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_S.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Sc.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unictype\categ_Sk.c">
+      <Filter>Source Files\lib\unistring\unictype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\u32-normalize.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\canonical-decomposition.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\compat-decomposition.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\composition.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\decompose-internal.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\decomposition.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\decomposition-table.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\nfc.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\nfd.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\nfkc.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\nfkd.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\u8-normalize.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\uninorm\u16-normalize.c">
+      <Filter>Source Files\lib\unistring\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-mbtouc-unsafe-aux.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-to-u16.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-to-u32.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-uctomb.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-uctomb-aux.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-cpy.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-mbtoucr.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-mbtouc-unsafe.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-mbtouc-unsafe-aux.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-to-u8.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-uctomb.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u16-uctomb-aux.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u32-cpy.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u32-mbtouc-unsafe.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u32-to-u8.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u32-uctomb.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-check.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-cpy.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-mbtoucr.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\unistring\unistr\u8-mbtouc-unsafe.c">
+      <Filter>Source Files\lib\unistring\unistr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\time.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\lib\accelerated\x86\coff\aesni-gcm-x86_64.s">
+      <Filter>Source Files\lib\accelerated\x86\coff</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
