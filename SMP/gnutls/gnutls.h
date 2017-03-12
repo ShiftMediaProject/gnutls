@@ -57,13 +57,13 @@ extern "C" {
 #endif
 /* *INDENT-ON* */
 
-#define GNUTLS_VERSION "3.5.9"
+#define GNUTLS_VERSION "3.5.10"
 
 #define GNUTLS_VERSION_MAJOR 3
 #define GNUTLS_VERSION_MINOR 5
-#define GNUTLS_VERSION_PATCH 9
+#define GNUTLS_VERSION_PATCH 10
 
-#define GNUTLS_VERSION_NUMBER 0x030509
+#define GNUTLS_VERSION_NUMBER 0x03050a
 
 #define GNUTLS_CIPHER_RIJNDAEL_128_CBC GNUTLS_CIPHER_AES_128_CBC
 #define GNUTLS_CIPHER_RIJNDAEL_256_CBC GNUTLS_CIPHER_AES_256_CBC
@@ -1887,8 +1887,7 @@ int gnutls_dh_params_cpy(gnutls_dh_params_t dst, gnutls_dh_params_t src);
 
 /* Session stuff
  */
-typedef struct
-{
+typedef struct {
     void *iov_base;
     size_t iov_len;
 } giovec_t;
@@ -2431,6 +2430,7 @@ int gnutls_verify_stored_pubkey(const char *db_name,
 				const gnutls_datum_t * cert,
 				unsigned int flags);
 
+#define GNUTLS_SCOMMIT_FLAG_ALLOW_BROKEN 1
 int gnutls_store_commitment(const char *db_name,
 			    gnutls_tdb_t tdb,
 			    const char *host,
