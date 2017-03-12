@@ -350,11 +350,15 @@ static unsigned int check_time_status(gnutls_x509_crt_t crt, time_t now)
 static
 int is_broken_allowed(gnutls_sign_algorithm_t sig, unsigned int flags)
 {
+	/* the first two are for backwards compatibility */
 	if ((sig == GNUTLS_SIGN_RSA_MD2)
 	    && (flags & GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2))
 		return 1;
 	if ((sig == GNUTLS_SIGN_RSA_MD5)
 	    && (flags & GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5))
+		return 1;
+	/* we no longer have individual flags - but rather a catch all */
+	if ((flags & GNUTLS_VERIFY_ALLOW_BROKEN) == GNUTLS_VERIFY_ALLOW_BROKEN)
 		return 1;
 	return 0;
 }
@@ -369,7 +373,7 @@ int is_broken_allowed(gnutls_sign_algorithm_t sig, unsigned int flags)
 			_gnutls_debug_log(#level": certificate's signature hash is unknown\n"); \
 			return gnutls_assert_val(0); \
 		} \
-		if (entry->secure == 0 || entry->output_size*8/2 < sym_bits) { \
+		if (entry->output_size*8/2 < sym_bits) { \
 			_gnutls_cert_log("cert", crt); \
 			_gnutls_debug_log(#level": certificate's signature hash strength is unacceptable (is %u bits, needed %u)\n", entry->output_size*8/2, sym_bits); \
 			return gnutls_assert_val(0); \

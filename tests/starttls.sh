@@ -25,44 +25,10 @@ SERV="${SERV:-../src/gnutls-serv${EXEEXT}}"
 CLI="${CLI:-../src/gnutls-cli${EXEEXT}}"
 unset RETCODE
 
-if ! test -x "${SERV}"; then
-	exit 77
-fi
-
-if ! test -x "${CLI}"; then
-	exit 77
-fi
-
-if test "${WINDIR}" != ""; then
-	exit 77
-fi 
-
-if ! test -z "${VALGRIND}"; then
-	VALGRIND="${LIBTOOL:-libtool} --mode=execute ${VALGRIND} --error-exitcode=15"
-fi
-
-if test ! -x /usr/bin/socat;then
-	exit 77
-fi
-
-for file in `which chat` /sbin/chat /usr/sbin/chat /usr/local/sbin/chat
-do
-	if test -x "$file"
-	then
-		CHAT="$file"
-		break
-	fi
-done
-
-if test -z "$CHAT"
-then
-	echo "chat not found"
-	exit 77
-fi
+. "${srcdir}/scripts/common.sh"
+. "${srcdir}/scripts/starttls-common.sh"
 
 SERV="${SERV} -q"
-
-. "${srcdir}/scripts/common.sh"
 
 echo "Checking STARTTLS"
 
@@ -74,36 +40,6 @@ wait_server ${PID}
 ${VALGRIND} "${CLI}" -p "${PORT}" 127.0.0.1 --priority NORMAL:+ANON-ECDH --insecure --starttls </dev/null >/dev/null || \
 	fail ${PID} "starttls connect should have succeeded!"
 
-
-kill ${PID}
-wait
-
-echo "Checking STARTTLS over SMTP"
-
-eval "${GETPORT}"
-socat TCP-LISTEN:${PORT} EXEC:"$CHAT -e -S -v -f ${srcdir}/starttls-smtp.txt",pty &
-PID=$!
-wait_server ${PID}
-
-${VALGRIND} "${CLI}" -p "${PORT}" 127.0.0.1 --priority NORMAL:+ANON-ECDH --insecure --starttls-proto smtp --verbose </dev/null >/dev/null
-if test $? != 1;then
-	fail ${PID} "connect should have failed with error code 1"
-fi
-
-kill ${PID}
-wait
-
-echo "Checking STARTTLS over FTP"
-
-eval "${GETPORT}"
-socat TCP-LISTEN:${PORT} EXEC:"$CHAT -e -S -v -f ${srcdir}/starttls-ftp.txt",pty &
-PID=$!
-wait_server ${PID}
-
-${VALGRIND} "${CLI}" -p "${PORT}" 127.0.0.1 --priority NORMAL:+ANON-ECDH --insecure --starttls-proto ftp --verbose </dev/null >/dev/null
-if test $? != 1;then
-	fail ${PID} "connect should have failed with error code 1"
-fi
 
 kill ${PID}
 wait

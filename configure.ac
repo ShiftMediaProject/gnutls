@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.5.9], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.5.10], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -384,7 +384,6 @@ AC_ARG_ENABLE([gcc-warnings],
 )
 
 if test "$gl_gcc_warnings" = yes; then
-  gl_WARN_ADD([-Wframe-larger-than=4096], [WSTACK_CFLAGS])
   gl_WARN_ADD([-Wtype-limits], [WSTACK_CFLAGS])
 
   nw="$nw -Wsystem-headers"         # Don't let system headers trigger warnings
@@ -492,11 +491,13 @@ if test "$try_libidn" = yes;then
       idna_support="IDNA 2008 (libidn2)"
       AC_DEFINE([HAVE_LIBIDN2], 1, [Define if IDNA 2008 support is enabled.])
       AC_SUBST([LIBIDN_LIBS], [-lidn2])
-      if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
-        GNUTLS_REQUIRES_PRIVATE="Requires.private: libidn2"
-      else
-        GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libidn2"
-      fi
+      AC_SUBST([LIBIDN2_LIBS], [-lidn2]) dnl used in gnutls.pc.in
+dnl enable once libidn2.pc is widespread; and remove LIBIDN2_LIBS from gnutls.pc.in (Libs.private)
+dnl      if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
+dnl        GNUTLS_REQUIRES_PRIVATE="Requires.private: libidn2"
+dnl      else
+dnl        GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libidn2"
+dnl      fi
     ],[
       with_libidn2=no;
       AC_MSG_WARN(*** LIBIDN2 was not found. You will not be able to use IDN2008 support)
@@ -1006,7 +1007,6 @@ AC_CONFIG_FILES([
   tests/ocsp-tests/Makefile
   tests/dtls/Makefile
   tests/key-tests/Makefile
-  tests/scripts/Makefile
   tests/slow/Makefile
   tests/suite/Makefile
 ])

@@ -103,6 +103,7 @@ static struct cfg_options available_options[] = {
 	{ .name = "add_extension", .type = OPTION_MULTI_LINE },
 	{ .name = "add_critical_extension", .type = OPTION_MULTI_LINE },
 	{ .name = "crl_dist_points", .type = OPTION_MULTI_LINE },
+	{ .name = "uri", .type = OPTION_MULTI_LINE },
 	{ .name = "ocsp_uri", .type = OPTION_MULTI_LINE },
 	{ .name = "ca_issuers_uri", .type = OPTION_MULTI_LINE },
 	{ .name = "locality", .type = OPTION_STRING },
@@ -553,11 +554,12 @@ int template_parse(const char *template)
 }
 
 #define IS_NEWLINE(x) ((x[0] == '\n') || (x[0] == '\r'))
+#define MAX_INPUT_SIZE 512
 
 void
 read_crt_set(gnutls_x509_crt_t crt, const char *input_str, const char *oid)
 {
-	char input[128];
+	char input[MAX_INPUT_SIZE];
 	int ret;
 
 	fputs(input_str, stderr);
@@ -579,7 +581,7 @@ read_crt_set(gnutls_x509_crt_t crt, const char *input_str, const char *oid)
 void
 read_crq_set(gnutls_x509_crq_t crq, const char *input_str, const char *oid)
 {
-	char input[128];
+	char input[MAX_INPUT_SIZE];
 	int ret;
 
 	fputs(input_str, stderr);
@@ -604,7 +606,7 @@ static int64_t read_int_with_default(const char *input_str, long def)
 {
 	char *endptr;
 	int64_t l;
-	static char input[128];
+	static char input[MAX_INPUT_SIZE];
 
 	fprintf(stderr, input_str, def);
 	if (fgets(input, sizeof(input), stdin) == NULL)
@@ -660,7 +662,7 @@ int64_t read_int(const char *input_str)
 
 const char *read_str(const char *input_str)
 {
-	static char input[128];
+	static char input[MAX_INPUT_SIZE];
 	int len;
 
 	fputs(input_str, stderr);
@@ -685,7 +687,7 @@ const char *read_str(const char *input_str)
  */
 int read_yesno(const char *input_str, int def)
 {
-	char input[128];
+	char input[MAX_INPUT_SIZE];
 
       restart:
 	fputs(input_str, stderr);
@@ -1218,7 +1220,7 @@ void get_extensions_crt_set(int type, void *crt)
 
 	if (batch) {
 		if (!cfg.extensions)
-			return;
+			goto check_critical;
 		for (i = 0; cfg.extensions[i] != NULL; i += 2) {
 			if (cfg.extensions[i + 1] == NULL) {
 				fprintf(stderr,
@@ -1249,6 +1251,7 @@ void get_extensions_crt_set(int type, void *crt)
 			}
 		}
 
+ check_critical:
 		if (!cfg.crit_extensions)
 			return;
 		for (i = 0; cfg.crit_extensions[i] != NULL; i += 2) {

@@ -514,7 +514,7 @@ read_attribute(cdk_stream_t inp, size_t pktlen, cdk_pkt_userid_t attr,
 		pktlen--;
 	}
 
-	if (!len || *p != 1) {		/* Currently only 1, meaning an image, is defined. */
+	if (!len || pktlen == 0 || *p != 1) {	/* Currently only 1, meaning an image, is defined. */
 		rc = CDK_Inv_Packet;
 		goto error;
 	}
@@ -570,6 +570,9 @@ read_user_id(cdk_stream_t inp, size_t pktlen, cdk_pkt_userid_t user_id)
 }
 
 
+#define MAX_PACKET_LEN (1<<24)
+
+
 static cdk_error_t
 read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
 {
@@ -608,6 +611,10 @@ read_subpkt(cdk_stream_t inp, cdk_subpkt_t * r_ctx, size_t * r_nbytes)
 		size = c;
 	else
 		return CDK_Inv_Packet;
+
+	if (size >= MAX_PACKET_LEN) {
+		return CDK_Inv_Packet;
+	}
 
 	node = cdk_subpkt_new(size);
 	if (!node)
@@ -918,7 +925,7 @@ read_new_length(cdk_stream_t inp,
 		*r_len = ((c - 192) << 8) + c1 + 192;
 	} else if (c == 255) {
 		c1 = read_32(inp);
-		if (c1 == (u32)-1) {
+		if (c1 == -1) {
 			return;
 		}
 
@@ -950,7 +957,6 @@ static cdk_error_t skip_packet(cdk_stream_t inp, size_t pktlen)
 	return 0;
 }
 
-
 /**
  * cdk_pkt_read:
  * @inp: the input stream
@@ -958,7 +964,7 @@ static cdk_error_t skip_packet(cdk_stream_t inp, size_t pktlen)
  *
  * Parse the next packet on the @inp stream and return its contents in @pkt.
  **/
-cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt)
+cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt, unsigned public)
 {
 	int ctb, is_newctb;
 	int pkttype;
@@ -1002,6 +1008,13 @@ cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt)
 	else
 		read_old_length(inp, ctb, &pktlen, &pktsize);
 
+	/* enforce limits to ensure that the following calculations
+	 * do not overflow */
+	if (pktlen >= MAX_PACKET_LEN || pktsize >= MAX_PACKET_LEN) {
+		_cdk_log_info("cdk_pkt_read: too long packet\n");
+		return gnutls_assert_val(CDK_Inv_Packet);
+	}
+
 	pkt->pkttype = pkttype;
 	pkt->pktlen = pktlen;
 	pkt->pktsize = pktsize + pktlen;
@@ -1026,6 +1039,7 @@ cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt)
 		break;
 
 	case CDK_PKT_USER_ID:
+
 		pkt->pkt.user_id = cdk_calloc(1, sizeof *pkt->pkt.user_id
 					      + pkt->pktlen + 1);
 		if (!pkt->pkt.user_id)
@@ -1058,6 +1072,10 @@ cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt)
 		break;
 
 	case CDK_PKT_SECRET_KEY:
+		if (public) {
+			/* read secret key when expecting public */
+			return gnutls_assert_val(CDK_Inv_Packet);
+		}
 		pkt->pkt.secret_key =
 		    cdk_calloc(1, sizeof *pkt->pkt.secret_key);
 		if (!pkt->pkt.secret_key)
@@ -1073,6 +1091,10 @@ cdk_error_t cdk_pkt_read(cdk_stream_t inp, cdk_packet_t pkt)
 		break;
 
 	case CDK_PKT_SECRET_SUBKEY:
+		if (public) {
+			/* read secret key when expecting public */
+			return gnutls_assert_val(CDK_Inv_Packet);
+		}
 		pkt->pkt.secret_key =
 		    cdk_calloc(1, sizeof *pkt->pkt.secret_key);
 		if (!pkt->pkt.secret_key)

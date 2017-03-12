@@ -19,7 +19,7 @@
 # along with this file; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-SUBDIRS = . cert-tests ocsp-tests key-tests scripts slow dtls windows
+SUBDIRS = . cert-tests ocsp-tests key-tests slow dtls windows
 
 if WANT_TEST_SUITE
 SUBDIRS += suite
@@ -32,11 +32,13 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
 	certs/ecc521.pem certs/rsa-2432.pem x509cert-dir/ca.pem psk.passwd \
 	system.prio pkcs11/softhsm.h pkcs11/pkcs11-pubkey-import.c gnutls-asan.supp \
 	rsa-md5-collision/README safe-renegotiation/README starttls-smtp.txt starttls-ftp.txt \
+	starttls-lmtp.txt starttls-pop3.txt starttls-nntp.txt starttls-sieve.txt \
 	rsa-md5-collision/colliding-chain-md5-2.pem rsa-md5-collision/colliding-chain-md5-1.pem \
 	certs-interesting/README.md certs-interesting/cert1.der certs-interesting/cert1.der.err \
 	certs-interesting/cert2.der certs-interesting/cert2.der.err certs-interesting/cert3.der \
 	certs-interesting/cert3.der.err certs-interesting/cert4.der certs-interesting/cert5.der \
-	certs-interesting/cert6.der certs-interesting/cert7.der certs-interesting/cert8.der
+	certs-interesting/cert6.der certs-interesting/cert7.der certs-interesting/cert8.der \
+	scripts/common.sh scripts/starttls-common.sh certs-interesting/cert5.der.err
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 AM_CPPFLAGS = \
@@ -202,7 +204,7 @@ ctests += pkcs11-cert-import-url-exts pkcs11-get-exts pkcs11-get-raw-issuer-exts
 	pkcs11-cert-import-url4-exts pkcs11/pkcs11-chainverify pkcs11/pkcs11-get-issuer pkcs11/pkcs11-is-known \
 	pkcs11/pkcs11-combo pkcs11/pkcs11-privkey pkcs11/pkcs11-pubkey-import-rsa pkcs11/pkcs11-pubkey-import-ecdsa \
 	pkcs11-import-url-privkey pkcs11-privkey-fork pkcs11/pkcs11-ec-privkey-test \
-	pkcs11-privkey-always-auth pkcs11-privkey-export
+	pkcs11-privkey-always-auth pkcs11-privkey-export pkcs11/pkcs11-import-with-pin
 
 
 endif
@@ -291,7 +293,8 @@ check_PROGRAMS = $(ctests)
 dist_check_SCRIPTS = rfc2253-escape-test rsa-md5-collision/rsa-md5-collision.sh
 
 if !WINDOWS
-dist_check_SCRIPTS += fastopen.sh starttls.sh
+dist_check_SCRIPTS += fastopen.sh starttls.sh starttls-ftp.sh starttls-smtp.sh \
+	starttls-lmtp.sh starttls-pop3.sh starttls-nntp.sh starttls-sieve.sh
 if ENABLE_DANE
 dist_check_SCRIPTS += danetool.sh
 endif
