@@ -102,9 +102,9 @@ _aesni_ctr32_ghash_6x:
 	vpclmulqdq	$0x11,%xmm3,%xmm0,%xmm3
 	vmovdqu	64+8(%rsp),%xmm0
 	vaesenc	%xmm15,%xmm10,%xmm10
-	movbe	88(%r14),%r13
+	movbeq	88(%r14),%r13
 	vaesenc	%xmm15,%xmm11,%xmm11
-	movbe	80(%r14),%r12
+	movbeq	80(%r14),%r12
 	vaesenc	%xmm15,%xmm12,%xmm12
 	movq	%r13,32+8(%rsp)
 	vaesenc	%xmm15,%xmm13,%xmm13
@@ -137,11 +137,11 @@ _aesni_ctr32_ghash_6x:
 	vpxor	%xmm3,%xmm6,%xmm6
 	vpclmulqdq	$0x10,%xmm1,%xmm0,%xmm3
 	vaesenc	%xmm15,%xmm10,%xmm10
-	movbe	72(%r14),%r13
+	movbeq	72(%r14),%r13
 	vpxor	%xmm5,%xmm7,%xmm7
 	vpclmulqdq	$0x01,%xmm1,%xmm0,%xmm5
 	vaesenc	%xmm15,%xmm11,%xmm11
-	movbe	64(%r14),%r12
+	movbeq	64(%r14),%r12
 	vpclmulqdq	$0x11,%xmm1,%xmm0,%xmm1
 	vmovdqu	96+8(%rsp),%xmm0
 	vaesenc	%xmm15,%xmm12,%xmm12
@@ -159,12 +159,12 @@ _aesni_ctr32_ghash_6x:
 	vpxor	%xmm5,%xmm6,%xmm6
 	vpclmulqdq	$0x10,%xmm2,%xmm0,%xmm5
 	vaesenc	%xmm15,%xmm10,%xmm10
-	movbe	56(%r14),%r13
+	movbeq	56(%r14),%r13
 	vpxor	%xmm1,%xmm7,%xmm7
 	vpclmulqdq	$0x01,%xmm2,%xmm0,%xmm1
 	vpxor	112+8(%rsp),%xmm8,%xmm8
 	vaesenc	%xmm15,%xmm11,%xmm11
-	movbe	48(%r14),%r12
+	movbeq	48(%r14),%r12
 	vpclmulqdq	$0x11,%xmm2,%xmm0,%xmm2
 	vaesenc	%xmm15,%xmm12,%xmm12
 	movq	%r13,64+8(%rsp)
@@ -181,11 +181,11 @@ _aesni_ctr32_ghash_6x:
 	vpxor	%xmm1,%xmm6,%xmm6
 	vpclmulqdq	$0x01,%xmm3,%xmm8,%xmm1
 	vaesenc	%xmm15,%xmm10,%xmm10
-	movbe	40(%r14),%r13
+	movbeq	40(%r14),%r13
 	vpxor	%xmm2,%xmm7,%xmm7
 	vpclmulqdq	$0x00,%xmm3,%xmm8,%xmm2
 	vaesenc	%xmm15,%xmm11,%xmm11
-	movbe	32(%r14),%r12
+	movbeq	32(%r14),%r12
 	vpclmulqdq	$0x11,%xmm3,%xmm8,%xmm8
 	vaesenc	%xmm15,%xmm12,%xmm12
 	movq	%r13,80+8(%rsp)
@@ -204,9 +204,9 @@ _aesni_ctr32_ghash_6x:
 	vpxor	%xmm8,%xmm7,%xmm7
 	vaesenc	%xmm15,%xmm10,%xmm10
 	vpxor	%xmm5,%xmm4,%xmm4
-	movbe	24(%r14),%r13
+	movbeq	24(%r14),%r13
 	vaesenc	%xmm15,%xmm11,%xmm11
-	movbe	16(%r14),%r12
+	movbeq	16(%r14),%r12
 	vpalignr	$8,%xmm4,%xmm4,%xmm0
 	vpclmulqdq	$0x10,%xmm3,%xmm4,%xmm4
 	movq	%r13,96+8(%rsp)
@@ -224,9 +224,9 @@ _aesni_ctr32_ghash_6x:
 	vpxor	%xmm6,%xmm7,%xmm7
 	vaesenc	%xmm1,%xmm12,%xmm12
 	vpxor	%xmm0,%xmm4,%xmm4
-	movbe	8(%r14),%r13
+	movbeq	8(%r14),%r13
 	vaesenc	%xmm1,%xmm13,%xmm13
-	movbe	0(%r14),%r12
+	movbeq	0(%r14),%r12
 	vaesenc	%xmm1,%xmm14,%xmm14
 	vmovups	160-128(%rcx),%xmm1
 	cmpl	$11,%ebp
