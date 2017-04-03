@@ -711,54 +711,54 @@
     <None Include="libgnutls.def" />
   </ItemGroup>
   <ItemGroup>
-    <NASM Include="lib\accelerated\x86\coff\aes-ssse3-x86.asm">
+    <YASM Include="lib\accelerated\x86\coff\aes-ssse3-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\aes-ssse3-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\aes-ssse3-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\aesni-gcm-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\aesni-gcm-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\aesni-x86.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\aesni-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\aesni-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\aesni-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\cpuid-x86.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\cpuid-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\cpuid-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\cpuid-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\e_padlock-x86.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\e_padlock-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\e_padlock-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\e_padlock-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\ghash-x86.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\ghash-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\ghash-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\ghash-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\sha1-ssse3-x86.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha1-ssse3-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\sha1-ssse3-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha1-ssse3-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\sha256-avx-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha256-avx-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </NASM>
-    <NASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86_64.asm">
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </NASM>
+    </YASM>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6F610EE8-7F59-4191-AB88-F63843267C02}</ProjectGuid>
@@ -881,7 +881,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\nasm.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\yasm.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -1126,9 +1126,10 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
-    <NASM>
+    <YASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </NASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -1242,9 +1243,10 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
-    <NASM>
+    <YASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </NASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
     <ClCompile>
@@ -1362,9 +1364,10 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
-    <NASM>
+    <YASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </NASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLLStaticDeps|Win32'">
     <ClCompile>
@@ -1482,9 +1485,10 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
-    <NASM>
+    <YASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </NASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|x64'">
     <ClCompile>
@@ -1600,9 +1604,10 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
-    <NASM>
+    <YASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </NASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLLStaticDeps|x64'">
     <ClCompile>
@@ -1718,9 +1723,10 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
-    <NASM>
+    <YASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </NASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -1847,6 +1853,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLTO|Win32'">
     <ClCompile>
@@ -1973,6 +1982,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -2099,6 +2111,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLTO|x64'">
     <ClCompile>
@@ -2225,6 +2240,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
     <ClCompile>
@@ -2353,6 +2371,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|Win32'">
     <ClCompile>
@@ -2481,6 +2502,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">
     <ClCompile>
@@ -2608,6 +2632,9 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|x64'">
     <ClCompile>
@@ -2735,9 +2762,12 @@ if exist $(OutDir)\licenses\gnutls.txt (
 del /f /q $(OutDir)\licenses\gnutls.txt
 )</Command>
     </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\nasm.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\yasm.targets" />
   </ImportGroup>
 </Project>
