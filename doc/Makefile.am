@@ -125,7 +125,8 @@ invoke-p11tool.texi: $(top_srcdir)/src/p11tool-args.def invoke-psktool.texi
 	fi; \
 	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
 	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsection/g' \
+	$(SED) \
+	    -e 's/@subsection/@subsubheading/g' \
 	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
 	rm -f $@.tmp
 
@@ -136,9 +137,11 @@ invoke-tpmtool.texi: $(top_srcdir)/src/tpmtool-args.def invoke-p11tool.texi
 	fi; \
 	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
 	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsection/g' \
+	$(SED) \
+	    -e 's/@subsection/@subsubheading/g' \
 	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
 	rm -f $@.tmp
+
 
 info_TEXINFOS = gnutls.texi gnutls-guile.texi
 gnutls_TEXINFOS = gnutls.texi fdl-1.3.texi				\
@@ -556,6 +559,7 @@ ENUMS += enums/gnutls_compression_method_t
 ENUMS += enums/gnutls_credentials_type_t
 ENUMS += enums/gnutls_digest_algorithm_t
 ENUMS += enums/gnutls_ecc_curve_t
+ENUMS += enums/gnutls_ext_flags_t
 ENUMS += enums/gnutls_ext_parse_type_t
 ENUMS += enums/gnutls_handshake_description_t
 ENUMS += enums/gnutls_init_flags_t

@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.5.11], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.5.12], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -951,6 +951,7 @@ AC_SUBST([YEAR], $YEAR)
 for i in ${srcdir}/src/*-args.c.bak ${srcdir}/src/*-args.h.bak; do
 	nam=$(basename $i|sed 's/.bak//g')
 	if test "$create_libopts_links" = "yes";then
+		rm -f "src/$nam.stamp"
 		rm -f "src/$nam"
 		AC_CONFIG_LINKS([src/$nam:$i])
 	fi

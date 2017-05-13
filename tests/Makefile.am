@@ -85,7 +85,7 @@ ctests = mini-record-2 simple gc set_pkcs12_cred cert certuniqueid	\
 	 mini-dtls-heartbeat mini-x509-callbacks key-openssl priorities	\
 	 mini-dtls-srtp rsa-encrypt-decrypt mini-loss-time \
 	 mini-record mini-dtls-record mini-handshake-timeout mini-record-range \
-	 mini-cert-status mini-rsa-psk global-init sec-params \
+	 mini-cert-status rsa-psk global-init sec-params \
 	 fips-test mini-global-load name-constraints x509-extensions \
 	 long-session-id mini-x509-callbacks-intr mini-dtls-lowmtu \
 	 crlverify mini-dtls-discard init_fds mini-record-failure \
@@ -101,7 +101,7 @@ ctests = mini-record-2 simple gc set_pkcs12_cred cert certuniqueid	\
 	 fallback-scsv pkcs8-key-decode urls dtls-rehandshake-cert \
 	 key-usage-rsa key-usage-ecdhe-rsa mini-session-verify-function auto-verify \
 	 record-timeouts mini-dtls-hello-verify-48 mini-x509-default-prio \
-	 mini-x509-dual global-init-override tlsext-decoding \
+	 mini-x509-dual global-init-override tlsext-decoding rsa-psk-cb \
 	 rehandshake-switch-cert rehandshake-switch-cert-allow rehandshake-switch-cert-client \
 	 rehandshake-switch-cert-client-allow handshake-versions dtls-handshake-versions \
 	 dtls-max-record tls-max-record alpn-server-prec ocsp-filename-memleak \
@@ -299,7 +299,7 @@ dist_check_SCRIPTS = rfc2253-escape-test rsa-md5-collision/rsa-md5-collision.sh
 
 if !WINDOWS
 dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh starttls-smtp.sh \
-	starttls-lmtp.sh starttls-pop3.sh starttls-nntp.sh starttls-sieve.sh
+	starttls-lmtp.sh starttls-pop3.sh starttls-nntp.sh starttls-sieve.sh sni-hostname.sh
 if ENABLE_DANE
 dist_check_SCRIPTS += danetool.sh
 endif

@@ -53,7 +53,7 @@
 
 const char str_unknown[] = "(unknown)";
 
-/* Hex encodes the given data.
+/* Hex encodes the given data adding a semicolon between hex bytes.
  */
 const char *raw_to_string(const unsigned char *raw, size_t raw_size)
 {
@@ -69,6 +69,46 @@ const char *raw_to_string(const unsigned char *raw, size_t raw_size)
 		sprintf(&(buf[i * 3]), "%02X%s", raw[i],
 			(i == raw_size - 1) ? "" : ":");
 	}
+	buf[sizeof(buf) - 1] = '\0';
+
+	return buf;
+}
+
+/* Hex encodes the given data.
+ */
+const char *raw_to_hex(const unsigned char *raw, size_t raw_size)
+{
+	static char buf[1024];
+	size_t i;
+	if (raw_size == 0)
+		return "(empty)";
+
+	if (raw_size * 2 + 1 >= sizeof(buf))
+		return "(too large)";
+
+	for (i = 0; i < raw_size; i++) {
+		sprintf(&(buf[i * 2]), "%02x", raw[i]);
+	}
+	buf[sizeof(buf) - 1] = '\0';
+
+	return buf;
+}
+
+const char *raw_to_base64(const unsigned char *raw, size_t raw_size)
+{
+	static char buf[1024];
+	gnutls_datum_t data = {(unsigned char*)raw, raw_size};
+	size_t buf_size;
+	int ret;
+
+	if (raw_size == 0)
+		return "(empty)";
+
+	buf_size = sizeof(buf);
+	ret = gnutls_pem_base64_encode(NULL, &data, buf, &buf_size);
+	if (ret < 0)
+		return "(error)";
+
 	buf[sizeof(buf) - 1] = '\0';
 
 	return buf;
