@@ -490,6 +490,7 @@
     <ClCompile Include="..\lib\openpgp\privkey.c">
       <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\openpgp_compat.c" />
     <ClCompile Include="..\lib\pcert.c" />
     <ClCompile Include="..\lib\pin.c" />
     <ClCompile Include="..\lib\pk.c" />

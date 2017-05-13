@@ -1604,6 +1604,9 @@
     <ClCompile Include="..\lib\x509\time.c">
       <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
+    <ClCompile Include="..\lib\openpgp_compat.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">
