@@ -53,11 +53,13 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/doc/examples
 
 AM_LDFLAGS = -no-install
-COMMON_LDADD = ../lib/libgnutls.la \
-	$(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB) $(LIBSECCOMP)
+COMMON_GNUTLS_LDADD = ../lib/libgnutls.la
+COMMON_DEPS_LDADD = $(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB) $(LIBSECCOMP)
+COMMON_LDADD = $(COMMON_GNUTLS_LDADD) $(COMMON_DEPS_LDADD)
 
-LDADD = $(COMMON_LDADD) \
-	libutils.la
+LDADD = $(COMMON_GNUTLS_LDADD) \
+	libutils.la \
+	$(COMMON_DEPS_LDADD)
 
 dane_LDADD = $(LDADD) ../libdane/libgnutls-dane.la
 
@@ -73,7 +75,7 @@ ctests = mini-record-2 simple gc set_pkcs12_cred cert certuniqueid	\
 	 mpi certificate_set_x509_crl dn parse_ca x509-dn x509-dn-decode record-sizes \
 	 hostname-check cve-2008-4989 pkcs12_s2k chainverify record-sizes-range \
 	 crq_key_id x509sign-verify cve-2009-1415 cve-2009-1416		\
-	 crq_apis init_roundtrip pkcs12_s2k_pem dn2 mini-eagain		\
+	 crq_apis init_roundtrip pkcs12_s2k_pem dn2 mini-eagain	tls-rehandshake-cert-3 \
 	 nul-in-x509-names x509_altname pkcs12_encode mini-x509		\
 	 tls-rehandshake-cert rng-fork mini-eagain-dtls resume-dtls \
 	 x509cert x509cert-tl infoaccess mini-dtls-hello-verify \
@@ -88,7 +90,7 @@ ctests = mini-record-2 simple gc set_pkcs12_cred cert certuniqueid	\
 	 long-session-id mini-x509-callbacks-intr mini-dtls-lowmtu \
 	 crlverify mini-dtls-discard init_fds mini-record-failure \
 	 tls-rehandshake-cert-2 custom-urls set_x509_key_mem set_x509_key_file \
-	 mini-chain-unsorted x509-verify-with-crl mini-dtls-mtu \
+	 mini-chain-unsorted x509-verify-with-crl mini-dtls-mtu privkey-verify-broken \
 	 mini-dtls-record-asym openpgp-callback key-import-export \
 	 mini-dtls-fork mini-dtls-pthread mini-key-material x509cert-invalid \
 	 strict-der tls-ext-register tls-supplemental mini-dtls0-9 \
@@ -123,7 +125,7 @@ ctests = mini-record-2 simple gc set_pkcs12_cred cert certuniqueid	\
 	 set_known_dh_params_anon set_known_dh_params_psk session-tickets-ok \
 	 session-tickets-missing set_x509_key_file_legacy status-request-ext \
 	 rng-no-onload dtls1-2-mtu-check crl_apis cert_verify_inv_utf8 \
-	 hostname-check-utf8 pkcs8-key-decode-encrypted priority-mix
+	 hostname-check-utf8 pkcs8-key-decode-encrypted priority-mix trust-store
 
 if HAVE_SECCOMP_TESTS
 ctests += dtls-with-seccomp tls-with-seccomp dtls-client-with-seccomp tls-client-with-seccomp
@@ -200,11 +202,14 @@ pkcs11_privkey_always_auth_SOURCES = pkcs11/pkcs11-privkey-always-auth.c
 pkcs11_privkey_always_auth_DEPENDENCIES = libpkcs11mock1.la libutils.la
 pkcs11_privkey_always_auth_LDADD = $(LDADD) $(LIBDL)
 
+pkcs11_pkcs11_privkey_pthread_LDADD = $(LDADD) -lpthread
+
 ctests += pkcs11-cert-import-url-exts pkcs11-get-exts pkcs11-get-raw-issuer-exts \
 	pkcs11-cert-import-url4-exts pkcs11/pkcs11-chainverify pkcs11/pkcs11-get-issuer pkcs11/pkcs11-is-known \
 	pkcs11/pkcs11-combo pkcs11/pkcs11-privkey pkcs11/pkcs11-pubkey-import-rsa pkcs11/pkcs11-pubkey-import-ecdsa \
 	pkcs11-import-url-privkey pkcs11-privkey-fork pkcs11/pkcs11-ec-privkey-test \
-	pkcs11-privkey-always-auth pkcs11-privkey-export pkcs11/pkcs11-import-with-pin
+	pkcs11-privkey-always-auth pkcs11-privkey-export pkcs11/pkcs11-import-with-pin \
+	pkcs11/pkcs11-privkey-pthread
 
 
 endif
@@ -293,7 +298,7 @@ check_PROGRAMS = $(ctests)
 dist_check_SCRIPTS = rfc2253-escape-test rsa-md5-collision/rsa-md5-collision.sh
 
 if !WINDOWS
-dist_check_SCRIPTS += fastopen.sh starttls.sh starttls-ftp.sh starttls-smtp.sh \
+dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh starttls-smtp.sh \
 	starttls-lmtp.sh starttls-pop3.sh starttls-nntp.sh starttls-sieve.sh
 if ENABLE_DANE
 dist_check_SCRIPTS += danetool.sh
@@ -303,6 +308,7 @@ endif
 TESTS = $(ctests) $(dist_check_SCRIPTS)
 
 TESTS_ENVIRONMENT =						\
+	CFLAGS="$(CFLAGS)"					\
 	LC_ALL="C"						\
 	LSAN_OPTIONS=suppressions=gnutls-asan.supp		\
 	CAFILE=$(srcdir)/cert-tests/data/ca-certs.pem		\

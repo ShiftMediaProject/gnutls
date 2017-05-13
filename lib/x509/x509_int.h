@@ -32,6 +32,7 @@
 #define MAX_CRQ_EXTENSIONS_SIZE 8*1024
 #define MAX_OID_SIZE 128
 #define MAX_KEY_ID_SIZE 128
+#define MAX_NAME_SIZE (3*ASN1_MAX_NAME_SIZE)
 
 #define HASH_OID_SHA1 "1.3.14.3.2.26"
 #define HASH_OID_MD5 "1.2.840.113549.2.5"
@@ -469,5 +470,7 @@ struct gnutls_x509_tlsfeatures_st {
 	uint16_t feature[MAX_EXT_TYPES];
 	unsigned int size;
 };
+
+unsigned _gnutls_is_broken_sig_allowed(gnutls_sign_algorithm_t sig, unsigned int flags);
 
 #endif

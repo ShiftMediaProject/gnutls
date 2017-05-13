@@ -40,7 +40,7 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   # Interfaces added:                             AGE++
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
   AC_SUBST(LT_CURRENT, 44)
-  AC_SUBST(LT_REVISION, 1)
+  AC_SUBST(LT_REVISION, 2)
   AC_SUBST(LT_AGE, 14)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
@@ -92,7 +92,7 @@ AC_MSG_ERROR([[
   AC_ARG_VAR(GMP_CFLAGS, [C compiler flags for gmp])
   AC_ARG_VAR(GMP_LIBS, [linker flags for gmp])
   if test "$mini_nettle" != no;then
-    GMP_CLFLAGS=""
+    GMP_CFLAGS=""
     GMP_LIBS=""
   else
     if test x$GMP_LIBS = x; then

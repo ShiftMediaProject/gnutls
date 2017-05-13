@@ -56,7 +56,7 @@
 struct tls_record_st {
 	uint16_t header_size;
 	uint8_t version[2];
-	uint64 sequence;	/* DTLS */
+	gnutls_uint64 sequence;	/* DTLS */
 	uint16_t length;
 	uint16_t packet_size;	/* header_size + length */
 	content_type_t type;
@@ -292,7 +292,7 @@ int gnutls_bye(gnutls_session_t session, gnutls_close_request_t how)
 			gnutls_assert();
 			return ret;
 		}
-		/* fallthrough */
+		/* fall through */
 	case BYE_STATE1:
 		ret =
 		    gnutls_alert_send(session, GNUTLS_AL_WARNING,
@@ -302,7 +302,7 @@ int gnutls_bye(gnutls_session_t session, gnutls_close_request_t how)
 			gnutls_assert();
 			return ret;
 		}
-
+		/* fall through */
 	case BYE_STATE2:
 		BYE_STATE = BYE_STATE2;
 		if (how == GNUTLS_SHUT_RDWR) {
@@ -378,7 +378,7 @@ copy_record_version(gnutls_session_t session,
 /* Increments the sequence value
  */
 inline static int
-sequence_increment(gnutls_session_t session, uint64 * value)
+sequence_increment(gnutls_session_t session, gnutls_uint64 * value)
 {
 	if (IS_DTLS(session)) {
 		return _gnutls_uint48pp(value);
@@ -729,7 +729,7 @@ static int
 record_add_to_buffers(gnutls_session_t session,
 		      struct tls_record_st *recv, content_type_t type,
 		      gnutls_handshake_description_t htype,
-		      uint64 * seq, mbuffer_st * bufel)
+		      gnutls_uint64 * seq, mbuffer_st * bufel)
 {
 
 	int ret;
@@ -1132,7 +1132,7 @@ _gnutls_recv_in_buffers(gnutls_session_t session, content_type_t type,
 			gnutls_handshake_description_t htype,
 			unsigned int ms)
 {
-	uint64 *packet_sequence;
+	gnutls_uint64 *packet_sequence;
 	gnutls_datum_t ciphertext;
 	mbuffer_st *bufel = NULL, *decrypted = NULL;
 	gnutls_datum_t t;

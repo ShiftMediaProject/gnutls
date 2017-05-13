@@ -347,8 +347,7 @@ static unsigned int check_time_status(gnutls_x509_crt_t crt, time_t now)
 	return 0;
 }
 
-static
-int is_broken_allowed(gnutls_sign_algorithm_t sig, unsigned int flags)
+unsigned _gnutls_is_broken_sig_allowed(gnutls_sign_algorithm_t sig, unsigned int flags)
 {
 	/* the first two are for backwards compatibility */
 	if ((sig == GNUTLS_SIGN_RSA_MD2)
@@ -406,7 +405,7 @@ static unsigned is_level_acceptable(
 {
 	gnutls_certificate_verification_profiles_t profile = GNUTLS_VFLAGS_TO_PROFILE(flags);
 	const mac_entry_st *entry;
-	int issuer_pkalg, pkalg, ret;
+	int issuer_pkalg = 0, pkalg, ret;
 	unsigned bits = 0, issuer_bits = 0, sym_bits = 0;
 	gnutls_pk_params_st params;
 	gnutls_sec_param_t sp;
@@ -419,9 +418,11 @@ static unsigned is_level_acceptable(
 	if (pkalg < 0)
 		return gnutls_assert_val(0);
 
-	issuer_pkalg = gnutls_x509_crt_get_pk_algorithm(crt, &issuer_bits);
-	if (issuer_pkalg < 0)
-		return gnutls_assert_val(0);
+	if (issuer) {
+		issuer_pkalg = gnutls_x509_crt_get_pk_algorithm(issuer, &issuer_bits);
+		if (issuer_pkalg < 0)
+			return gnutls_assert_val(0);
+	}
 
 	switch (profile) {
 		CASE_SEC_PARAM(GNUTLS_PROFILE_VERY_WEAK, GNUTLS_SEC_PARAM_VERY_WEAK);
@@ -718,7 +719,7 @@ verify_crt(gnutls_x509_crt_t cert,
 		 * really matter.
 		 */
 		if (gnutls_sign_is_secure(sigalg) == 0 &&
-		    is_broken_allowed(sigalg, flags) == 0 &&
+		    _gnutls_is_broken_sig_allowed(sigalg, flags) == 0 &&
 		    is_issuer(cert, cert) == 0) {
 			MARK_INVALID(GNUTLS_CERT_INSECURE_ALGORITHM);
 		}
