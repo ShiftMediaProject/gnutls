@@ -40,7 +40,7 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   # Interfaces added:                             AGE++
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
   AC_SUBST(LT_CURRENT, 44)
-  AC_SUBST(LT_REVISION, 4)
+  AC_SUBST(LT_REVISION, 5)
   AC_SUBST(LT_AGE, 14)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
@@ -202,7 +202,7 @@ LIBTASN1_MINIMUM=4.9
   AM_CONDITIONAL(ENABLE_ALPN, test "$ac_enable_alpn" != "no")
 
   ac_enable_heartbeat=yes
-  AC_MSG_CHECKING([whether to disable TLS heartbeat support])
+  AC_MSG_CHECKING([whether to enable TLS heartbeat support])
   AC_ARG_ENABLE(heartbeat-support,
     AS_HELP_STRING([--disable-heartbeat-support],
                    [disable support for the heartbeat extension]),

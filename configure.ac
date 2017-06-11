@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.5.12], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.5.13], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -1097,4 +1097,13 @@ AC_MSG_WARN([[
 *** Use the command: unbound-anchor -a "$unbound_root_key_file"
 *** to generate or update it.
 *** ]])
+fi
+
+if test "${enable_static}" != no;then
+AC_MSG_WARN([[
+*** GnuTLS will be build as a static library. That means that library
+*** constructors for gnutls_global_init will not be made available to
+*** linking applications. If you are building that library for arbitrary
+*** applications to link, do not enable static linking.
+]])
 fi

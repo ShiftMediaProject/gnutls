@@ -37,7 +37,6 @@
 
 #define V(x) (x), (sizeof(x)/sizeof(x[0]))
 
-
 /* This does check the AES and SHA implementation against test vectors.
  * This should not run under valgrind in order to use the native
  * cpu instructions (AES-NI or padlock).
@@ -56,6 +55,7 @@ struct cipher_vectors_st {
 };
 
 struct cipher_aead_vectors_st {
+	unsigned compat_apis;
 	const uint8_t *key;
 	unsigned int key_size;
 
@@ -74,6 +74,7 @@ struct cipher_aead_vectors_st {
 
 const struct cipher_aead_vectors_st chacha_poly1305_vectors[] = {
 	{
+	 .compat_apis = 1,
 	 STR(key, key_size,
 	     "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80\x09\x9d\xca\x5c\xbc\x20\x70\x75\xc0"),
 	 .auth = (void*)"\xf3\x33\x88\x86\x00\x00\x00\x00\x00\x00\x4e\x91",
@@ -90,6 +91,7 @@ const struct cipher_aead_vectors_st chacha_poly1305_vectors[] = {
 
 const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 	{
+	 .compat_apis = 1,
 	 STR(key, key_size,
 	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
 	 .auth = NULL,
@@ -103,6 +105,7 @@ const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 	 .tag = (void *)
 	 "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57\xa4\xe7\x45\x5a"},
 	{
+	 .compat_apis = 1,
 	 STR(key, key_size,
 	     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
 	 .auth = NULL,
@@ -117,6 +120,7 @@ const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 	 .tag = (void *)
 	 "\xab\x6e\x47\xd4\x2c\xec\x13\xbd\xf5\x3a\x67\xb2\x12\x57\xbd\xdf"},
 	{
+	 .compat_apis = 1,
 	 STR(key, key_size,
 	     "\xfe\xff\xe9\x92\x86\x65\x73\x1c\x6d\x6a\x8f\x94\x67\x30\x83\x08"),
 	 .auth = (void *)
@@ -135,6 +139,7 @@ const struct cipher_aead_vectors_st aes128_gcm_vectors[] = {
 
 const struct cipher_aead_vectors_st aes256_gcm_vectors[] = {
 	{
+	 .compat_apis = 1,
 	 STR(key, key_size,
 	     "\xfe\xff\xe9\x92\x86\x65\x73\x1c\x6d\x6a\x8f\x94\x67\x30\x83\x08\xfe\xff\xe9\x92\x86\x65\x73\x1c\x6d\x6a\x8f\x94\x67\x30\x83\x08"),
 	 .auth = NULL,
@@ -154,7 +159,9 @@ const struct cipher_aead_vectors_st aes256_gcm_vectors[] = {
 };
 
 const struct cipher_aead_vectors_st aes256_ccm_vectors[] = {
-	{ STR(key, key_size,
+	{
+	 .compat_apis = 0,
+	 STR(key, key_size,
 	     "\xfb\x76\x15\xb2\x3d\x80\x89\x1d\xd4\x70\x98\x0b\xc7\x95\x84\xc8\xb2\xfb\x64\xce\x60\x97\x8f\x4d\x17\xfc\xe4\x5a\x49\xe8\x30\xb7"),
 	 .auth = NULL,
 	 .auth_size = 0,
@@ -168,6 +175,7 @@ const struct cipher_aead_vectors_st aes256_ccm_vectors[] = {
 	 .tag = (void *)
 	     "\x34\x72\xe1\x14\x5f\x2c\x0c\xbe\x14\x63\x49\x06\x2c\xf0\xe4\x23"},
 	{
+	 .compat_apis = 0,
 	 STR(key, key_size,
 	     "\xfb\x76\x15\xb2\x3d\x80\x89\x1d\xd4\x70\x98\x0b\xc7\x95\x84\xc8\xb2\xfb\x64\xce\x60\x97\x87\x8d\x17\xfc\xe4\x5a\x49\xe8\x30\xb7"),
 	 STR(auth, auth_size, "\x36"),
@@ -184,6 +192,7 @@ const struct cipher_aead_vectors_st aes256_ccm_vectors[] = {
 
 const struct cipher_aead_vectors_st aes128_ccm_vectors[] = {
 	{
+	 .compat_apis = 0,
 	 STR(key, key_size,
 	     "\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF"),
 	 STR(auth, auth_size, "\x08\xD0\x84\x21\x43\x01\x00\x00\x00\x00\x48\xDE\xAC\x02\x05\x00\x00\x00\x55\xCF\x00\x00\x51\x52\x53\x54"),
@@ -195,6 +204,7 @@ const struct cipher_aead_vectors_st aes128_ccm_vectors[] = {
 	 .tag = (void *)
 	     "\x22\x3B\xC1\xEC\x84\x1A\xB5\x53"},
 	{
+	 .compat_apis = 0,
 	 STR(key, key_size,
 	     "\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f"),
 	 STR(auth, auth_size, "\x00\x01\x02\x03\x04\x05\x06\x07"),
@@ -209,6 +219,7 @@ const struct cipher_aead_vectors_st aes128_ccm_vectors[] = {
 	     "\x4d\xac\x25\x5d"},
 	/* from rfc3610 */
 	{
+	 .compat_apis = 0,
 	 STR(key, key_size,
 	     "\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF"),
 	 STR(auth, auth_size, "\x00\x01\x02\x03\x04\x05\x06\x07"),
@@ -222,6 +233,7 @@ const struct cipher_aead_vectors_st aes128_ccm_vectors[] = {
 	 .tag = (void *)
 	     "\x04\x8C\x56\x60\x2C\x97\xAC\xBB\x74\x90"},
 	{
+	 .compat_apis = 0,
 	 STR(key, key_size,
 	     "\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF"),
 	 STR(auth, auth_size, "\x00\x01\x02\x03\x04\x05\x06\x07"),
@@ -363,7 +375,7 @@ const struct cipher_vectors_st arcfour_vectors[] = { /* RFC6229 */
 
 static int test_cipher(gnutls_cipher_algorithm_t cipher,
 		       const struct cipher_vectors_st *vectors,
-		       size_t vectors_size)
+		       size_t vectors_size, unsigned flags)
 {
 	gnutls_cipher_hd_t hd;
 	int ret;
@@ -398,8 +410,6 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 		if (ret < 0)
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 
-		gnutls_cipher_deinit(hd);
-
 		if (memcmp
 		    (tmp, vectors[i].ciphertext,
 		     vectors[i].plaintext_size) != 0) {
@@ -408,6 +418,25 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 					  i);
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
+
+		/* check in-place encryption */
+		if (cipher != GNUTLS_CIPHER_ARCFOUR_128) { /* arcfour is stream */
+			gnutls_cipher_set_iv(hd, (void*)vectors[i].iv, vectors[i].iv_size);
+
+			memcpy(tmp, vectors[i].plaintext, vectors[i].plaintext_size);
+			ret = gnutls_cipher_encrypt(hd, tmp, vectors[i].plaintext_size);
+			if (ret < 0)
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+
+			if (memcmp(tmp, vectors[i].ciphertext, vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log("%s vector %d in-place encryption failed!\n", gnutls_cipher_get_name(cipher), i);
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+		gnutls_cipher_deinit(hd);
 	}
 
 	iv.size = gnutls_cipher_get_iv_size(cipher);
@@ -434,8 +463,6 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
 
-		gnutls_cipher_deinit(hd);
-
 		if (memcmp
 		    (tmp, vectors[i].plaintext,
 		     vectors[i].plaintext_size) != 0) {
@@ -444,6 +471,25 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 					  i);
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
+
+		/* check in-place decryption */
+		if (cipher != GNUTLS_CIPHER_ARCFOUR_128) { /* arcfour is stream */
+			gnutls_cipher_set_iv(hd, (void*)vectors[i].iv, vectors[i].iv_size);
+
+			memcpy(tmp, vectors[i].ciphertext, vectors[i].plaintext_size);
+			ret = gnutls_cipher_decrypt(hd, tmp, vectors[i].plaintext_size);
+			if (ret < 0)
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+
+			if (memcmp(tmp, vectors[i].plaintext, vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log("%s vector %d in-place decryption failed!\n", gnutls_cipher_get_name(cipher), i);
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+		gnutls_cipher_deinit(hd);
 	}
 
 	_gnutls_debug_log
@@ -453,10 +499,171 @@ static int test_cipher(gnutls_cipher_algorithm_t cipher,
 	return 0;
 }
 
+/* AEAD modes (compat APIs) */
+static int test_cipher_aead_compat(gnutls_cipher_algorithm_t cipher,
+			    const struct cipher_aead_vectors_st *vectors,
+			    size_t vectors_size)
+{
+	gnutls_cipher_hd_t hd;
+	int ret;
+	unsigned int i;
+	uint8_t tmp[384];
+	uint8_t tmp2[384];
+	gnutls_datum_t key, iv;
+	unsigned tag_size;
+
+	_gnutls_debug_log("compat: running tests for: %s\n",
+				  gnutls_cipher_get_name(cipher));
+
+	for (i = 0; i < vectors_size; i++) {
+		memset(tmp, 0, sizeof(tmp));
+		key.data = (void *) vectors[i].key;
+		key.size = vectors[i].key_size;
+
+		iv.data = (void *) vectors[i].iv;
+		iv.size = vectors[i].iv_size;
+		tag_size = vectors[i].tag_size;
+
+
+		if (tag_size > gnutls_cipher_get_tag_size(cipher)) {
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		ret = gnutls_cipher_init(&hd, cipher, &key, &iv);
+		if (ret < 0) {
+			if (vectors[i].compat_apis == 0) {
+				return 0; /* expected */
+			} else {
+				_gnutls_debug_log("compat: error initializing: %s\n",
+					  gnutls_cipher_get_name(cipher));
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+		if (vectors[i].compat_apis == 0) {
+			_gnutls_debug_log("compat: initialized but shouldn't: %s\n",
+				  gnutls_cipher_get_name(cipher));
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		if (vectors[i].auth_size) {
+			ret = gnutls_cipher_add_auth(hd, vectors[i].auth, vectors[i].auth_size);
+			if (ret < 0)
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		ret = gnutls_cipher_encrypt2(hd, vectors[i].plaintext, vectors[i].plaintext_size,
+					     tmp, sizeof(tmp));
+		if (ret < 0)
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+
+		ret = gnutls_cipher_tag(hd, tmp+vectors[i].plaintext_size, tag_size);
+		if (ret < 0)
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+
+		if (memcmp(tmp+vectors[i].plaintext_size, vectors[i].tag, tag_size) != 0) {
+			_gnutls_debug_log
+			    ("compat: %s test vector %d failed (tag)!\n",
+			     gnutls_cipher_get_name(cipher), i);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		if (vectors[i].plaintext_size > 0) {
+			if (memcmp
+			    (tmp, vectors[i].ciphertext,
+			     vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log
+				    ("compat: %s test vector %d failed!\n",
+				     gnutls_cipher_get_name(cipher), i);
+
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+		if (vectors[i].plaintext_size > 0) {
+			/* check inplace encryption */
+			gnutls_cipher_set_iv(hd, (void*)vectors[i].iv, vectors[i].iv_size);
+			memcpy(tmp2, vectors[i].plaintext, vectors[i].plaintext_size);
+
+			ret = gnutls_cipher_encrypt(hd, tmp2, vectors[i].plaintext_size);
+			if (ret < 0)
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+
+			if (memcmp(tmp, tmp2, vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log("compat: %s vector %d in-place encryption failed!\n", gnutls_cipher_get_name(cipher), i);
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+
+			/* check decryption with separate buffers */
+			gnutls_cipher_set_iv(hd, (void*)vectors[i].iv, vectors[i].iv_size);
+
+			if (vectors[i].auth_size) {
+				ret = gnutls_cipher_add_auth(hd, vectors[i].auth, vectors[i].auth_size);
+				if (ret < 0)
+					return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+
+			ret =
+			    gnutls_cipher_decrypt2(hd, tmp, vectors[i].plaintext_size,
+						   tmp2, sizeof(tmp2));
+			if (ret < 0)
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+
+			if (memcmp(tmp2, vectors[i].plaintext, vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log("compat: %s test vector %d failed (decryption)!\n",
+					gnutls_cipher_get_name(cipher), i);
+				return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+			}
+
+			/* check in-place decryption */
+			if (vectors[i].plaintext_size > 0) {
+				gnutls_cipher_set_iv(hd, (void*)vectors[i].iv, vectors[i].iv_size);
+
+				if (vectors[i].auth_size) {
+					ret = gnutls_cipher_add_auth(hd, vectors[i].auth, vectors[i].auth_size);
+					if (ret < 0)
+						return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+				}
+
+				memcpy(tmp2, tmp, vectors[i].plaintext_size);
+				ret = gnutls_cipher_decrypt(hd, tmp2, vectors[i].plaintext_size);
+				if (ret < 0)
+					return
+					    gnutls_assert_val
+					    (GNUTLS_E_SELF_TEST_ERROR);
+
+				if (memcmp(tmp2, vectors[i].plaintext, vectors[i].plaintext_size) != 0) {
+					_gnutls_debug_log("compat: %s vector %d in-place decryption failed!\n", gnutls_cipher_get_name(cipher), i);
+					return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+				}
+			}
+		}
+
+		gnutls_cipher_deinit(hd);
+	}
+
+	_gnutls_debug_log
+	    ("%s compat self check succeeded\n",
+	     gnutls_cipher_get_name(cipher));
+
+	return 0;
+
+}
+
 /* AEAD modes */
 static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 			    const struct cipher_aead_vectors_st *vectors,
-			    size_t vectors_size)
+			    size_t vectors_size, unsigned flags)
 {
 	gnutls_aead_cipher_hd_t hd;
 	int ret;
@@ -466,6 +673,9 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 	gnutls_datum_t key, iv;
 	size_t s, s2;
 	unsigned tag_size;
+
+	_gnutls_debug_log("running tests for: %s\n",
+				  gnutls_cipher_get_name(cipher));
 
 	for (i = 0; i < vectors_size; i++) {
 		memset(tmp, 0, sizeof(tmp));
@@ -489,8 +699,6 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 					  gnutls_cipher_get_name(cipher));
 			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
-		_gnutls_debug_log("initialized: %s\n",
-					  gnutls_cipher_get_name(cipher));
 
 		s = sizeof(tmp);
 
@@ -521,7 +729,6 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 		}
 
 		if (vectors[i].plaintext_size > 0) {
-			
 			if (memcmp
 			    (tmp, vectors[i].ciphertext,
 			     vectors[i].plaintext_size) != 0) {
@@ -585,9 +792,13 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 	    ("%s self check succeeded\n",
 	     gnutls_cipher_get_name(cipher));
 
-	return 0;
-
+	/* test the compatibility APIs */
+	if (flags & GNUTLS_SELF_TEST_FLAG_NO_COMPAT)
+		return 0;
+	else
+		return test_cipher_aead_compat(cipher, vectors, vectors_size);
 }
+
 
 struct hash_vectors_st {
 	const uint8_t *plaintext;
@@ -701,7 +912,7 @@ const struct hash_vectors_st sha3_512_vectors[] = {
 /* SHA1 and other hashes */
 static int test_digest(gnutls_digest_algorithm_t dig,
 		       const struct hash_vectors_st *vectors,
-		       size_t vectors_size)
+		       size_t vectors_size, unsigned flags)
 {
 	uint8_t data[HASH_DATA_SIZE];
 	unsigned int i;
@@ -823,7 +1034,7 @@ const struct mac_vectors_st hmac_sha512_vectors[] = {
 
 static int test_mac(gnutls_mac_algorithm_t mac,
 		    const struct mac_vectors_st *vectors,
-		    size_t vectors_size)
+		    size_t vectors_size, unsigned flags)
 {
 	uint8_t data[HASH_DATA_SIZE];
 	unsigned int i;
@@ -878,41 +1089,41 @@ static int test_mac(gnutls_mac_algorithm_t mac,
 }
 
 #define CASE(x, func, vectors) case x: \
-			ret = func(x, V(vectors)); \
-			if (all == 0 || ret < 0) \
+			ret = func(x, V(vectors), flags); \
+			if (!(flags & GNUTLS_SELF_TEST_FLAG_ALL) || ret < 0) \
 				return ret
 
 #define NON_FIPS_CASE(x, func, vectors) case x: \
 			if (_gnutls_fips_mode_enabled() == 0) { \
-				ret = func(x, V(vectors)); \
-				if (all == 0 || ret < 0) \
+				ret = func(x, V(vectors), flags); \
+				if (!(flags & GNUTLS_SELF_TEST_FLAG_ALL) || ret < 0) \
 					return ret; \
 			}
 
 #define FIPS_STARTUP_ONLY_TEST_CASE(x, func, vectors) case x: \
 			if (_gnutls_fips_mode_enabled() != 1) { \
-				ret = func(x, V(vectors)); \
-				if (all == 0 || ret < 0) \
+				ret = func(x, V(vectors), flags); \
+				if (!(flags & GNUTLS_SELF_TEST_FLAG_ALL) || ret < 0) \
 					return ret; \
 			}
 
 /*-
  * gnutls_cipher_self_test:
- * @all: if non-zero then tests to all ciphers are performed.
+ * @flags: GNUTLS_SELF_TEST_FLAG flags
  * @cipher: the encryption algorithm to use
  *
  * This function will run self tests on the provided cipher or all
- * available ciphers if @all is non-zero.
+ * available ciphers if @flags is %GNUTLS_SELF_TEST_FLAG_ALL.
  *
  * Returns: Zero or a negative error code on error.
  *
  * Since: 3.3.0-FIPS140
  -*/
-int gnutls_cipher_self_test(unsigned all, gnutls_cipher_algorithm_t cipher)
+int gnutls_cipher_self_test(unsigned flags, gnutls_cipher_algorithm_t cipher)
 {
 	int ret;
 
-	if (all != 0)
+	if (flags & GNUTLS_SELF_TEST_FLAG_ALL)
 		cipher = GNUTLS_CIPHER_UNKNOWN;
 
 	switch (cipher) {
@@ -947,7 +1158,7 @@ int gnutls_cipher_self_test(unsigned all, gnutls_cipher_algorithm_t cipher)
 
 /*-
  * gnutls_mac_self_test:
- * @all: if non-zero then tests to all ciphers are performed.
+ * @flags: GNUTLS_SELF_TEST_FLAG flags
  * @mac: the message authentication algorithm to use
  *
  * This function will run self tests on the provided mac.
@@ -956,11 +1167,11 @@ int gnutls_cipher_self_test(unsigned all, gnutls_cipher_algorithm_t cipher)
  *
  * Since: 3.3.0-FIPS140
  -*/
-int gnutls_mac_self_test(unsigned all, gnutls_mac_algorithm_t mac)
+int gnutls_mac_self_test(unsigned flags, gnutls_mac_algorithm_t mac)
 {
 	int ret;
 
-	if (all != 0)
+	if (flags & GNUTLS_SELF_TEST_FLAG_ALL)
 		mac = GNUTLS_MAC_UNKNOWN;
 
 	switch (mac) {
@@ -982,7 +1193,7 @@ int gnutls_mac_self_test(unsigned all, gnutls_mac_algorithm_t mac)
 
 /*-
  * gnutls_digest_self_test:
- * @all: if non-zero then tests to all ciphers are performed.
+ * @flags: GNUTLS_SELF_TEST_FLAG flags
  * @digest: the digest algorithm to use
  *
  * This function will run self tests on the provided digest.
@@ -991,11 +1202,11 @@ int gnutls_mac_self_test(unsigned all, gnutls_mac_algorithm_t mac)
  *
  * Since: 3.3.0-FIPS140
  -*/
-int gnutls_digest_self_test(unsigned all, gnutls_digest_algorithm_t digest)
+int gnutls_digest_self_test(unsigned flags, gnutls_digest_algorithm_t digest)
 {
 	int ret;
 
-	if (all != 0)
+	if (flags & GNUTLS_SELF_TEST_FLAG_ALL)
 		digest = GNUTLS_DIG_UNKNOWN;
 
 	switch (digest) {
