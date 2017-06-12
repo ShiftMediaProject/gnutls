@@ -84,6 +84,8 @@ config:
 	./configure $(CFGFLAGS)
 
 .submodule.stamp:
+	git submodule init
+	git submodule update
 	touch $@
 
 bootstrap: autoreconf .submodule.stamp
