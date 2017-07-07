@@ -1312,15 +1312,13 @@ pkcs11_open_session(struct pkcs11_session_info *sinfo,
 	sinfo->init = 1;
 	memcpy(&sinfo->tinfo, &tinfo, sizeof(sinfo->tinfo));
 
-	if (flags & SESSION_LOGIN) {
-		ret =
-		    pkcs11_login(sinfo, pin_info, info,
-				 (flags & SESSION_SO) ? 1 : 0, 0);
-		if (ret < 0) {
-			gnutls_assert();
-			pkcs11_close_session(sinfo);
-			return ret;
-		}
+	ret =
+	    pkcs11_login(sinfo, pin_info, info,
+			 flags);
+	if (ret < 0) {
+		gnutls_assert();
+		pkcs11_close_session(sinfo);
+		return ret;
 	}
 
 	return 0;
@@ -1395,15 +1393,12 @@ _pkcs11_traverse_tokens(find_func_t find_func, void *input,
 			memcpy(&sinfo.tinfo, &l_tinfo, sizeof(sinfo.tinfo));
 			memcpy(&sinfo.slot_info, &l_sinfo, sizeof(sinfo.slot_info));
 
-			if (flags & SESSION_LOGIN) {
-				ret =
-				    pkcs11_login(&sinfo, pin_info,
-						 info, (flags & SESSION_SO) ? 1 : 0,
-						 0);
-				if (ret < 0) {
-					gnutls_assert();
-					return ret;
-				}
+			ret =
+			    pkcs11_login(&sinfo, pin_info,
+					 info, flags);
+			if (ret < 0) {
+				gnutls_assert();
+				return ret;
 			}
 
 			ret =
@@ -2034,9 +2029,11 @@ unsigned int pkcs11_obj_flags_to_int(unsigned int flags)
 	unsigned int ret_flags = 0;
 
 	if (flags & GNUTLS_PKCS11_OBJ_FLAG_LOGIN)
-		ret_flags |= SESSION_LOGIN;
+		ret_flags |= SESSION_LOGIN | SESSION_FORCE_LOGIN;
+
 	if (flags & GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO)
-		ret_flags |= SESSION_LOGIN | SESSION_SO;
+		ret_flags |= SESSION_LOGIN | SESSION_SO | SESSION_FORCE_LOGIN;
+
 	if (flags & GNUTLS_PKCS11_OBJ_FLAG_PRESENT_IN_TRUSTED_MODULE)
 		ret_flags |= SESSION_TRUSTED;
 
@@ -2528,25 +2525,30 @@ int
 pkcs11_login(struct pkcs11_session_info *sinfo,
 	     struct pin_info_st *pin_info,
 	     struct p11_kit_uri *info,
-	     unsigned so,
-	     unsigned reauth)
+	     unsigned flags)
 {
 	struct ck_session_info session_info;
 	int attempt = 0, ret;
 	ck_user_type_t user_type;
 	ck_rv_t rv;
 
-	if (so == 0) {
-		if (reauth == 0)
-			user_type = CKU_USER;
-		else
-			user_type = CKU_CONTEXT_SPECIFIC;
-	} else
-		user_type = CKU_SO;
+	if (!(flags & SESSION_LOGIN)) {
+		_gnutls_debug_log("p11: No login requested.\n");
+		return 0;
+	}
 
-	if (so == 0 && (sinfo->tinfo.flags & CKF_LOGIN_REQUIRED) == 0) {
+	if (flags & SESSION_SO) {
+		user_type = CKU_SO;
+	} else if (flags & SESSION_CONTEXT_SPECIFIC) {
+		user_type = CKU_CONTEXT_SPECIFIC;
+	} else {
+		user_type = CKU_USER;
+	}
+
+	if (!(flags & (SESSION_FORCE_LOGIN|SESSION_SO)) &&
+	    !(sinfo->tinfo.flags & CKF_LOGIN_REQUIRED)) {
 		gnutls_assert();
-		_gnutls_debug_log("p11: No login required.\n");
+		_gnutls_debug_log("p11: No login required in token.\n");
 		return 0;
 	}
 
@@ -2575,15 +2577,17 @@ pkcs11_login(struct pkcs11_session_info *sinfo,
 		memcpy(&tinfo, &sinfo->tinfo, sizeof(tinfo));
 
 		/* Check whether the session is already logged in, and if so, just skip */
-		rv = (sinfo->module)->C_GetSessionInfo(sinfo->pks,
-						       &session_info);
-		if (rv == CKR_OK && reauth == 0 &&
-		    (session_info.state == CKS_RO_USER_FUNCTIONS
-			|| session_info.state == CKS_RW_USER_FUNCTIONS)) {
-			ret = 0;
-			_gnutls_debug_log
-			    ("p11: Already logged in\n");
-			goto cleanup;
+		if (!(flags & SESSION_CONTEXT_SPECIFIC)) {
+			rv = (sinfo->module)->C_GetSessionInfo(sinfo->pks,
+							       &session_info);
+			if (rv == CKR_OK &&
+				(session_info.state == CKS_RO_USER_FUNCTIONS
+				|| session_info.state == CKS_RW_USER_FUNCTIONS)) {
+				ret = 0;
+				_gnutls_debug_log
+				    ("p11: Already logged in\n");
+				goto cleanup;
+			}
 		}
 
 		/* If login has been attempted once already, check the token
@@ -2620,12 +2624,11 @@ pkcs11_login(struct pkcs11_session_info *sinfo,
 
 	_gnutls_debug_log("p11: Login result = %s (%lu)\n", (rv==0)?"ok":p11_kit_strerror(rv), rv);
 
-
 	ret = (rv == CKR_OK
 	       || rv ==
 	       CKR_USER_ALREADY_LOGGED_IN) ? 0 : pkcs11_rv_to_err(rv);
 
-      cleanup:
+ cleanup:
 	return ret;
 }
 

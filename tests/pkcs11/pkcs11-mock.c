@@ -242,7 +242,6 @@ CK_DEFINE_FUNCTION(CK_RV, C_Initialize)(CK_VOID_PTR pInitArgs)
 		return CKR_CRYPTOKI_ALREADY_INITIALIZED;
 
 	IGNORE(pInitArgs);
-
 #if defined(HAVE___REGISTER_ATFORK)
 	if (registered_fork_handler == 0) {
 		__register_atfork(NULL, NULL, fork_handler, __dso_handle);
@@ -373,6 +372,10 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetTokenInfo)(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR p
 	memset(pInfo->serialNumber, ' ', sizeof(pInfo->serialNumber));
 	memcpy(pInfo->serialNumber, PKCS11_MOCK_CK_TOKEN_INFO_SERIAL_NUMBER, strlen(PKCS11_MOCK_CK_TOKEN_INFO_SERIAL_NUMBER));
 	pInfo->flags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_USER_PIN_INITIALIZED | CKF_TOKEN_INITIALIZED;
+
+	if (pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH)
+		pInfo->flags &= ~CKF_LOGIN_REQUIRED;
+
 	pInfo->ulMaxSessionCount = CK_EFFECTIVELY_INFINITE;
 	pInfo->ulSessionCount = (CK_TRUE == pkcs11_mock_session_opened) ? 1 : 0;
 	pInfo->ulMaxRwSessionCount = CK_EFFECTIVELY_INFINITE;
@@ -726,7 +729,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_Login)(CK_SESSION_HANDLE hSession, CK_USER_TYPE user
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
 
-	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH) {
+	if ((pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH) && userType == CKU_CONTEXT_SPECIFIC) {
+		return CKR_USER_TYPE_INVALID;
+	}
+
+	if ((pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH) || (pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH)) {
 		if ((CKU_CONTEXT_SPECIFIC != userType) && (CKU_SO != userType) && (CKU_USER != userType))
 			return CKR_USER_TYPE_INVALID;
 	} else if ((CKU_SO != userType) && (CKU_USER != userType)) {
@@ -770,7 +777,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Login)(CK_SESSION_HANDLE hSession, CK_USER_TYPE user
 			break;
 	}
 
-	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH && rv == CKR_USER_ALREADY_LOGGED_IN) {
+	if ((pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH || pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH) && rv == CKR_USER_ALREADY_LOGGED_IN) {
 		rv = 0;
 	}
 
@@ -1016,6 +1023,9 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
 		else if (CKA_ALWAYS_AUTHENTICATE == pTemplate[i].type)
 		{
 			CK_BBOOL t;
+			if (pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH)
+				return CKR_ATTRIBUTE_TYPE_INVALID;
+
 			if (pTemplate[i].ulValueLen != sizeof(CK_BBOOL))
 				return CKR_ARGUMENTS_BAD;
 
@@ -1533,18 +1543,16 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptInit)(CK_SESSION_HANDLE hSession, CK_MECHANIS
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
+	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
+		return CKR_SESSION_HANDLE_INVALID;
+
 	if ((PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation) &&
 		(PKCS11_MOCK_CK_OPERATION_DIGEST != mock_session->find_op.active_operation) && 
 		(PKCS11_MOCK_CK_OPERATION_VERIFY != mock_session->find_op.active_operation))
 		return CKR_OPERATION_ACTIVE;
 
-	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
-		return CKR_SESSION_HANDLE_INVALID;
-
-	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH) {
-		if (!pkcs11_mock_session_reauth) {
-			return CKR_USER_NOT_LOGGED_IN;
-		}
+	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH || pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH) {
+		mock_session->state = CKS_RO_PUBLIC_SESSION;
 		pkcs11_mock_session_reauth = 0;
 	}
 
@@ -1624,11 +1632,20 @@ CK_DEFINE_FUNCTION(CK_RV, C_Decrypt)(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pEn
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
+	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
+		return CKR_SESSION_HANDLE_INVALID;
+
 	if (PKCS11_MOCK_CK_OPERATION_DECRYPT != mock_session->find_op.active_operation)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
-	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
-		return CKR_SESSION_HANDLE_INVALID;
+	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH || pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH) {
+		if (!pkcs11_mock_session_reauth) {
+			return CKR_USER_NOT_LOGGED_IN;
+		}
+		if ((pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH) && pData != NULL) {
+			pkcs11_mock_session_reauth = 0;
+		}
+	}
 
 	if (NULL == pEncryptedData)
 		return CKR_ARGUMENTS_BAD;
@@ -1667,11 +1684,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptUpdate)(CK_SESSION_HANDLE hSession, CK_BYTE_P
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (PKCS11_MOCK_CK_OPERATION_DECRYPT != mock_session->find_op.active_operation)
-		return CKR_OPERATION_NOT_INITIALIZED;
-
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (PKCS11_MOCK_CK_OPERATION_DECRYPT != mock_session->find_op.active_operation)
+		return CKR_OPERATION_NOT_INITIALIZED;
 
 	if (NULL == pEncryptedPart)
 		return CKR_ARGUMENTS_BAD;
@@ -1706,13 +1723,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptFinal)(CK_SESSION_HANDLE hSession, CK_BYTE_PT
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
+	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
+		return CKR_SESSION_HANDLE_INVALID;
+
 	if ((PKCS11_MOCK_CK_OPERATION_DECRYPT != mock_session->find_op.active_operation) &&
 		(PKCS11_MOCK_CK_OPERATION_DECRYPT_DIGEST != mock_session->find_op.active_operation) &&
 		(PKCS11_MOCK_CK_OPERATION_DECRYPT_VERIFY != mock_session->find_op.active_operation))
 		return CKR_OPERATION_NOT_INITIALIZED;
-
-	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
-		return CKR_SESSION_HANDLE_INVALID;
 
 	if (NULL == pulLastPartLen)
 		return CKR_ARGUMENTS_BAD;
@@ -1918,17 +1935,15 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignInit)(CK_SESSION_HANDLE hSession, CK_MECHANISM_P
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
+	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
+		return CKR_SESSION_HANDLE_INVALID;
+
 	if ((PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation) &&
 		(PKCS11_MOCK_CK_OPERATION_ENCRYPT != mock_session->find_op.active_operation))
 		return CKR_OPERATION_ACTIVE;
 
-	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
-		return CKR_SESSION_HANDLE_INVALID;
-
-	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH) {
-		if (!pkcs11_mock_session_reauth) {
-			return CKR_USER_NOT_LOGGED_IN;
-		}
+	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH || pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH) {
+		mock_session->state = CKS_RO_PUBLIC_SESSION;
 		pkcs11_mock_session_reauth = 0;
 	}
 
@@ -1969,6 +1984,16 @@ CK_DEFINE_FUNCTION(CK_RV, C_Sign)(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
 
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH || pkcs11_mock_flags & MOCK_FLAG_SAFENET_ALWAYS_AUTH) {
+		if (!pkcs11_mock_session_reauth) {
+			return CKR_USER_NOT_LOGGED_IN;
+		}
+
+		if ((pkcs11_mock_flags & MOCK_FLAG_ALWAYS_AUTH) && pSignature != NULL) {
+			pkcs11_mock_session_reauth = 0;
+		}
+	}
 
 	if (NULL == pData)
 		return CKR_ARGUMENTS_BAD;
@@ -2064,11 +2089,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignRecoverInit)(CK_SESSION_HANDLE hSession, CK_MECH
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation)
-		return CKR_OPERATION_ACTIVE;
-
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation)
+		return CKR_OPERATION_ACTIVE;
 
 	if (NULL == pMechanism)
 		return CKR_ARGUMENTS_BAD;
@@ -2140,12 +2165,12 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyInit)(CK_SESSION_HANDLE hSession, CK_MECHANISM
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
+	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
+		return CKR_SESSION_HANDLE_INVALID;
+
 	if ((PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation) &&
 		(PKCS11_MOCK_CK_OPERATION_DECRYPT != mock_session->find_op.active_operation))
 		return CKR_OPERATION_ACTIVE;
-
-	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
-		return CKR_SESSION_HANDLE_INVALID;
 
 	if (NULL == pMechanism)
 		return CKR_ARGUMENTS_BAD;
@@ -2270,11 +2295,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyRecoverInit)(CK_SESSION_HANDLE hSession, CK_ME
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation)
-		return CKR_OPERATION_ACTIVE;
-
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (PKCS11_MOCK_CK_OPERATION_NONE != mock_session->find_op.active_operation)
+		return CKR_OPERATION_ACTIVE;
 
 	if (NULL == pMechanism)
 		return CKR_ARGUMENTS_BAD;
@@ -2389,11 +2414,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptDigestUpdate)(CK_SESSION_HANDLE hSession, CK_
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (PKCS11_MOCK_CK_OPERATION_DECRYPT_DIGEST != mock_session->find_op.active_operation)
-		return CKR_OPERATION_NOT_INITIALIZED;
-
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (PKCS11_MOCK_CK_OPERATION_DECRYPT_DIGEST != mock_session->find_op.active_operation)
+		return CKR_OPERATION_NOT_INITIALIZED;
 
 	if (NULL == pEncryptedPart)
 		return CKR_ARGUMENTS_BAD;
@@ -2430,11 +2455,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignEncryptUpdate)(CK_SESSION_HANDLE hSession, CK_BY
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (PKCS11_MOCK_CK_OPERATION_SIGN_ENCRYPT != mock_session->find_op.active_operation)
-		return CKR_OPERATION_NOT_INITIALIZED;
-
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (PKCS11_MOCK_CK_OPERATION_SIGN_ENCRYPT != mock_session->find_op.active_operation)
+		return CKR_OPERATION_NOT_INITIALIZED;
 
 	if (NULL == pPart)
 		return CKR_ARGUMENTS_BAD;
@@ -2471,11 +2496,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptVerifyUpdate)(CK_SESSION_HANDLE hSession, CK_
 	if (CK_FALSE == pkcs11_mock_initialized)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (PKCS11_MOCK_CK_OPERATION_DECRYPT_VERIFY != mock_session->find_op.active_operation)
-		return CKR_OPERATION_NOT_INITIALIZED;
-
 	if ((CK_FALSE == pkcs11_mock_session_opened) || (PKCS11_MOCK_CK_SESSION_ID != hSession))
 		return CKR_SESSION_HANDLE_INVALID;
+
+	if (PKCS11_MOCK_CK_OPERATION_DECRYPT_VERIFY != mock_session->find_op.active_operation)
+		return CKR_OPERATION_NOT_INITIALIZED;
 
 	if (NULL == pEncryptedPart)
 		return CKR_ARGUMENTS_BAD;
