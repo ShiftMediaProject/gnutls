@@ -47,6 +47,8 @@
 #define HASH_OID_SHA3_384 "2.16.840.1.101.3.4.2.9"
 #define HASH_OID_SHA3_512 "2.16.840.1.101.3.4.2.10"
 
+#define OID_ATTR_PROV_SEED "1.3.6.1.4.1.2312.18.8.1"
+
 struct gnutls_x509_crl_iter {
 	/* This is used to optimize reads by gnutls_x509_crl_iter_crt_serial() */
 	ASN1_TYPE rcache;
@@ -248,7 +250,7 @@ _gnutls_x509_read_ecc_params(uint8_t * der, int dersize,
 			     unsigned int *curve);
 
 int _gnutls_asn1_encode_privkey(gnutls_pk_algorithm_t pk, ASN1_TYPE * c2,
-				gnutls_pk_params_st * params, unsigned compat);
+				gnutls_pk_params_st * params);
 
 /* extensions.c */
 int _gnutls_x509_crl_get_extension_oid(gnutls_x509_crl_t crl,

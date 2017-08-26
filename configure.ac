@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.5.14], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.5.15], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -156,6 +156,12 @@ if test "$use_accel" != "no"; then
 case $host_cpu in
   armv8 | aarch64)
       hw_accel="aarch64"
+      case $host_os in
+        *_ilp32)
+	  dnl ILP32 not supported in assembler yet
+	  hw_accel="none"
+        ;;
+      esac
   ;;
   i?86 | x86_64 | amd64)
       AC_CHECK_HEADERS(cpuid.h)
