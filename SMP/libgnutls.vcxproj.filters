@@ -681,6 +681,12 @@
     <ClInclude Include="..\lib\unistring\unistr\u-cpy.h">
       <Filter>Header Files\lib\unistring\unistring</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\x509\attributes.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\x509\prov-seed.h">
+      <Filter>Header Files\lib\x509</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -1606,6 +1612,12 @@
     </ClCompile>
     <ClCompile Include="..\lib\openpgp_compat.c">
       <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\attributes.c">
+      <Filter>Source Files\lib\x509</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\prov-seed.c">
+      <Filter>Source Files\lib\x509</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

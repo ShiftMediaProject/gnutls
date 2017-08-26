@@ -230,11 +230,13 @@
     <ClInclude Include="..\lib\urls.h" />
     <ClInclude Include="..\lib\vasprintf.h" />
     <ClInclude Include="..\lib\x509.h" />
+    <ClInclude Include="..\lib\x509\attributes.h" />
     <ClInclude Include="..\lib\x509\common.h" />
     <ClInclude Include="..\lib\x509\ip-in-cidr.h" />
     <ClInclude Include="..\lib\x509\ip.h" />
     <ClInclude Include="..\lib\x509\krb5.h" />
     <ClInclude Include="..\lib\x509\pkcs7_int.h" />
+    <ClInclude Include="..\lib\x509\prov-seed.h" />
     <ClInclude Include="..\lib\x509\verify-high.h" />
     <ClInclude Include="..\lib\x509\virt-san.h" />
     <ClInclude Include="..\lib\x509\x509_ext_int.h" />
@@ -615,6 +617,7 @@
     <ClCompile Include="..\lib\urls.c" />
     <ClCompile Include="..\lib\verify-tofu.c" />
     <ClCompile Include="..\lib\x509.c" />
+    <ClCompile Include="..\lib\x509\attributes.c" />
     <ClCompile Include="..\lib\x509\common.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -681,6 +684,7 @@
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\x509\privkey_pkcs8_pbes1.c" />
+    <ClCompile Include="..\lib\x509\prov-seed.c" />
     <ClCompile Include="..\lib\x509\sign.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
