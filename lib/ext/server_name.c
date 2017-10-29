@@ -47,7 +47,7 @@ _gnutls_server_name_set_raw(gnutls_session_t session,
 const extension_entry_st ext_mod_server_name = {
 	.name = "Server Name Indication",
 	.type = GNUTLS_EXTENSION_SERVER_NAME,
-	.parse_type = GNUTLS_EXT_APPLICATION,
+	.parse_type = GNUTLS_EXT_MANDATORY,
 
 	.recv_func = _gnutls_server_name_recv_params,
 	.send_func = _gnutls_server_name_send_params,
@@ -516,4 +516,50 @@ _gnutls_server_name_unpack(gnutls_buffer_st * ps,
       error:
 	gnutls_free(priv);
 	return ret;
+}
+
+unsigned _gnutls_server_name_matches_resumed(gnutls_session_t session)
+{
+	server_name_ext_st *priv1, *priv2;
+	int ret;
+	gnutls_ext_priv_data_t epriv;
+
+	ret =
+	    _gnutls_ext_get_session_data(session,
+					 GNUTLS_EXTENSION_SERVER_NAME,
+					 &epriv);
+	if (ret < 0) /* no server name in this session */
+		priv1 = NULL;
+	else
+		priv1 = epriv;
+
+	ret =
+	    _gnutls_ext_get_resumed_session_data(session,
+						 GNUTLS_EXTENSION_SERVER_NAME,
+						 &epriv);
+	if (ret < 0) /* no server name in extensions */
+		priv2 = NULL;
+	else
+		priv2 = epriv;
+
+	if (priv1 == NULL || priv2 == NULL) {
+		if (priv1 == priv2)
+			return 1;
+		else
+			return 0;
+	}
+
+	if (priv1->server_names_size != priv2->server_names_size)
+		return 0;
+
+	if (priv1->server_names_size == 0)
+		return 1;
+
+	if (priv1->server_names[0].name_length != priv2->server_names[0].name_length)
+		return 0;
+
+	if (memcmp(priv1->server_names[0].name, priv2->server_names[0].name, priv1->server_names[0].name_length) != 0)
+		return 0;
+
+	return 1;
 }

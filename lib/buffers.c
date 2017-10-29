@@ -953,12 +953,13 @@ parse_handshake_header(gnutls_session_t session, mbuffer_st * bufel,
 		return
 		    gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
 
-	if (hsk->length > 0 && (hsk->start_offset >= hsk->end_offset ||
+	if (hsk->length > 0 && (hsk->start_offset > hsk->end_offset ||
 				hsk->end_offset - hsk->start_offset >=
 				data_size
-				|| hsk->end_offset >= hsk->length))
+				|| hsk->end_offset >= hsk->length)) {
 		return
 		    gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
+	}
 	else if (hsk->length == 0 && hsk->end_offset != 0
 		 && hsk->start_offset != 0)
 		return
@@ -1076,12 +1077,12 @@ static int merge_handshake_packet(gnutls_session_t session,
 inline static int cmp_hsk_types(gnutls_handshake_description_t expected,
 				gnutls_handshake_description_t recvd)
 {
-	if ((expected != GNUTLS_HANDSHAKE_CLIENT_HELLO
 #ifdef ENABLE_SSL2
-	     || recvd != GNUTLS_HANDSHAKE_CLIENT_HELLO_V2
+	if (expected == GNUTLS_HANDSHAKE_CLIENT_HELLO
+	     && recvd == GNUTLS_HANDSHAKE_CLIENT_HELLO_V2)
+		return 1;
 #endif
-	     )
-	    && (expected != recvd))
+	if (expected != recvd)
 		return 0;
 
 	return 1;

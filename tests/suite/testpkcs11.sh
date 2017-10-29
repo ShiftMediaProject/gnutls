@@ -94,6 +94,13 @@ write_privkey () {
 	fi
 	echo ok
 
+	echo -n "* Checking whether object was marked sensitive... "
+	${P11TOOL} ${ADDITIONAL_PARAM} --login --list-privkeys "${token};object=gnutls-client2" | grep "CKA_SENSITIVE" >/dev/null 2>&1
+	if test $? != 0; then
+		echo "private object was not sensitive"
+		exit_error
+	fi
+	echo ok
 }
 
 # $1: token
@@ -176,6 +183,22 @@ generate_rsa_privkey () {
 		echo failed
 		exit 1
 	fi
+
+	echo -n "* Checking whether generated private key was marked private... "
+	${P11TOOL} ${ADDITIONAL_PARAM} --list-privkeys "${token};object=gnutls-client" 2>/dev/null | grep 'Label\:' >>"${TMPFILE}" 2>&1
+	if test $? = 0; then
+		echo "private object was public"
+		exit_error
+	fi
+	echo ok
+
+	echo -n "* Checking whether private key was marked sensitive... "
+	${P11TOOL} ${ADDITIONAL_PARAM} --login --list-privkeys "${token};object=gnutls-client" | grep "CKA_SENSITIVE" >/dev/null 2>&1
+	if test $? != 0; then
+		echo "private object was not sensitive"
+		exit_error
+	fi
+	echo ok
 }
 
 # $1: token
@@ -701,6 +724,24 @@ test_sign () {
 	echo ok
 }
 
+# This tests the signing operation as well as the usage of --set-pin
+test_sign_set_pin () {
+	pin="$2"
+	token="$1"
+
+	unset GNUTLS_PIN
+
+	echo -n "* Testing signatures using the private key and --set-pin... "
+	${P11TOOL} ${ADDITIONAL_PARAM} --login --set-pin ${pin} --test-sign "${token};object=serv-key" >>"${TMPFILE}" 2>&1
+	if test $? != 0; then
+		echo "failed. Cannot test signatures."
+		exit_error
+	fi
+	echo ok
+
+	export GNUTLS_PIN=${pin}
+}
+
 # $1: token
 # $2: PIN
 # $3: certfile
@@ -822,6 +863,8 @@ use_certificate_test "${TOKEN}" "${GNUTLS_PIN}" "${TOKEN};object=serv-cert" "${T
 write_certificate_id_test_rsa "${TOKEN}" "${GNUTLS_PIN}" "${srcdir}/pkcs11-certs/ca.key" "${srcdir}/pkcs11-certs/ca.crt"
 write_certificate_id_test_rsa2 "${TOKEN}" "${GNUTLS_PIN}" "${srcdir}/pkcs11-certs/ca.key" "${srcdir}/pkcs11-certs/ca.crt"
 write_certificate_id_test_ecdsa "${TOKEN}" "${GNUTLS_PIN}" "${srcdir}/pkcs11-certs/ca.key" "${srcdir}/pkcs11-certs/ca.crt"
+
+test_sign_set_pin "${TOKEN}" "${GNUTLS_PIN}"
 
 if test ${RETCODE} = 0; then
 	echo "* All smart cards tests succeeded"
