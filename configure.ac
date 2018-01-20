@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 # USA
 
 AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.5.16], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.5.17], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -218,11 +218,11 @@ dnl check for getrandom()
 rnd_variant="auto-detect"
 AC_MSG_CHECKING([for getrandom])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([
-	   #include <linux/random.h>],[
+	   #include <sys/random.h>],[
 		   getrandom(0, 0, 0);
 		  ])],
 		  [AC_MSG_RESULT(yes)
-		   AC_DEFINE([HAVE_LINUX_GETRANDOM], 1, [Enable the Linux getrandom function])
+		   AC_DEFINE([HAVE_GETRANDOM], 1, [Enable the Linux getrandom function])
 		   rnd_variant=getrandom],
 		  [AC_MSG_RESULT(no)])
 

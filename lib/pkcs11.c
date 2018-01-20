@@ -106,13 +106,16 @@ struct find_cert_st {
 
 static struct gnutls_pkcs11_provider_st providers[MAX_PROVIDERS];
 static unsigned int active_providers = 0;
-static unsigned int providers_initialized = 0;
+
+static init_level_t providers_initialized = PROV_UNINITIALIZED;
 static unsigned int pkcs11_forkid = 0;
 
 static int _gnutls_pkcs11_reinit(void);
 
 gnutls_pkcs11_token_callback_t _gnutls_token_func;
 void *_gnutls_token_data;
+
+static int auto_load(unsigned trusted);
 
 int pkcs11_rv_to_err(ck_rv_t rv)
 {
@@ -230,7 +233,8 @@ pkcs11_add_module(const char* name, struct ck_function_list *module, const char 
 	/* initially check if this module is a duplicate */
 	for (i = 0; i < active_providers; i++) {
 		/* already loaded, skip the rest */
-		if (module == providers[i].module) {
+		if (module == providers[i].module ||
+		    memcmp(&info, &providers[i].info, sizeof(info)) == 0) {
 			_gnutls_debug_log("p11: module %s is already loaded.\n", name);
 			return GNUTLS_E_INT_RET_0;
 		}
@@ -258,7 +262,7 @@ pkcs11_add_module(const char* name, struct ck_function_list *module, const char 
  * The output value of the callback will be returned if it is
  * a negative one (indicating failure).
 */
-int _gnutls_pkcs11_check_init(void *priv, pkcs11_reinit_function cb)
+int _gnutls_pkcs11_check_init(init_level_t req_level, void *priv, pkcs11_reinit_function cb)
 {
 	int ret;
 
@@ -266,7 +270,7 @@ int _gnutls_pkcs11_check_init(void *priv, pkcs11_reinit_function cb)
 	if (ret != 0)
 		return gnutls_assert_val(GNUTLS_E_LOCKING_ERROR);
 
-	if (providers_initialized != 0) {
+	if (providers_initialized >= req_level) {
 		ret = 0;
 
 		if (_gnutls_detect_fork(pkcs11_forkid)) {
@@ -285,10 +289,16 @@ int _gnutls_pkcs11_check_init(void *priv, pkcs11_reinit_function cb)
 
 		gnutls_mutex_unlock(&_gnutls_pkcs11_mutex);
 		return ret;
-	}
+	} else if (providers_initialized < req_level &&
+		   (req_level == PROV_INIT_TRUSTED)) {
+		_gnutls_debug_log("Initializing needed PKCS #11 modules\n");
+		ret = auto_load(1);
 
-	_gnutls_debug_log("Initializing PKCS #11 modules\n");
-	ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_AUTO, NULL);
+		providers_initialized = PROV_INIT_TRUSTED;
+	} else {
+		_gnutls_debug_log("Initializing all PKCS #11 modules\n");
+		ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_AUTO, NULL);
+	}
 
 	gnutls_mutex_unlock(&_gnutls_pkcs11_mutex);
 
@@ -715,13 +725,13 @@ static void compat_load(const char *configfile)
 	return;
 }
 
-static int auto_load(void)
+static int auto_load(unsigned trusted)
 {
 	struct ck_function_list **modules;
 	int i, ret;
 	char* name;
 
-	modules = p11_kit_modules_load_and_initialize(0);
+	modules = p11_kit_modules_load_and_initialize(trusted?P11_KIT_MODULE_TRUSTED:0);
 	if (modules == NULL) {
 		gnutls_assert();
 		_gnutls_debug_log
@@ -790,15 +800,21 @@ gnutls_pkcs11_init(unsigned int flags, const char *deprecated_config_file)
 	if (flags == GNUTLS_PKCS11_FLAG_MANUAL) {
 		/* if manual configuration is requested then don't
 		 * bother loading any other providers */
-		providers_initialized = 1;
+		providers_initialized = PROV_INIT_MANUAL;
 		return 0;
 	 } else if (flags & GNUTLS_PKCS11_FLAG_AUTO) {
 		if (deprecated_config_file == NULL)
-			ret = auto_load();
+			ret = auto_load(0);
 
 		compat_load(deprecated_config_file);
 
-		providers_initialized = 1;
+		providers_initialized = PROV_INIT_ALL;
+
+		return ret;
+	} else if (flags & GNUTLS_PKCS11_FLAG_AUTO_TRUSTED) {
+		ret = auto_load(1);
+
+		providers_initialized = PROV_INIT_TRUSTED;
 
 		return ret;
 	}
@@ -886,7 +902,7 @@ void gnutls_pkcs11_deinit(void)
 		p11_kit_module_release(providers[i].module);
 	}
 	active_providers = 0;
-	providers_initialized = 0;
+	providers_initialized = PROV_UNINITIALIZED;
 
 	gnutls_pkcs11_set_pin_function(NULL, NULL);
 	gnutls_pkcs11_set_token_function(NULL, NULL);
@@ -3133,7 +3149,11 @@ gnutls_pkcs11_obj_list_import_url4(gnutls_pkcs11_obj_t ** p_list,
 	int ret;
 	struct find_obj_data_st priv;
 
-	PKCS11_CHECK_INIT;
+	if (flags & GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED) {
+		PKCS11_CHECK_INIT_TRUSTED;
+	} else {
+		PKCS11_CHECK_INIT;
+	}
 
 	memset(&priv, 0, sizeof(priv));
 
