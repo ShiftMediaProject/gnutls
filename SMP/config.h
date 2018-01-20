@@ -764,7 +764,7 @@
 #define HAVE_LIMITS_H 1
 
 /* Enable the Linux getrandom function */
-/* #undef HAVE_LINUX_GETRANDOM */
+/* #undef HAVE_GETRANDOM */
 
 /* Define to 1 if you have the `localtime' function. */
 #define HAVE_LOCALTIME 1
