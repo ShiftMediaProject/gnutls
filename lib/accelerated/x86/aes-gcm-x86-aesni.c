@@ -49,7 +49,7 @@ static void x86_aes_encrypt(const void *_ctx,
 {
 	AES_KEY *ctx = (void*)_ctx;
 
-	aesni_ecb_encrypt(src, dst, 16, ctx, 1);
+	aesni_ecb_encrypt(src, dst, length, ctx, 1);
 }
 
 static void x86_aes128_set_encrypt_key(void *_ctx,
@@ -97,7 +97,8 @@ aes_gcm_cipher_setkey(void *_ctx, const void *key, size_t length)
 	} else if (length == 32) {
 		GCM_SET_KEY(ctx, x86_aes256_set_encrypt_key, x86_aes_encrypt,
 			    key);
-	} else abort();
+	} else
+		return GNUTLS_E_INVALID_REQUEST;
 
 	return 0;
 }

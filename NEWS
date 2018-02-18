@@ -5,6 +5,22 @@ Copyright (C) 2000-2016 Free Software Foundation, Inc.
 Copyright (C) 2013-2017 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.5.18 (released 2018-02-16)
+
+** libgnutls: Addressed issue in the accelerated code which may affect interoperability
+   with versions of nettle > 3.4.
+
+** libgnutls: Addressed issue in the AES-GCM acceleration under aarch64.
+
+** libgnutls: Addressed issue in the AES-CBC acceleration under ssse3 (patch by
+   Vitezslav Cizek).
+
+** p11tool: Fixed issue preventing the deletion of objects in batch mode.
+
+** API and ABI modifications:
+No changes since last version.
+
+
 * Version 3.5.17 (released 2018-01-17)
 
 ** libgnutls: Address issue of loading of all PKCS#11 modules on startup
@@ -22,7 +38,7 @@ See the end for copying conditions.
 ** libgnutls: Corrected MTU calculation for the CBC ciphersuites. The data
    MTU calculation now, it correctly accounts for the fixed overhead due to
    padding (as 1 byte), while at the same time considers the rest of the
-   padding as part of data MTU.
+   padding as part of data MTU. Resolves issue #360.
 
 ** API and ABI modifications:
 No changes since last version.

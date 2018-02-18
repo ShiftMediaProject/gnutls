@@ -37,6 +37,7 @@
 #include <byteswap.h>
 
 #define GCM_BLOCK_SIZE 16
+#define INC32(block) INCREMENT(4, block + GCM_BLOCK_SIZE - 4)
 
 /* GCM mode */
 
@@ -97,6 +98,8 @@ aes_gcm_cipher_setkey(void *_ctx, const void *userkey, size_t keysize)
 {
 	struct aes_gcm_ctx *ctx = _ctx;
 	int ret;
+
+	CHECK_AES_KEYSIZE(keysize);
 
 	ret =
 	    aes_v8_set_encrypt_key(userkey, keysize * 8,
@@ -169,7 +172,7 @@ ctr32_encrypt_blocks_inplace(const unsigned char *in, unsigned char *out,
 
 		out += 16;
 		in += 16;
-		INCREMENT(16, ctr);
+		INC32(ctr);
 	}
 }
 
@@ -192,7 +195,7 @@ ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
 
 		out += 16;
 		in += 16;
-		INCREMENT(16, ctr);
+		INC32(ctr);
 	}
 }
 

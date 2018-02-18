@@ -47,8 +47,14 @@ static void x86_aes_encrypt(const void *_ctx,
 				const uint8_t * src)
 {
 	AES_KEY *ctx = (void*)_ctx;
+	unsigned i;
+	unsigned blocks = (length+15) / 16;
 
-	vpaes_encrypt(src, dst, ctx);
+	for (i=0;i<blocks;i++) {
+		vpaes_encrypt(src, dst, ctx);
+		dst += 16;
+		src += 16;
+	}
 }
 
 static void x86_aes_128_set_encrypt_key(void *_ctx,
@@ -96,7 +102,8 @@ aes_gcm_cipher_setkey(void *_ctx, const void *key, size_t keysize)
 	} else if (keysize == 32) {
 		GCM_SET_KEY(ctx, x86_aes_256_set_encrypt_key, x86_aes_encrypt,
 			    key);
-	} else abort();
+	} else
+		return GNUTLS_E_INVALID_REQUEST;
 
 	return 0;
 }
