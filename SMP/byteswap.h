@@ -1,6 +1,5 @@
 /*
- * MSVC byteswap.h compatability header.
- * Copyright (c) 2015 Matthew Oliver
+ * MSVC byteswap.h compatibility header.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +20,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SMP_BYTESWAP_H_
-#define _SMP_BYTESWAP_H_
+#ifndef SMP_BYTESWAP_H
+#define SMP_BYTESWAP_H
 
 #ifndef _MSC_VER
 #   include_next <byteswap.h>
@@ -34,4 +33,4 @@
 
 #endif /* _MSC_VER */
 
-#endif /* _SMP_BYTESWAP_H_ */
+#endif /* SMP_BYTESWAP_H */

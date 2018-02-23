@@ -1,6 +1,5 @@
 /*
  * MSVC time.h compatibility header.
- * Copyright (c) 2015 Matthew Oliver
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +20,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SMP_TIME_H_
-#define _SMP_TIME_H_
+#ifndef SMP_TIME_H
+#define SMP_TIME_H
 
 #ifndef _MSC_VER
 #   include_next <time.h>
@@ -45,4 +44,4 @@ struct timespec
 
 #endif /* _MSC_VER */
 
-#endif /* _SMP_TIME_H_ */
+#endif /* SMP_TIME_H */

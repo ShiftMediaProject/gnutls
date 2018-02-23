@@ -1,6 +1,5 @@
 /*
- * MSVC sys/stat.h compatability header.
- * Copyright (c) 2015 Matthew Oliver
+ * MSVC sys/stat.h compatibility header.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +20,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SMP_SYS_STAT_H_
-#define _SMP_SYS_STAT_H_
+#ifndef SMP_SYS_STAT_H
+#define SMP_SYS_STAT_H
 
 #ifndef _MSC_VER
 #   include_next <sys/stat.h>
@@ -101,4 +100,4 @@
 
 #endif /* _MSC_VER */
 
-#endif /* _SMP_SYS_STAT_H_ */
+#endif /* SMP_SYS_STAT_H */

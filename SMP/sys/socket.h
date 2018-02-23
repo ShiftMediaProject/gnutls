@@ -1,5 +1,5 @@
 /*
- * MSVC sys/socket.h compatability header.
+ * MSVC sys/socket.h compatibility header.
  * Copyright (c) 2015 Matthew Oliver
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +21,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SMP_SYS_SOCKET_H_
-#define _SMP_SYS_SOCKET_H_
+#ifndef SMP_SYS_SOCKET_H
+#define SMP_SYS_SOCKET_H
 
 #ifndef _MSC_VER
 #   include_next <sys/socket.h>
@@ -32,4 +32,4 @@
 
 #endif /* _MSC_VER */
 
-#endif /* _SMP_SYS_SOCKET_H_ */
+#endif /* SMP_SYS_SOCKET_H */

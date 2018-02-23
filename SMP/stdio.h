@@ -1,6 +1,5 @@
 /*
  * MSVC stdio.h compatibility header.
- * Copyright (c) 2015 Matthew Oliver
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +20,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SMP_STDIO_H_
-#define _SMP_STDIO_H_
+#ifndef SMP_STDIO_H
+#define SMP_STDIO_H
 
 #ifndef _MSC_VER
 #   include_next <stdio.h>
@@ -41,12 +40,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #ifndef SSIZE_MAX
 #   define SSIZE_MAX ((ssize_t) (SIZE_MAX / 2))
 #endif
 
-__inline ssize_t getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
+static __inline ssize_t getdelim(char **lineptr, size_t *n, int delimiter, FILE *fp)
 {
     ssize_t result;
     size_t cur_len = 0;
@@ -58,7 +58,7 @@ __inline ssize_t getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
     if (*lineptr == NULL || *n == 0) {
         char *new_lineptr;
         *n = 120;
-        new_lineptr = (char *) realloc (*lineptr, *n);
+        new_lineptr = (char *)realloc(*lineptr, *n);
         if (new_lineptr == NULL) {
             result = -1;
             return result;
@@ -68,24 +68,24 @@ __inline ssize_t getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
 
     for (;;) {
         int i;
-        i = getc( fp );
+        i = getc(fp);
         if (i == EOF) {
             result = -1;
             break;
         }
         if (cur_len + 1 >= *n) {
-            size_t needed_max =
-            SSIZE_MAX < SIZE_MAX ? (size_t) SSIZE_MAX + 1 : SIZE_MAX;
+            size_t needed_max = SSIZE_MAX < SIZE_MAX ? (size_t)SSIZE_MAX + 1 : SIZE_MAX;
             size_t needed = 2 * *n + 1;
             char *new_lineptr;
-            if (needed_max < needed)
-            needed = needed_max;
+            if (needed_max < needed) {
+                needed = needed_max;
+            }
             if (cur_len + 1 >= needed) {
                 result = -1;
                 errno = EOVERFLOW;
                 return result;
             }
-            new_lineptr = (char *) realloc (*lineptr, needed);
+            new_lineptr = (char *)realloc(*lineptr, needed);
             if (new_lineptr == NULL) {
                 result = -1;
                 return result;
@@ -95,8 +95,9 @@ __inline ssize_t getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
         }
         (*lineptr)[cur_len] = i;
         cur_len++;
-        if (i == delimiter)
+        if (i == delimiter) {
             break;
+        }
     }
     (*lineptr)[cur_len] = '\0';
     result = cur_len ? cur_len : result;
@@ -104,41 +105,38 @@ __inline ssize_t getdelim (char **lineptr, size_t *n, int delimiter, FILE *fp)
     return result;
 }
 
-__inline ssize_t getline (char **lineptr, size_t *n, FILE *stream)
+static __inline ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 {
-    return getdelim (lineptr, n, '\n', stream);
+    return getdelim(lineptr, n, '\n', stream);
 }
 
-__inline int vasprintf(char **res, char const *fmt, va_list args)
+static __inline int vasprintf(char **res, char const *fmt, va_list args)
 {
-    int	sz, r;
-    sz = _vscprintf(fmt, args);
-    if (sz < 0)
-        return sz;
+    int r, sz = _vscprintf(fmt, args);
     if (sz >= 0) {
-        if ((*res = malloc(sz + 1)) == NULL)
-                return -1;
-        if ((sz = sprintf(*res, fmt, args)) < 0) {
+        if ((*res = malloc(sz + 1)) == NULL) {
+            return -1;
+        }
+        r = vsnprintf(*res, sz + 1, fmt, args);
+        if ((r < 0) || (r > sz)) {
             free(*res);
             *res = NULL;
+            return -1;
         }
-        return sz;
-    }
-#define MAXLN 65535
-        *res = NULL;
-        for (sz = 128; sz <= MAXLN; sz *= 2) {
-            if ((*res = realloc(*res, sz)) == NULL)
-                return -1;
-            r = vsnprintf(*res, sz, fmt, args);
-            if (r > 0 && r < sz)
-                return r;
-        }
-        errno = ENOMEM;
-        if (*res) {
-                free(*res);
-                *res = NULL;
-        }
+        return r;
+    } else {
         return -1;
+    }
+}
+
+static __inline int asprintf(char **strp, const char *fmt, ...)
+{
+    int r;
+    va_list ap;
+    va_start(ap, fmt);
+    r = vasprintf(strp, fmt, ap);
+    va_end(ap);
+    return(r);
 }
 
 #define fseeko _fseeki64
@@ -146,4 +144,4 @@ __inline int vasprintf(char **res, char const *fmt, va_list args)
 
 #endif /* _MSC_VER */
 
-#endif /* _SMP_STDIO_H_ */
+#endif /* SMP_STDIO_H */

@@ -1,6 +1,5 @@
 /*
  * MSVC string.h compatibility header.
- * Copyright (c) 2015 Matthew Oliver
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +20,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SMP_STRING_H_
-#define _SMP_STRING_H_
+#ifndef SMP_STRING_H
+#define SMP_STRING_H
 
 #ifndef _MSC_VER
 #   include_next <string.h>
@@ -36,7 +35,7 @@
 #   define strtoll _strtoi64
 #endif
 
-__inline void *memmem(const void *haystack, size_t haystack_len, const void *needle, size_t needle_len)
+static __inline void *memmem(const void *haystack, size_t haystack_len, const void *needle, size_t needle_len)
 {
     const char *begin = haystack;
     const char *last_possible = begin + haystack_len - needle_len;
@@ -69,10 +68,10 @@ __inline void *memmem(const void *haystack, size_t haystack_len, const void *nee
 #define  CMP    2
 #define  LEN    3
 
-__inline int strverscmp (const char *s1, const char *s2)
+static __inline int strverscmp(const char *s1, const char *s2)
 {
-    const unsigned char *p1 = (const unsigned char *) s1;
-    const unsigned char *p2 = (const unsigned char *) s2;
+    const unsigned char *p1 = (const unsigned char *)s1;
+    const unsigned char *p2 = (const unsigned char *)s2;
 
     const uint8_t next_state[] =
     {
@@ -86,38 +85,39 @@ __inline int strverscmp (const char *s1, const char *s2)
     const int8_t result_type[] =
     {
         /* S_N */  CMP, CMP, CMP, CMP, LEN, CMP, CMP, CMP, CMP,
-        /* S_I */  CMP, -1,  -1,  +1,  LEN, LEN, +1,  LEN, LEN,
+        /* S_I */  CMP, -1, -1, +1, LEN, LEN, +1, LEN, LEN,
         /* S_F */  CMP, CMP, CMP, CMP, CMP, CMP, CMP, CMP, CMP,
-        /* S_Z */  CMP, +1,  +1,  -1,  CMP, CMP, -1,  CMP, CMP
+        /* S_Z */  CMP, +1, +1, -1, CMP, CMP, -1, CMP, CMP
     };
 
     if (p1 == p2)
         return 0;
     unsigned char c1 = *p1++;
     unsigned char c2 = *p2++;
-    int state = S_N + ((c1 == '0') + (isdigit (c1) != 0));
+    int state = S_N + ((c1 == '0') + (isdigit(c1) != 0));
     int diff;
-    while ((diff = c1 - c2) == 0)
-    {
-        if (c1 == '\0')
+    while ((diff = c1 - c2) == 0) {
+        if (c1 == '\0') {
             return diff;
+        }
         state = next_state[state];
         c1 = *p1++;
         c2 = *p2++;
-        state += (c1 == '0') + (isdigit (c1) != 0);
+        state += (c1 == '0') + (isdigit(c1) != 0);
     }
-    state = result_type[state * 3 + (((c2 == '0') + (isdigit (c2) != 0)))];
-    switch (state)
-    {
-    case CMP:
-        return diff;
-    case LEN:
-        while (isdigit (*p1++))
-        if (!isdigit (*p2++))
-            return 1;
-        return isdigit (*p2) ? -1 : diff;
-    default:
-        return state;
+    state = result_type[state * 3 + (((c2 == '0') + (isdigit(c2) != 0)))];
+    switch (state) {
+        case CMP:
+            return diff;
+        case LEN:
+            while (isdigit(*p1++)) {
+                if (!isdigit(*p2++)) {
+                    return 1;
+                }
+            }
+            return isdigit(*p2) ? -1 : diff;
+        default:
+            return state;
     }
 }
 
@@ -127,4 +127,4 @@ __inline int strverscmp (const char *s1, const char *s2)
 
 #endif /* _MSC_VER */
 
-#endif /* _SMP_STRING_H_ */
+#endif /* SMP_STRING_H */
