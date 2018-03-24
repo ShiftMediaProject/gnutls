@@ -1129,7 +1129,7 @@ st_provable_prime(mpz_t p,
 	uint8_t tseed[MAX_PVP_SEED_SIZE+1];
 	int ret;
 	unsigned pseed_length, iterations;
-#if defined(_MSC_VER) && (_MSC_VER <= 1912)
+#if defined(_MSC_VER) && (_MSC_VER <= 1913)
 	uint8_t * pseed = (uint8_t *)_alloca((seed_length + 2) * sizeof(uint8_t));
 #else
 	uint8_t pseed[seed_length + 2];
