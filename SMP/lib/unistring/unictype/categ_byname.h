@@ -1,4 +1,4 @@
-/* ANSI-C code produced by gperf version 3.0.4 */
+/* ANSI-C code produced by gperf version 3.1 */
 /* Command-line: gperf -m 10 lib/unistring/unictype/categ_byname.gperf  */
 /* Computed positions: -k'1-2,7,$' */
 
@@ -26,7 +26,7 @@
       && ('w' == 119) && ('x' == 120) && ('y' == 121) && ('z' == 122) \
       && ('{' == 123) && ('|' == 124) && ('}' == 125) && ('~' == 126))
 /* The character set is not based on ISO-646.  */
-#error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gnu-gperf@gnu.org>."
+#error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gperf@gnu.org>."
 #endif
 
 #line 2 "lib/unistring/unictype/categ_byname.gperf"
@@ -88,7 +88,7 @@ inline
 #endif
 #endif
 static unsigned int
-general_category_hash (register const char *str, register unsigned int len)
+general_category_hash (register const char *str, register size_t len)
 {
   static const unsigned char asso_values[] =
     {
@@ -119,7 +119,7 @@ general_category_hash (register const char *str, register unsigned int len)
       151, 151, 151, 151, 151, 151, 151, 151, 151, 151,
       151, 151, 151, 151, 151, 151
     };
-  register int hval = len;
+  register unsigned int hval = len;
 
   switch (hval)
     {
@@ -358,255 +358,249 @@ static const struct named_category general_category_names[] =
   {
     {-1},
 #line 14 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str1, UC_CATEGORY_INDEX_L},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str1, UC_CATEGORY_INDEX_L},
 #line 17 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str2, UC_CATEGORY_INDEX_Ll},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str2, UC_CATEGORY_INDEX_Ll},
 #line 46 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str3, UC_CATEGORY_INDEX_C},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str3, UC_CATEGORY_INDEX_C},
 #line 15 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str4, UC_CATEGORY_INDEX_LC},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str4, UC_CATEGORY_INDEX_LC},
 #line 47 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str5, UC_CATEGORY_INDEX_Cc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str5, UC_CATEGORY_INDEX_Cc},
 #line 27 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str6, UC_CATEGORY_INDEX_Nl},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str6, UC_CATEGORY_INDEX_Nl},
     {-1}, {-1},
 #line 25 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str9, UC_CATEGORY_INDEX_N},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str9, UC_CATEGORY_INDEX_N},
 #line 30 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str10, UC_CATEGORY_INDEX_Pc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str10, UC_CATEGORY_INDEX_Pc},
 #line 51 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str11, UC_CATEGORY_INDEX_Cn},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str11, UC_CATEGORY_INDEX_Cn},
 #line 18 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str12, UC_CATEGORY_INDEX_Lt},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str12, UC_CATEGORY_INDEX_Lt},
 #line 29 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str13, UC_CATEGORY_INDEX_P},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str13, UC_CATEGORY_INDEX_P},
     {-1},
 #line 111 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str15, UC_CATEGORY_INDEX_Cc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str15, UC_CATEGORY_INDEX_Cc},
 #line 20 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str16, UC_CATEGORY_INDEX_Lo},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str16, UC_CATEGORY_INDEX_Lo},
 #line 50 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str17, UC_CATEGORY_INDEX_Co},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str17, UC_CATEGORY_INDEX_Co},
 #line 16 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str18, UC_CATEGORY_INDEX_Lu},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str18, UC_CATEGORY_INDEX_Lu},
     {-1},
 #line 28 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str20, UC_CATEGORY_INDEX_No},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str20, UC_CATEGORY_INDEX_No},
 #line 48 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str21, UC_CATEGORY_INDEX_Cf},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str21, UC_CATEGORY_INDEX_Cf},
 #line 36 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str22, UC_CATEGORY_INDEX_Po},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str22, UC_CATEGORY_INDEX_Po},
 #line 102 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str23, UC_CATEGORY_INDEX_So},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str23, UC_CATEGORY_INDEX_So},
 #line 98 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str24, UC_CATEGORY_INDEX_Sc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str24, UC_CATEGORY_INDEX_Sc},
 #line 97 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str25, UC_CATEGORY_INDEX_Sc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str25, UC_CATEGORY_INDEX_Sc},
 #line 35 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str26, UC_CATEGORY_INDEX_Pf},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str26, UC_CATEGORY_INDEX_Pf},
 #line 112 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str27, UC_CATEGORY_INDEX_Cf},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str27, UC_CATEGORY_INDEX_Cf},
 #line 86 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str28, UC_CATEGORY_INDEX_Pe},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str28, UC_CATEGORY_INDEX_Pe},
 #line 87 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str29, UC_CATEGORY_INDEX_Pe},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str29, UC_CATEGORY_INDEX_Pe},
     {-1}, {-1}, {-1}, {-1}, {-1}, {-1},
 #line 85 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str36, UC_CATEGORY_INDEX_Ps},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str36, UC_CATEGORY_INDEX_Ps},
 #line 81 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str37, UC_CATEGORY_INDEX_Pc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str37, UC_CATEGORY_INDEX_Pc},
 #line 80 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str38, UC_CATEGORY_INDEX_Pc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str38, UC_CATEGORY_INDEX_Pc},
 #line 92 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str39, UC_CATEGORY_INDEX_Po},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str39, UC_CATEGORY_INDEX_Po},
 #line 93 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str40, UC_CATEGORY_INDEX_Po},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str40, UC_CATEGORY_INDEX_Po},
 #line 84 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str41, UC_CATEGORY_INDEX_Ps},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str41, UC_CATEGORY_INDEX_Ps},
 #line 110 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str42, UC_CATEGORY_INDEX_C},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str42, UC_CATEGORY_INDEX_C},
 #line 72 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str43, UC_CATEGORY_INDEX_N},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str43, UC_CATEGORY_INDEX_N},
     {-1},
 #line 79 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str45, UC_CATEGORY_INDEX_P},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str45, UC_CATEGORY_INDEX_P},
 #line 39 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str46, UC_CATEGORY_INDEX_Sc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str46, UC_CATEGORY_INDEX_Sc},
 #line 44 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str47, UC_CATEGORY_INDEX_Zl},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str47, UC_CATEGORY_INDEX_Zl},
 #line 94 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str48, UC_CATEGORY_INDEX_S},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str48, UC_CATEGORY_INDEX_S},
 #line 63 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str49, UC_CATEGORY_INDEX_Lo},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str49, UC_CATEGORY_INDEX_Lo},
 #line 33 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str50, UC_CATEGORY_INDEX_Pe},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str50, UC_CATEGORY_INDEX_Pe},
     {-1},
 #line 52 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str52, UC_CATEGORY_INDEX_L},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str52, UC_CATEGORY_INDEX_L},
 #line 77 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str53, UC_CATEGORY_INDEX_No},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str53, UC_CATEGORY_INDEX_No},
 #line 53 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str54, UC_CATEGORY_INDEX_LC},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str54, UC_CATEGORY_INDEX_LC},
 #line 23 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str55, UC_CATEGORY_INDEX_Mc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str55, UC_CATEGORY_INDEX_Mc},
 #line 78 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str56, UC_CATEGORY_INDEX_No},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str56, UC_CATEGORY_INDEX_No},
     {-1},
 #line 41 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str58, UC_CATEGORY_INDEX_So},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str58, UC_CATEGORY_INDEX_So},
 #line 45 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str59, UC_CATEGORY_INDEX_Zp},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str59, UC_CATEGORY_INDEX_Zp},
 #line 75 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str60, UC_CATEGORY_INDEX_Nl},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str60, UC_CATEGORY_INDEX_Nl},
 #line 22 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str61, UC_CATEGORY_INDEX_Mn},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str61, UC_CATEGORY_INDEX_Mn},
 #line 76 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str62, UC_CATEGORY_INDEX_Nl},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str62, UC_CATEGORY_INDEX_Nl},
 #line 58 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str63, UC_CATEGORY_INDEX_Ll},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str63, UC_CATEGORY_INDEX_Ll},
 #line 57 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str64, UC_CATEGORY_INDEX_Ll},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str64, UC_CATEGORY_INDEX_Ll},
     {-1},
 #line 101 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str66, UC_CATEGORY_INDEX_So},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str66, UC_CATEGORY_INDEX_So},
     {-1}, {-1},
 #line 64 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str69, UC_CATEGORY_INDEX_Lo},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str69, UC_CATEGORY_INDEX_Lo},
 #line 56 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str70, UC_CATEGORY_INDEX_Lu},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str70, UC_CATEGORY_INDEX_Lu},
 #line 55 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str71, UC_CATEGORY_INDEX_Lu},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str71, UC_CATEGORY_INDEX_Lu},
     {-1}, {-1},
 #line 54 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str74, UC_CATEGORY_INDEX_LC},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str74, UC_CATEGORY_INDEX_LC},
 #line 67 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str75, UC_CATEGORY_INDEX_Mn},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str75, UC_CATEGORY_INDEX_Mn},
 #line 66 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str76, UC_CATEGORY_INDEX_Mn},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str76, UC_CATEGORY_INDEX_Mn},
     {-1},
 #line 95 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str78, UC_CATEGORY_INDEX_Sm},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str78, UC_CATEGORY_INDEX_Sm},
     {-1}, {-1},
 #line 109 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str81, UC_CATEGORY_INDEX_Zp},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str81, UC_CATEGORY_INDEX_Zp},
 #line 108 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str82, UC_CATEGORY_INDEX_Zp},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str82, UC_CATEGORY_INDEX_Zp},
 #line 115 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str83, UC_CATEGORY_INDEX_Co},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str83, UC_CATEGORY_INDEX_Co},
 #line 114 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str84, UC_CATEGORY_INDEX_Co},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str84, UC_CATEGORY_INDEX_Co},
 #line 37 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str85, UC_CATEGORY_INDEX_S},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str85, UC_CATEGORY_INDEX_S},
     {-1},
 #line 49 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str87, UC_CATEGORY_INDEX_Cs},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str87, UC_CATEGORY_INDEX_Cs},
 #line 89 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str88, UC_CATEGORY_INDEX_Pi},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str88, UC_CATEGORY_INDEX_Pi},
 #line 88 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str89, UC_CATEGORY_INDEX_Pi},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str89, UC_CATEGORY_INDEX_Pi},
     {-1},
 #line 42 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str91, UC_CATEGORY_INDEX_Z},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str91, UC_CATEGORY_INDEX_Z},
 #line 32 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str92, UC_CATEGORY_INDEX_Ps},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str92, UC_CATEGORY_INDEX_Ps},
 #line 100 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str93, UC_CATEGORY_INDEX_Sk},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str93, UC_CATEGORY_INDEX_Sk},
 #line 99 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str94, UC_CATEGORY_INDEX_Sk},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str94, UC_CATEGORY_INDEX_Sk},
 #line 24 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str95, UC_CATEGORY_INDEX_Me},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str95, UC_CATEGORY_INDEX_Me},
 #line 113 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str96, UC_CATEGORY_INDEX_Cs},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str96, UC_CATEGORY_INDEX_Cs},
     {-1},
 #line 90 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str98, UC_CATEGORY_INDEX_Pf},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str98, UC_CATEGORY_INDEX_Pf},
 #line 91 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str99, UC_CATEGORY_INDEX_Pf},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str99, UC_CATEGORY_INDEX_Pf},
     {-1}, {-1},
 #line 103 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str102, UC_CATEGORY_INDEX_Z},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str102, UC_CATEGORY_INDEX_Z},
 #line 21 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str103, UC_CATEGORY_INDEX_M},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str103, UC_CATEGORY_INDEX_M},
 #line 19 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str104, UC_CATEGORY_INDEX_Lm},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str104, UC_CATEGORY_INDEX_Lm},
 #line 83 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str105, UC_CATEGORY_INDEX_Pd},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str105, UC_CATEGORY_INDEX_Pd},
 #line 107 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str106, UC_CATEGORY_INDEX_Zl},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str106, UC_CATEGORY_INDEX_Zl},
     {-1},
 #line 105 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str108, UC_CATEGORY_INDEX_Zs},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str108, UC_CATEGORY_INDEX_Zs},
     {-1},
 #line 82 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str110, UC_CATEGORY_INDEX_Pd},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str110, UC_CATEGORY_INDEX_Pd},
     {-1}, {-1},
 #line 116 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str113, UC_CATEGORY_INDEX_Cn},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str113, UC_CATEGORY_INDEX_Cn},
     {-1}, {-1}, {-1}, {-1},
 #line 62 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str118, UC_CATEGORY_INDEX_Lm},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str118, UC_CATEGORY_INDEX_Lm},
 #line 61 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str119, UC_CATEGORY_INDEX_Lm},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str119, UC_CATEGORY_INDEX_Lm},
 #line 65 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str120, UC_CATEGORY_INDEX_M},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str120, UC_CATEGORY_INDEX_M},
     {-1},
 #line 106 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str122, UC_CATEGORY_INDEX_Zl},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str122, UC_CATEGORY_INDEX_Zl},
 #line 60 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str123, UC_CATEGORY_INDEX_Lt},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str123, UC_CATEGORY_INDEX_Lt},
 #line 59 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str124, UC_CATEGORY_INDEX_Lt},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str124, UC_CATEGORY_INDEX_Lt},
 #line 74 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str125, UC_CATEGORY_INDEX_Nd},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str125, UC_CATEGORY_INDEX_Nd},
 #line 73 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str126, UC_CATEGORY_INDEX_Nd},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str126, UC_CATEGORY_INDEX_Nd},
     {-1},
 #line 96 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str128, UC_CATEGORY_INDEX_Sm},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str128, UC_CATEGORY_INDEX_Sm},
     {-1},
 #line 104 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str130, UC_CATEGORY_INDEX_Zs},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str130, UC_CATEGORY_INDEX_Zs},
 #line 43 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str131, UC_CATEGORY_INDEX_Zs},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str131, UC_CATEGORY_INDEX_Zs},
 #line 34 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str132, UC_CATEGORY_INDEX_Pi},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str132, UC_CATEGORY_INDEX_Pi},
 #line 69 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str133, UC_CATEGORY_INDEX_Mc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str133, UC_CATEGORY_INDEX_Mc},
 #line 68 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str134, UC_CATEGORY_INDEX_Mc},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str134, UC_CATEGORY_INDEX_Mc},
     {-1}, {-1}, {-1},
 #line 26 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str138, UC_CATEGORY_INDEX_Nd},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str138, UC_CATEGORY_INDEX_Nd},
     {-1},
 #line 31 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str140, UC_CATEGORY_INDEX_Pd},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str140, UC_CATEGORY_INDEX_Pd},
     {-1},
 #line 40 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str142, UC_CATEGORY_INDEX_Sk},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str142, UC_CATEGORY_INDEX_Sk},
     {-1}, {-1}, {-1},
 #line 38 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str146, UC_CATEGORY_INDEX_Sm},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str146, UC_CATEGORY_INDEX_Sm},
     {-1}, {-1},
 #line 71 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str149, UC_CATEGORY_INDEX_Me},
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str149, UC_CATEGORY_INDEX_Me},
 #line 70 "lib/unistring/unictype/categ_byname.gperf"
-    {(int)(long)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str150, UC_CATEGORY_INDEX_Me}
+    {(int)(size_t)&((struct general_category_stringpool_t *)0)->general_category_stringpool_str150, UC_CATEGORY_INDEX_Me}
   };
 
-#ifdef __GNUC__
-__inline
-#if defined __GNUC_STDC_INLINE__ || defined __GNUC_GNU_INLINE__
-__attribute__ ((__gnu_inline__))
-#endif
-#endif
 const struct named_category *
-uc_general_category_lookup (register const char *str, register unsigned int len)
+uc_general_category_lookup (register const char *str, register size_t len)
 {
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
     {
-      register int key = general_category_hash (str, len);
+      register unsigned int key = general_category_hash (str, len);
 
-      if (key <= MAX_HASH_VALUE && key >= 0)
+      if (key <= MAX_HASH_VALUE)
         {
           register int o = general_category_names[key].name;
           if (o >= 0)
