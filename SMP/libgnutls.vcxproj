@@ -755,9 +755,6 @@
     <YASM Include="lib\accelerated\x86\coff\sha1-ssse3-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
     </YASM>
-    <YASM Include="lib\accelerated\x86\coff\sha256-avx-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
     <YASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
     </YASM>

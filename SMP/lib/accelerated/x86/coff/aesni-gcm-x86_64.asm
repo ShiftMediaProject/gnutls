@@ -1,7 +1,5 @@
 default	rel
 %define XMMWORD
-%define YMMWORD
-%define ZMMWORD
 section	.text code align=64
 
 
@@ -23,8 +21,8 @@ _aesni_ctr32_ghash_6x:
 
 ALIGN	32
 $L$oop6x:
-	add	ebx,100663296
-	jc	NEAR $L$handle_ctr32
+	add	ebx,6<<24
+	jc	NEAR $L$handle_ctr32		
 	vmovdqu	xmm3,XMMWORD[((0-32))+r9]
 	vpaddb	xmm1,xmm14,xmm2
 	vpxor	xmm10,xmm10,xmm15
@@ -36,23 +34,6 @@ $L$resume_ctr32:
 	vpxor	xmm12,xmm12,xmm15
 	vmovups	xmm2,XMMWORD[((16-128))+rcx]
 	vpclmulqdq	xmm6,xmm7,xmm3,0x01
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	xor	r12,r12
 	cmp	r15,r14
 
@@ -213,7 +194,7 @@ $L$resume_ctr32:
 	vaesenc	xmm14,xmm14,xmm1
 	vmovups	xmm1,XMMWORD[((160-128))+rcx]
 	cmp	ebp,11
-	jb	NEAR $L$enc_tail
+	jb	NEAR $L$enc_tail		
 
 	vaesenc	xmm9,xmm9,xmm15
 	vaesenc	xmm10,xmm10,xmm15
@@ -230,7 +211,7 @@ $L$resume_ctr32:
 	vmovups	xmm15,XMMWORD[((176-128))+rcx]
 	vaesenc	xmm14,xmm14,xmm1
 	vmovups	xmm1,XMMWORD[((192-128))+rcx]
-	je	NEAR $L$enc_tail
+	je	NEAR $L$enc_tail		
 
 	vaesenc	xmm9,xmm9,xmm15
 	vaesenc	xmm10,xmm10,xmm15
@@ -247,7 +228,7 @@ $L$resume_ctr32:
 	vmovups	xmm15,XMMWORD[((208-128))+rcx]
 	vaesenc	xmm14,xmm14,xmm1
 	vmovups	xmm1,XMMWORD[((224-128))+rcx]
-	jmp	NEAR $L$enc_tail
+	jmp	NEAR $L$enc_tail		
 
 ALIGN	32
 $L$handle_ctr32:
@@ -350,9 +331,6 @@ $L$SEH_begin_aesni_gcm_decrypt:
 
 
 	xor	r10,r10
-
-
-
 	cmp	rdx,0x60
 	jb	NEAR $L$gcm_dec_abort
 
@@ -378,40 +356,21 @@ $L$gcm_dec_body:
 	vzeroupper
 
 	vmovdqu	xmm1,XMMWORD[r8]
-	add	rsp,-128
+	sub	rsp,128
 	mov	ebx,DWORD[12+r8]
 	lea	r11,[$L$bswap_mask]
-	lea	r14,[((-128))+rcx]
-	mov	r15,0xf80
 	vmovdqu	xmm8,XMMWORD[r9]
-	and	rsp,-128
+	and	rsp,-64
 	vmovdqu	xmm0,XMMWORD[r11]
 	lea	rcx,[128+rcx]
 	lea	r9,[((32+32))+r9]
 	mov	ebp,DWORD[((240-128))+rcx]
 	vpshufb	xmm8,xmm8,xmm0
 
-	and	r14,r15
-	and	r15,rsp
-	sub	r15,r14
-	jc	NEAR $L$dec_no_key_aliasing
-	cmp	r15,768
-	jnc	NEAR $L$dec_no_key_aliasing
-	sub	rsp,r15
-$L$dec_no_key_aliasing:
-
 	vmovdqu	xmm7,XMMWORD[80+rdi]
 	lea	r14,[rdi]
 	vmovdqu	xmm4,XMMWORD[64+rdi]
-
-
-
-
-
-
-
 	lea	r15,[((-192))+rdx*1+rdi]
-
 	vmovdqu	xmm5,XMMWORD[48+rdi]
 	shr	rdx,4
 	xor	r10,r10
@@ -444,7 +403,7 @@ $L$dec_no_key_aliasing:
 
 	vzeroupper
 	movaps	xmm6,XMMWORD[((-216))+rax]
-	movaps	xmm7,XMMWORD[((-200))+rax]
+	movaps	xmm7,XMMWORD[((-216))+rax]
 	movaps	xmm8,XMMWORD[((-184))+rax]
 	movaps	xmm9,XMMWORD[((-168))+rax]
 	movaps	xmm10,XMMWORD[((-152))+rax]
@@ -475,7 +434,7 @@ _aesni_ctr32_6x:
 	vmovups	xmm15,XMMWORD[((16-128))+rcx]
 	lea	r12,[((32-128))+rcx]
 	vpxor	xmm9,xmm1,xmm4
-	add	ebx,100663296
+	add	ebx,6<<24
 	jc	NEAR $L$handle_ctr32_2
 	vpaddb	xmm10,xmm1,xmm2
 	vpaddb	xmm11,xmm10,xmm2
@@ -574,10 +533,6 @@ $L$SEH_begin_aesni_gcm_encrypt:
 
 
 	xor	r10,r10
-
-
-
-
 	cmp	rdx,0x60*3
 	jb	NEAR $L$gcm_enc_abort
 
@@ -603,36 +558,16 @@ $L$gcm_enc_body:
 	vzeroupper
 
 	vmovdqu	xmm1,XMMWORD[r8]
-	add	rsp,-128
+	sub	rsp,128
 	mov	ebx,DWORD[12+r8]
 	lea	r11,[$L$bswap_mask]
-	lea	r14,[((-128))+rcx]
-	mov	r15,0xf80
 	lea	rcx,[128+rcx]
 	vmovdqu	xmm0,XMMWORD[r11]
-	and	rsp,-128
+	and	rsp,-64
 	mov	ebp,DWORD[((240-128))+rcx]
 
-	and	r14,r15
-	and	r15,rsp
-	sub	r15,r14
-	jc	NEAR $L$enc_no_key_aliasing
-	cmp	r15,768
-	jnc	NEAR $L$enc_no_key_aliasing
-	sub	rsp,r15
-$L$enc_no_key_aliasing:
-
 	lea	r14,[rsi]
-
-
-
-
-
-
-
-
 	lea	r15,[((-192))+rdx*1+rsi]
-
 	shr	rdx,4
 
 	call	_aesni_ctr32_6x
@@ -923,7 +858,7 @@ gcm_se_handler:
 	lea	rsi,[((-216))+rax]
 	lea	rdi,[512+r8]
 	mov	ecx,20
-	DD	0xa548f3fc
+	DD	0xa548f3fc		
 
 $L$common_seh_tail:
 	mov	rdi,QWORD[8+rax]
@@ -935,7 +870,7 @@ $L$common_seh_tail:
 	mov	rdi,QWORD[40+r9]
 	mov	rsi,r8
 	mov	ecx,154
-	DD	0xa548f3fc
+	DD	0xa548f3fc		
 
 	mov	rsi,r9
 	xor	rcx,rcx

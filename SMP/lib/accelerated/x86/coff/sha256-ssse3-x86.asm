@@ -33,6 +33,20 @@ L$000pic_point:
 	mov	DWORD [4+esp],edi
 	mov	DWORD [8+esp],eax
 	mov	DWORD [12+esp],ebx
+	lea	edx,[__gnutls_x86_cpuid_s]
+	mov	ecx,DWORD [edx]
+	mov	edx,DWORD [4+edx]
+	test	ecx,1048576
+	jnz	NEAR L$002loop
+	test	edx,2048
+	and	ecx,1073741824
+	and	edx,268435456
+	or	ecx,edx
+	cmp	ecx,1342177280
+	je	NEAR L$003loop_shrd
+	sub	eax,edi
+	cmp	eax,256
+	jae	NEAR L$004unrolled
 	jmp	NEAR L$002loop
 align	16
 L$002loop:
@@ -104,7 +118,7 @@ L$002loop:
 	mov	DWORD [28+esp],ecx
 	mov	DWORD [32+esp],edi
 align	16
-L$00300_15:
+L$00500_15:
 	mov	ecx,edx
 	mov	esi,DWORD [24+esp]
 	ror	ecx,14
@@ -142,11 +156,11 @@ L$00300_15:
 	add	ebp,4
 	add	eax,ebx
 	cmp	esi,3248222580
-	jne	NEAR L$00300_15
+	jne	NEAR L$00500_15
 	mov	ecx,DWORD [156+esp]
-	jmp	NEAR L$00416_63
+	jmp	NEAR L$00616_63
 align	16
-L$00416_63:
+L$00616_63:
 	mov	ebx,ecx
 	mov	esi,DWORD [104+esp]
 	ror	ecx,11
@@ -201,7 +215,7 @@ L$00416_63:
 	add	ebp,4
 	add	eax,ebx
 	cmp	esi,3329325298
-	jne	NEAR L$00416_63
+	jne	NEAR L$00616_63
 	mov	esi,DWORD [356+esp]
 	mov	ebx,DWORD [8+esp]
 	mov	ecx,DWORD [16+esp]
@@ -235,8 +249,8 @@ L$00416_63:
 	pop	ebx
 	pop	ebp
 	ret
-align	32
-L$005loop_shrd:
+align	16
+L$003loop_shrd:
 	mov	eax,DWORD [edi]
 	mov	ebx,DWORD [4+edi]
 	mov	ecx,DWORD [8+edi]
@@ -305,7 +319,7 @@ L$005loop_shrd:
 	mov	DWORD [28+esp],ecx
 	mov	DWORD [32+esp],edi
 align	16
-L$00600_15_shrd:
+L$00700_15_shrd:
 	mov	ecx,edx
 	mov	esi,DWORD [24+esp]
 	shrd	ecx,ecx,14
@@ -343,11 +357,11 @@ L$00600_15_shrd:
 	add	ebp,4
 	add	eax,ebx
 	cmp	esi,3248222580
-	jne	NEAR L$00600_15_shrd
+	jne	NEAR L$00700_15_shrd
 	mov	ecx,DWORD [156+esp]
-	jmp	NEAR L$00716_63_shrd
+	jmp	NEAR L$00816_63_shrd
 align	16
-L$00716_63_shrd:
+L$00816_63_shrd:
 	mov	ebx,ecx
 	mov	esi,DWORD [104+esp]
 	shrd	ecx,ecx,11
@@ -402,7 +416,7 @@ L$00716_63_shrd:
 	add	ebp,4
 	add	eax,ebx
 	cmp	esi,3329325298
-	jne	NEAR L$00716_63_shrd
+	jne	NEAR L$00816_63_shrd
 	mov	esi,DWORD [356+esp]
 	mov	ebx,DWORD [8+esp]
 	mov	ecx,DWORD [16+esp]
@@ -429,7 +443,7 @@ L$00716_63_shrd:
 	lea	esp,[356+esp]
 	sub	ebp,256
 	cmp	edi,DWORD [8+esp]
-	jb	NEAR L$005loop_shrd
+	jb	NEAR L$003loop_shrd
 	mov	esp,DWORD [12+esp]
 	pop	edi
 	pop	esi
@@ -440,13 +454,8 @@ align	64
 L$001K256:
 dd	1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298
 dd	66051,67438087,134810123,202182159
-db	83,72,65,50,53,54,32,98,108,111,99,107,32,116,114,97
-db	110,115,102,111,114,109,32,102,111,114,32,120,56,54,44,32
-db	67,82,89,80,84,79,71,65,77,83,32,98,121,32,60,97
-db	112,112,114,111,64,111,112,101,110,115,115,108,46,111,114,103
-db	62,0
 align	16
-L$008unrolled:
+L$004unrolled:
 	lea	esp,[esp-96]
 	mov	eax,DWORD [esi]
 	mov	ebp,DWORD [4+esi]
@@ -3352,5 +3361,10 @@ L$009grand_loop:
 	pop	ebx
 	pop	ebp
 	ret
+db	83,72,65,50,53,54,32,98,108,111,99,107,32,116,114,97
+db	110,115,102,111,114,109,32,102,111,114,32,120,56,54,44,32
+db	67,82,89,80,84,79,71,65,77,83,32,98,121,32,60,97
+db	112,112,114,111,64,111,112,101,110,115,115,108,46,111,114,103
+db	62,0
 segment	.bss
 common	__gnutls_x86_cpuid_s 16
