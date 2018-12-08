@@ -44,7 +44,7 @@ void _gnutls_dump_mpi(const char *prefix, bigint_t a)
 void
 _gnutls_dump_vector(const char *prefix, const uint8_t * a, size_t a_size)
 {
-#if defined(_MSC_VER) && (_MSC_VER <= 1915)
+#if defined(_MSC_VER)
     char * buf_hex = (char *)_alloca((2 * a_size + 1)*sizeof(char));
 #else
 	char buf_hex[2 * a_size + 1];
