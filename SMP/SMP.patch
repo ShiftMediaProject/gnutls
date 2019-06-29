@@ -1,0 +1,188 @@
+diff --git a/lib/algorithms/ciphersuites.c b/lib/algorithms/ciphersuites.c
+index 3fb417dc70..808c5b9dcb 100644
+--- a/lib/algorithms/ciphersuites.c
++++ b/lib/algorithms/ciphersuites.c
+@@ -1327,7 +1327,11 @@ _gnutls_remove_unwanted_ciphersuites(gnutls_session_t session,
+ 	    session->security_parameters.entity == GNUTLS_SERVER ? 1 : 0;
+ 	gnutls_kx_algorithm_t alg[MAX_ALGOS];
+ 	int alg_size = MAX_ALGOS;
+-	uint8_t new_list[cipher_suites_size]; /* it's safe to use that size because it's provided by _gnutls_supported_ciphersuites() */
++#if defined(_MSC_VER)
++    uint8_t * new_list = (uint8_t *)_alloca(cipher_suites_size*sizeof(uint8_t));
++#else
++    uint8_t new_list[cipher_suites_size]; /* it's safe to use that size because it's provided by _gnutls_supported_ciphersuites() */
++#endif
+ 	int i, new_list_size = 0;
+ 	const gnutls_cipher_suite_entry_st *entry;
+ 	const uint8_t *cp;
+diff --git a/lib/algorithms/protocols.c b/lib/algorithms/protocols.c
+index b2bd675f5f..c3daa1ee73 100644
+--- a/lib/algorithms/protocols.c
++++ b/lib/algorithms/protocols.c
+@@ -342,19 +342,26 @@ gnutls_protocol_t _gnutls_version_get(uint8_t major, uint8_t minor)
+ 
+ int
+ _gnutls_version_is_supported(gnutls_session_t session,
+-			     const gnutls_protocol_t version)
++				 const gnutls_protocol_t version)
+ {
+ 	int ret = 0;
+ 
+-	GNUTLS_VERSION_LOOP(
+-		if(p->id == version) {
+ #ifndef ENABLE_SSL3
++	GNUTLS_VERSION_LOOP(
++		if (p->id == version) {
+ 			if (p->obsolete != 0) return 0;
+-#endif
+ 			ret = p->supported && p->transport == session->internals.transport;
+ 			break;
+ 		}
+ 	)
++#else
++	GNUTLS_VERSION_LOOP(
++		if (p->id == version) {
++			ret = p->supported && p->transport == session->internals.transport;
++			break;
++		}
++	)
++#endif
+ 
+ 	if (ret == 0)
+ 		return 0;
+diff --git a/lib/debug.c b/lib/debug.c
+index 252f2470a6..57a15073f7 100644
+--- a/lib/debug.c
++++ b/lib/debug.c
+@@ -44,7 +44,11 @@ void _gnutls_dump_mpi(const char *prefix, bigint_t a)
+ void
+ _gnutls_dump_vector(const char *prefix, const uint8_t * a, size_t a_size)
+ {
++#if defined(_MSC_VER)
++    char * buf_hex = (char *)_alloca((2 * a_size + 1)*sizeof(char));
++#else
+ 	char buf_hex[2 * a_size + 1];
++#endif
+ 
+ 	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
+ 			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
+diff --git a/lib/global.c b/lib/global.c
+index d31d5bcae9..70409ee298 100644
+--- a/lib/global.c
++++ b/lib/global.c
+@@ -46,11 +46,32 @@
+ #ifdef __sun
+ # pragma fini(lib_deinit)
+ # pragma init(lib_init)
+-# define _CONSTRUCTOR
+-# define _DESTRUCTOR
++# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void);
++# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void);
++#elif defined(_WIN32) && defined(_MSC_VER)
++# define CONSTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
++    static int _func ## _wrapper(void) { _func(); return 0; } \
++    __pragma(section(".CRT$XCU",read)) \
++    __declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _wrapper; \
++    __pragma(comment(linker,"/include:" p #_func "_"))
++#ifdef _WIN64
++#define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"")
+ #else
+-# define _CONSTRUCTOR __attribute__((constructor))
+-# define _DESTRUCTOR __attribute__((destructor))
++#define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"_")
++#endif
++# define DESTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
++    static int _func ## _constructor(void) { atexit (_func); return 0; } \
++    __pragma(section(".CRT$XCU",read)) \
++    __declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _constructor; \
++    __pragma(comment(linker,"/include:" p #_func "_"))
++#ifdef _WIN64
++#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"")
++#else
++#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"_")
++#endif
++#else
++# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((constructor))
++# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((destructor))
+ #endif
+ 
+ #ifndef _WIN32
+@@ -489,7 +510,8 @@ const char *gnutls_check_version(const char *req_version)
+ 	return NULL;
+ }
+ 
+-static void _CONSTRUCTOR lib_init(void)
++CONSTRUCTOR_ATTRIBUTE(lib_init);
++static void lib_init(void)
+ {
+ int ret;
+ const char *e;
+@@ -511,7 +533,8 @@ const char *e;
+ 	}
+ }
+ 
+-static void _DESTRUCTOR lib_deinit(void)
++DESTRUCTOR_ATTRIBUTE(lib_deinit);
++static void lib_deinit(void)
+ {
+ 	const char *e;
+ 
+diff --git a/lib/nettle/int/provable-prime.c b/lib/nettle/int/provable-prime.c
+index e4a4325dcb..b6a106e608 100644
+--- a/lib/nettle/int/provable-prime.c
++++ b/lib/nettle/int/provable-prime.c
+@@ -1129,7 +1129,11 @@ st_provable_prime(mpz_t p,
+ 	uint8_t tseed[MAX_PVP_SEED_SIZE+1];
+ 	int ret;
+ 	unsigned pseed_length, iterations;
++#if defined(_MSC_VER)
++	uint8_t * pseed = (uint8_t *)_alloca((seed_length + 2) * sizeof(uint8_t));
++#else
+ 	uint8_t pseed[seed_length + 2];
++#endif
+ 	unsigned old_counter, i;
+ 	mpz_t s, tmp, r, dc0, c0, c, t, z;
+ 	uint8_t *storage = NULL;
+diff --git a/lib/priority.c b/lib/priority.c
+index 7ce44c7cf4..b67a8326a9 100644
+--- a/lib/priority.c
++++ b/lib/priority.c
+@@ -1057,7 +1057,7 @@ size_t n, n2 = 0, line_size;
+ 			} while (l>0);
+ 
+ 			_gnutls_debug_log("resolved '%.*s' to '%s', next '%.*s'\n",
+-					  ss_len, ss, p ? : "", ss_next_len, ss_next ? : "");
++					  ss_len, ss, p ? ss_next_len : ss_next);
+ 			ss = ss_next;
+ 			fclose(fp);
+ 			fp = NULL;
+diff --git a/lib/x509.c b/lib/x509.c
+index 3e64fb14a8..f287b0b06e 100644
+--- a/lib/x509.c
++++ b/lib/x509.c
+@@ -1682,7 +1682,11 @@ gnutls_certificate_set_x509_trust(gnutls_certificate_credentials_t res,
+ 				  int ca_list_size)
+ {
+ 	int ret, i, j;
+-	gnutls_x509_crt_t new_list[ca_list_size];
++#if defined(_MSC_VER)
++    gnutls_x509_crt_t * new_list = (gnutls_x509_crt_t *)_alloca(ca_list_size*sizeof(gnutls_x509_crt_t));
++#else
++    gnutls_x509_crt_t new_list[ca_list_size];
++#endif
+ 
+ 	for (i = 0; i < ca_list_size; i++) {
+ 		ret = gnutls_x509_crt_init(&new_list[i]);
+@@ -1858,7 +1862,11 @@ gnutls_certificate_set_x509_crl(gnutls_certificate_credentials_t res,
+ 				int crl_list_size)
+ {
+ 	int ret, i, j;
+-	gnutls_x509_crl_t new_crl[crl_list_size];
++#if defined(_MSC_VER)
++    gnutls_x509_crl_t * new_crl = (gnutls_x509_crl_t *)_alloca(crl_list_size*sizeof(gnutls_x509_crl_t));
++#else
++    gnutls_x509_crl_t new_crl[crl_list_size];
++#endif
+ 
+ 	for (i = 0; i < crl_list_size; i++) {
+ 		ret = gnutls_x509_crl_init(&new_crl[i]);
