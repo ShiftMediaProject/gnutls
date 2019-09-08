@@ -157,7 +157,8 @@ FILE *_cdk_tmpfile(void)
 	/* Because the tmpfile() version of wine is not really useful,
 	   we implement our own version to avoid problems with 'make check'. */
 	static const char *letters = "abcdefghijklmnopqrstuvwxyz";
-	unsigned char buf[512], rnd[24];
+	WCHAR wbuf[512];
+	unsigned char rnd[24];
 	FILE *fp;
 	int fd, i;
 
@@ -167,20 +168,20 @@ FILE *_cdk_tmpfile(void)
 		rnd[i] = c;
 	}
 	rnd[DIM(rnd) - 1] = 0;
-	if (!GetTempPath(464, buf))
+	if (!GetTempPathW(464, wbuf))
 		return NULL;
-	_gnutls_str_cat(buf, sizeof(buf), "_cdk_");
-	_gnutls_str_cat(buf, sizeof(buf), rnd);
+	wcscat(wbuf, L"_cdk_");
+	wcscat(wbuf, (WCHAR *)rnd);
 
 	/* We need to make sure the file will be deleted when it is closed. */
-	fd = _open(buf, _O_CREAT | _O_EXCL | _O_TEMPORARY |
+	fd = _wopen(wbuf, _O_CREAT | _O_EXCL | _O_TEMPORARY |
 		   _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE);
 	if (fd == -1)
 		return NULL;
-	fp = fdopen(fd, "w+b");
+	fp = _wfdopen(fd, L"w+b");
 	if (fp != NULL)
 		return fp;
-	_close(fd);
+	fclose(fd);
 	return NULL;
 }
 #else
