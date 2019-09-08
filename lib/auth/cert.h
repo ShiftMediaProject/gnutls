@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2002-2012 Free Software Foundation, Inc.
+ * Copyright (C) 2016-2017 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -25,10 +26,11 @@
 #include "auth.h"
 #include <auth/dh_common.h>
 #include <x509/x509_int.h>
-#include <openpgp/openpgp_int.h>
 #include <gnutls/abstract.h>
 #include <gnutls/compat.h>
 #include <str_array.h>
+
+#define MAX_OCSP_RESPONSES 8
 
 typedef struct {
 	gnutls_pcert_st *cert_list;	/* a certificate chain */
@@ -37,7 +39,12 @@ typedef struct {
 
 	gnutls_status_request_ocsp_func ocsp_func;
 	void *ocsp_func_ptr; /* corresponding OCSP response function + ptr */
-	char *ocsp_response_file; /* corresponding OCSP response file */
+
+	gnutls_ocsp_data_st ocsp_data[MAX_OCSP_RESPONSES];
+	unsigned int ocsp_data_length;
+
+	/* the private key corresponding to certificate */
+	gnutls_privkey_t pkey;
 } certs_st;
 
 /* This structure may be complex, but it's the only way to
@@ -46,6 +53,7 @@ typedef struct {
 typedef struct gnutls_certificate_credentials_st {
 	gnutls_dh_params_t dh_params;
 	unsigned deinit_dh_params; /* if the internal values are set */
+	gnutls_sec_param_t dh_sec_param; /* used in RFC7919 negotiation */
 
 	/* this callback is used to retrieve the DH or RSA
 	 * parameters.
@@ -55,16 +63,12 @@ typedef struct gnutls_certificate_credentials_st {
 	certs_st *certs;
 	unsigned ncerts;	/* the number of certs */
 
-	gnutls_privkey_t *pkey;
-	/* private keys. It contains ncerts private
-	 * keys. pkey[i] corresponds to certificate in
-	 * cert_list[i][0].
+	/* contains sorted index values for certs. Sorted in a way
+	 * that RSA-PSS keys always take precedence over plain RSA keys
+	 * to ensure that we use only RSA-PSS keys if present for RSA-PSS
+	 * operations. We keep indexes to certs structures above.
 	 */
-
-#ifdef ENABLE_OPENPGP
-	/* OpenPGP specific stuff */
-	gnutls_openpgp_keyring_t keyring;
-#endif
+	unsigned int *sorted_cert_idx;
 
 	/* X509 specific stuff */
 	gnutls_x509_trust_list_t tlist;
@@ -77,8 +81,9 @@ typedef struct gnutls_certificate_credentials_st {
 
 	/* It's a mess here. However we need to keep the old 3 functions
 	 * for compatibility */
-	gnutls_certificate_retrieve_function *get_cert_callback;	/* deprecated */
-	gnutls_certificate_retrieve_function2 *get_cert_callback2;
+	gnutls_certificate_retrieve_function *legacy_cert_cb1; /* deprecated */
+	gnutls_certificate_retrieve_function2 *legacy_cert_cb2;
+	gnutls_certificate_retrieve_function3 *get_cert_callback3;
 
 	gnutls_certificate_verify_function *verify_callback;
 
@@ -91,11 +96,6 @@ typedef struct gnutls_certificate_credentials_st {
 	void *glob_ocsp_func_ptr; /* corresponding OCSP response function */
 } certificate_credentials_st;
 
-typedef struct rsa_info_st {
-	gnutls_datum_t modulus;
-	gnutls_datum_t exponent;
-} rsa_info_st;
-
 /* This is the information we keep for the peer
  * certificate.
  */
@@ -105,20 +105,20 @@ typedef struct cert_auth_info_st {
 	 */
 	dh_info_st dh;
 
-	gnutls_datum_t *raw_certificate_list;	/* holds the raw certificate of the
-						 * peer.
-						 */
-	unsigned int ncerts;	/* holds the size of the list above */
+	/* we store the peer's OCSP responses received during
+	 * this session. */
+	gnutls_datum_t *raw_ocsp_list;
+	unsigned int nocsp;
+
+	/* we store the peer's certificates received during
+	 * this ession */
+	gnutls_datum_t *raw_certificate_list;
+	unsigned int ncerts;
 
 	gnutls_certificate_type_t cert_type;
-#ifdef ENABLE_OPENPGP
-	uint8_t subkey_id[GNUTLS_OPENPGP_KEYID_SIZE];
-#endif
 } *cert_auth_info_t;
 
 typedef struct cert_auth_info_st cert_auth_info_st;
-
-void _gnutls_free_rsa_info(rsa_info_st * rsa);
 
 /* AUTH X509 functions */
 int _gnutls_gen_cert_server_crt(gnutls_session_t, gnutls_buffer_st *);
@@ -133,19 +133,20 @@ int _gnutls_get_selected_cert(gnutls_session_t session,
 			      int *apr_cert_list_length,
 			      gnutls_privkey_t * apr_pkey);
 
-int _gnutls_server_select_cert(struct gnutls_session_int *,
-			       gnutls_pk_algorithm_t *, size_t);
+int
+_gnutls_select_client_cert(gnutls_session_t session,
+			   const uint8_t * _data, size_t _data_size,
+			   gnutls_pk_algorithm_t * pk_algos, int pk_algos_length);
+
+int _gnutls_pcert_to_auth_info(cert_auth_info_t info, gnutls_pcert_st * certs, size_t ncerts);
+
+int
+_gnutls_select_server_cert(gnutls_session_t session, const gnutls_cipher_suite_entry_st *cs);
 void _gnutls_selected_certs_deinit(gnutls_session_t session);
 
 int _gnutls_get_auth_info_pcert(gnutls_pcert_st * gcert,
 				gnutls_certificate_type_t type,
 				cert_auth_info_t info);
-
-int certificate_credential_append_crt_list(gnutls_certificate_credentials_t
-					   res, gnutls_str_array_t names,
-					   gnutls_pcert_st * crt, int nr);
-int certificate_credentials_append_pkey(gnutls_certificate_credentials_t
-					res, gnutls_privkey_t pkey);
 
 int _gnutls_selected_cert_supported_kx(struct gnutls_session_int *session,
 				       gnutls_kx_algorithm_t * alg,

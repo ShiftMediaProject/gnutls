@@ -26,8 +26,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/../includes		\
 	-I$(builddir)/../includes	\
 	-I$(builddir)/../../gl          \
-	-I$(srcdir)/..			\
-	-I$(srcdir)/../opencdk
+	-I$(srcdir)/..	
 
 if ENABLE_MINITASN1
 AM_CPPFLAGS += -I$(srcdir)/../minitasn1
@@ -36,4 +35,5 @@ endif
 noinst_LTLIBRARIES = libgnutls_alg.la
 
 libgnutls_alg_la_SOURCES = cert_types.c ciphers.c ciphersuites.c \
-	ecc.c kx.c mac.c protocols.c publickey.c secparams.c sign.c
+	ecc.c kx.c mac.c protocols.c publickey.c secparams.c sign.c \
+	groups.c

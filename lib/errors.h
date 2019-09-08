@@ -28,9 +28,6 @@
 #include <mpi.h>
 #include <gnutls/x509.h>
 
-#define GNUTLS_E_INT_RET_0 -1251
-#define GNUTLS_E_INT_CHECK_AGAIN -1252
-
 #ifdef __FILE__
 #ifdef __LINE__
 #define gnutls_assert() _gnutls_assert_log( "ASSERT: %s[%s]:%d\n", __FILE__,__func__,__LINE__);
@@ -71,6 +68,18 @@ void _gnutls_mpi_log(const char *prefix, bigint_t a);
 		} \
         } while(0)
 
+#define _gnutls_dn_log(str, dn) \
+	do { \
+		if (unlikely(_gnutls_log_level >= 3)) { \
+			gnutls_datum_t _cl_out; int _cl_ret; \
+			_cl_ret = gnutls_x509_rdn_get2((dn), &_cl_out, 0); \
+			if (_cl_ret >= 0) { \
+				_gnutls_log( 3, "%s: %s\n", str, _cl_out.data); \
+				gnutls_free(_cl_out.data); \
+	                } \
+		} \
+        } while(0)
+
 #define _gnutls_reason_log(str, status) \
 	do { \
 		if (unlikely(_gnutls_log_level >= 3)) { \
@@ -99,6 +108,7 @@ void _gnutls_mpi_log(const char *prefix, bigint_t a);
 #define _gnutls_write_log(...) LEVEL(11, __VA_ARGS__)
 #define _gnutls_io_log(...) LEVEL(12, __VA_ARGS__)
 #define _gnutls_buffers_log(...) LEVEL(13, __VA_ARGS__)
+#define _gnutls_no_log(...) LEVEL(INT_MAX, __VA_ARGS__)
 #else
 #define _gnutls_debug_log _gnutls_null_log
 #define _gnutls_assert_log _gnutls_null_log
@@ -110,6 +120,7 @@ void _gnutls_mpi_log(const char *prefix, bigint_t a);
 #define _gnutls_dtls_log _gnutls_null_log
 #define _gnutls_read_log _gnutls_null_log
 #define _gnutls_write_log _gnutls_null_log
+#define _gnutls_no_log _gnutle_null_log
 
 void _gnutls_null_log(void *, ...);
 

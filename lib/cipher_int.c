@@ -55,16 +55,15 @@ int _gnutls_cipher_exists(gnutls_cipher_algorithm_t cipher)
 	const gnutls_crypto_cipher_st *cc;
 	int ret;
 
+	if (is_cipher_algo_forbidden(cipher))
+		return 0;
+
 	/* All the other ciphers are disabled on the back-end library.
 	 * The NULL needs to be detected here as it is not a cipher
 	 * that is provided by the back-end.
 	 */
-	if (cipher == GNUTLS_CIPHER_NULL) {
-		if (_gnutls_fips_mode_enabled() == 0)
-			return 1;
-		else
-			return 0;
-	}
+	if (cipher == GNUTLS_CIPHER_NULL)
+		return 1;
 
 	cc = _gnutls_get_crypto_cipher(cipher);
 	if (cc != NULL)
@@ -277,6 +276,8 @@ int _gnutls_auth_cipher_encrypt2_tag(auth_cipher_hd_st * handle,
 	    _gnutls_cipher_get_block_size(handle->cipher.e);
 	unsigned l;
 
+	assert(ciphertext != NULL);
+
 	if (handle->is_mac) { /* cipher + mac */
 		if (handle->non_null == 0) { /* NULL cipher + MAC */
 			MAC(handle, text, textlen);
@@ -305,6 +306,7 @@ int _gnutls_auth_cipher_encrypt2_tag(auth_cipher_hd_st * handle,
 			    ciphertextlen)
 				return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 
+			assert(blocksize != 0);
 			l = (textlen / blocksize) * blocksize;
 			if (l > 0) {
 				ret =

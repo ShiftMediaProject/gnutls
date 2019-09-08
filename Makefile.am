@@ -19,7 +19,7 @@
 # along with this file; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --disable-valgrind-tests
+DISTCHECK_CONFIGURE_FLAGS = --enable-doc --enable-gtk-doc --disable-valgrind-tests AUTOGEN=false
 
 SUBDIRS = gl lib extra
 
@@ -35,7 +35,7 @@ SUBDIRS += src/gl
 endif
 
 if ENABLE_TESTS
-SUBDIRS += tests
+SUBDIRS += tests fuzz
 endif
 
 if HAVE_GUILE
@@ -50,12 +50,10 @@ if ENABLE_DOC
 SUBDIRS += doc
 endif
 
-ACLOCAL_AMFLAGS = -I m4 -I gl/m4 -I src/libopts/m4 -I src/gl/m4 -I lib/unistring/m4
+ACLOCAL_AMFLAGS = -I m4 -I src/libopts/m4 -I src/gl/m4 -I lib/unistring/m4
 
-EXTRA_DIST = cfg.mk maint.mk .clcopying CONTRIBUTING.md README.md LICENSE AUTHORS NEWS \
-	ChangeLog THANKS INSTALL.md
-
-TMPFILE="abi-temp.xml"
+EXTRA_DIST = cfg.mk maint.mk CONTRIBUTING.md README.md LICENSE AUTHORS NEWS \
+	ChangeLog THANKS INSTALL.md symbols.last
 
 pic-check:
 	@echo "Checking for position dependent code"
@@ -64,11 +62,14 @@ pic-check:
 	false; \
 	fi
 
+abi-dump:
+	@abi-dumper lib/.libs/libgnutls.so -lver $(VERSION) -o "./devel/ABI-$(VERSION)-$$(uname -m).dump" -public-headers lib/includes/gnutls/
+
 ABI_TMPCLONEDIR="gnutls-prev-abi.tmp"
 ABI_TMPFILE_CUR="abi-temp-cur.xml"
 ABI_TMPFILE_PRE="abi-temp-prev.xml"
-ABIREFCMD="git for-each-ref --sort=taggerdate --format '%(refname)' refs/tags|grep /gnutls_3_5_|tail -1"
-ABIVERCMD="git for-each-ref --sort=taggerdate --format '%(refname)' refs/tags|grep /gnutls_3_5_|tail -1|cut -d '/' -f 3|sed -e 's/gnutls_//' -e 's/_/./g'"
+ABIREFCMD="git for-each-ref --sort=taggerdate --format '%(refname)' refs/tags|tail -1"
+ABIVERCMD="git for-each-ref --sort=taggerdate --format '%(refname)' refs/tags|tail -1|cut -d '/' -f 3|sed -e 's/gnutls_//' -e 's/_/./g'"
 .prev-tag-abi.stamp:
 	@rm -rf $(ABI_TMPCLONEDIR)
 	@git clone -l . $(ABI_TMPCLONEDIR)
@@ -83,6 +84,9 @@ ABIVERCMD="git for-each-ref --sort=taggerdate --format '%(refname)' refs/tags|gr
 	  fi && $(MAKE) -j$$(nproc) -C gl && $(MAKE) -j$$(nproc) -C lib && $(MAKE) -j$$(nproc) -C libdane
 	touch $@
 
+# We skip session::set_transport_vec_push_function() as it is seen as different when
+# compiled with the glibc struct iovec, under gcc8. This should be temporary for
+# 3.6.2 to 3.6.3 transition.
 abi-check: .prev-tag-abi.stamp
 	@rm -f $(ABI_TMPFILE_CUR) $(ABI_TMPFILE_PRE)
 	@echo "Checking libgnutls ABI"
@@ -93,6 +97,7 @@ abi-check: .prev-tag-abi.stamp
 	@echo "<version>$(VERSION)</version>" >$(ABI_TMPFILE_PRE)
 	@echo "<headers>$(builddir)/$(ABI_TMPCLONEDIR)/lib/includes/gnutls" >>$(ABI_TMPFILE_PRE)
 	@echo "$(builddir)/$(ABI_TMPCLONEDIR)/lib/includes/gnutls</headers>" >>$(ABI_TMPFILE_PRE)
+	@echo "<skip_symbols>_ZN6gnutls7session31set_transport_vec_push_functionEPFlPvPK8giovec_tiE</skip_symbols>" >>$(ABI_TMPFILE_PRE)
 	@echo "<libs>$(builddir)/$(ABI_TMPCLONEDIR)/lib/.libs</libs>" >>$(ABI_TMPFILE_PRE)
 	PATH="/sbin$(PATH_SEPARATOR)$$PATH" \
 	  abi-compliance-checker -abi -lib gnutls -old $(ABI_TMPFILE_PRE) -new $(ABI_TMPFILE_CUR) -skip-symbols $(srcdir)/devel/abi-unchecked-symbols
@@ -112,9 +117,9 @@ abi-check: .prev-tag-abi.stamp
 	@rm -f $(ABI_TMPFILE_CUR) $(ABI_TMPFILE_PRE)
 
 symbol-check:
-	@objdump -T $(srcdir)/lib/.libs/libgnutls.so  | grep -v ' \*UND\*' | awk '{print $$7 "@" $$6;}' | grep -v GNUTLS_FIPS140 | grep -v GNUTLS_PRIVATE | grep -v '@\.init' |  sort -u >symbols.last.tmp
-	@diff -u symbols.last symbols.last.tmp >/dev/null 2>&1; if test $$? != 0;then \
-		diff -u symbols.last symbols.last.tmp | grep -v '\-\-\-' >symbols.diff.tmp 2>&1; \
+	@objdump -T $(builddir)/lib/.libs/libgnutls.so  | grep -v ' \*UND\*'  | awk '{print $$7 "@" $$6;}' | grep -v GNUTLS_FIPS140 | grep -v GNUTLS_PRIVATE | grep -v '^@' |  sort -u >symbols.last.tmp
+	@diff -u $(srcdir)/symbols.last symbols.last.tmp >/dev/null 2>&1; if test $$? != 0;then \
+		diff -u $(srcdir)/symbols.last symbols.last.tmp | grep -v '\-\-\-' >symbols.diff.tmp 2>&1; \
 		if grep -e '^-' symbols.diff.tmp;then \
 			echo "*******************************************"; \
 			echo "Symbols were removed from the library."; \
@@ -139,51 +144,29 @@ symbol-check:
 @CODE_COVERAGE_RULES@
 
 local-code-coverage-output: code-coverage-capture
-	cat GnuTLS-$(VERSION)-coverage/index.html|grep headerCovTableEntryLo|head -1|sed 's/^.*>\([0-9]\+\.[0-9]\+\s*%\)<.*$$/ coverage lines: \1/' || true
+	cat GnuTLS-$(VERSION)-coverage/index.html|grep headerCovTableEntry|grep '%'|head -1|sed 's/^.*>\([0-9]\+\.[0-9]\+\s*%\)<.*$$/ coverage lines: \1/' || true
 
 libopts-check:
 	@echo "*****************************************************************"
 	@echo "Checking whether included libopts matches the system's. If the"
 	@echo "check fails upgrade the included libopts."
 	@echo "*****************************************************************"
-	test "`autoopts-config libsrc|cut -d '-' -f 2|sed 's/.tar.gz//'`" = "`cat src/libopts/autoopts/options.h |grep OPTIONS_VERSION_STRING|cut -d '"' -f 2|sed 's/:/./g'`"
+	test "`autoopts-config libsrc|cut -d '-' -f 2|sed 's/.tar.gz//'`" = "`cat $(srcdir)/src/libopts/autoopts/options.h |grep OPTIONS_VERSION_STRING|cut -d '"' -f 2|sed 's/:/./g'`"
 
 files-update: libopts-check
-	make -C doc/ compare-makefile || mv doc/tmp-compare-makefile doc/Makefile.am
-	make -C doc/manpages compare-makefile || mv doc/manpages/tmp-compare-makefile doc/manpages/Makefile.am
-	make -C . symbol-check || mv symbols.last.tmp symbols.last
-	@echo "******************************************************************************************"
-	@echo "updating autogen files in src/"
-	@echo "******************************************************************************************"
-	cd $(srcdir)/src/ && for i in *-args.c *-args.h;do \
-		test -h $$i || cp $$i $$i.bak; \
-	done
+	$(MAKE) -C doc/ compare-makefile || mv doc/tmp-compare-makefile $(srcdir)/doc/Makefile.am
+	$(MAKE) -C doc/manpages compare-makefile || mv doc/manpages/tmp-compare-makefile $(srcdir)/doc/manpages/Makefile.am
+	$(MAKE) -C . symbol-check || mv symbols.last.tmp $(srcdir)/symbols.last
 	@echo "******************************************************************************************"
 	@echo "updated auto-generated files; please use git diff to verify the correctness of the changes"
 	@echo "******************************************************************************************"
 
-dist-hook: libopts-check symbol-check abi-check
-	make -C doc/ compare-makefile
-	make -C doc/ compare-exported
-	make -C doc/manpages compare-makefile
-	rm -f ChangeLog
-	make ChangeLog
-	cp -f ChangeLog $(distdir)/
-	$(SED) 's/\@VERSION\@/$(VERSION)/g' -i $(distdir)/src/args-std.def
-	$(SED) 's/\@YEAR\@/$(YEAR)/g' -i $(distdir)/src/args-std.def
-	$(SED) 's/\@PACKAGE_BUGREPORT\@/$(PACKAGE_BUGREPORT)/g' -i $(distdir)/src/args-std.def
-	cd $(distdir)/src/ && for i in *.def;do \
-		if test x"$$i" = x"args-std.def";then  continue; fi; \
-		autogen $$i; \
-		cp $$i $$i.tmp; \
-		$(SED) -i 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $$i.tmp; \
-		autogen -Tagman-cmd.tpl $$i.tmp; \
-		rm -f $$i.tmp; \
-		mv -f *.1 ../doc/manpages/; \
-	done
-	cd $(distdir)/src/ && for i in *-args.c *-args.h;do \
-		mv $$i $$i.bak; \
-	done
+dist-hook: libopts-check symbol-check
+	$(MAKE) -C doc/ compare-makefile
+	$(MAKE) -C doc/ compare-exported
+	$(MAKE) -C doc/manpages compare-makefile
+	$(MAKE) ChangeLog
+	mv ChangeLog $(distdir)
 	touch $(distdir)/doc/*.html $(distdir)/doc/*.pdf $(distdir)/doc/*.info
 
-.PHONY: abi-check pic-check libopts-check symbol-check
+.PHONY: abi-check abi-dump pic-check symbol-check local-code-coverage-output files-update libopts-check

@@ -22,7 +22,7 @@
 #ifndef EXT_SRTP_H
 #define EXT_SRTP_H
 
-#include <extensions.h>
+#include <hello_ext.h>
 
 #define MAX_SRTP_PROFILES 4
 
@@ -35,6 +35,6 @@ typedef struct {
 	unsigned int mki_received;
 } srtp_ext_st;
 
-extern const extension_entry_st ext_mod_srtp;
+extern const hello_ext_entry_st ext_mod_srtp;
 
 #endif

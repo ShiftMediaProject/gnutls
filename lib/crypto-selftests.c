@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat
+ * Copyright (C) 2013-2018 Red Hat
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -373,6 +373,132 @@ const struct cipher_vectors_st arcfour_vectors[] = { /* RFC6229 */
 	},
 };
 
+const struct cipher_vectors_st aes128_cfb8_vectors[] = { /* NIST 800-38a */
+	{
+	 STR(key, key_size,
+	     "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c"),
+	 STR(plaintext, plaintext_size,
+	     "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a"
+             "\xae\x2d"),
+	 .ciphertext = (uint8_t *)
+	     "\x3b\x79\x42\x4c\x9c\x0d\xd4\x36\xba\xce\x9e\x0e\xd4\x58\x6a\x4f"
+             "\x32\xb9",
+	 STR(iv, iv_size,
+	     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"),
+	 },
+};
+
+const struct cipher_vectors_st aes192_cfb8_vectors[] = { /* NIST 800-38a */
+	{
+	 STR(key, key_size,
+	     "\x8e\x73\xb0\xf7\xda\x0e\x64\x52\xc8\x10\xf3\x2b\x80\x90\x79\xe5"
+             "\x62\xf8\xea\xd2\x52\x2c\x6b\x7b"),
+	 STR(plaintext, plaintext_size,
+	     "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a"
+             "\xae\x2d"),
+	 .ciphertext = (uint8_t *)
+	     "\xcd\xa2\x52\x1e\xf0\xa9\x05\xca\x44\xcd\x05\x7c\xbf\x0d\x47\xa0"
+             "\x67\x8a",
+	 STR(iv, iv_size,
+	     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"),
+	 },
+};
+
+const struct cipher_vectors_st aes256_cfb8_vectors[] = { /* NIST 800-38a */
+	{
+	 STR(key, key_size,
+	     "\x60\x3d\xeb\x10\x15\xca\x71\xbe\x2b\x73\xae\xf0\x85\x7d\x77\x81"
+             "\x1f\x35\x2c\x07\x3b\x61\x08\xd7\x2d\x98\x10\xa3\x09\x14\xdf\xf4"),
+	 STR(plaintext, plaintext_size,
+	     "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a"
+             "\xae\x2d"),
+	 .ciphertext = (uint8_t *)
+	     "\xdc\x1f\x1a\x85\x20\xa6\x4d\xb5\x5f\xcc\x8a\xc5\x54\x84\x4e\x88"
+             "\x97\x00",
+	 STR(iv, iv_size,
+	     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"),
+	 },
+};
+
+/* GOST 28147-89 vectors come from the testsuite contributed to OpenSSL by
+ * Sergey E. Leontiev. CryptoPro-B test vector is just truncated.
+ * TC26Z is calculated using Nettle */
+const struct cipher_vectors_st gost28147_cpa_cfb_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x8d\x5a\x2c\x83\xa7\xc7\x0a\x61\xd6\x1b\x34\xb5\x1f\xdf\x42\x68"
+	     "\x66\x71\xa3\x5d\x87\x4c\xfd\x84\x99\x36\x63\xb6\x1e\xd6\x0d\xad"),
+	 STR(plaintext, plaintext_size,
+	     "\xd2\xfd\xf8\x3a\xc1\xb4\x39\x23\x2e\xaa\xcc\x98\x0a\x02\xda\x33"),
+	 .ciphertext = (uint8_t *)
+		 "\x88\xb7\x75\x16\x74\xa5\xee\x2d\x14\xfe\x91\x67\xd0\x5c\xcc\x40",
+	 STR(iv, iv_size,
+	     "\x46\x60\x6f\x0d\x88\x34\x23\x5a"),
+	},
+};
+
+const struct cipher_vectors_st gost28147_cpb_cfb_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x48\x0c\x74\x1b\x02\x6b\x55\xd5\xb6\x6d\xd7\x1d\x40\x48\x05\x6b"
+	     "\x6d\xeb\x3c\x29\x0f\x84\x80\x23\xee\x0d\x47\x77\xe3\xfe\x61\xc9"),
+	 STR(plaintext, plaintext_size,
+	     "\x8c\x9c\x44\x35\xfb\xe9\xa5\xa3\xa0\xae\x28\x56\x91\x10\x8e\x1e"
+	     "\xd2\xbb\x18\x53\x81\x27\x0d\xa6\x68\x59\x36\xc5\x81\x62\x9a\x8e"
+	     "\x7d\x50\xf1\x6f\x97\x62\x29\xec\x80\x51\xe3\x7d\x6c\xc4\x07\x95"
+	     "\x28\x63\xdc\xb4\xb9\x2d\xb8\x13\xb1\x05\xb5\xf9\xeb\x75\x37"),
+	 .ciphertext = (uint8_t *)
+		 "\x23\xc6\x7f\x20\xa1\x23\x58\xbc\x7b\x05\xdb\x21\x15\xcf\x96\x41"
+		 "\xc7\x88\xef\x76\x5c\x49\xdb\x42\xbf\xf3\xc0\xf5\xbd\x5d\xd9\x8e"
+		 "\xaf\x3d\xf4\xe4\xda\x88\xbd\xbc\x47\x5d\x76\x07\xc9\x5f\x54\x1d"
+		 "\x1d\x6a\xa1\x2e\x18\xd6\x60\x84\x02\x18\x37\x92\x92\x15\xab",
+	 STR(iv, iv_size,
+	     "\x1f\x3f\x82\x1e\x0d\xd8\x1e\x22"),
+	},
+};
+
+const struct cipher_vectors_st gost28147_cpc_cfb_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x77\xc3\x45\x8e\xf6\x42\xe7\x04\x8e\xfc\x08\xe4\x70\x96\xd6\x05"
+	     "\x93\x59\x02\x6d\x6f\x97\xca\xe9\xcf\x89\x44\x4b\xde\x6c\x22\x1d"),
+	 STR(plaintext, plaintext_size,
+	     "\x07\x9c\x91\xbe"),
+	 .ciphertext = (uint8_t *)
+		 "\x19\x35\x81\x34",
+	 STR(iv, iv_size,
+	     "\x43\x7c\x3e\x8e\x2f\x2a\x00\x98"),
+	},
+};
+
+const struct cipher_vectors_st gost28147_cpd_cfb_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x38\x9f\xe8\x37\xff\x9c\x5d\x29\xfc\x48\x55\xa0\x87\xea\xe8\x40"
+	     "\x20\x87\x5b\xb2\x01\x15\x55\xa7\xe3\x2d\xcb\x3d\xd6\x59\x04\x73"),
+	 STR(plaintext, plaintext_size,
+	     "\x2f\x31\xd8\x83\xb4\x20\xe8\x6e\xda"),
+	 .ciphertext = (uint8_t *)
+		 "\x6d\xa4\xed\x40\x08\x88\x71\xad\x16",
+	 STR(iv, iv_size,
+	     "\xc5\xa2\xd2\x1f\x2f\xdf\xb8\xeb"),
+	},
+};
+
+const struct cipher_vectors_st gost28147_tc26z_cfb_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x8d\x5a\x2c\x83\xa7\xc7\x0a\x61\xd6\x1b\x34\xb5\x1f\xdf\x42\x68"
+	     "\x66\x71\xa3\x5d\x87\x4c\xfd\x84\x99\x36\x63\xb6\x1e\xd6\x0d\xad"),
+	 STR(plaintext, plaintext_size,
+	     "\xd2\xfd\xf8\x3a\xc1\xb4\x39\x23\x2e\xaa\xcc\x98\x0a\x02\xda\x33"),
+	 .ciphertext = (uint8_t *)
+		 "\xed\xa7\xf1\x41\x01\x9c\xbd\xcd\x44\x6b\x00\x96\x87\xf7\xc7\xe6",
+	 STR(iv, iv_size,
+	     "\x46\x60\x6f\x0d\x88\x34\x23\x5a"),
+	},
+};
+
 static int test_cipher(gnutls_cipher_algorithm_t cipher,
 		       const struct cipher_vectors_st *vectors,
 		       size_t vectors_size, unsigned flags)
@@ -660,6 +786,191 @@ static int test_cipher_aead_compat(gnutls_cipher_algorithm_t cipher,
 
 }
 
+#define IOV_PARTS 8
+/* AEAD modes - scatter read */
+static int test_cipher_aead_scatter(gnutls_cipher_algorithm_t cipher,
+				    const struct cipher_aead_vectors_st *vectors,
+				    size_t vectors_size, unsigned flags)
+{
+	gnutls_aead_cipher_hd_t hd;
+	int ret;
+	unsigned int i, z;
+	uint8_t tmp[384];
+	gnutls_datum_t key, iv;
+	size_t s;
+	unsigned tag_size;
+	giovec_t auth_iov[IOV_PARTS];
+	int auth_iov_len;
+	int iov_len;
+	giovec_t iov[IOV_PARTS];
+
+	_gnutls_debug_log("running scatter (iovec) tests for: %s\n",
+				  gnutls_cipher_get_name(cipher));
+
+	for (i = 0; i < vectors_size; i++) {
+		memset(tmp, 0, sizeof(tmp));
+		key.data = (void *) vectors[i].key;
+		key.size = vectors[i].key_size;
+
+		iv.data = (void *) vectors[i].iv;
+		iv.size = vectors[i].iv_size;
+		tag_size = vectors[i].tag_size;
+
+		if (tag_size > gnutls_cipher_get_tag_size(cipher)) {
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		ret = gnutls_aead_cipher_init(&hd, cipher, &key);
+		if (ret < 0) {
+			_gnutls_debug_log("error initializing: %s\n",
+					  gnutls_cipher_get_name(cipher));
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		s = sizeof(tmp);
+
+		/* single vector */
+		auth_iov_len = 1;
+		auth_iov[0].iov_base = (void*)vectors[i].auth;
+		auth_iov[0].iov_len = vectors[i].auth_size;
+
+		iov_len = 1;
+		iov[0].iov_base = (void*)vectors[i].plaintext;
+		iov[0].iov_len = vectors[i].plaintext_size;
+
+		ret =
+		    gnutls_aead_cipher_encryptv(hd,
+						iv.data, iv.size,
+						auth_iov, auth_iov_len,
+						vectors[i].tag_size,
+						iov, iov_len,
+						tmp, &s);
+		if (ret < 0)
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+
+		if (s != vectors[i].plaintext_size + tag_size) {
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		if (memcmp(tmp+vectors[i].plaintext_size, vectors[i].tag, tag_size) != 0) {
+			_gnutls_debug_log
+			    ("%s test vector %d failed (tag)!\n",
+			     gnutls_cipher_get_name(cipher), i);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		if (vectors[i].plaintext_size > 0) {
+			if (memcmp
+			    (tmp, vectors[i].ciphertext,
+			     vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log
+				    ("%s test vector %d failed!\n",
+				     gnutls_cipher_get_name(cipher), i);
+
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+		/* multi-vector */
+		auth_iov_len = 0;
+		if (vectors[i].auth_size > IOV_PARTS) {
+			unsigned split = vectors[i].auth_size / IOV_PARTS;
+			assert(split>0);
+			for (z=0;z<IOV_PARTS;z++) {
+				auth_iov[z].iov_base = (void*)(vectors[i].auth+(z*split));
+				if (z==IOV_PARTS-1)
+					auth_iov[z].iov_len = vectors[i].auth_size - z*split;
+				else
+					auth_iov[z].iov_len = split;
+				auth_iov_len++;
+			}
+		} else {
+			auth_iov_len = 1;
+			auth_iov[0].iov_base = (void*)vectors[i].auth;
+			auth_iov[0].iov_len = vectors[i].auth_size;
+		}
+
+		iov_len = 0;
+		if (vectors[i].plaintext_size > IOV_PARTS) {
+			unsigned split = vectors[i].plaintext_size / IOV_PARTS;
+			assert(split>0);
+
+			for (z=0;z<IOV_PARTS;z++) {
+				iov[z].iov_base = (void*)(vectors[i].plaintext+(z*split));
+				if (z==IOV_PARTS-1)
+					iov[z].iov_len = vectors[i].plaintext_size - z*split;
+				else
+					iov[z].iov_len = split;
+				iov_len++;
+			}
+		} else {
+			iov_len = 1;
+			iov[0].iov_base = (void*)vectors[i].plaintext;
+			iov[0].iov_len = vectors[i].plaintext_size;
+		}
+
+		s = sizeof(tmp);
+
+		ret =
+		    gnutls_aead_cipher_encryptv(hd,
+						iv.data, iv.size,
+						auth_iov, auth_iov_len,
+						vectors[i].tag_size,
+						iov, iov_len,
+						tmp, &s);
+		if (ret < 0)
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+
+		if (s != vectors[i].plaintext_size + tag_size) {
+			return
+			    gnutls_assert_val
+			    (GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		if (memcmp(tmp+vectors[i].plaintext_size, vectors[i].tag, tag_size) != 0) {
+			_gnutls_debug_log
+			    ("%s test vector %d failed (tag)!\n",
+			     gnutls_cipher_get_name(cipher), i);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		if (vectors[i].plaintext_size > 0) {
+			if (memcmp
+			    (tmp, vectors[i].ciphertext,
+			     vectors[i].plaintext_size) != 0) {
+				_gnutls_debug_log
+				    ("%s test vector %d failed!\n",
+				     gnutls_cipher_get_name(cipher), i);
+
+				return
+				    gnutls_assert_val
+				    (GNUTLS_E_SELF_TEST_ERROR);
+			}
+		}
+
+
+
+		gnutls_aead_cipher_deinit(hd);
+	}
+
+	_gnutls_debug_log
+	    ("%s scatter self check succeeded\n",
+	     gnutls_cipher_get_name(cipher));
+
+	if (flags & GNUTLS_SELF_TEST_FLAG_NO_COMPAT)
+		return 0;
+	else
+		return test_cipher_aead_compat(cipher, vectors, vectors_size);
+}
+
 /* AEAD modes */
 static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 			    const struct cipher_aead_vectors_st *vectors,
@@ -792,12 +1103,9 @@ static int test_cipher_aead(gnutls_cipher_algorithm_t cipher,
 	    ("%s self check succeeded\n",
 	     gnutls_cipher_get_name(cipher));
 
-	/* test the compatibility APIs */
-	if (flags & GNUTLS_SELF_TEST_FLAG_NO_COMPAT)
-		return 0;
-	else
-		return test_cipher_aead_compat(cipher, vectors, vectors_size);
+	return test_cipher_aead_scatter(cipher, vectors, vectors_size, flags);
 }
+
 
 
 struct hash_vectors_st {
@@ -905,6 +1213,47 @@ const struct hash_vectors_st sha3_512_vectors[] = {
 	 STR(output, output_size,
 	     "\x96\x44\xE3\xC9\x0B\x67\xE2\x21\x24\xE9\x6D\xFE\xDC\xE5\x3D\x33\xC4\x60\xF1\x32\x86\x8F\x09\x75\xD1\x8B\x22\xCF\xD5\x9F\x63\x7D\xD8\x5A\xA4\x05\xE3\x98\x08\xA4\x55\x70\xA4\x98\xC0\xB8\xF2\xCB\xA5\x9F\x8E\x14\x37\xEA\xEF\x89\xF2\x0B\x88\x29\x8A\xDF\xA2\xDE"),
 	 },
+};
+
+const struct hash_vectors_st gostr_94_vectors[] = {
+	{
+	 STR(plaintext, plaintext_size,
+	     "The quick brown fox jumps over the lazy dog"),
+	 STR(output, output_size,
+	     "\x90\x04\x29\x4a\x36\x1a\x50\x8c\x58\x6f\xe5\x3d\x1f\x1b\x02\x74\x67\x65\xe7\x1b\x76\x54\x72\x78\x6e\x47\x70\xd5\x65\x83\x0a\x76"),
+	},
+};
+
+/* GOST R 34.11-2012 */
+const struct hash_vectors_st streebog_512_vectors[] = {
+	{
+            STR(plaintext, plaintext_size,
+		"\xd1\xe5\x20\xe2\xe5\xf2\xf0\xe8\x2c\x20\xd1\xf2\xf0\xe8\xe1\xee"
+		"\xe6\xe8\x20\xe2\xed\xf3\xf6\xe8\x2c\x20\xe2\xe5\xfe\xf2\xfa\x20"
+		"\xf1\x20\xec\xee\xf0\xff\x20\xf1\xf2\xf0\xe5\xeb\xe0\xec\xe8\x20"
+		"\xed\xe0\x20\xf5\xf0\xe0\xe1\xf0\xfb\xff\x20\xef\xeb\xfa\xea\xfb"
+		"\x20\xc8\xe3\xee\xf0\xe5\xe2\xfb"),
+            STR(output, output_size,
+		"\x1e\x88\xe6\x22\x26\xbf\xca\x6f\x99\x94\xf1\xf2\xd5\x15\x69\xe0"
+		"\xda\xf8\x47\x5a\x3b\x0f\xe6\x1a\x53\x00\xee\xe4\x6d\x96\x13\x76"
+		"\x03\x5f\xe8\x35\x49\xad\xa2\xb8\x62\x0f\xcd\x7c\x49\x6c\xe5\xb3"
+		"\x3f\x0c\xb9\xdd\xdc\x2b\x64\x60\x14\x3b\x03\xda\xba\xc9\xfb\x28"),
+	},
+};
+
+/* GOST R 34.11-2012 */
+const struct hash_vectors_st streebog_256_vectors[] = {
+	{
+            STR(plaintext, plaintext_size,
+		"\xd1\xe5\x20\xe2\xe5\xf2\xf0\xe8\x2c\x20\xd1\xf2\xf0\xe8\xe1\xee"
+		"\xe6\xe8\x20\xe2\xed\xf3\xf6\xe8\x2c\x20\xe2\xe5\xfe\xf2\xfa\x20"
+		"\xf1\x20\xec\xee\xf0\xff\x20\xf1\xf2\xf0\xe5\xeb\xe0\xec\xe8\x20"
+		"\xed\xe0\x20\xf5\xf0\xe0\xe1\xf0\xfb\xff\x20\xef\xeb\xfa\xea\xfb"
+		"\x20\xc8\xe3\xee\xf0\xe5\xe2\xfb"),
+            STR(output, output_size,
+		"\x9d\xd2\xfe\x4e\x90\x40\x9e\x5d\xa8\x7f\x53\x97\x6d\x74\x05\xb0"
+		"\xc0\xca\xc6\x28\xfc\x66\x9a\x74\x1d\x50\x06\x3c\x55\x7e\x8f\x50"),
+	},
 };
 
 #define HASH_DATA_SIZE 64
@@ -1029,6 +1378,73 @@ const struct mac_vectors_st hmac_sha512_vectors[] = {
 	 STR(plaintext, plaintext_size, "Hi There"),
 	 STR(output, output_size,
 	     "\x87\xaa\x7c\xde\xa5\xef\x61\x9d\x4f\xf0\xb4\x24\x1a\x1d\x6c\xb0\x23\x79\xf4\xe2\xce\x4e\xc2\x78\x7a\xd0\xb3\x05\x45\xe1\x7c\xde\xda\xa8\x33\xb7\xd6\xb8\xa7\x02\x03\x8b\x27\x4e\xae\xa3\xf4\xe4\xbe\x9d\x91\x4e\xeb\x61\xf1\x70\x2e\x69\x6c\x20\x3a\x12\x68\x54"),
+	 },
+};
+
+/* Calculated */
+const struct mac_vectors_st hmac_gostr_94_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+	     "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"),
+	 STR(plaintext, plaintext_size,
+	     "\x01\x26\xbd\xb8\x78\x00\xaf\x21\x43\x41\x45\x65\x63\x78\x01\x00"),
+	 STR(output, output_size,
+	     "\xba\xd7\x0b\x61\xc4\x10\x95\xbc\x47\xe1\x14\x1c\xfa\xed\x42\x72"
+	     "\x6a\x5c\xee\xbd\x62\xce\x75\xdb\xbb\x9a\xd7\x6c\xda\x9f\x72\xf7"),
+	},
+};
+
+/* RFC 7836 */
+const struct mac_vectors_st hmac_streebog_512_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+	     "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"),
+	 STR(plaintext, plaintext_size,
+	     "\x01\x26\xbd\xb8\x78\x00\xaf\x21\x43\x41\x45\x65\x63\x78\x01\x00"),
+	 STR(output, output_size,
+	     "\xa5\x9b\xab\x22\xec\xae\x19\xc6\x5f\xbd\xe6\xe5\xf4\xe9\xf5\xd8"
+	     "\x54\x9d\x31\xf0\x37\xf9\xdf\x9b\x90\x55\x00\xe1\x71\x92\x3a\x77"
+	     "\x3d\x5f\x15\x30\xf2\xed\x7e\x96\x4c\xb2\xee\xdc\x29\xe9\xad\x2f"
+	     "\x3a\xfe\x93\xb2\x81\x4f\x79\xf5\x00\x0f\xfc\x03\x66\xc2\x51\xe6"),
+	},
+};
+
+/* RFC 7836 */
+const struct mac_vectors_st hmac_streebog_256_vectors[] = {
+	{
+	 STR(key, key_size,
+	     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+	     "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"),
+	 STR(plaintext, plaintext_size,
+	     "\x01\x26\xbd\xb8\x78\x00\xaf\x21\x43\x41\x45\x65\x63\x78\x01\x00"),
+	 STR(output, output_size,
+	     "\xa1\xaa\x5f\x7d\xe4\x02\xd7\xb3\xd3\x23\xf2\x99\x1c\x8d\x45\x34"
+	     "\x01\x31\x37\x01\x0a\x83\x75\x4f\xd0\xaf\x6d\x7c\xd4\x92\x2e\xd9"),
+	},
+};
+
+const struct mac_vectors_st aes_cmac_128_vectors[] = { /* NIST SP800-38A */
+	{
+	 STR(key, key_size,
+	     "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c"),
+	 STR(plaintext, plaintext_size,
+             "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a"),
+	 STR(output, output_size,
+	     "\x07\x0a\x16\xb4\x6b\x4d\x41\x44\xf7\x9b\xdd\x9d\xd0\x4a\x28\x7c"),
+	 },
+};
+
+const struct mac_vectors_st aes_cmac_256_vectors[] = { /* NIST SP800-38A */
+	{
+	 STR(key, key_size,
+	     "\x60\x3d\xeb\x10\x15\xca\x71\xbe\x2b\x73\xae\xf0\x85\x7d\x77\x81"
+             "\x1f\x35\x2c\x07\x3b\x61\x08\xd7\x2d\x98\x10\xa3\x09\x14\xdf\xf4"),
+	 STR(plaintext, plaintext_size,
+             "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a"),
+	 STR(output, output_size,
+	     "\x28\xa7\x02\x3f\x45\x2e\x8f\x82\xbd\x4b\xf2\x8d\x8c\x37\xc3\x5c"),
 	 },
 };
 
@@ -1157,6 +1573,32 @@ int gnutls_cipher_self_test(unsigned flags, gnutls_cipher_algorithm_t cipher)
 		FALLTHROUGH;
 		NON_FIPS_CASE(GNUTLS_CIPHER_CHACHA20_POLY1305, test_cipher_aead,
 		     chacha_poly1305_vectors);
+		FALLTHROUGH;
+		CASE(GNUTLS_CIPHER_AES_128_CFB8, test_cipher,
+		     aes128_cfb8_vectors);
+		FALLTHROUGH;
+		CASE(GNUTLS_CIPHER_AES_192_CFB8, test_cipher,
+		     aes192_cfb8_vectors);
+		FALLTHROUGH;
+		CASE(GNUTLS_CIPHER_AES_256_CFB8, test_cipher,
+		     aes256_cfb8_vectors);
+#if ENABLE_GOST
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_CIPHER_GOST28147_CPA_CFB, test_cipher,
+			      gost28147_cpa_cfb_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_CIPHER_GOST28147_CPB_CFB, test_cipher,
+			      gost28147_cpb_cfb_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_CIPHER_GOST28147_CPC_CFB, test_cipher,
+			      gost28147_cpc_cfb_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_CIPHER_GOST28147_CPD_CFB, test_cipher,
+			      gost28147_cpd_cfb_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_CIPHER_GOST28147_TC26Z_CFB, test_cipher,
+			      gost28147_tc26z_cfb_vectors);
+#endif
 		break;
 	default:
 		return gnutls_assert_val(GNUTLS_E_NO_SELF_TEST);
@@ -1196,6 +1638,18 @@ int gnutls_mac_self_test(unsigned flags, gnutls_mac_algorithm_t mac)
 		CASE(GNUTLS_MAC_SHA384, test_mac, hmac_sha384_vectors);
 		FALLTHROUGH;
 		CASE(GNUTLS_MAC_SHA512, test_mac, hmac_sha512_vectors);
+#if ENABLE_GOST
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_MAC_GOSTR_94, test_mac, hmac_gostr_94_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_MAC_STREEBOG_512, test_mac, hmac_streebog_512_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_MAC_STREEBOG_256, test_mac, hmac_streebog_256_vectors);
+#endif
+		FALLTHROUGH;
+		CASE(GNUTLS_MAC_AES_CMAC_128, test_mac, aes_cmac_128_vectors);
+		FALLTHROUGH;
+		CASE(GNUTLS_MAC_AES_CMAC_256, test_mac, aes_cmac_256_vectors);
 
 		break;
 	default:
@@ -1245,6 +1699,14 @@ int gnutls_digest_self_test(unsigned flags, gnutls_digest_algorithm_t digest)
 		CASE(GNUTLS_DIG_SHA3_384, test_digest, sha3_384_vectors);
 		FALLTHROUGH;
 		CASE(GNUTLS_DIG_SHA3_512, test_digest, sha3_512_vectors);
+#endif
+#if ENABLE_GOST
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_DIG_GOSTR_94, test_digest, gostr_94_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_DIG_STREEBOG_512, test_digest, streebog_512_vectors);
+		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_DIG_STREEBOG_256, test_digest, streebog_256_vectors);
 #endif
 		break;
 	default:

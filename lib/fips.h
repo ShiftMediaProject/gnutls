@@ -38,19 +38,19 @@ typedef enum {
 } gnutls_lib_state_t;
 
 /* do not access directly */
-extern unsigned int _gnutls_lib_mode;
+extern unsigned int _gnutls_lib_state;
 extern gnutls_crypto_rnd_st _gnutls_fips_rnd_ops;
 
 inline static 
 void _gnutls_switch_lib_state(gnutls_lib_state_t state)
 {
 	/* Once into zombie state no errors can change us */
-	_gnutls_lib_mode = state;
+	_gnutls_lib_state = state;
 }
 
 inline static gnutls_lib_state_t _gnutls_get_lib_state(void)
 {
-	return _gnutls_lib_mode;
+	return _gnutls_lib_state;
 }
 
 int _gnutls_fips_perform_self_checks1(void);
@@ -63,13 +63,106 @@ unsigned _gnutls_fips_mode_enabled(void);
 # define _gnutls_fips_mode_enabled() 0
 #endif
 
+# define HAVE_LIB_ERROR() unlikely(_gnutls_get_lib_state() != LIB_STATE_OPERATIONAL && _gnutls_get_lib_state() != LIB_STATE_SELFTEST)
+
 # define FAIL_IF_LIB_ERROR \
-	if (_gnutls_get_lib_state() != LIB_STATE_OPERATIONAL && \
-	  _gnutls_get_lib_state() != LIB_STATE_SELFTEST) \
-	return GNUTLS_E_LIB_IN_ERROR_STATE
+	if (HAVE_LIB_ERROR()) return GNUTLS_E_LIB_IN_ERROR_STATE
 
 void _gnutls_switch_lib_state(gnutls_lib_state_t state);
 
 void _gnutls_lib_simulate_error(void);
+void _gnutls_lib_force_operational(void);
+
+#ifdef ENABLE_FIPS140
+/* This will test the condition when in FIPS140-2 mode
+ * and return an error if necessary or ignore */
+# define FIPS_RULE(condition, ret_error, ...) { \
+	gnutls_fips_mode_t _mode = _gnutls_fips_mode_enabled(); \
+	if (_mode != GNUTLS_FIPS140_DISABLED) { \
+		if (condition) { \
+			if (_mode == GNUTLS_FIPS140_LOG) { \
+				_gnutls_audit_log(NULL, "fips140-2: allowing "__VA_ARGS__); \
+			} else if (_mode != GNUTLS_FIPS140_LAX) { \
+				_gnutls_debug_log("fips140-2: disallowing "__VA_ARGS__); \
+				return ret_error; \
+			} \
+		} \
+	}}
+
+inline
+static unsigned is_mac_algo_forbidden(gnutls_mac_algorithm_t algo)
+{
+	gnutls_fips_mode_t mode = _gnutls_fips_mode_enabled();
+	if (mode != GNUTLS_FIPS140_DISABLED &&
+	    _gnutls_get_lib_state() != LIB_STATE_SELFTEST) {
+		switch(algo) {
+			case GNUTLS_MAC_SHA1:
+			case GNUTLS_MAC_SHA256:
+			case GNUTLS_MAC_SHA384:
+			case GNUTLS_MAC_SHA512:
+			case GNUTLS_MAC_SHA224:
+			case GNUTLS_MAC_SHA3_224:
+			case GNUTLS_MAC_SHA3_256:
+			case GNUTLS_MAC_SHA3_384:
+			case GNUTLS_MAC_SHA3_512:
+                        case GNUTLS_MAC_AES_CMAC_128:
+                        case GNUTLS_MAC_AES_CMAC_256:
+				return 0;
+			default:
+				if (mode == GNUTLS_FIPS140_LAX)
+					return 0;
+				else if (mode == GNUTLS_FIPS140_LOG) {
+					_gnutls_audit_log(NULL, "fips140-2: allowing access to %s\n",
+							  gnutls_mac_get_name(algo));
+					return 0;
+				}
+				return 1;
+		}
+	}
+
+	return 0;
+}
+
+inline
+static unsigned is_cipher_algo_forbidden(gnutls_cipher_algorithm_t algo)
+{
+	gnutls_fips_mode_t mode = _gnutls_fips_mode_enabled();
+	if (mode != GNUTLS_FIPS140_DISABLED &&
+	    _gnutls_get_lib_state() != LIB_STATE_SELFTEST) {
+
+		switch(algo) {
+			case GNUTLS_CIPHER_AES_128_CBC:
+			case GNUTLS_CIPHER_AES_256_CBC:
+			case GNUTLS_CIPHER_AES_192_CBC:
+			case GNUTLS_CIPHER_AES_128_GCM:
+			case GNUTLS_CIPHER_AES_256_GCM:
+			case GNUTLS_CIPHER_AES_128_CCM:
+			case GNUTLS_CIPHER_AES_256_CCM:
+			case GNUTLS_CIPHER_3DES_CBC:
+			case GNUTLS_CIPHER_AES_128_CCM_8:
+			case GNUTLS_CIPHER_AES_256_CCM_8:
+			case GNUTLS_CIPHER_AES_128_CFB8:
+			case GNUTLS_CIPHER_AES_192_CFB8:
+			case GNUTLS_CIPHER_AES_256_CFB8:
+				return 0;
+			default:
+				if (mode == GNUTLS_FIPS140_LAX)
+					return 0;
+				else if (mode == GNUTLS_FIPS140_LOG) {
+					_gnutls_audit_log(NULL, "fips140-2: allowing access to %s\n",
+							  gnutls_cipher_get_name(algo));
+					return 0;
+				}
+				return 1;
+		}
+	}
+
+	return 0;
+}
+#else
+# define is_mac_algo_forbidden(x) 0
+# define is_cipher_algo_forbidden(x) 0
+# define FIPS_RULE(condition, ret_error, ...)
+#endif
 
 #endif /* FIPS_H */

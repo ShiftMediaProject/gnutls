@@ -88,9 +88,14 @@ int main(void)
 
         gnutls_certificate_set_known_dh_params(x509_cred, GNUTLS_SEC_PARAM_MEDIUM);
 
-        gnutls_priority_init(&priority_cache,
-                             "PERFORMANCE:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE",
-                             NULL);
+        /* pre-3.6.3 equivalent:
+         * gnutls_priority_init(&priority_cache,
+         *                      "NORMAL:-VERS-TLS-ALL:+VERS-DTLS1.0:%SERVER_PRECEDENCE",
+         *                      NULL);
+         */
+        gnutls_priority_init2(&priority_cache,
+                              "%SERVER_PRECEDENCE",
+                              NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND);
 
         gnutls_key_generate(&cookie_key, GNUTLS_COOKIE_KEY_SIZE);
 
@@ -303,13 +308,8 @@ static int pull_timeout_func(gnutls_transport_ptr_t ptr, unsigned int ms)
         FD_ZERO(&rfds);
         FD_SET(priv->fd, &rfds);
 
-        tv.tv_sec = 0;
-        tv.tv_usec = ms * 1000;
-
-        while (tv.tv_usec >= 1000000) {
-                tv.tv_usec -= 1000000;
-                tv.tv_sec++;
-        }
+        tv.tv_sec = ms / 1000;
+        tv.tv_usec = (ms % 1000) * 1000;
 
         ret = select(priv->fd + 1, &rfds, NULL, NULL, &tv);
 

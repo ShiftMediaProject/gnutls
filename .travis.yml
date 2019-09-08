@@ -17,7 +17,13 @@ notifications:
 before_install:
   - git submodule update --init
   - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
-        brew install autoconf automake autogen libtool nettle valgrind p11-kit libtasn1 gettext || true;
+        brew update;
+        for pkg in autoconf automake autogen libtool nettle p11-kit libtasn1 gettext;do
+          brew install $pkg || true;
+        done;
+        for pkg in nettle p11-kit libtasn1;do
+          brew upgrade $pkg || true;
+        done;
     fi
 
 script:
@@ -27,5 +33,6 @@ script:
   - make -j$(sysctl -n hw.ncpu) check gl_public_submodule_commit=
 
 after_failure:
-  - for i in tests/*.log;do echo "" && echo $i && cat $i;done
+  - find . -name 'test-suite.log' -execdir grep -il "FAILED" {} \; -exec echo {} \; -exec cat {} \;
+  - for i in tests/*.log fuzz/*.log;do echo "" && echo $i && cat $i;done
 

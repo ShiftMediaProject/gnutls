@@ -16,9 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 #ifndef UTILS_H
@@ -35,6 +34,18 @@
 #if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 5)
 #define __attribute__(Spec)	/* empty */
 #endif
+#endif
+
+#ifdef NDEBUG
+# error tests cannot be compiled with NDEBUG defined
+#endif
+
+#if _GNUTLS_GCC_VERSION >= 70100
+#define FALLTHROUGH      __attribute__ ((fallthrough))
+#endif
+
+#ifndef FALLTHROUGH
+# define FALLTHROUGH
 #endif
 
 inline static int global_init(void)
@@ -94,6 +105,19 @@ void test_cli_serv(gnutls_certificate_credentials_t server_cred,
 		   void *priv,
 		   callback_func * client_cb, callback_func * server_cb);
 
+int
+_test_cli_serv(gnutls_certificate_credentials_t server_cred,
+	      gnutls_certificate_credentials_t client_cred,
+	      const char *serv_prio, const char *cli_prio,
+	      const char *host,
+	      void *priv, callback_func *client_cb, callback_func *server_cb,
+	      unsigned expect_verification_failure,
+	      unsigned require_cert,
+	      int serv_err,
+	      int cli_err);
+
+void print_dh_params_info(gnutls_session_t);
+
 void
 test_cli_serv_cert(gnutls_certificate_credentials_t server_cred,
 	      gnutls_certificate_credentials_t client_cred,
@@ -128,9 +152,12 @@ inline static void _check_wait_status(int status, unsigned sigonly)
 		if (WIFSIGNALED(status)) {
 			fail("Child died with signal %d\n", WTERMSIG(status));
 		} else {
-			if (!sigonly)
+			if (!sigonly) {
+				if (WEXITSTATUS(status) == 77)
+					exit(77);
 				fail("Child died with status %d\n",
 				     WEXITSTATUS(status));
+			}
 		}
 	}
 #endif

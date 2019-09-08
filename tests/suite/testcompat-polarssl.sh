@@ -34,12 +34,15 @@ srcdir="${srcdir:-.}"
 
 export TZ="UTC"
 
-# Check for datefudge
-TSTAMP=`datefudge "2006-09-23 00:00 UTC" date -u +%s 2>/dev/null`
-if test "${TSTAMP}" != "1158969600"; then
-	echo "You need datefudge to run this test"
+if test "${GNUTLS_FORCE_FIPS_MODE}" = 1;then
+	echo "Cannot run in FIPS140-2 mode"
 	exit 77
 fi
+
+# Check for datefudge
+. "${srcdir}/../scripts/common.sh"
+
+check_for_datefudge
 
 cat /proc/cpuinfo|grep "model name"|grep "VIA Esther" >/dev/null 2>&1
 if test $? = 0; then

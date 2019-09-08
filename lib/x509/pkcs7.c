@@ -111,7 +111,7 @@ static int _decode_pkcs7_signed_data(gnutls_pkcs7_t pkcs7)
 
 	/* Try reading as octet string according to rfc5652. If that fails, attempt
 	 * a raw read according to rfc2315 */
-	result = _gnutls_x509_read_string(c2, "encapContentInfo.eContent", &pkcs7->der_signed_data, ASN1_ETYPE_OCTET_STRING, 0);
+	result = _gnutls_x509_read_string(c2, "encapContentInfo.eContent", &pkcs7->der_signed_data, ASN1_ETYPE_OCTET_STRING, 1);
 	if (result < 0) {
 		result = _gnutls_x509_read_value(c2, "encapContentInfo.eContent", &pkcs7->der_signed_data);
 		if (result < 0) {
@@ -130,7 +130,7 @@ static int _decode_pkcs7_signed_data(gnutls_pkcs7_t pkcs7)
 				goto cleanup;
 			}
 
-			result = asn1_get_length_der(pkcs7->der_signed_data.data+tag_len, pkcs7->der_signed_data.size-tag_len, &len_len);
+			result = asn1_get_length_ber(pkcs7->der_signed_data.data+tag_len, pkcs7->der_signed_data.size-tag_len, &len_len);
 			if (result < 0) {
 				gnutls_assert();
 				result = GNUTLS_E_ASN1_DER_ERROR;
@@ -256,7 +256,7 @@ gnutls_pkcs7_import(gnutls_pkcs7_t pkcs7, const gnutls_datum_t * data,
 		    _gnutls_fbase64_decode(PEM_PKCS7, data->data,
 					   data->size, &_data);
 
-		if (result <= 0) {
+		if (result < 0) {
 			gnutls_assert();
 			return result;
 		}
@@ -1883,6 +1883,8 @@ gnutls_pkcs7_get_crl_raw(gnutls_pkcs7_t pkcs7,
 		goto cleanup;
 	}
 
+	assert(tmp.data != NULL);
+
 	*crl_size = tmp.size;
 	if (crl)
 		memcpy(crl, tmp.data, tmp.size);
@@ -2346,6 +2348,8 @@ int gnutls_pkcs7_sign(gnutls_pkcs7_t pkcs7,
 	gnutls_datum_t signature = { NULL, 0 };
 	const mac_entry_st *me = hash_to_entry(dig);
 	unsigned pk, sigalgo;
+	gnutls_x509_spki_st key_params, params;
+	const gnutls_sign_entry_st *se;
 
 	if (pkcs7 == NULL || me == NULL)
 		return GNUTLS_E_INVALID_REQUEST;
@@ -2382,7 +2386,7 @@ int gnutls_pkcs7_sign(gnutls_pkcs7_t pkcs7,
 		goto cleanup;
 	}
 
-	if (flags & GNUTLS_PKCS7_EMBED_DATA && data->data) {	/* embed data */
+	if ((flags & GNUTLS_PKCS7_EMBED_DATA) && data->data) {	/* embed data */
 		ret =
 		    _gnutls_x509_write_string(pkcs7->signed_data,
 				     "encapContentInfo.eContent", data,
@@ -2483,26 +2487,47 @@ int gnutls_pkcs7_sign(gnutls_pkcs7_t pkcs7,
 	/* write the signature algorithm */
 	pk = gnutls_x509_crt_get_pk_algorithm(signer, NULL);
 
-	/* RFC5652 is silent on what the values would be and initially I assumed that
-	 * typical signature algorithms should be set. However RFC2315 (PKCS#7) mentions
-	 * that a generic RSA OID should be used. We switch to this "unexpected" value
-	 * because some implementations cannot cope with the "expected" signature values.
-	 */
-	ret =
-	    _gnutls_x509_write_sig_params(pkcs7->signed_data,
-					  "signerInfos.?LAST.signatureAlgorithm",
-					  pk, dig, 1);
+	ret = _gnutls_privkey_get_spki_params(signer_key, &key_params);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
 	}
 
-	sigalgo = gnutls_pk_to_sign(pk, dig);
-	if (sigalgo == GNUTLS_SIGN_UNKNOWN) {
+	ret = _gnutls_x509_crt_get_spki_params(signer, &key_params, &params);
+	if (ret < 0) {
 		gnutls_assert();
-		ret = GNUTLS_E_INVALID_REQUEST;
 		goto cleanup;
 	}
+
+	ret = _gnutls_privkey_update_spki_params(signer_key, pk, dig, 0,
+						  &params);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	se = _gnutls_pk_to_sign_entry(params.pk, dig);
+	if (se == NULL) {
+		ret = gnutls_assert_val(GNUTLS_E_UNSUPPORTED_SIGNATURE_ALGORITHM);
+		goto cleanup;
+	}
+
+	/* RFC5652 is silent on what the values would be and initially I assumed that
+	 * typical signature algorithms should be set. However RFC2315 (PKCS#7) mentions
+	 * that a generic RSA OID should be used. We switch to this "unexpected" value
+	 * because some implementations cannot cope with the "expected" signature values.
+	 */
+	params.legacy = 1;
+	ret =
+	    _gnutls_x509_write_sign_params(pkcs7->signed_data,
+					   "signerInfos.?LAST.signatureAlgorithm",
+					   se, &params);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
+
+	sigalgo = se->id;
 
 	/* sign the data */
 	ret =
@@ -2513,8 +2538,8 @@ int gnutls_pkcs7_sign(gnutls_pkcs7_t pkcs7,
 		goto cleanup;
 	}
 
-	ret =
-	    gnutls_privkey_sign_data(signer_key, dig, 0, &sigdata, &signature);
+	ret = privkey_sign_and_hash_data(signer_key, se,
+					 &sigdata, &signature, &params);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;

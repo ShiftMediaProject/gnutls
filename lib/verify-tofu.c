@@ -43,8 +43,6 @@ struct gnutls_tdb_int {
 
 static int raw_pubkey_to_base64(const gnutls_datum_t * raw,
 				gnutls_datum_t * b64);
-static int pgp_crt_to_raw_pubkey(const gnutls_datum_t * cert,
-				 gnutls_datum_t * rpubkey);
 static int verify_pubkey(const char *file, const char *host,
 			 const char *service, const gnutls_datum_t * skey);
 
@@ -116,8 +114,7 @@ gnutls_verify_stored_pubkey(const char *db_name,
 	int ret;
 	char local_file[MAX_FILENAME];
 
-	if (cert_type != GNUTLS_CRT_X509
-	    && cert_type != GNUTLS_CRT_OPENPGP)
+	if (cert_type != GNUTLS_CRT_X509)
 		return
 		    gnutls_assert_val
 		    (GNUTLS_E_UNSUPPORTED_CERTIFICATE_TYPE);
@@ -132,11 +129,7 @@ gnutls_verify_stored_pubkey(const char *db_name,
 	if (tdb == NULL)
 		tdb = &default_tdb;
 
-	if (cert_type == GNUTLS_CRT_X509)
-		ret = x509_raw_crt_to_raw_pubkey(cert, &pubkey);
-	else
-		ret = pgp_crt_to_raw_pubkey(cert, &pubkey);
-
+	ret = x509_raw_crt_to_raw_pubkey(cert, &pubkey);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;
@@ -377,78 +370,10 @@ static int raw_pubkey_to_base64(const gnutls_datum_t * raw,
 	if (b64->data == NULL)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
-	base64_encode_raw(b64->data, raw->size, raw->data);
+	base64_encode_raw((void*)b64->data, raw->size, raw->data);
 	b64->size = size;
 
 	return 0;
-}
-
-static int pgp_crt_to_raw_pubkey(const gnutls_datum_t * cert,
-				 gnutls_datum_t * rpubkey)
-{
-#ifdef ENABLE_OPENPGP
-	gnutls_openpgp_crt_t crt = NULL;
-	gnutls_pubkey_t pubkey = NULL;
-	size_t size;
-	int ret;
-
-	ret = gnutls_openpgp_crt_init(&crt);
-	if (ret < 0)
-		return gnutls_assert_val(ret);
-
-	ret = gnutls_pubkey_init(&pubkey);
-	if (ret < 0) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	ret = gnutls_openpgp_crt_import(crt, cert, GNUTLS_OPENPGP_FMT_RAW);
-	if (ret < 0) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	ret = gnutls_pubkey_import_openpgp(pubkey, crt, 0);
-	if (ret < 0) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	size = 0;
-	ret =
-	    gnutls_pubkey_export(pubkey, GNUTLS_X509_FMT_DER, NULL, &size);
-	if (ret < 0 && ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	rpubkey->data = gnutls_malloc(size);
-	if (rpubkey->data == NULL) {
-		ret = GNUTLS_E_MEMORY_ERROR;
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	ret =
-	    gnutls_pubkey_export(pubkey, GNUTLS_X509_FMT_DER,
-				 rpubkey->data, &size);
-	if (ret < 0) {
-		gnutls_free(rpubkey->data);
-		gnutls_assert();
-		goto cleanup;
-	}
-
-	rpubkey->size = size;
-	ret = 0;
-
-      cleanup:
-	gnutls_openpgp_crt_deinit(crt);
-	gnutls_pubkey_deinit(pubkey);
-
-	return ret;
-#else
-	return GNUTLS_E_UNIMPLEMENTED_FEATURE;
-#endif
 }
 
 static
@@ -568,8 +493,7 @@ gnutls_store_pubkey(const char *db_name,
 	int ret;
 	char local_file[MAX_FILENAME];
 
-	if (cert_type != GNUTLS_CRT_X509
-	    && cert_type != GNUTLS_CRT_OPENPGP)
+	if (cert_type != GNUTLS_CRT_X509)
 		return
 		    gnutls_assert_val
 		    (GNUTLS_E_UNSUPPORTED_CERTIFICATE_TYPE);
@@ -593,10 +517,7 @@ gnutls_store_pubkey(const char *db_name,
 	if (tdb == NULL)
 		tdb = &default_tdb;
 
-	if (cert_type == GNUTLS_CRT_X509)
-		ret = x509_raw_crt_to_raw_pubkey(cert, &pubkey);
-	else
-		ret = pgp_crt_to_raw_pubkey(cert, &pubkey);
+	ret = x509_raw_crt_to_raw_pubkey(cert, &pubkey);
 	if (ret < 0) {
 		gnutls_assert();
 		goto cleanup;

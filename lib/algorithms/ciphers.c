@@ -24,15 +24,17 @@
 #include <algorithms.h>
 #include "errors.h"
 #include <x509/common.h>
+#include "c-strcase.h"
 
 
-/* Note that all algorithms are in CBC or STREAM modes. 
+/* Note that all algorithms are in CBC or STREAM modes.
  * Do not add any algorithms in other modes (avoid modified algorithms).
  * View first: "The order of encryption and authentication for
  * protecting communications" by Hugo Krawczyk - CRYPTO 2001
  *
- * On update, make sure to update MAX_CIPHER_BLOCK_SIZE and MAX_CIPHER_KEY_SIZE
- * as well. If any ciphers are removed, remove them from the back-end but
+ * On update, make sure to update MAX_CIPHER_BLOCK_SIZE, MAX_CIPHER_IV_SIZE,
+ * and MAX_CIPHER_KEY_SIZE as well.
+ * If any ciphers are removed, remove them from the back-end but
  * keep them in that list to allow backwards compatibility with applications
  * that specify them (they will be a no-op).
  */
@@ -53,7 +55,7 @@ static const cipher_entry_st algorithms[] = {
 	  .cipher_iv = 16},
 	{ .name = "AES-128-CBC",
 	  .id = GNUTLS_CIPHER_AES_128_CBC,
-	  .blocksize = 16, 
+	  .blocksize = 16,
 	  .keysize = 16,
 	  .type = CIPHER_BLOCK,
 	  .explicit_iv = 16,
@@ -120,14 +122,14 @@ static const cipher_entry_st algorithms[] = {
 	  .id = GNUTLS_CIPHER_ARCFOUR_128,
 	  .blocksize = 1,
 	  .keysize = 16,
-	  .type = CIPHER_STREAM, 
+	  .type = CIPHER_STREAM,
 	 0, 0, 0, 0},
-	{ .name = "ESTREAM-SALSA20-256", 
+	{ .name = "ESTREAM-SALSA20-256",
 	  .id = GNUTLS_CIPHER_ESTREAM_SALSA20_256,
 	  .blocksize = 64,
 	  .keysize = 32,
 	 .type = CIPHER_STREAM, 0, 0, 8, 0},
-	{ .name = "SALSA20-256", 
+	{ .name = "SALSA20-256",
 	  .id = GNUTLS_CIPHER_SALSA20_256,
 	  .blocksize = 64,
 	  .keysize = 32,
@@ -164,6 +166,8 @@ static const cipher_entry_st algorithms[] = {
 	  .explicit_iv = 0,
 	  .xor_nonce = 1,
 	  .cipher_iv = 12,
+	  /* in chacha20 we don't need a rekey after 2^24 messages */
+	  .no_rekey = 1,
 	  .tagsize = 16
 	},
 	{ .name = "CAMELLIA-128-GCM",
@@ -180,24 +184,80 @@ static const cipher_entry_st algorithms[] = {
 	  .explicit_iv = 8,
 	  .cipher_iv = 12,
 	  .tagsize = 16},
-	{ .name = "3DES-CBC", 
+	{ .name = "GOST28147-TC26Z-CFB",
+	  .id = GNUTLS_CIPHER_GOST28147_TC26Z_CFB,
+	  .blocksize = 8,
+	  .keysize = 32,
+	  .type = CIPHER_STREAM,
+	  .implicit_iv = 8,
+	  .cipher_iv = 8},
+	{ .name = "GOST28147-CPA-CFB",
+	  .id = GNUTLS_CIPHER_GOST28147_CPA_CFB,
+	  .blocksize = 8,
+	  .keysize = 32,
+	  .type = CIPHER_STREAM,
+	  .implicit_iv = 8,
+	  .cipher_iv = 8},
+	{ .name = "GOST28147-CPB-CFB",
+	  .id = GNUTLS_CIPHER_GOST28147_CPB_CFB,
+	  .blocksize = 8,
+	  .keysize = 32,
+	  .type = CIPHER_STREAM,
+	  .implicit_iv = 8,
+	  .cipher_iv = 8},
+	{ .name = "GOST28147-CPC-CFB",
+	  .id = GNUTLS_CIPHER_GOST28147_CPC_CFB,
+	  .blocksize = 8,
+	  .keysize = 32,
+	  .type = CIPHER_STREAM,
+	  .implicit_iv = 8,
+	  .cipher_iv = 8},
+	{ .name = "GOST28147-CPD-CFB",
+	  .id = GNUTLS_CIPHER_GOST28147_CPD_CFB,
+	  .blocksize = 8,
+	  .keysize = 32,
+	  .type = CIPHER_STREAM,
+	  .implicit_iv = 8,
+	  .cipher_iv = 8},
+	{ .name = "AES-128-CFB8",
+	  .id = GNUTLS_CIPHER_AES_128_CFB8,
+	  .blocksize = 16,
+	  .keysize = 16,
+	  .type = CIPHER_BLOCK,
+	  .explicit_iv = 16,
+	  .cipher_iv = 16},
+	{ .name = "AES-192-CFB8",
+	  .id = GNUTLS_CIPHER_AES_192_CFB8,
+	  .blocksize = 16,
+	  .keysize = 24,
+	  .type = CIPHER_BLOCK,
+	  .explicit_iv = 16,
+	  .cipher_iv = 16},
+	{ .name = "AES-256-CFB8",
+	  .id = GNUTLS_CIPHER_AES_256_CFB8,
+	  .blocksize = 16,
+	  .keysize = 32,
+	  .type = CIPHER_BLOCK,
+	  .explicit_iv = 16,
+	  .cipher_iv = 16},
+	{ .name = "3DES-CBC",
 	  .id = GNUTLS_CIPHER_3DES_CBC,
 	  .blocksize = 8,
 	  .keysize = 24,
 	  .type = CIPHER_BLOCK,
 	  .explicit_iv = 8,
 	  .cipher_iv = 8},
-	{ .name = "DES-CBC", 
+	{ .name = "DES-CBC",
 	  .id = GNUTLS_CIPHER_DES_CBC,
 	  .blocksize = 8,
 	  .keysize = 8,
 	  .type = CIPHER_BLOCK,
 	  .explicit_iv = 8,
 	  .cipher_iv = 8},
-	{ .name = "ARCFOUR-40", 
+	{ .name = "ARCFOUR-40",
 	  .id = GNUTLS_CIPHER_ARCFOUR_40,
 	  .blocksize = 1,
-	  .keysize = 5, 
+	  .keysize = 5,
 	  .type = CIPHER_STREAM},
 	{ .name = "RC2-40",
 	  .id = GNUTLS_CIPHER_RC2_40_CBC,
@@ -224,7 +284,7 @@ static const cipher_entry_st algorithms[] = {
 
 /* CIPHER functions */
 
-const cipher_entry_st *cipher_to_entry(gnutls_cipher_algorithm_t c)
+const cipher_entry_st *_gnutls_cipher_to_entry(gnutls_cipher_algorithm_t c)
 {
 	GNUTLS_CIPHER_LOOP(if (c == p->id) return p);
 
@@ -237,7 +297,7 @@ const cipher_entry_st *cipher_to_entry(gnutls_cipher_algorithm_t c)
 const cipher_entry_st *cipher_name_to_entry(const char *name)
 {
 	GNUTLS_CIPHER_LOOP(
-		if (strcasecmp(p->name, name) == 0) {
+		if (c_strcasecmp(p->name, name) == 0) {
 			return p;
 		}
 	);
@@ -265,6 +325,9 @@ unsigned gnutls_cipher_get_block_size(gnutls_cipher_algorithm_t algorithm)
  * gnutls_cipher_get_tag_size:
  * @algorithm: is an encryption algorithm
  *
+ * This function returns the tag size of an authenticated encryption
+ * algorithm. For non-AEAD algorithms, it returns zero.
+ *
  * Returns: the tag size of the authenticated encryption algorithm.
  *
  * Since: 3.2.2
@@ -289,22 +352,6 @@ unsigned gnutls_cipher_get_iv_size(gnutls_cipher_algorithm_t algorithm)
 	size_t ret = 0;
 	GNUTLS_ALG_LOOP(ret = p->cipher_iv);
 	return ret;
-}
-
-
- /* returns the priority */
-int
-_gnutls_cipher_priority(gnutls_session_t session,
-			gnutls_cipher_algorithm_t algorithm)
-{
-	unsigned int i;
-	for (i = 0; i < session->internals.priorities.cipher.algorithms;
-	     i++) {
-		if (session->internals.priorities.cipher.priority[i] ==
-		    algorithm)
-			return i;
-	}
-	return -1;
 }
 
 /**
@@ -357,9 +404,9 @@ gnutls_cipher_algorithm_t gnutls_cipher_get_id(const char *name)
 	gnutls_cipher_algorithm_t ret = GNUTLS_CIPHER_UNKNOWN;
 
 	GNUTLS_CIPHER_LOOP(
-		if (strcasecmp(p->name, name) == 0) {
+		if (c_strcasecmp(p->name, name) == 0) {
 			if (p->id == GNUTLS_CIPHER_NULL || _gnutls_cipher_exists(p->id))
-				ret = p->id; 
+				ret = p->id;
 			break;
 		}
 	);

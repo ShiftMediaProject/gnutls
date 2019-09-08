@@ -33,11 +33,10 @@
 
 #ifndef _WIN32
 # include <cmocka.h>
+# include <sys/socket.h>
 # include <arpa/inet.h>
 
-#define _gnutls_hard_log(...)
-#define _gnutls_ip_to_string(...)
-#define _gnutls_cidr_to_string(...)
+#define BUILD_IN_TESTS
 #include "../lib/x509/ip-in-cidr.h"
 
 #define _MATCH_FUNC(fname, CIDR, IP, status) \

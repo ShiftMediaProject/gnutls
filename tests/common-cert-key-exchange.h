@@ -29,12 +29,67 @@
 #define USE_CERT 1
 #define ASK_CERT 2
 
-void try(const char *name, const char *client_prio, gnutls_kx_algorithm_t client_kx,
-		gnutls_sign_algorithm_t server_sign_algo,
-		gnutls_sign_algorithm_t client_sign_algo,
-		unsigned client_cert);
+extern const char *server_priority;
 
-void dtls_try(const char *name, const char *client_prio, gnutls_kx_algorithm_t client_kx,
+#define try(name, client_prio, client_kx, server_sign_algo, client_sign_algo) \
+	try_with_key(name, client_prio, client_kx, server_sign_algo, client_sign_algo, \
+		&server_ca3_localhost_cert, &server_ca3_key, NULL, NULL, 0)
+
+#define try_ks(name, client_prio, client_kx, group) \
+	try_with_key_ks(name, client_prio, client_kx, GNUTLS_SIGN_RSA_PSS_RSAE_SHA256, GNUTLS_SIGN_UNKNOWN, \
+		&server_ca3_localhost_cert, &server_ca3_key, NULL, NULL, 0, group)
+
+#define try_cli(name, client_prio, client_kx, server_sign_algo, client_sign_algo, client_cert) \
+	try_with_key(name, client_prio, client_kx, server_sign_algo, client_sign_algo, \
+		&server_ca3_localhost_cert, &server_ca3_key, &cli_ca3_cert, &cli_ca3_key, client_cert)
+
+void try_with_key_ks(const char *name, const char *client_prio, gnutls_kx_algorithm_t client_kx,
 		gnutls_sign_algorithm_t server_sign_algo,
 		gnutls_sign_algorithm_t client_sign_algo,
-		unsigned client_cert);
+		const gnutls_datum_t *serv_cert,
+		const gnutls_datum_t *serv_key,
+		const gnutls_datum_t *cli_cert,
+		const gnutls_datum_t *cli_key,
+		unsigned client_cert,
+		unsigned exp_group);
+
+inline static
+void try_with_key(const char *name, const char *client_prio, gnutls_kx_algorithm_t client_kx,
+		gnutls_sign_algorithm_t server_sign_algo,
+		gnutls_sign_algorithm_t client_sign_algo,
+		const gnutls_datum_t *serv_cert,
+		const gnutls_datum_t *serv_key,
+		const gnutls_datum_t *cli_cert,
+		const gnutls_datum_t *cli_key,
+		unsigned client_cert)
+{
+	return try_with_key_ks(name, client_prio, client_kx, server_sign_algo, client_sign_algo,
+			       serv_cert, serv_key, cli_cert, cli_key, client_cert, 0);
+}
+
+void try_with_key_fail(const char *name, const char *client_prio,
+			int server_err, int client_err,
+			const gnutls_datum_t *serv_cert,
+			const gnutls_datum_t *serv_key,
+			const gnutls_datum_t *cli_cert,
+			const gnutls_datum_t *cli_key);
+
+#define dtls_try(name, client_prio, client_kx, server_sign_algo, client_sign_algo) \
+	dtls_try_with_key(name, client_prio, client_kx, server_sign_algo, client_sign_algo, \
+		&server_ca3_localhost_cert, &server_ca3_key, NULL, NULL, 0)
+
+#define dtls_try_cli(name, client_prio, client_kx, server_sign_algo, client_sign_algo, client_cert) \
+	dtls_try_with_key(name, client_prio, client_kx, server_sign_algo, client_sign_algo, \
+		&server_ca3_localhost_cert, &server_ca3_key, &cli_ca3_cert, &cli_ca3_key, client_cert)
+
+#define dtls_try_with_key(name, client_prio, client_kx, server_sign_algo, client_sign_algo, serv_cert, serv_key, cli_cert, cli_key, client_cert) \
+	dtls_try_with_key_mtu(name, client_prio, client_kx, server_sign_algo, client_sign_algo, serv_cert, serv_key, cli_cert, cli_key, client_cert, 0)
+
+void dtls_try_with_key_mtu(const char *name, const char *client_prio, gnutls_kx_algorithm_t client_kx,
+		gnutls_sign_algorithm_t server_sign_algo,
+		gnutls_sign_algorithm_t client_sign_algo,
+		const gnutls_datum_t *serv_cert,
+		const gnutls_datum_t *serv_key,
+		const gnutls_datum_t *cli_cert,
+		const gnutls_datum_t *cli_key,
+		unsigned client_cert, unsigned mtu);

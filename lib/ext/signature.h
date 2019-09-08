@@ -25,19 +25,20 @@
 #ifndef EXT_SIGNATURE_H
 #define EXT_SIGNATURE_H
 
-#include <extensions.h>
+#include <hello_ext.h>
 
-extern const extension_entry_st ext_mod_sig;
+extern const hello_ext_entry_st ext_mod_sig;
 
 gnutls_sign_algorithm_t
 _gnutls_session_get_sign_algo(gnutls_session_t session,
-			      gnutls_pcert_st * cert, unsigned client_cert);
+			      gnutls_pcert_st * cert,
+			      gnutls_privkey_t privkey,
+			      unsigned client_cert);
 int _gnutls_sign_algorithm_parse_data(gnutls_session_t session,
 				      const uint8_t * data,
 				      size_t data_size);
 int _gnutls_sign_algorithm_write_params(gnutls_session_t session,
-					uint8_t * data,
-					size_t max_data_size);
+					gnutls_buffer_st * extdata);
 int _gnutls_session_sign_algo_enabled(gnutls_session_t session,
 				      gnutls_sign_algorithm_t sig);
 

@@ -708,7 +708,7 @@ const char *gnutls_srp_server_get_username(gnutls_session_t session)
 {
 	srp_server_auth_info_t info;
 
-	CHECK_AUTH(GNUTLS_CRD_SRP, NULL);
+	CHECK_AUTH_TYPE(GNUTLS_CRD_SRP, NULL);
 
 	info = _gnutls_get_auth_info(session, GNUTLS_CRD_SRP);
 	if (info == NULL)
@@ -762,15 +762,21 @@ gnutls_srp_verifier(const char *username, const char *password,
 	size = generator->size;
 	if (_gnutls_mpi_init_scan_nz(&_g, generator->data, size)) {
 		gnutls_assert();
+		_gnutls_mpi_release(&_n);
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
 
 	ret = _gnutls_srp_gx(digest, 20, &res->data, _g, _n);
 	if (ret < 0) {
 		gnutls_assert();
+		_gnutls_mpi_release(&_n);
+		_gnutls_mpi_release(&_g);
 		return ret;
 	}
 	res->size = ret;
+
+	_gnutls_mpi_release(&_n);
+	_gnutls_mpi_release(&_g);
 
 	return 0;
 }
@@ -794,7 +800,7 @@ gnutls_srp_verifier(const char *username, const char *password,
  **/
 void gnutls_srp_set_prime_bits(gnutls_session_t session, unsigned int bits)
 {
-	session->internals.srp_prime_bits = bits;
+	session->internals.dh_prime_bits = bits;
 }
 
 /**

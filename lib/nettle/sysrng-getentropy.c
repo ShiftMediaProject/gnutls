@@ -34,6 +34,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/random.h>
+#endif
 
 /* gnulib wants to claim strerror even if it cannot provide it. WTF */
 #undef strerror
@@ -46,6 +49,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <fcntl.h>
+
+get_entropy_func _rnd_get_system_entropy = NULL;
 
 static int _rnd_get_system_entropy_simple(void* _rnd, size_t size)
 {

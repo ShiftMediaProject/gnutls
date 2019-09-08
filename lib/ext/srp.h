@@ -23,14 +23,14 @@
 #ifndef EXT_SRP_H
 #define EXT_SRP_H
 
-#include <extensions.h>
-
-#ifdef ENABLE_SRP
+#include <hello_ext.h>
 
 #define IS_SRP_KX(kx) ((kx == GNUTLS_KX_SRP || (kx == GNUTLS_KX_SRP_RSA) || \
 	  kx == GNUTLS_KX_SRP_DSS)?1:0)
 
-extern const extension_entry_st ext_mod_srp;
+#ifdef ENABLE_SRP
+
+extern const hello_ext_entry_st ext_mod_srp;
 
 typedef struct {
 	char *username;

@@ -181,19 +181,6 @@ int gnutls_x509_crt_get_preferred_hash_algorithm(gnutls_x509_crt_t
 						 *mand)
     _GNUTLS_GCC_ATTR_DEPRECATED;
 
-	/* gnutls_x509_crq_privkey_sign() */
-int gnutls_x509_crq_sign(gnutls_x509_crq_t crq,
-			 gnutls_x509_privkey_t key)
-    _GNUTLS_GCC_ATTR_DEPRECATED;
-
-
-
-	/* gnutls_x509_crl_privkey_sign */
-int gnutls_x509_crl_sign(gnutls_x509_crl_t crl,
-			 gnutls_x509_crt_t issuer,
-			 gnutls_x509_privkey_t issuer_key)
-    _GNUTLS_GCC_ATTR_DEPRECATED;
-
 	/* use gnutls_privkey_sign_hash() with the GNUTLS_PRIVKEY_SIGN_FLAG_TLS1_RSA flag */
 
 #ifdef _ISOC99_SOURCE
@@ -232,6 +219,23 @@ gnutls_global_set_mem_functions(gnutls_alloc_function alloc_func,
 
 /* defined in old headers - unused nevertheless */
 #define GNUTLS_SUPPLEMENTAL_USER_MAPPING_DATA 0
+
+/* old compression related functions */
+gnutls_compression_method_t
+gnutls_compression_get(gnutls_session_t session) _GNUTLS_GCC_ATTR_DEPRECATED;
+
+const char *
+gnutls_compression_get_name(gnutls_compression_method_t
+			    algorithm) __GNUTLS_CONST__ _GNUTLS_GCC_ATTR_DEPRECATED;
+
+gnutls_compression_method_t
+	gnutls_compression_get_id(const char *name) __GNUTLS_CONST__ _GNUTLS_GCC_ATTR_DEPRECATED;
+
+const gnutls_compression_method_t *
+	gnutls_compression_list(void) __GNUTLS_PURE__ _GNUTLS_GCC_ATTR_DEPRECATED;
+
+int gnutls_priority_compression_list(gnutls_priority_t pcache,
+				     const unsigned int **list) _GNUTLS_GCC_ATTR_DEPRECATED;
 
 /* *INDENT-OFF* */
 #ifdef __cplusplus

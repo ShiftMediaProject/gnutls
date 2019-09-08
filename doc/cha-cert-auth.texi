@@ -5,7 +5,7 @@
 The most known authentication method of @acronym{TLS} are certificates.
 The PKIX @xcite{PKIX} public key infrastructure is daily used by anyone
 using a browser today. @acronym{GnuTLS} provides a simple API to 
-use the @acronym{X.509} certificates @xcite{PKIX}.
+verify the @acronym{X.509} certificates as in @xcite{PKIX}.
 
 The key exchange algorithms supported by certificate authentication are
 shown in @ref{tab:key-exchange}.
@@ -279,12 +279,16 @@ A field in CA certificates that restricts the scope of the name of
 issued certificates.
 
 @item CRL distribution points @tab 2.5.29.31 @tab
-This extension is set by the CA, in order to inform about the issued
-CRLs.
+This extension is set by the CA, in order to inform about the
+location of issued Certificate Revocation Lists.
 
 @item Certificate policy @tab 2.5.29.32 @tab
 This extension is set to indicate the certificate policy as object
 identifier and may contain a descriptive string or URL.
+
+@item Extended key usage @tab 2.5.29.54 @tab
+Inhibit any policy extension. Constraints the any policy OID
+(@code{GNUTLS_X509_OID_POLICY_ANY}) use in the policy extension.
 
 @item Authority key identifier @tab 2.5.29.35 @tab
 An identifier of the key of the issuer of the certificate. That is
@@ -465,15 +469,14 @@ other verification functions which do not allow setting a purpose, would operate
 @cindex OpenPGP certificates
 
 Previous versions of GnuTLS supported limited @acronym{OpenPGP} key
-authentication. That functionality has been deprecated and although
-is still made available, it is no longer recommended to use.
-The reason is that, supporting alternative authentication
-methods, when X.509 and PKIX were new and not well established, seemed like a
-good idea, in today's internet X.509 is unquestionably the main
+authentication. That functionality has been deprecated and is no longer
+made available. The reason is that, supporting alternative authentication
+methods, when X.509 and PKIX were new on the Internet and not well established, seemed like a
+good idea, in today's Internet X.509 is unquestionably the main
 container for certificates. As such supporting more options with no clear
 use-cases, is a distraction that consumes considerable resources for
-improving and testing. For that we have decided to mark this functionality
-as deprecated, and will be dropped in one of the next GnuTLS major releases.
+improving and testing the library. For that we have decided to drop
+this functionality completely in 3.6.0.
 
 
 @node Advanced certificate verification
@@ -510,7 +513,7 @@ failure is not enough to compromise the system. For example a server compromise
 may be detected using OCSP, and a CA compromise can be detected using
 the trust on first use method.
 Such a hybrid system with X.509 and trust on first use authentication is 
-shown in @ref{Simple client example with SSH-style certificate verification}.
+shown in @ref{Client example with SSH-style certificate verification}.
 
 See @ref{Certificate verification} on how to use the available functionality.
 
@@ -631,6 +634,8 @@ certificate chain, you can call
 @itemize
 @item @code{GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2}
 @item @code{GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5}
+@item @code{GNUTLS_VERIFY_ALLOW_SIGN_WITH_SHA1}
+@item @code{GNUTLS_VERIFY_ALLOW_BROKEN}
 @end itemize
 as in the following example:
 

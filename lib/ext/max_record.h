@@ -23,8 +23,8 @@
 #ifndef EXT_MAX_RECORD_H
 #define EXT_MAX_RECORD_H
 
-#include <extensions.h>
+#include <hello_ext.h>
 
-extern const extension_entry_st ext_mod_max_record_size;
+extern const hello_ext_entry_st ext_mod_max_record_size;
 
 #endif

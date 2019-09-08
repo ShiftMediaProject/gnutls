@@ -79,6 +79,8 @@ static const gnutls_alert_entry sup_alerts[] = {
 		    N_("The server name sent was not recognized")),
 	ALERT_ENTRY(GNUTLS_A_UNKNOWN_PSK_IDENTITY,
 		    N_("The SRP/PSK username is missing or not known")),
+	ALERT_ENTRY(GNUTLS_A_MISSING_EXTENSION,
+		    N_("An extension was expected but was not seen")),
 	ALERT_ENTRY(GNUTLS_A_NO_APPLICATION_PROTOCOL,
 		    N_
 		    ("No supported application protocol could be negotiated")),
@@ -155,7 +157,7 @@ gnutls_alert_send(gnutls_session_t session, gnutls_alert_level_t level,
 	data[0] = (uint8_t) level;
 	data[1] = (uint8_t) desc;
 
-	name = gnutls_alert_get_name((int) data[1]);
+	name = gnutls_alert_get_name((gnutls_alert_description_t) data[1]);
 	if (name == NULL)
 		name = "(unknown)";
 	_gnutls_record_log("REC: Sending Alert[%d|%d] - %s\n", data[0],
@@ -191,6 +193,11 @@ int gnutls_error_to_alert(int err, int *level)
 	int ret, _level = -1;
 
 	switch (err) {		/* send appropriate alert */
+	case GNUTLS_E_PK_SIG_VERIFY_FAILED:
+	case GNUTLS_E_ERROR_IN_FINISHED_PACKET:
+		ret = GNUTLS_A_DECRYPT_ERROR;
+		_level = GNUTLS_AL_FATAL;
+		break;
 	case GNUTLS_E_DECRYPTION_FAILED:
 		/* GNUTLS_A_DECRYPTION_FAILED is not sent, because
 		 * it is not defined in SSL3. Note that we must
@@ -201,7 +208,10 @@ int gnutls_error_to_alert(int err, int *level)
 		ret = GNUTLS_A_BAD_RECORD_MAC;
 		_level = GNUTLS_AL_FATAL;
 		break;
+	case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
 	case GNUTLS_E_UNEXPECTED_EXTENSIONS_LENGTH:
+	case GNUTLS_E_NO_CERTIFICATE_FOUND:
+	case GNUTLS_E_HANDSHAKE_TOO_LARGE:
 		ret = GNUTLS_A_DECODE_ERROR;
 		_level = GNUTLS_AL_FATAL;
 		break;
@@ -209,8 +219,10 @@ int gnutls_error_to_alert(int err, int *level)
 		ret = GNUTLS_A_DECOMPRESSION_FAILURE;
 		_level = GNUTLS_AL_FATAL;
 		break;
+	case GNUTLS_E_ILLEGAL_PARAMETER:
 	case GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER:
 	case GNUTLS_E_ILLEGAL_SRP_USERNAME:
+	case GNUTLS_E_PK_INVALID_PUBKEY:
 		ret = GNUTLS_A_ILLEGAL_PARAMETER;
 		_level = GNUTLS_AL_FATAL;
 		break;
@@ -243,11 +255,17 @@ int gnutls_error_to_alert(int err, int *level)
 	case GNUTLS_E_SAFE_RENEGOTIATION_FAILED:
 	case GNUTLS_E_INCOMPAT_DSA_KEY_WITH_TLS_PROTOCOL:
 	case GNUTLS_E_UNKNOWN_PK_ALGORITHM:
+	case GNUTLS_E_UNWANTED_ALGORITHM:
+	case GNUTLS_E_NO_COMMON_KEY_SHARE:
 		ret = GNUTLS_A_HANDSHAKE_FAILURE;
 		_level = GNUTLS_AL_FATAL;
 		break;
 	case GNUTLS_E_RECEIVED_ILLEGAL_EXTENSION:
 		ret = GNUTLS_A_UNSUPPORTED_EXTENSION;
+		_level = GNUTLS_AL_FATAL;
+		break;
+	case GNUTLS_E_MISSING_EXTENSION:
+		ret = GNUTLS_A_MISSING_EXTENSION;
 		_level = GNUTLS_AL_FATAL;
 		break;
 	case GNUTLS_E_USER_ERROR:
@@ -273,7 +291,7 @@ int gnutls_error_to_alert(int err, int *level)
 		ret = GNUTLS_A_UNSUPPORTED_CERTIFICATE;
 		_level = GNUTLS_AL_FATAL;
 		break;
-	case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
+	case GNUTLS_E_RECORD_OVERFLOW:
 		ret = GNUTLS_A_RECORD_OVERFLOW;
 		_level = GNUTLS_AL_FATAL;
 		break;
@@ -292,8 +310,8 @@ int gnutls_error_to_alert(int err, int *level)
 		_level = GNUTLS_AL_FATAL;
 		break;
 	case GNUTLS_E_DH_PRIME_UNACCEPTABLE:
-	case GNUTLS_E_NO_CERTIFICATE_FOUND:
 	case GNUTLS_E_SESSION_USER_ID_CHANGED:
+	case GNUTLS_E_INSUFFICIENT_SECURITY:
 		ret = GNUTLS_A_INSUFFICIENT_SECURITY;
 		_level = GNUTLS_AL_FATAL;
 		break;
@@ -345,7 +363,7 @@ int gnutls_alert_send_appropriate(gnutls_session_t session, int err)
 		return alert;
 	}
 
-	return gnutls_alert_send(session, level, alert);
+	return gnutls_alert_send(session, (gnutls_alert_level_t)level, alert);
 }
 
 /**
@@ -363,5 +381,5 @@ int gnutls_alert_send_appropriate(gnutls_session_t session, int err)
  **/
 gnutls_alert_description_t gnutls_alert_get(gnutls_session_t session)
 {
-	return session->internals.last_alert;
+	return (gnutls_alert_description_t)session->internals.last_alert;
 }

@@ -67,6 +67,12 @@ GETPORT='rc=0; myrandom=$(date +%N | sed s/^0*//)
 '
 
 check_for_datefudge() {
+	# On certain platforms running datefudge date fails (e.g., x86 datefudge
+	# with x86-64 date app).
+	if test "${SKIP_DATEFUDGE_CHECK}" = 1;then
+		return
+	fi
+
 	TSTAMP=`datefudge -s "2006-09-23" date -u +%s || true`
 	if test "$TSTAMP" != "1158969600" || test "$WINDOWS" = 1; then
 	echo $TSTAMP
@@ -90,6 +96,18 @@ if test $? = 0;then
         $(which lscpu)|grep Architecture|grep x86
         if test $? != 0;then
                 echo "non-x86 CPU detected"
+                exit 0
+        fi
+fi
+}
+
+exit_if_non_padlock()
+{
+which lscpu >/dev/null 2>&1
+if test $? = 0;then
+        $(which lscpu)|grep Flags|grep phe
+        if test $? != 0;then
+                echo "non-Via padlock CPU detected"
                 exit 0
         fi
 fi
@@ -137,7 +155,7 @@ launch_server() {
 	shift
 
 	wait_for_free_port ${PORT}
-	${SERV} ${DEBUG} -p "${PORT}" $* >/dev/null 2>&1 &
+	${SERV} ${DEBUG} -p "${PORT}" $* >/dev/null &
 }
 
 launch_pkcs11_server() {
@@ -156,7 +174,7 @@ launch_bare_server() {
 	shift
 
 	wait_for_free_port ${PORT}
-	${SERV} $* >/dev/null 2>&1 &
+	${SERV} $* >/dev/null &
 }
 
 wait_server() {
@@ -176,3 +194,69 @@ wait_udp_server() {
 	sleep 4
 }
 
+if test -x /usr/bin/lockfile-create;then
+LOCKFILE="lockfile-create global"
+UNLOCKFILE="lockfile-remove global"
+else
+LOCKFILE="lockfile global.lock"
+UNLOCKFILE="rm -f global.lock"
+fi
+
+create_testdir() {
+	local PREFIX=$1
+	d=`mktemp -d -t ${PREFIX}.XXXXXX`
+	if test $? -ne 0; then
+		d=${TMPDIR}/${PREFIX}.$$
+		mkdir "$d" || exit 1
+	fi
+	trap "test -e \"$d\" && rm -rf \"$d\"" 1 15 2
+	echo "$d"
+}
+
+wait_for_file() {
+	local filename="$1"
+	local timeout="$2"
+
+	local loops=$((timeout * 10)) loop=0
+
+	while test $loop -lt $loops; do
+		[ -f "$filename" ] && {
+			#allow file to be written to
+			sleep 0.2
+			return 1
+		}
+		sleep 0.1
+		loop=$((loop+1))
+	done
+	return 0
+}
+
+# Kill a process quietly
+# @1: signal, e.g. -9
+# @2: pid
+kill_quiet() {
+	local sig="$1"
+	local pid="$2"
+
+	sh -c "kill $sig $pid 2>/dev/null"
+	return $?
+}
+
+# Terminate a process first using SIGTERM, wait 1s and if still avive use
+# SIGKILL
+# @1: pid
+terminate_proc() {
+	local pid="$1"
+
+	local ctr=0
+
+	kill_quiet -15 $pid
+	while [ $ctr -lt 10 ]; do
+		sleep 0.1
+		kill -0 $pid 2>/dev/null
+		[ $? -ne 0 ] && return
+		ctr=$((ctr + 1))
+	done
+	kill_quiet -9 $pid
+	sleep 0.1
+}

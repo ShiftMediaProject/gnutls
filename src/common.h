@@ -25,6 +25,7 @@
 
 #include <config.h>
 #include <gnutls/gnutls.h>
+#include <gnutls/pkcs11.h>
 #include <certtool-common.h>
 #include <c-ctype.h>
 #include <string.h>
@@ -69,7 +70,11 @@ int cert_verify(gnutls_session_t session, const char *hostname, const char *purp
 const char *raw_to_string(const unsigned char *raw, size_t raw_size);
 const char *raw_to_hex(const unsigned char *raw, size_t raw_size);
 const char *raw_to_base64(const unsigned char *raw, size_t raw_size);
-int check_command(gnutls_session_t session, const char *str);
+int check_command(gnutls_session_t session, const char *str, unsigned no_cli_cert);
+
+#define MAX_PIN_LEN GNUTLS_PKCS11_MAX_PIN_LEN
+void getenv_copy(char *str, size_t max_str_size, const char *envvar);
+void getpass_copy(char *pass, size_t max_pass_size, const char *prompt);
 
 int
 pin_callback(void *user, int attempt, const char *token_url,
@@ -101,12 +106,8 @@ static int system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
 
-	tv.tv_sec = 0;
-	tv.tv_usec = ms * 1000;
-	while (tv.tv_usec >= 1000000) {
-		tv.tv_usec -= 1000000;
-		tv.tv_sec++;
-	}
+	tv.tv_sec = ms / 1000;
+	tv.tv_usec = (ms % 1000) * 1000;
 
 	return select(fd + 1, &rfds, NULL, NULL, &tv);
 }

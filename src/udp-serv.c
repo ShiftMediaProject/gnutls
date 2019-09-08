@@ -36,7 +36,10 @@
 #include <errno.h>
 #include <common.h>
 #include "udp-serv.h"
+#include "serv-args.h"
 #include "list.h"
+
+extern int disable_client_cert;
 
 typedef struct {
 	gnutls_session_t session;
@@ -89,39 +92,41 @@ void udp_server(const char *name, int port, int mtu)
 			     (struct sockaddr *) &cli_addr,
 			     &cli_addr_size);
 		if (ret > 0) {
-			memset(&prestate, 0, sizeof(prestate));
-			ret =
-			    gnutls_dtls_cookie_verify(&cookie_key,
-						      &cli_addr,
-						      cli_addr_size,
-						      buffer, ret,
-						      &prestate);
-			if (ret < 0) {	/* cookie not valid */
-				priv_data_st s;
+			if (!HAVE_OPT(NOCOOKIE)) {
+				memset(&prestate, 0, sizeof(prestate));
+				ret =
+				    gnutls_dtls_cookie_verify(&cookie_key,
+							      &cli_addr,
+							      cli_addr_size,
+							      buffer, ret,
+							      &prestate);
+				if (ret < 0) {	/* cookie not valid */
+					priv_data_st s;
 
-				memset(&s, 0, sizeof(s));
-				s.fd = sock;
-				s.cli_addr = (void *) &cli_addr;
-				s.cli_addr_size = cli_addr_size;
+					memset(&s, 0, sizeof(s));
+					s.fd = sock;
+					s.cli_addr = (void *) &cli_addr;
+					s.cli_addr_size = cli_addr_size;
 
-				printf
-				    ("Sending hello verify request to %s\n",
-				     human_addr((struct sockaddr *)
-						&cli_addr,
-						cli_addr_size, buffer,
-						sizeof(buffer)-1));
-				gnutls_dtls_cookie_send(&cookie_key,
+					printf
+					    ("Sending hello verify request to %s\n",
+					     human_addr((struct sockaddr *)
 							&cli_addr,
-							cli_addr_size,
-							&prestate,
-							(gnutls_transport_ptr_t)
-							&s, push_func);
+							cli_addr_size, buffer,
+							sizeof(buffer)-1));
+					gnutls_dtls_cookie_send(&cookie_key,
+								&cli_addr,
+								cli_addr_size,
+								&prestate,
+								(gnutls_transport_ptr_t)
+								&s, push_func);
 
-				/* discard peeked data */
-				recvfrom(sock, buffer, sizeof(buffer)-1, 0,
-					 (struct sockaddr *) &cli_addr,
-					 &cli_addr_size);
-				continue;
+					/* discard peeked data */
+					recvfrom(sock, buffer, sizeof(buffer)-1, 0,
+						 (struct sockaddr *) &cli_addr,
+						 &cli_addr_size);
+					continue;
+				}
 			}
 			printf("Accepted connection from %s\n",
 			       human_addr((struct sockaddr *)
@@ -131,7 +136,9 @@ void udp_server(const char *name, int port, int mtu)
 			continue;
 
 		session = initialize_session(1);
-		gnutls_dtls_prestate_set(session, &prestate);
+		if (!HAVE_OPT(NOCOOKIE))
+			gnutls_dtls_prestate_set(session, &prestate);
+
 		if (mtu)
 			gnutls_dtls_set_mtu(session, mtu);
 
@@ -202,7 +209,7 @@ void udp_server(const char *name, int port, int mtu)
 			     sequence[3], sequence[4], sequence[5],
 			     sequence[6], sequence[7], buffer);
 
-			if (check_command(session, buffer) == 0) {
+			if (check_command(session, buffer, disable_client_cert) == 0) {
 				/* reply back */
 				ret =
 				    gnutls_record_send(session, buffer,
@@ -234,13 +241,8 @@ static int pull_timeout_func(gnutls_transport_ptr_t ptr, unsigned int ms)
 	FD_ZERO(&rfds);
 	FD_SET(priv->fd, &rfds);
 
-	tv.tv_sec = 0;
-	tv.tv_usec = ms * 1000;
-
-	while (tv.tv_usec >= 1000000) {
-		tv.tv_usec -= 1000000;
-		tv.tv_sec++;
-	}
+	tv.tv_sec = ms / 1000;
+	tv.tv_usec = (ms % 1000) * 1000;
 
 	ret = select(priv->fd + 1, &rfds, NULL, NULL, &tv);
 

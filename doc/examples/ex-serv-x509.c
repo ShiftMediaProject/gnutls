@@ -77,8 +77,15 @@ int main(void)
                                                               OCSP_STATUS_FILE,
                                                               0));
 
-        CHECK(gnutls_priority_init(&priority_cache,
-                                   "PERFORMANCE:%SERVER_PRECEDENCE", NULL));
+        CHECK(gnutls_priority_init(&priority_cache, NULL, NULL));
+
+        /* Instead of the default options as shown above one could specify
+         * additional options such as server precedence in ciphersuite selection
+         * as follows:
+         * gnutls_priority_init2(&priority_cache,
+         *                       "%SERVER_PRECEDENCE",
+         *                       NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND);
+	 */
 
 #if GNUTLS_VERSION_NUMBER >= 0x030506
         /* only available since GnuTLS 3.5.6, on previous versions see

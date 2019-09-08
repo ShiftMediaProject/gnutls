@@ -43,13 +43,6 @@
 #include <c-ctype.h>
 #include "sockets.h"
 
-#ifdef HAVE_LIBIDN2
-#include <idn2.h>
-#elif defined HAVE_LIBIDN
-#include <idna.h>
-#include <idn-free.h>
-#endif
-
 #define MAX_BUF 4096
 
 /* Functions to manipulate sockets
@@ -68,7 +61,7 @@ socket_recv(const socket_st * socket, void *buffer, int buffer_size)
 			if (ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED)
 				gnutls_heartbeat_pong(socket->session, 0);
 		}
-		while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN
+		while (ret == GNUTLS_E_INTERRUPTED
 		       || ret == GNUTLS_E_HEARTBEAT_PING_RECEIVED);
 
 	} else
@@ -394,6 +387,11 @@ void socket_bye(socket_st * socket, unsigned polite)
 	gnutls_free(socket->rdata.data);
 	socket->rdata.data = NULL;
 
+	if (socket->server_trace)
+		fclose(socket->server_trace);
+	if (socket->client_trace)
+		fclose(socket->client_trace);
+
 	socket->fd = -1;
 	socket->secure = 0;
 }
@@ -403,23 +401,63 @@ void socket_bye(socket_st * socket, unsigned polite)
 void canonicalize_host(char *hostname, char *service, unsigned service_size)
 {
 	char *p;
-	unsigned char buf[64];
 
-	p = strchr(hostname, ':');
-	if (p == NULL)
-		return;
+	if ((p = strchr(hostname, ':'))) {
+		unsigned char buf[64];
 
-	if (inet_pton(AF_INET6, hostname, buf) == 1)
-		return;
+		if (inet_pton(AF_INET6, hostname, buf) == 1)
+			return;
 
-	*p = 0;
-	snprintf(service, service_size, "%s", p+1);
+		*p = 0;
+
+		if (service && service_size)
+			snprintf(service, service_size, "%s", p+1);
+	} else
+		p = hostname + strlen(hostname);
+
+	if (p > hostname && p[-1] == '.')
+		p[-1] = 0; // remove trailing dot on FQDN
+}
+
+static ssize_t
+wrap_pull(gnutls_transport_ptr_t ptr, void *data, size_t len)
+{
+	socket_st *hd = ptr;
+	ssize_t r;
+
+	r = recv(hd->fd, data, len, 0);
+	if (r > 0 && hd->server_trace) {
+		fwrite(data, 1, r, hd->server_trace);
+	}
+	return r;
+}
+
+static ssize_t
+wrap_push(gnutls_transport_ptr_t ptr, const void *data, size_t len)
+{
+	socket_st *hd = ptr;
+
+	if (hd->client_trace) {
+		fwrite(data, 1, len, hd->client_trace);
+	}
+
+	return send(hd->fd, data, len, 0);
+}
+
+/* inline is used to avoid a gcc warning if used in mini-eagain */
+inline static int wrap_pull_timeout_func(gnutls_transport_ptr_t ptr,
+					   unsigned int ms)
+{
+	socket_st *hd = ptr;
+
+	return gnutls_system_recv_timeout((gnutls_transport_ptr_t)(long)hd->fd, ms);
 }
 
 
 void
-socket_open(socket_st * hd, const char *hostname, const char *service,
-	    const char *app_proto, int flags, const char *msg, gnutls_datum_t *rdata)
+socket_open2(socket_st * hd, const char *hostname, const char *service,
+	    const char *app_proto, int flags, const char *msg, gnutls_datum_t *rdata, gnutls_datum_t *edata,
+	    FILE *server_trace, FILE *client_trace)
 {
 	struct addrinfo hints, *res, *ptr;
 	int sd, err = 0;
@@ -439,6 +477,11 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 	if (rdata) {
 		hd->rdata.data = rdata->data;
 		hd->rdata.size = rdata->size;
+	}
+
+	if (edata) {
+		hd->edata.data = edata->data;
+		hd->edata.size = edata->size;
 	}
 
 	ret = gnutls_idna_map(hostname, strlen(hostname), &idna, 0);
@@ -526,11 +569,27 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 		}
 
 		if (hd->session) {
+			if (hd->edata.data) {
+				ret = gnutls_record_send_early_data(hd->session, hd->edata.data, hd->edata.size);
+				if (ret < 0) {
+					fprintf(stderr, "error sending early data\n");
+					exit(1);
+				}
+			}
 			if (hd->rdata.data) {
 				gnutls_session_set_data(hd->session, hd->rdata.data, hd->rdata.size);
 			}
 
-			gnutls_transport_set_int(hd->session, sd);
+			if (server_trace)
+				hd->server_trace = server_trace;
+
+			if (client_trace)
+				hd->client_trace = client_trace;
+
+			gnutls_transport_set_push_function(hd->session, wrap_push);
+			gnutls_transport_set_pull_function(hd->session, wrap_pull);
+			gnutls_transport_set_pull_timeout_function(hd->session, wrap_pull_timeout_func);
+			gnutls_transport_set_ptr(hd->session, hd);
 		}
 
 		if (!(flags & SOCKET_FLAG_RAW) && !(flags & SOCKET_FLAG_SKIP_INIT)) {
@@ -541,7 +600,8 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 				continue;
 			}
 			else if (err < 0) {
-				fprintf(stderr, "*** handshake has failed: %s\n", gnutls_strerror(err));
+				if (!(flags & SOCKET_FLAG_DONT_PRINT_ERRORS))
+					fprintf(stderr, "*** handshake has failed: %s\n", gnutls_strerror(err));
 				exit(1);
 			}
 		}
@@ -571,7 +631,10 @@ socket_open(socket_st * hd, const char *hostname, const char *service,
 	hd->service = strdup(portname);
 	hd->ptr = ptr;
 	hd->addr_info = res;
+	gnutls_free(hd->rdata.data);
 	hd->rdata.data = NULL;
+	gnutls_free(hd->edata.data);
+	hd->edata.data = NULL;
 	gnutls_free(idna.data);
 	return;
 }

@@ -33,7 +33,6 @@
 #include <string.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-#include <gnutls/openpgp.h>
 #include <gnutls/crypto.h>
 #include <time.h>
 #include <common.h>
@@ -114,7 +113,7 @@ const char *raw_to_base64(const unsigned char *raw, size_t raw_size)
 	return buf;
 }
 
-static void print_x509_info_compact(gnutls_session_t session)
+static void print_x509_info_compact(gnutls_session_t session, int print_crt_status)
 {
 	gnutls_x509_crt_t crt;
 	const gnutls_datum_t *cert_list;
@@ -124,11 +123,17 @@ static void print_x509_info_compact(gnutls_session_t session)
 
 	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
 	if (cert_list_size == 0) {
-		fprintf(stderr, "No certificates found!\n");
+		if (print_crt_status)
+			fprintf(stderr, "No certificates found!\n");
 		return;
 	}
 
-	gnutls_x509_crt_init(&crt);
+	ret = gnutls_x509_crt_init(&crt);
+	if (ret < 0) {
+		fprintf(stderr, "Memory error\n");
+		return;
+	}
+
 	ret =
 	    gnutls_x509_crt_import(crt, &cert_list[0],
 				   GNUTLS_X509_FMT_DER);
@@ -148,7 +153,7 @@ static void print_x509_info_compact(gnutls_session_t session)
 }
 
 static void
-print_x509_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
+print_x509_info(gnutls_session_t session, FILE *out, int flag, int print_cert, int print_crt_status)
 {
 	gnutls_x509_crt_t crt;
 	const gnutls_datum_t *cert_list;
@@ -157,7 +162,8 @@ print_x509_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
 
 	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
 	if (cert_list_size == 0) {
-		fprintf(stderr, "No certificates found!\n");
+		if (print_crt_status)
+			fprintf(stderr, "No certificates found!\n");
 		return;
 	}
 
@@ -168,7 +174,12 @@ print_x509_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
 	for (j = 0; j < cert_list_size; j++) {
 		gnutls_datum_t cinfo;
 
-		gnutls_x509_crt_init(&crt);
+		ret = gnutls_x509_crt_init(&crt);
+		if (ret < 0) {
+			fprintf(stderr, "Memory error\n");
+			return;
+		}
+
 		ret =
 		    gnutls_x509_crt_import(crt, &cert_list[j],
 					   GNUTLS_X509_FMT_DER);
@@ -189,146 +200,27 @@ print_x509_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
 		}
 
 		if (print_cert) {
-			size_t size = 0;
-			char *p = NULL;
+			gnutls_datum_t pem;
 
 			ret =
-			    gnutls_x509_crt_export(crt,
-						   GNUTLS_X509_FMT_PEM, p,
-						   &size);
-			if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
-				p = malloc(size + 1);
-				if (!p) {
-					fprintf(stderr, "gnutls_malloc\n");
-					exit(1);
-				}
-
-				ret =
-				    gnutls_x509_crt_export(crt,
-							   GNUTLS_X509_FMT_PEM,
-							   p, &size);
-			}
+			    gnutls_x509_crt_export2(crt,
+						   GNUTLS_X509_FMT_PEM, &pem);
 			if (ret < 0) {
 				fprintf(stderr, "Encoding error: %s\n",
 					gnutls_strerror(ret));
 				return;
 			}
 
-			p[size] = 0;
 			fputs("\n", out);
-			fputs(p, out);
+			fputs((char*)pem.data, out);
 			fputs("\n", out);
 
-			gnutls_free(p);
+			gnutls_free(pem.data);
 		}
 
 		gnutls_x509_crt_deinit(crt);
 	}
 }
-
-#ifdef ENABLE_OPENPGP
-static void print_openpgp_info_compact(gnutls_session_t session)
-{
-
-	gnutls_openpgp_crt_t crt;
-	const gnutls_datum_t *cert_list;
-	unsigned int cert_list_size = 0;
-	int ret;
-
-	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
-
-	if (cert_list_size > 0) {
-		gnutls_datum_t cinfo;
-
-		gnutls_openpgp_crt_init(&crt);
-		ret = gnutls_openpgp_crt_import(crt, &cert_list[0],
-						GNUTLS_OPENPGP_FMT_RAW);
-		if (ret < 0) {
-			fprintf(stderr, "Decoding error: %s\n",
-				gnutls_strerror(ret));
-			return;
-		}
-
-		ret =
-		    gnutls_openpgp_crt_print(crt, GNUTLS_CRT_PRINT_COMPACT,
-					     &cinfo);
-		if (ret == 0) {
-			printf("- OpenPGP cert: %s\n", cinfo.data);
-			gnutls_free(cinfo.data);
-		}
-
-		gnutls_openpgp_crt_deinit(crt);
-	}
-}
-
-static void
-print_openpgp_info(gnutls_session_t session, FILE *out, int flag, int print_cert)
-{
-
-	gnutls_openpgp_crt_t crt;
-	const gnutls_datum_t *cert_list;
-	unsigned int cert_list_size = 0;
-	int ret;
-
-	fprintf(out, "- Certificate type: OpenPGP\n");
-
-	cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
-
-	if (cert_list_size > 0) {
-		gnutls_datum_t cinfo;
-
-		gnutls_openpgp_crt_init(&crt);
-		ret = gnutls_openpgp_crt_import(crt, &cert_list[0],
-						GNUTLS_OPENPGP_FMT_RAW);
-		if (ret < 0) {
-			fprintf(stderr, "Decoding error: %s\n",
-				gnutls_strerror(ret));
-			return;
-		}
-
-		ret = gnutls_openpgp_crt_print(crt, flag, &cinfo);
-		if (ret == 0) {
-			fprintf(out, "- %s\n", cinfo.data);
-			gnutls_free(cinfo.data);
-		}
-
-		if (print_cert) {
-			size_t size = 0;
-			char *p = NULL;
-
-			ret =
-			    gnutls_openpgp_crt_export(crt,
-						      GNUTLS_OPENPGP_FMT_BASE64,
-						      p, &size);
-			if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
-				p = malloc(size);
-				if (!p) {
-					fprintf(stderr, "gnutls_malloc\n");
-					exit(1);
-				}
-
-				ret =
-				    gnutls_openpgp_crt_export(crt,
-							      GNUTLS_OPENPGP_FMT_BASE64,
-							      p, &size);
-			}
-			if (ret < 0) {
-				fprintf(stderr, "Encoding error: %s\n",
-					gnutls_strerror(ret));
-				return;
-			}
-
-			fputs(p, out);
-			fputs("\n", out);
-
-			gnutls_free(p);
-		}
-
-		gnutls_openpgp_crt_deinit(crt);
-	}
-}
-
-#endif
 
 /* returns false (0) if not verified, or true (1) otherwise 
  */
@@ -390,6 +282,22 @@ static void
 print_dh_info(gnutls_session_t session, const char *str, int print)
 {
 #if defined(ENABLE_DHE) || defined(ENABLE_ANON)
+	unsigned group;
+	int ret;
+	gnutls_datum_t raw_gen = { NULL, 0 };
+	gnutls_datum_t raw_prime = { NULL, 0 };
+	gnutls_dh_params_t dh_params = NULL;
+	unsigned char *params_data = NULL;
+	size_t params_data_size = 0;
+
+	if (!print)
+		return;
+
+	group = gnutls_group_get(session);
+	if (group != 0) {
+		return;
+	}
+
 	printf("- %sDiffie-Hellman parameters\n", str);
 	printf(" - Using prime: %d bits\n",
 	       gnutls_dh_get_prime_bits(session));
@@ -398,77 +306,71 @@ print_dh_info(gnutls_session_t session, const char *str, int print)
 	printf(" - Peer's public key: %d bits\n",
 	       gnutls_dh_get_peers_public_bits(session));
 
-	if (print) {
-		int ret;
-		gnutls_datum_t raw_gen = { NULL, 0 };
-		gnutls_datum_t raw_prime = { NULL, 0 };
-		gnutls_dh_params_t dh_params = NULL;
-		unsigned char *params_data = NULL;
-		size_t params_data_size = 0;
-
-		ret = gnutls_dh_get_group(session, &raw_gen, &raw_prime);
-		if (ret) {
-			fprintf(stderr, "gnutls_dh_get_group %d\n", ret);
-			goto out;
-		}
-
-		ret = gnutls_dh_params_init(&dh_params);
-		if (ret) {
-			fprintf(stderr, "gnutls_dh_params_init %d\n", ret);
-			goto out;
-		}
-
-		ret =
-		    gnutls_dh_params_import_raw(dh_params, &raw_prime,
-						&raw_gen);
-		if (ret) {
-			fprintf(stderr, "gnutls_dh_params_import_raw %d\n",
-				ret);
-			goto out;
-		}
-
-		ret = gnutls_dh_params_export_pkcs3(dh_params,
-						    GNUTLS_X509_FMT_PEM,
-						    params_data,
-						    &params_data_size);
-		if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
-			fprintf(stderr,
-				"gnutls_dh_params_export_pkcs3 %d\n", ret);
-			goto out;
-		}
-
-		params_data = gnutls_malloc(params_data_size);
-		if (!params_data) {
-			fprintf(stderr, "gnutls_malloc %d\n", ret);
-			goto out;
-		}
-
-		ret = gnutls_dh_params_export_pkcs3(dh_params,
-						    GNUTLS_X509_FMT_PEM,
-						    params_data,
-						    &params_data_size);
-		if (ret) {
-			fprintf(stderr,
-				"gnutls_dh_params_export_pkcs3-2 %d\n",
-				ret);
-			goto out;
-		}
-
-		printf(" - PKCS#3 format:\n\n%.*s\n",
-		       (int) params_data_size, params_data);
-
-	      out:
-		gnutls_free(params_data);
-		gnutls_free(raw_prime.data);
-		gnutls_free(raw_gen.data);
-		gnutls_dh_params_deinit(dh_params);
+	ret = gnutls_dh_get_group(session, &raw_gen, &raw_prime);
+	if (ret) {
+		fprintf(stderr, "gnutls_dh_get_group %d\n", ret);
+		goto out;
 	}
+
+	ret = gnutls_dh_params_init(&dh_params);
+	if (ret) {
+		fprintf(stderr, "gnutls_dh_params_init %d\n", ret);
+		goto out;
+	}
+
+	ret =
+	    gnutls_dh_params_import_raw(dh_params, &raw_prime,
+						&raw_gen);
+	if (ret) {
+		fprintf(stderr, "gnutls_dh_params_import_raw %d\n",
+			ret);
+		goto out;
+	}
+
+	ret = gnutls_dh_params_export_pkcs3(dh_params,
+					    GNUTLS_X509_FMT_PEM,
+					    params_data,
+					    &params_data_size);
+	if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+		fprintf(stderr,
+			"gnutls_dh_params_export_pkcs3 %d\n", ret);
+		goto out;
+	}
+
+	params_data = gnutls_malloc(params_data_size);
+	if (!params_data) {
+		fprintf(stderr, "gnutls_malloc %d\n", ret);
+		goto out;
+	}
+
+	ret = gnutls_dh_params_export_pkcs3(dh_params,
+					    GNUTLS_X509_FMT_PEM,
+					    params_data,
+					    &params_data_size);
+	if (ret) {
+		fprintf(stderr,
+			"gnutls_dh_params_export_pkcs3-2 %d\n",
+			ret);
+		goto out;
+	}
+
+	printf(" - PKCS#3 format:\n\n%.*s\n",
+	       (int) params_data_size, params_data);
+
+      out:
+	gnutls_free(params_data);
+	gnutls_free(raw_prime.data);
+	gnutls_free(raw_gen.data);
+	gnutls_dh_params_deinit(dh_params);
 #endif
 }
 
-static void print_ecdh_info(gnutls_session_t session, const char *str)
+static void print_ecdh_info(gnutls_session_t session, const char *str, int print)
 {
 	int curve;
+
+	if (!print)
+		return;
 
 	printf("- %sEC Diffie-Hellman parameters\n", str);
 
@@ -490,6 +392,7 @@ int print_info(gnutls_session_t session, int verbose, int flags)
 	gnutls_srtp_profile_t srtp_profile;
 	gnutls_datum_t p;
 	char *desc;
+	gnutls_protocol_t version;
 	int rc;
 
 	desc = gnutls_session_get_desc(session);
@@ -498,8 +401,10 @@ int print_info(gnutls_session_t session, int verbose, int flags)
 
 	/* print session ID */
 	gnutls_session_get_id(session, session_id, &session_id_size);
-	printf("- Session ID: %s\n",
-	       raw_to_string(session_id, session_id_size));
+	if (session_id_size > 0) {
+		printf("- Session ID: %s\n",
+		       raw_to_string(session_id, session_id_size));
+	}
 
 	/* print the key exchange's algorithm name
 	 */
@@ -510,7 +415,7 @@ int print_info(gnutls_session_t session, int verbose, int flags)
 #ifdef ENABLE_ANON
 	case GNUTLS_CRD_ANON:
 		if (kx == GNUTLS_KX_ANON_ECDH)
-			print_ecdh_info(session, "Anonymous ");
+			print_ecdh_info(session, "Anonymous ", verbose);
 		else
 			print_dh_info(session, "Anonymous ", verbose);
 		break;
@@ -540,7 +445,7 @@ int print_info(gnutls_session_t session, int verbose, int flags)
 		if (kx == GNUTLS_KX_DHE_PSK)
 			print_dh_info(session, "Ephemeral ", verbose);
 		if (kx == GNUTLS_KX_ECDHE_PSK)
-			print_ecdh_info(session, "Ephemeral ");
+			print_ecdh_info(session, "Ephemeral ", verbose);
 		break;
 #endif
 	case GNUTLS_CRD_IA:
@@ -570,42 +475,42 @@ int print_info(gnutls_session_t session, int verbose, int flags)
 			print_dh_info(session, "Ephemeral ", verbose);
 		else if (kx == GNUTLS_KX_ECDHE_RSA
 			 || kx == GNUTLS_KX_ECDHE_ECDSA)
-			print_ecdh_info(session, "Ephemeral ");
+			print_ecdh_info(session, "Ephemeral ", verbose);
 	}
 
-	tmp =
-	    SU(gnutls_protocol_get_name
-	       (gnutls_protocol_get_version(session)));
-	printf("- Version: %s\n", tmp);
 
-	tmp = SU(gnutls_kx_get_name(kx));
-	printf("- Key Exchange: %s\n", tmp);
-
-	if (gnutls_sign_algorithm_get(session) != GNUTLS_SIGN_UNKNOWN) {
+	if (verbose) {
+		version = gnutls_protocol_get_version(session);
 		tmp =
-		    SU(gnutls_sign_get_name
-		       (gnutls_sign_algorithm_get(session)));
-		printf("- Server Signature: %s\n", tmp);
+		    SU(gnutls_protocol_get_name(version));
+		printf("- Version: %s\n", tmp);
+
+		if (version < GNUTLS_TLS1_3) {
+			tmp = SU(gnutls_kx_get_name(kx));
+			printf("- Key Exchange: %s\n", tmp);
+		}
+
+		if (gnutls_sign_algorithm_get(session) != GNUTLS_SIGN_UNKNOWN) {
+			tmp =
+			    SU(gnutls_sign_get_name
+			       (gnutls_sign_algorithm_get(session)));
+			printf("- Server Signature: %s\n", tmp);
+		}
+
+		if (gnutls_sign_algorithm_get_client(session) !=
+		    GNUTLS_SIGN_UNKNOWN) {
+			tmp =
+			    SU(gnutls_sign_get_name
+			       (gnutls_sign_algorithm_get_client(session)));
+			printf("- Client Signature: %s\n", tmp);
+		}
+
+		tmp = SU(gnutls_cipher_get_name(gnutls_cipher_get(session)));
+		printf("- Cipher: %s\n", tmp);
+
+		tmp = SU(gnutls_mac_get_name(gnutls_mac_get(session)));
+		printf("- MAC: %s\n", tmp);
 	}
-
-	if (gnutls_sign_algorithm_get_client(session) !=
-	    GNUTLS_SIGN_UNKNOWN) {
-		tmp =
-		    SU(gnutls_sign_get_name
-		       (gnutls_sign_algorithm_get_client(session)));
-		printf("- Client Signature: %s\n", tmp);
-	}
-
-	tmp = SU(gnutls_cipher_get_name(gnutls_cipher_get(session)));
-	printf("- Cipher: %s\n", tmp);
-
-	tmp = SU(gnutls_mac_get_name(gnutls_mac_get(session)));
-	printf("- MAC: %s\n", tmp);
-
-	tmp =
-	    SU(gnutls_compression_get_name
-	       (gnutls_compression_get(session)));
-	printf("- Compression: %s\n", tmp);
 
 	printf("- Options:");
 	if (gnutls_session_ext_master_secret_status(session)!=0)
@@ -650,12 +555,9 @@ int print_info(gnutls_session_t session, int verbose, int flags)
 			for (i = 0; i < cb.size; i++)
 				printf("%02x", cb.data[i]);
 			printf("\n");
+			gnutls_free(cb.data);
 		}
 	}
-
-	/* Warning: Do not print anything more here. The 'Compression:'
-	   output MUST be the last non-verbose output.  This is used by
-	   Emacs starttls.el code. */
 
 	fflush(stdout);
 
@@ -669,48 +571,41 @@ void print_cert_info(gnutls_session_t session, int verbose, int print_cert)
 
 void print_cert_info2(gnutls_session_t session, int verbose, FILE *out, int print_cert)
 {
-	int flag;
+	int flag, print_crt_status = 0;
 
 	if (verbose)
 		flag = GNUTLS_CRT_PRINT_FULL;
 	else
 		flag = GNUTLS_CRT_PRINT_COMPACT;
 
-	if (gnutls_certificate_client_get_request_status(session) != 0)
+	if (gnutls_certificate_client_get_request_status(session) != 0) {
 		printf("- Server has requested a certificate.\n");
+		print_crt_status = 1;
+	}
 
 	switch (gnutls_certificate_type_get(session)) {
 	case GNUTLS_CRT_X509:
-		print_x509_info(session, out, flag, print_cert);
+		print_x509_info(session, out, flag, print_cert, print_crt_status);
 		break;
-#ifdef ENABLE_OPENPGP
-	case GNUTLS_CRT_OPENPGP:
-		print_openpgp_info(session, out, flag, print_cert);
-		break;
-#endif
 	default:
-		printf("Unknown type\n");
 		break;
 	}
 }
 
 void print_cert_info_compact(gnutls_session_t session)
 {
+	int verbose = 0;
 
-	if (gnutls_certificate_client_get_request_status(session) != 0)
+	if (gnutls_certificate_client_get_request_status(session) != 0) {
 		printf("- Server has requested a certificate.\n");
+		verbose = 1;
+	}
 
 	switch (gnutls_certificate_type_get(session)) {
 	case GNUTLS_CRT_X509:
-		print_x509_info_compact(session);
+		print_x509_info_compact(session, verbose);
 		break;
-#ifdef ENABLE_OPENPGP
-	case GNUTLS_CRT_OPENPGP:
-		print_openpgp_info_compact(session);
-		break;
-#endif
 	default:
-		printf("Unknown type\n");
 		break;
 	}
 }
@@ -735,7 +630,10 @@ void print_list(const char *priorities, int verbose)
 
 		ret = gnutls_priority_init(&pcache, priorities, &err);
 		if (ret < 0) {
-			fprintf(stderr, "Syntax error at: %s\n", err);
+			if (ret == GNUTLS_E_INVALID_REQUEST)
+				fprintf(stderr, "Syntax error at: %s\n", err);
+			else
+				fprintf(stderr, "Error in priorities: %s\n", gnutls_strerror(ret));
 			exit(1);
 		}
 
@@ -761,10 +659,12 @@ void print_list(const char *priorities, int verbose)
 		}
 
 		printf("\n");
+#if 0
 		{
 			ret =
-			    gnutls_priority_certificate_type_list(pcache,
-								  &list);
+			    gnutls_priority_certificate_type_list2(pcache,
+								  &list,
+								  GNUTLS_CTYPE_CLIENT);
 
 			printf("Certificate types: ");
 			if (ret == 0)
@@ -779,6 +679,7 @@ void print_list(const char *priorities, int verbose)
 					printf("\n");
 			}
 		}
+#endif
 
 		{
 			ret = gnutls_priority_protocol_list(pcache, &list);
@@ -797,17 +698,46 @@ void print_list(const char *priorities, int verbose)
 		}
 
 		{
-			ret =
-			    gnutls_priority_compression_list(pcache,
-							     &list);
+			ret = gnutls_priority_cipher_list(pcache, &list);
 
-			printf("Compression: ");
+			printf("Ciphers: ");
 			if (ret == 0)
 				printf("none\n");
 			for (i = 0; i < (unsigned) ret; i++) {
-				printf("COMP-%s",
-				       gnutls_compression_get_name(list
-								   [i]));
+				printf("%s",
+				       gnutls_cipher_get_name(list[i]));
+				if (i + 1 != (unsigned) ret)
+					printf(", ");
+				else
+					printf("\n");
+			}
+		}
+
+		{
+			ret = gnutls_priority_mac_list(pcache, &list);
+
+			printf("MACs: ");
+			if (ret == 0)
+				printf("none\n");
+			for (i = 0; i < (unsigned) ret; i++) {
+				printf("%s",
+				       gnutls_mac_get_name(list[i]));
+				if (i + 1 != (unsigned) ret)
+					printf(", ");
+				else
+					printf("\n");
+			}
+		}
+
+		{
+			ret = gnutls_priority_kx_list(pcache, &list);
+
+			printf("Key Exchange Algorithms: ");
+			if (ret == 0)
+				printf("none\n");
+			for (i = 0; i < (unsigned) ret; i++) {
+				printf("%s",
+				       gnutls_kx_get_name(list[i]));
 				if (i + 1 != (unsigned) ret)
 					printf(", ");
 				else
@@ -817,14 +747,14 @@ void print_list(const char *priorities, int verbose)
 
 		{
 			ret =
-			    gnutls_priority_ecc_curve_list(pcache, &list);
+			    gnutls_priority_group_list(pcache, &list);
 
-			printf("Elliptic curves: ");
+			printf("Groups: ");
 			if (ret == 0)
 				printf("none\n");
 			for (i = 0; i < (unsigned) ret; i++) {
-				printf("CURVE-%s",
-				       gnutls_ecc_curve_get_name(list[i]));
+				printf("GROUP-%s",
+				       gnutls_group_get_name(list[i]));
 				if (i + 1 != (unsigned) ret)
 					printf(", ");
 				else
@@ -849,6 +779,7 @@ void print_list(const char *priorities, int verbose)
 			}
 		}
 
+		gnutls_priority_deinit(pcache);
 		return;
 	}
 
@@ -963,11 +894,11 @@ void print_list(const char *priorities, int verbose)
 	}
 
 	{
-		const gnutls_ecc_curve_t *p = gnutls_ecc_curve_list();
+		const gnutls_group_t *p = gnutls_group_list();
 
-		printf("Elliptic curves: ");
+		printf("Groups: ");
 		for (; *p; p++) {
-			printf("CURVE-%s", gnutls_ecc_curve_get_name(*p));
+			printf("GROUP-%s", gnutls_group_get_name(*p));
 			if (*(p + 1))
 				printf(", ");
 			else
@@ -1003,7 +934,7 @@ void print_list(const char *priorities, int verbose)
 	}
 }
 
-int check_command(gnutls_session_t session, const char *str)
+int check_command(gnutls_session_t session, const char *str, unsigned no_cli_cert)
 {
 	size_t len = strnlen(str, 128);
 	int ret;
@@ -1017,6 +948,24 @@ int check_command(gnutls_session_t session, const char *str)
 			fprintf(stderr,
 				"*** Sending rehandshake request\n");
 			gnutls_rehandshake(session);
+			return 1;
+		} else if (strncmp
+		    (str, "**REAUTH**",
+		     sizeof("**REAUTH**") - 1) == 0) {
+			/* in case we have a re-auth cmd prepare for it */
+			if (no_cli_cert)
+				gnutls_certificate_server_set_request(session, GNUTLS_CERT_REQUIRE);
+
+			fprintf(stderr,
+				"*** Sending re-auth request\n");
+			do {
+				ret = gnutls_reauth(session, 0);
+			} while(ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+			if (ret < 0) {
+				fprintf(stderr, "reauth: %s\n",
+					gnutls_strerror(ret));
+				exit(1);
+			}
 			return 1;
 		} else
 		    if (strncmp
@@ -1041,6 +990,54 @@ int check_command(gnutls_session_t session, const char *str)
 	return 0;
 }
 
+/* error is indicated by returning an empty string */
+void getpass_copy(char *pass, size_t max_pass_size, const char *prompt)
+{
+	char *tmp;
+	size_t len;
+
+	tmp = getpass(prompt);
+	if (tmp == NULL) {
+		pass[0] = 0;
+		return;
+	}
+
+	len = strlen(tmp);
+	if (len >= max_pass_size) {
+		gnutls_memset(tmp, 0, len);
+		pass[0] = 0;
+		return;
+	}
+
+	strcpy(pass, tmp);
+	gnutls_memset(tmp, 0, len);
+
+	return;
+}
+
+/* error is indicated by returning an empty string */
+void getenv_copy(char *str, size_t max_str_size, const char *envvar)
+{
+	char *tmp;
+	size_t len;
+
+	tmp = getenv(envvar);
+	if (tmp == NULL) {
+		str[0] = 0;
+		return;
+	}
+
+	len = strlen(tmp);
+	if (len >= max_str_size) {
+		str[0] = 0;
+		return;
+	}
+
+	strcpy(str, tmp);
+
+	return;
+}
+
 #define MIN(x,y) ((x)<(y))?(x):(y)
 #define MAX_CACHE_TRIES 5
 int
@@ -1048,26 +1045,26 @@ pin_callback(void *user, int attempt, const char *token_url,
 	     const char *token_label, unsigned int flags, char *pin,
 	     size_t pin_max)
 {
-	const char *password = NULL;
+	char password[MAX_PIN_LEN] = "";
 	common_info_st *info = user;
 	const char *desc;
 	int cache = MAX_CACHE_TRIES;
 	unsigned len;
 /* allow caching of PIN */
 	static char *cached_url = NULL;
-	static char cached_pin[32] = "";
+	static char cached_pin[MAX_PIN_LEN] = "";
 	const char *env;
 
 	if (flags & GNUTLS_PIN_SO) {
 		env = "GNUTLS_SO_PIN";
 		desc = "security officer";
-		if (info)
-			password = info->so_pin;
+		if (info && info->so_pin)
+			snprintf(password, sizeof(password), "%s", info->so_pin);
 	} else {
 		env = "GNUTLS_PIN";
 		desc = "user";
-		if (info)
-			password = info->pin;
+		if (info && info->pin)
+			snprintf(password, sizeof(password), "%s", info->pin);
 	}
 
 	if (flags & GNUTLS_PIN_FINAL_TRY) {
@@ -1092,36 +1089,44 @@ pin_callback(void *user, int attempt, const char *token_url,
 				exit(1);
 			}
 
-			fprintf(stderr,
-				"Re-using cached PIN for token '%s'\n",
-				token_label);
+			if (info && info->verbose) {
+				fprintf(stderr,
+					"Re-using cached PIN for token '%s'\n",
+					token_label);
+			}
 			strcpy(pin, cached_pin);
 			cache--;
 			return 0;
 		}
 	}
 
-	if (password == NULL) {
-		password = getenv(env);
-		if (password == NULL) /* compatibility */
-			password = getenv("GNUTLS_PIN");
+	if (password[0] == 0) {
+		getenv_copy(password, sizeof(password), env);
+		if (password[0] == 0) /* compatibility */
+			getenv_copy(password, sizeof(password), "GNUTLS_PIN");
 	}
 
-	if (password == NULL && (info == NULL || info->batch == 0)) {
-		fprintf(stderr, "Token '%s' with URL '%s' ", token_label, token_url);
-		fprintf(stderr, "requires %s PIN\n", desc);
-
-		password = getpass("Enter PIN: ");
-	} else {
-		if (flags & GNUTLS_PIN_WRONG) {
+	if (password[0] == 0 && (info == NULL || info->batch == 0 || info->ask_pass != 0)) {
+		if (token_label && token_label[0] != 0) {
 			fprintf(stderr, "Token '%s' with URL '%s' ", token_label, token_url);
 			fprintf(stderr, "requires %s PIN\n", desc);
+			getpass_copy(password, sizeof(password), "Enter PIN: ");
+		} else {
+			getpass_copy(password, sizeof(password), "Enter password: ");
+		}
+
+	} else {
+		if (flags & GNUTLS_PIN_WRONG) {
+			if (token_label && token_label[0] != 0) {
+				fprintf(stderr, "Token '%s' with URL '%s' ", token_label, token_url);
+				fprintf(stderr, "requires %s PIN\n", desc);
+			}
 			fprintf(stderr, "Cannot continue with a wrong password in the environment.\n");
 			exit(1);
 		}
 	}
 
-	if (password == NULL || password[0] == 0 || password[0] == '\n') {
+	if (password[0] == 0 || password[0] == '\n') {
 		fprintf(stderr, "No PIN given.\n");
 		if (info != NULL && info->batch != 0) {
 			fprintf(stderr, "note: when operating in batch mode, set the GNUTLS_PIN or GNUTLS_SO_PIN environment variables\n");
@@ -1146,8 +1151,6 @@ pin_callback(void *user, int attempt, const char *token_url,
 	else
 		cached_url = NULL;
 
-	cache = MAX_CACHE_TRIES;
-
 	return 0;
 }
 
@@ -1165,7 +1168,10 @@ token_callback(void *user, const char *label, const unsigned retry)
 	}
 	printf("Please insert token '%s' in slot and press enter\n",
 	       label);
-	fgets(buf, sizeof(buf), stdin);
+	if (fgets(buf, sizeof(buf), stdin) == NULL) {
+		fprintf(stderr, "error reading input\n");
+		return -1;
+	}
 
 	return 0;
 }

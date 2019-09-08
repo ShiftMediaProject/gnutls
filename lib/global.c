@@ -28,7 +28,7 @@
 #include <random.h>
 #include <gnutls/pkcs11.h>
 
-#include <extensions.h>	/* for _gnutls_ext_init */
+#include <hello_ext.h>	/* for _gnutls_hello_ext_init */
 #include <supplemental.h> /* for _gnutls_supplemental_deinit */
 #include <locks.h>
 #include <system.h>
@@ -46,32 +46,11 @@
 #ifdef __sun
 # pragma fini(lib_deinit)
 # pragma init(lib_init)
-# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void);
-# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void);
-#elif defined(_WIN32) && defined(_MSC_VER)
-# define CONSTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
-    static int _func ## _wrapper(void) { _func(); return 0; } \
-    __pragma(section(".CRT$XCU",read)) \
-    __declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _wrapper; \
-    __pragma(comment(linker,"/include:" p #_func "_"))
-#ifdef _WIN64
-#define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"")
+# define _CONSTRUCTOR
+# define _DESTRUCTOR
 #else
-#define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"_")
-#endif
-# define DESTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
-    static int _func ## _constructor(void) { atexit (_func); return 0; } \
-    __pragma(section(".CRT$XCU",read)) \
-    __declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _constructor; \
-    __pragma(comment(linker,"/include:" p #_func "_"))
-#ifdef _WIN64
-#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"")
-#else
-#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"_")
-#endif
-#else
-# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((constructor))
-# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((destructor))
+# define _CONSTRUCTOR __attribute__((constructor))
+# define _DESTRUCTOR __attribute__((destructor))
 #endif
 
 #ifndef _WIN32
@@ -331,7 +310,7 @@ static int _gnutls_global_init(unsigned constructor)
 	}
 
 	/* Initialize the default TLS extensions */
-	ret = _gnutls_ext_init();
+	ret = _gnutls_hello_ext_init();
 	if (ret < 0) {
 		gnutls_assert();
 		goto out;
@@ -390,8 +369,8 @@ static int _gnutls_global_init(unsigned constructor)
 	_gnutls_load_system_priorities();
 
 #ifdef ENABLE_FIPS140
-	/* These self tests are performed on the overriden algorithms
-	 * (e.g., AESNI overriden AES). They are after _gnutls_register_accel_crypto()
+	/* These self tests are performed on the overridden algorithms
+	 * (e.g., AESNI overridden AES). They are after _gnutls_register_accel_crypto()
 	 * intentionally */
 	if (res != 0) {
 		ret = _gnutls_fips_perform_self_checks2();
@@ -433,7 +412,7 @@ static void _gnutls_global_deinit(unsigned destructor)
 		_gnutls_system_key_deinit();
 		gnutls_crypto_deinit();
 		_gnutls_rnd_deinit();
-		_gnutls_ext_deinit();
+		_gnutls_hello_ext_deinit();
 		asn1_delete_structure(&_gnutls_gnutls_asn);
 		asn1_delete_structure(&_gnutls_pkix1_asn);
 
@@ -456,6 +435,8 @@ static void _gnutls_global_deinit(unsigned destructor)
 #ifdef HAVE_TROUSERS
 		_gnutls_tpm_global_deinit();
 #endif
+
+		_gnutls_nss_keylog_deinit();
 
 		gnutls_mutex_deinit(&_gnutls_file_mutex);
 		gnutls_mutex_deinit(&_gnutls_pkcs11_mutex);
@@ -510,8 +491,7 @@ const char *gnutls_check_version(const char *req_version)
 	return NULL;
 }
 
-CONSTRUCTOR_ATTRIBUTE(lib_init);
-static void lib_init(void)
+static void _CONSTRUCTOR lib_init(void)
 {
 int ret;
 const char *e;
@@ -533,8 +513,7 @@ const char *e;
 	}
 }
 
-DESTRUCTOR_ATTRIBUTE(lib_deinit);
-static void lib_deinit(void)
+static void _DESTRUCTOR lib_deinit(void)
 {
 	const char *e;
 
