@@ -10,16 +10,22 @@ Global
 		Debug|x86 = Debug|x86
 		DebugDLL|x64 = DebugDLL|x64
 		DebugDLL|x86 = DebugDLL|x86
-		DebugDLLStaticDeps|x64 = DebugDLLStaticDeps|x64
-		DebugDLLStaticDeps|x86 = DebugDLLStaticDeps|x86
+		DebugDLLWinRT|x64 = DebugDLLWinRT|x64
+		DebugDLLWinRT|x86 = DebugDLLWinRT|x86
+		DebugWinRT|x64 = DebugWinRT|x64
+		DebugWinRT|x86 = DebugWinRT|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 		ReleaseDLL|x64 = ReleaseDLL|x64
 		ReleaseDLL|x86 = ReleaseDLL|x86
 		ReleaseDLLStaticDeps|x64 = ReleaseDLLStaticDeps|x64
 		ReleaseDLLStaticDeps|x86 = ReleaseDLLStaticDeps|x86
-		ReleaseLTO|x64 = ReleaseLTO|x64
-		ReleaseLTO|x86 = ReleaseLTO|x86
+		ReleaseDLLWinRT|x64 = ReleaseDLLWinRT|x64
+		ReleaseDLLWinRT|x86 = ReleaseDLLWinRT|x86
+		ReleaseDLLWinRTStaticDeps|x64 = ReleaseDLLWinRTStaticDeps|x64
+		ReleaseDLLWinRTStaticDeps|x86 = ReleaseDLLWinRTStaticDeps|x86
+		ReleaseWinRT|x64 = ReleaseWinRT|x64
+		ReleaseWinRT|x86 = ReleaseWinRT|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.Debug|x64.ActiveCfg = Debug|x64
@@ -30,10 +36,14 @@ Global
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLL|x64.Build.0 = DebugDLL|x64
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLL|x86.ActiveCfg = DebugDLL|Win32
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLL|x86.Build.0 = DebugDLL|Win32
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLStaticDeps|x64.ActiveCfg = DebugDLLStaticDeps|x64
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLStaticDeps|x64.Build.0 = DebugDLLStaticDeps|x64
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLStaticDeps|x86.ActiveCfg = DebugDLLStaticDeps|Win32
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLStaticDeps|x86.Build.0 = DebugDLLStaticDeps|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLWinRT|x64.ActiveCfg = DebugDLLWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLWinRT|x64.Build.0 = DebugDLLWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLWinRT|x86.ActiveCfg = DebugDLLWinRT|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugDLLWinRT|x86.Build.0 = DebugDLLWinRT|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugWinRT|x64.ActiveCfg = DebugWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugWinRT|x64.Build.0 = DebugWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugWinRT|x86.ActiveCfg = DebugWinRT|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.DebugWinRT|x86.Build.0 = DebugWinRT|Win32
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.Release|x64.ActiveCfg = Release|x64
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.Release|x64.Build.0 = Release|x64
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.Release|x86.ActiveCfg = Release|Win32
@@ -46,12 +56,23 @@ Global
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLStaticDeps|x64.Build.0 = ReleaseDLLStaticDeps|x64
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLStaticDeps|x86.ActiveCfg = ReleaseDLLStaticDeps|Win32
 		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLStaticDeps|x86.Build.0 = ReleaseDLLStaticDeps|Win32
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseLTO|x64.ActiveCfg = ReleaseLTO|x64
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseLTO|x64.Build.0 = ReleaseLTO|x64
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseLTO|x86.ActiveCfg = ReleaseLTO|Win32
-		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseLTO|x86.Build.0 = ReleaseLTO|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRT|x64.ActiveCfg = ReleaseDLLWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRT|x64.Build.0 = ReleaseDLLWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRT|x86.ActiveCfg = ReleaseDLLWinRT|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRT|x86.Build.0 = ReleaseDLLWinRT|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRTStaticDeps|x64.ActiveCfg = ReleaseDLLWinRTStaticDeps|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRTStaticDeps|x64.Build.0 = ReleaseDLLWinRTStaticDeps|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRTStaticDeps|x86.ActiveCfg = ReleaseDLLWinRTStaticDeps|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseDLLWinRTStaticDeps|x86.Build.0 = ReleaseDLLWinRTStaticDeps|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseWinRT|x64.ActiveCfg = ReleaseWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseWinRT|x64.Build.0 = ReleaseWinRT|x64
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseWinRT|x86.ActiveCfg = ReleaseWinRT|Win32
+		{6F610EE8-7F59-4191-AB88-F63843267C02}.ReleaseWinRT|x86.Build.0 = ReleaseWinRT|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5BF375AC-451F-437A-A43B-4F4138593684}
 	EndGlobalSection
 EndGlobal

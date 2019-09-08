@@ -228,20 +228,6 @@ static void rewinddir(DIR* dirp);
 static WIN32_FIND_DATAW *dirent_first(_WDIR *dirp);
 static WIN32_FIND_DATAW *dirent_next(_WDIR *dirp);
 
-static int dirent_mbstowcs_s(
-    size_t *pReturnValue,
-    wchar_t *wcstr,
-    size_t sizeInWords,
-    const char *mbstr,
-    size_t count);
-
-static int dirent_wcstombs_s(
-    size_t *pReturnValue,
-    char *mbstr,
-    size_t sizeInBytes,
-    const wchar_t *wcstr,
-    size_t count);
-
 static void dirent_set_errno(int error);
 
 /*
@@ -506,12 +492,10 @@ static __inline DIR* opendir(const char *dirname)
     dirp = (DIR*)malloc(sizeof(struct DIR));
     if (dirp) {
         wchar_t wname[PATH_MAX + 1];
-        size_t n;
 
         /* Convert directory name to wide-character string */
-        error = dirent_mbstowcs_s(
-            &n, wname, PATH_MAX + 1, dirname, PATH_MAX);
-        if (!error) {
+        error = MultiByteToWideChar(CP_UTF8, 0, dirname, -1, wname, PATH_MAX + 1);
+        if (error != 0) {
             /* Open directory stream using wide-character name */
             dirp->wdirp = _wopendir(wname);
             if (dirp->wdirp) {
@@ -566,11 +550,10 @@ static __inline struct dirent* readdir(DIR *dirp)
     datap = dirent_next(dirp->wdirp);
     if (datap) {
         size_t n;
-        int error;
+        int len;
 
         /* Attempt to convert file name to multi-byte string */
-        error = dirent_wcstombs_s(
-            &n, dirp->ent.d_name, MAX_PATH + 1, datap->cFileName, MAX_PATH);
+        len = WideCharToMultiByte(CP_UTF8, 0, datap->cFileName, -1, dirp->ent.d_name, PATH_MAX + 1, NULL, NULL);
 
         /*
          * If the file name cannot be represented by a multi-byte string,
@@ -582,21 +565,18 @@ static __inline struct dirent* readdir(DIR *dirp)
          * name unless the file system provides one.  At least
          * VirtualBox shared folders fail to do this.
          */
-        if (error  &&  datap->cAlternateFileName[0] != '\0') {
-            error = dirent_wcstombs_s(
-                &n, dirp->ent.d_name, MAX_PATH + 1, datap->cAlternateFileName,
-                sizeof(datap->cAlternateFileName) /
-                sizeof(datap->cAlternateFileName[0]));
+        if ((len == 0)  &&  datap->cAlternateFileName[0] != '\0') {
+            len = WideCharToMultiByte(CP_UTF8, 0, datap->cAlternateFileName, -1, dirp->ent.d_name, MAX_PATH + 1, NULL, NULL);
         }
 
-        if (!error) {
+        if (len != 0) {
             DWORD attr;
 
             /* Initialize directory entry for return */
             entp = &dirp->ent;
 
             /* Length of file name excluding zero terminator */
-            entp->d_namlen = n - 1;
+            entp->d_namlen = len - 1;
 
             /* File attributes */
             attr = datap->dwFileAttributes;
@@ -662,87 +642,6 @@ static __inline void rewinddir(DIR* dirp)
 {
     /* Rewind wide-character string directory stream */
     _wrewinddir(dirp->wdirp);
-}
-
-/* Convert multi-byte string to wide character string */
-static __inline int dirent_mbstowcs_s(
-    size_t *pReturnValue,
-    wchar_t *wcstr,
-    size_t sizeInWords,
-    const char *mbstr,
-    size_t count)
-{
-    int error;
-
-#if _MSC_VER >= 1400
-    /* Microsoft Visual Studio 2005 or later */
-    error = mbstowcs_s(pReturnValue, wcstr, sizeInWords, mbstr, count);
-#else
-    /* Older Visual Studio or non-Microsoft compiler */
-    size_t n;
-
-    /* Convert to wide-character string */
-    n = mbstowcs(wcstr, mbstr, count);
-    if (n < sizeInWords) {
-        /* Zero-terminate output buffer */
-        if (wcstr) {
-            wcstr[n] = 0;
-        }
-
-        /* Length of resuting multi-byte string WITH zero terminator */
-        if (pReturnValue) {
-            *pReturnValue = n + 1;
-        }
-
-        /* Success */
-        error = 0;
-    } else {
-        /* Could not convert string */
-        error = 1;
-    }
-#endif
-    return error;
-}
-
-/* Convert wide-character string to multi-byte string */
-static __inline int dirent_wcstombs_s(
-    size_t *pReturnValue,
-    char *mbstr,
-    size_t sizeInBytes,
-    const wchar_t *wcstr,
-    size_t count)
-{
-    int error;
-
-#if _MSC_VER >= 1400
-    /* Microsoft Visual Studio 2005 or later */
-    error = wcstombs_s(pReturnValue, mbstr, sizeInBytes, wcstr, count);
-#else
-    /* Older Visual Studio or non-Microsoft compiler */
-    size_t n;
-
-    /* Convert to multi-byte string */
-    n = wcstombs(mbstr, wcstr, count);
-    if (n < sizeInBytes) {
-        /* Zero-terminate output buffer */
-        if (mbstr) {
-            mbstr[n] = '\0';
-        }
-
-        /* Lenght of resulting multi-bytes string WITH zero-terminator */
-        if (pReturnValue) {
-            *pReturnValue = n + 1;
-        }
-
-        /* Success */
-        error = 0;
-    } else {
-        /* Cannot convert string */
-        error = 1;
-    }
-#endif
-
-    return error;
 }
 
 /* Set errno variable */

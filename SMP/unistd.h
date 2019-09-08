@@ -57,22 +57,6 @@ typedef int mode_t;
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 
-#include <winapifamily.h>
-#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#include <winsock2.h>
-#include <windows.h>
-static __inline char *getcwd(char *buffer, size_t size)
-{
-    return NULL;
-}
-
-typedef int pid_t;
-static __inline pid_t getpid(void)
-{
-    return GetCurrentProcessId();
-}
-#endif
-
 #endif /* _MSC_VER */
 
 #endif /* SMP_UNISTD_H */
