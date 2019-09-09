@@ -161,9 +161,11 @@ int add_system_trust(gnutls_x509_trust_list_t list, unsigned int tl_flags,
 		gnutls_datum_t data;
 
 		if (i == 0)
-			store = CertOpenSystemStore(0, "ROOT");
+            store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
+			CERT_SYSTEM_STORE_CURRENT_USER, L"ROOT");
 		else
-			store = CertOpenSystemStore(0, "CA");
+            store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
+			CERT_SYSTEM_STORE_CURRENT_USER, L"CA");
 
 		if (store == NULL)
 			return GNUTLS_E_FILE_ERROR;

@@ -46,11 +46,32 @@
 #ifdef __sun
 # pragma fini(lib_deinit)
 # pragma init(lib_init)
-# define _CONSTRUCTOR
-# define _DESTRUCTOR
+# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void);
+# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void);
+#elif defined(_WIN32) && defined(_MSC_VER)
+# define CONSTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
+	static int _func ## _wrapper(void) { _func(); return 0; } \
+	__pragma(section(".CRT$XCU",read)) \
+	__declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _wrapper; \
+	__pragma(comment(linker,"/include:" p #_func "_"))
+#ifdef _WIN64
+# define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"")
 #else
-# define _CONSTRUCTOR __attribute__((constructor))
-# define _DESTRUCTOR __attribute__((destructor))
+# define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"_")
+#endif
+# define DESTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
+	static int _func ## _constructor(void) { atexit (_func); return 0; } \
+	__pragma(section(".CRT$XCU",read)) \
+	__declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _constructor; \
+	__pragma(comment(linker,"/include:" p #_func "_"))
+#ifdef _WIN64
+#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"")
+#else
+#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"_")
+#endif
+#else
+# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((constructor))
+# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((destructor))
 #endif
 
 #ifndef _WIN32
@@ -491,7 +512,8 @@ const char *gnutls_check_version(const char *req_version)
 	return NULL;
 }
 
-static void _CONSTRUCTOR lib_init(void)
+CONSTRUCTOR_ATTRIBUTE(lib_init);
+static void lib_init(void)
 {
 int ret;
 const char *e;
@@ -513,7 +535,8 @@ const char *e;
 	}
 }
 
-static void _DESTRUCTOR lib_deinit(void)
+DESTRUCTOR_ATTRIBUTE(lib_deinit);
+static void lib_deinit(void)
 {
 	const char *e;
 
