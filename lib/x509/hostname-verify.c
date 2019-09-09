@@ -26,8 +26,10 @@
 #include <common.h>
 #include "errors.h"
 #include <system.h>
+#ifndef _MSC_VER
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
 /**
  * gnutls_x509_crt_check_hostname:

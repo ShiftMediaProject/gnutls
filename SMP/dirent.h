@@ -651,6 +651,22 @@ static __inline void dirent_set_errno(int error)
     _set_errno(error);
 }
 
+#ifdef _UNICODE
+#define _tdirent _wdirent
+#define _TDIR _WDIR
+#define _topendir _wopendir
+#define _treaddir _wreaddir
+#define _tclosedir _wclosedir
+#define _trewinddir _wrewinddir
+#else
+#define _tdirent dirent
+#define _TDIR DIR
+#define _topendir opendir
+#define _treaddir readdir
+#define _tclosedir closedir
+#define _trewinddir rewinddir
+#endif
+
 #endif /* _MSC_VER */
 
 #endif /*SMP_DIRENT_H*/

@@ -153,6 +153,7 @@
     <ClInclude Include="..\lib\global.h" />
     <ClInclude Include="..\lib\gnutls_int.h" />
     <ClInclude Include="..\lib\gthreads.h" />
+    <ClInclude Include="..\lib\handshake-defs.h" />
     <ClInclude Include="..\lib\handshake.h" />
     <ClInclude Include="..\lib\hash_int.h" />
     <ClInclude Include="..\lib\hello_ext.h" />
@@ -542,8 +543,6 @@
     <ClCompile Include="..\lib\system.c" />
     <ClCompile Include="..\lib\system\certs.c" />
     <ClCompile Include="..\lib\system\fastopen.c" />
-    <ClCompile Include="..\lib\system\inet_ntop.c" />
-    <ClCompile Include="..\lib\system\inet_pton.c" />
     <ClCompile Include="..\lib\system\keys-win.c" />
     <ClCompile Include="..\lib\system\sockets.c" />
     <ClCompile Include="..\lib\system\threads.c" />
@@ -1222,7 +1221,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0600;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(OutDir)\lib\x86\$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
@@ -1484,7 +1483,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0600;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
@@ -1781,7 +1780,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0600;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InterproceduralOptimization>SingleFile</InterproceduralOptimization>
       <ProgramDataBaseFileName>$(OutDir)\lib\x86\$(TargetName).pdb</ProgramDataBaseFileName>
@@ -2067,7 +2066,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0600;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
@@ -2144,7 +2143,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0600;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>

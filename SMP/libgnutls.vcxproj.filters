@@ -564,6 +564,9 @@
     <ClInclude Include="gnutls\gnutls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\handshake-defs.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -1086,12 +1089,6 @@
       <Filter>Source Files\lib\system</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\system\fastopen.c">
-      <Filter>Source Files\lib\system</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system\inet_ntop.c">
-      <Filter>Source Files\lib\system</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\system\inet_pton.c">
       <Filter>Source Files\lib\system</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\system\keys-win.c">

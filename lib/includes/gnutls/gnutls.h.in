@@ -38,7 +38,12 @@
 #define GNUTLS_H
 
 /* Get ssize_t. */
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
 #include <sys/types.h>
+#endif
 
 /* Get size_t. */
 #include <stddef.h>

@@ -24,7 +24,9 @@
 #include "gnutls_int.h"
 #include "ip.h"
 #include <gnutls/x509.h>
+#ifndef _MSC_VER
 #include <arpa/inet.h>
+#endif
 
 /*-
  * _gnutls_mask_to_prefix:
