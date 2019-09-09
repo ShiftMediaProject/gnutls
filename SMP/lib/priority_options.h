@@ -35,7 +35,7 @@ typedef void (*option_set_func)(gnutls_priority_t);
 #line 6 "lib/priority_options.gperf"
 struct priority_options_st { const char *name; option_set_func func; };
 
-#define TOTAL_KEYWORDS 32
+#define TOTAL_KEYWORDS 34
 #define MIN_WORD_LENGTH 6
 #define MAX_WORD_LENGTH 32
 #define MIN_HASH_VALUE 6
@@ -62,7 +62,7 @@ hash (register const char *str, register size_t len)
       30, 53, 53,  5, 53, 53,  5, 53, 53, 53,
       53, 53, 53, 53, 53,  5, 53, 35,  0, 10,
        0, 30,  0, 53, 53,  0, 15,  0,  0, 53,
-       0, 53, 53, 10,  5,  5,  0,  5, 53, 10,
+       0, 53, 53, 10,  5,  5,  0,  5, 53, 25,
       53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
       53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
       53, 53, 53, 53, 53, 53, 53, 53, 53, 53,
@@ -115,12 +115,12 @@ static const struct priority_options_st wordlist[] =
     {"NO_TICKETS", enable_no_tickets},
 #line 25 "lib/priority_options.gperf"
     {"PARTIAL_RENEGOTIATION", enable_partial_safe_renegotiation},
-#line 36 "lib/priority_options.gperf"
+#line 37 "lib/priority_options.gperf"
     {"PROFILE_SUITEB128", enable_profile_suiteb128},
 #line 10 "lib/priority_options.gperf"
     {"NO_EXTENSIONS", enable_no_extensions},
-#line 32 "lib/priority_options.gperf"
-    {"PROFILE_LEGACY", enable_profile_legacy},
+#line 36 "lib/priority_options.gperf"
+    {"PROFILE_FUTURE", enable_profile_future},
 #line 23 "lib/priority_options.gperf"
     {"UNSAFE_RENEGOTIATION", enable_unsafe_renegotiation},
 #line 26 "lib/priority_options.gperf"
@@ -137,22 +137,27 @@ static const struct priority_options_st wordlist[] =
     {"STATELESS_COMPRESSION", dummy_func},
 #line 22 "lib/priority_options.gperf"
     {"VERIFY_ALLOW_X509_V1_CA_CRT", dummy_func},
-    {""}, {""},
+    {""},
+#line 41 "lib/priority_options.gperf"
+    {"ALLOW_SMALL_RECORDS", enable_allow_small_records},
 #line 19 "lib/priority_options.gperf"
     {"VERIFY_DISABLE_CRL_CHECKS", disable_crl_checks},
 #line 21 "lib/priority_options.gperf"
     {"LATEST_RECORD_VERSION", enable_latest_record_version},
 #line 29 "lib/priority_options.gperf"
     {"SERVER_PRECEDENCE", enable_server_precedence},
-    {""}, {""}, {""},
-#line 38 "lib/priority_options.gperf"
-    {"NEW_PADDING", dummy_func},
+    {""},
+#line 32 "lib/priority_options.gperf"
+    {"PROFILE_LEGACY", enable_profile_legacy},
+    {""},
 #line 39 "lib/priority_options.gperf"
+    {"NEW_PADDING", dummy_func},
+#line 40 "lib/priority_options.gperf"
     {"DEBUG_ALLOW_KEY_USAGE_VIOLATIONS", enable_server_key_usage_violations},
     {""}, {""}, {""},
 #line 8 "lib/priority_options.gperf"
     {"COMPAT", enable_compat},
-#line 37 "lib/priority_options.gperf"
+#line 38 "lib/priority_options.gperf"
     {"PROFILE_SUITEB192", enable_profile_suiteb192},
     {""}, {""}, {""}, {""},
 #line 18 "lib/priority_options.gperf"

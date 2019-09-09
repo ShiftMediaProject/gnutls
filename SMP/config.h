@@ -1784,6 +1784,9 @@
 /* Define to 1 if you have the <ws2tcpip.h> header file. */
 #define HAVE_WS2TCPIP_H 1
 
+/* Define to 1 if you have the `xts_encrypt_message' function. */
+#define HAVE_XTS_ENCRYPT_MESSAGE 1
+
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
 

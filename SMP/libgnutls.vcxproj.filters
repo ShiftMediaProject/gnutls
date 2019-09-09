@@ -567,6 +567,9 @@
     <ClInclude Include="..\lib\handshake-defs.h">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\profiles.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -1479,6 +1482,9 @@
       <Filter>Source Files\gnulib\uninorm</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\cert-cred-rawpk.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\profiles.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
   </ItemGroup>
