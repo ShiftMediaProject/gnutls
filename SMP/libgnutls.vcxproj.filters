@@ -1103,9 +1103,6 @@
     <ClCompile Include="..\lib\system\threads.c">
       <Filter>Source Files\lib\system</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\system\vasprintf.c">
-      <Filter>Source Files\lib\system</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\nettle\sysrng-windows.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
@@ -1483,6 +1480,9 @@
     </ClCompile>
     <ClCompile Include="..\gnulib\lib\uninorm\decomposition-table.c">
       <Filter>Source Files\gnulib\uninorm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\cert-cred-rawpk.c">
+      <Filter>Source Files\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

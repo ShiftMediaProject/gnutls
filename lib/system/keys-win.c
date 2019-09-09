@@ -621,7 +621,7 @@ static int cng_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
  -*/
 int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
 {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#ifdef WINRT
     return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
 #else
 	uint8_t id[MAX_WID_SIZE];
@@ -631,10 +631,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
 	CRYPT_HASH_BLOB blob;
 	CRYPT_KEY_PROV_INFO *kpi = NULL;
 	NCRYPT_KEY_HANDLE nc = NULL;
-#ifndef WINRT
 	HCRYPTPROV hCryptProv = NULL;
-	DWORD i;
-#endif
 	NCRYPT_PROV_HANDLE sctx = NULL;
 	DWORD kpi_size;
 	SECURITY_STATUS r;
@@ -642,7 +639,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
 	WCHAR algo_str[64];
 	DWORD algo_str_size = 0;
 	priv_st *priv;
-	DWORD dwErrCode = 0;
+	DWORD i, dwErrCode = 0;
 
 	if (ncrypt_init == 0)
 		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
@@ -768,10 +765,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
 		_gnutls_debug_log
 		    ("error in opening CNG keystore: %x from %ls\n", (int)r,
 		     kpi->pwszProvName);
-#ifdef WINRT
-		/* CAPI isnt supported on WinRT */
-		ret = -1;
-#else
+
 		if (CryptAcquireContextW(&hCryptProv,
 					 kpi->pwszContainerName,
 					 kpi->pwszProvName,
@@ -855,7 +849,6 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
 						 (enc_too !=
 						  0) ? capi_decrypt : NULL,
 						 capi_deinit, capi_info, 0);
-#endif
 		if (ret < 0) {
 			gnutls_assert();
 			goto cleanup;
@@ -866,10 +859,8 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
 	if (ret < 0) {
 		if (nc != 0)
 			pNCryptFreeObject(nc);
-#ifndef WINRT
 		if (hCryptProv != 0)
 			CryptReleaseContext(hCryptProv, 0);
-#endif
 		gnutls_free(priv);
 	}
 	if (sctx != 0)
@@ -1448,7 +1439,6 @@ int _gnutls_system_key_init(void)
 #ifdef DYN_NCRYPT
 	int ret;
 
-#ifdef DYN_NCRYPT
 	ncrypt_lib = LoadLibrary(TEXT("ncrypt.dll"));
 	if (ncrypt_lib == NULL) {
 		return gnutls_assert_val(GNUTLS_E_CRYPTO_INIT_FAILED);

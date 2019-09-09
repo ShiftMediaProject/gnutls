@@ -1,5 +1,5 @@
 diff --git a/lib/debug.c b/lib/debug.c
-index 19e316d9db..263c8e82c0 100644
+index 19e316d9d..263c8e82c 100644
 --- a/lib/debug.c
 +++ b/lib/debug.c
 @@ -31,7 +31,11 @@
@@ -27,7 +27,7 @@ index 19e316d9db..263c8e82c0 100644
  	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
  			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
 diff --git a/lib/ext/pre_shared_key.c b/lib/ext/pre_shared_key.c
-index c42bd1646b..d9b85d6d2e 100644
+index 116cea8d7..9614a7485 100644
 --- a/lib/ext/pre_shared_key.c
 +++ b/lib/ext/pre_shared_key.c
 @@ -541,7 +541,11 @@ static int server_recv_params(gnutls_session_t session,
@@ -35,15 +35,15 @@ index c42bd1646b..d9b85d6d2e 100644
  			   psk.identity.size > 0 && psk.identity.size <= MAX_USERNAME_SIZE) {
  			/* _gnutls_psk_pwd_find_entry() expects 0-terminated identities */
 +#if defined(_MSC_VER)
-+            uint8_t * identity_str = (uint8_t*)_alloca(psk.identity.size + 1);
++			char* identity_str = (char*)_alloca(MAX_USERNAME_SIZE + 1);
 +#else
- 			char identity_str[psk.identity.size + 1];
+ 			char identity_str[MAX_USERNAME_SIZE + 1];
 +#endif
  
  			prf = pskcred->binder_algo;
  
 diff --git a/lib/global.c b/lib/global.c
-index d657f56d8c..83c19b4306 100644
+index d657f56d8..83c19b430 100644
 --- a/lib/global.c
 +++ b/lib/global.c
 @@ -46,11 +46,32 @@
@@ -104,7 +104,7 @@ index d657f56d8c..83c19b4306 100644
  	const char *e;
  
 diff --git a/lib/gthreads.h b/lib/gthreads.h
-index 5887d46ba5..ec2e4db91c 100644
+index 5887d46ba..ec2e4db91 100644
 --- a/lib/gthreads.h
 +++ b/lib/gthreads.h
 @@ -26,6 +26,8 @@
@@ -117,7 +117,7 @@ index 5887d46ba5..ec2e4db91c 100644
  # error Unsupported platform
  #endif
 diff --git a/lib/nettle/sysrng-windows.c b/lib/nettle/sysrng-windows.c
-index 1e1305b4bd..0bc78e1687 100644
+index 1e1305b4b..0bc78e168 100644
 --- a/lib/nettle/sysrng-windows.c
 +++ b/lib/nettle/sysrng-windows.c
 @@ -50,16 +50,30 @@
@@ -184,38 +184,20 @@ index 1e1305b4bd..0bc78e1687 100644
  	CryptReleaseContext(device_fd, 0);
 +#endif
  }
-diff --git a/lib/system/certs.c b/lib/system/certs.c
-index 53eb561d00..44f658f77a 100644
---- a/lib/system/certs.c
-+++ b/lib/system/certs.c
-@@ -161,9 +161,11 @@ int add_system_trust(gnutls_x509_trust_list_t list, unsigned int tl_flags,
- 		gnutls_datum_t data;
- 
- 		if (i == 0)
--			store = CertOpenSystemStore(0, "ROOT");
-+            store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
-+			CERT_SYSTEM_STORE_CURRENT_USER, L"ROOT");
- 		else
--			store = CertOpenSystemStore(0, "CA");
-+            store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
-+			CERT_SYSTEM_STORE_CURRENT_USER, L"CA");
- 
- 		if (store == NULL)
- 			return GNUTLS_E_FILE_ERROR;
 diff --git a/lib/system/keys-win.c b/lib/system/keys-win.c
-index eac511b975..0bd9a1ca7e 100644
+index c189a5d8f..0958bba09 100644
 --- a/lib/system/keys-win.c
 +++ b/lib/system/keys-win.c
-@@ -44,8 +44,6 @@
- #include <wincrypt.h>
+@@ -45,8 +45,6 @@
  #include <winbase.h>
+ #include <winapifamily.h>
  
 -#define DYN_NCRYPT
 -
  #ifdef __MINGW32__
  # include <_mingw.h>
  # ifdef __MINGW64_VERSION_MAJOR
-@@ -75,6 +73,12 @@ typedef struct _BCRYPT_PKCS1_PADDING_INFO {
+@@ -76,6 +74,12 @@ typedef struct _BCRYPT_PKCS1_PADDING_INFO {
  # include <ncrypt.h>
  #endif
  
@@ -228,7 +210,7 @@ index eac511b975..0bd9a1ca7e 100644
  // MinGW headers may not have these defines
  #ifndef NCRYPT_SHA1_ALGORITHM
  #define NCRYPT_SHA1_ALGORITHM	   BCRYPT_SHA1_ALGORITHM
-@@ -109,8 +113,10 @@ struct system_key_iter_st {
+@@ -110,8 +114,10 @@ struct system_key_iter_st {
  };
  
  typedef struct priv_st {
@@ -239,7 +221,7 @@ index eac511b975..0bd9a1ca7e 100644
  	NCRYPT_KEY_HANDLE nc;	/* CNG Keystore */
  	gnutls_pk_algorithm_t pk;
  	gnutls_sign_algorithm_t sign_algo;
-@@ -176,6 +182,7 @@ static NCryptGetPropertyFunc pNCryptGetProperty;
+@@ -177,6 +183,7 @@ static NCryptGetPropertyFunc pNCryptGetProperty;
  static NCryptFreeObjectFunc pNCryptFreeObject;
  static NCryptDecryptFunc pNCryptDecrypt;
  static NCryptSignHashFunc pNCryptSignHash;
@@ -247,7 +229,7 @@ index eac511b975..0bd9a1ca7e 100644
  #else
  #define pNCryptDeleteKey NCryptDeleteKey
  #define pNCryptOpenStorageProvider NCryptOpenStorageProvider
-@@ -187,7 +194,6 @@ static NCryptSignHashFunc pNCryptSignHash;
+@@ -188,7 +195,6 @@ static NCryptSignHashFunc pNCryptSignHash;
  #endif
  
  static unsigned ncrypt_init = 0;
@@ -255,7 +237,7 @@ index eac511b975..0bd9a1ca7e 100644
  
  #define WIN_URL SYSTEM_URL"win:"
  #define WIN_URL_SIZE 11
-@@ -247,6 +253,7 @@ void *memrev(unsigned char *pvData, DWORD cbData)
+@@ -248,6 +254,7 @@ void *memrev(unsigned char *pvData, DWORD cbData)
  	return pvData;
  }
  
@@ -263,7 +245,7 @@ index eac511b975..0bd9a1ca7e 100644
  static
  int capi_sign(gnutls_privkey_t key, void *userdata,
  	      const gnutls_datum_t * raw_data, gnutls_datum_t * signature)
-@@ -435,6 +442,7 @@ static int capi_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
+@@ -436,6 +443,7 @@ static int capi_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
  		return priv->sign_algo;
  	return -1;
  }
@@ -271,95 +253,16 @@ index eac511b975..0bd9a1ca7e 100644
  
  static
  int cng_sign(gnutls_privkey_t key, void *userdata,
-@@ -619,7 +627,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- 	CRYPT_HASH_BLOB blob;
- 	CRYPT_KEY_PROV_INFO *kpi = NULL;
- 	NCRYPT_KEY_HANDLE nc = NULL;
-+#ifndef WINRT
- 	HCRYPTPROV hCryptProv = NULL;
-+	DWORD i;
-+#endif
- 	NCRYPT_PROV_HANDLE sctx = NULL;
- 	DWORD kpi_size;
- 	SECURITY_STATUS r;
-@@ -627,7 +638,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- 	WCHAR algo_str[64];
- 	DWORD algo_str_size = 0;
- 	priv_st *priv;
--	DWORD i, dwErrCode = 0;
-+	DWORD dwErrCode = 0;
- 
- 	if (ncrypt_init == 0)
- 		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
-@@ -647,7 +658,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- 	blob.cbData = id_size;
- 	blob.pbData = id;
- 
--	store = CertOpenSystemStore(0, "MY");
-+	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
- 	if (store == NULL) {
- 		gnutls_assert();
- 		ret = GNUTLS_E_FILE_ERROR;
-@@ -753,7 +764,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- 		_gnutls_debug_log
- 		    ("error in opening CNG keystore: %x from %ls\n", (int)r,
- 		     kpi->pwszProvName);
--
+@@ -613,7 +621,7 @@ static int cng_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
+  -*/
+ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
+ {
+-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 +#ifdef WINRT
-+		/* CAPI isnt supported on WinRT */
-+		ret = -1;
-+#else
- 		if (CryptAcquireContextW(&hCryptProv,
- 					 kpi->pwszContainerName,
- 					 kpi->pwszProvName,
-@@ -837,6 +851,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- 						 (enc_too !=
- 						  0) ? capi_decrypt : NULL,
- 						 capi_deinit, capi_info, 0);
-+#endif
- 		if (ret < 0) {
- 			gnutls_assert();
- 			goto cleanup;
-@@ -847,8 +862,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- 	if (ret < 0) {
- 		if (nc != 0)
- 			pNCryptFreeObject(nc);
-+#ifndef WINRT
- 		if (hCryptProv != 0)
- 			CryptReleaseContext(hCryptProv, 0);
-+#endif
- 		gnutls_free(priv);
- 	}
- 	if (sctx != 0)
-@@ -884,7 +901,7 @@ int _gnutls_x509_crt_import_system_url(gnutls_x509_crt_t crt, const char *url)
- 	blob.cbData = id_size;
- 	blob.pbData = id;
- 
--	store = CertOpenSystemStore(0, "MY");
-+	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
- 	if (store == NULL) {
- 		gnutls_assert();
- 		ret = GNUTLS_E_FILE_ERROR;
-@@ -1132,7 +1149,7 @@ gnutls_system_key_iter_get_info(gnutls_system_key_iter_t * iter,
- 		if (*iter == NULL)
- 			return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
- 
--		(*iter)->store = CertOpenSystemStore(0, "MY");
-+		(*iter)->store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
- 		if ((*iter)->store == NULL) {
- 			gnutls_free(*iter);
- 			*iter = NULL;
-@@ -1205,7 +1222,8 @@ int gnutls_system_key_delete(const char *cert_url, const char *key_url)
- 	blob.cbData = id_size;
- 	blob.pbData = id;
- 
--	store = CertOpenSystemStore(0, "MY");
-+	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
-+		CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
- 	if (store != NULL) {
- 		do {
- 			cert = CertFindCertificateInStore(store,
-@@ -1423,9 +1441,9 @@ int gnutls_system_key_add_x509(gnutls_x509_crt_t crt,
+     return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
+ #else
+ 	uint8_t id[MAX_WID_SIZE];
+@@ -1428,9 +1436,9 @@ int gnutls_system_key_add_x509(gnutls_x509_crt_t crt,
  
  int _gnutls_system_key_init(void)
  {
@@ -367,10 +270,10 @@ index eac511b975..0bd9a1ca7e 100644
  	int ret;
  
 -#ifdef DYN_NCRYPT
- 	ncrypt_lib = LoadLibraryA("ncrypt.dll");
+ 	ncrypt_lib = LoadLibrary(TEXT("ncrypt.dll"));
  	if (ncrypt_lib == NULL) {
  		return gnutls_assert_val(GNUTLS_E_CRYPTO_INIT_FAILED);
-@@ -1486,15 +1504,19 @@ int _gnutls_system_key_init(void)
+@@ -1491,15 +1499,19 @@ int _gnutls_system_key_init(void)
  	ncrypt_init = 1;
  
  	return 0;

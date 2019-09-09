@@ -384,6 +384,7 @@
     <ClCompile Include="..\lib\auth\srp_sb64.c" />
     <ClCompile Include="..\lib\auto-verify.c" />
     <ClCompile Include="..\lib\buffers.c" />
+    <ClCompile Include="..\lib\cert-cred-rawpk.c" />
     <ClCompile Include="..\lib\cert-cred-x509.c" />
     <ClCompile Include="..\lib\cert-cred.c" />
     <ClCompile Include="..\lib\cert-session.c" />
@@ -546,7 +547,6 @@
     <ClCompile Include="..\lib\system\keys-win.c" />
     <ClCompile Include="..\lib\system\sockets.c" />
     <ClCompile Include="..\lib\system\threads.c" />
-    <ClCompile Include="..\lib\system\vasprintf.c" />
     <ClCompile Include="..\lib\system_override.c" />
     <ClCompile Include="..\lib\tls-sig.c" />
     <ClCompile Include="..\lib\tls13-sig.c" />

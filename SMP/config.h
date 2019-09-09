@@ -1733,9 +1733,6 @@
 /* Define to 1 if you have the `vasnprintf' function. */
 /* #undef HAVE_VASNPRINTF */
 
-/* Define to 1 if you have the `vasprintf' function. */
-#define HAVE_VASPRINTF 1
-
 /* Have va_copy() */
 /* #undef HAVE_VA_COPY */
 
