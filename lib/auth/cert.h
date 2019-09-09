@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002-2012 Free Software Foundation, Inc.
- * Copyright (C) 2016-2017 Red Hat, Inc.
+ * Copyright (C) 2016-2019 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -29,6 +29,7 @@
 #include <gnutls/abstract.h>
 #include <gnutls/compat.h>
 #include <str_array.h>
+#include "abstract_int.h"
 
 #define MAX_OCSP_RESPONSES 8
 
@@ -171,5 +172,13 @@ int _gnutls_gen_rawpk_crt(gnutls_session_t session, gnutls_buffer_st* data);
 int _gnutls_proc_rawpk_crt(gnutls_session_t session,
 				uint8_t * data, size_t data_size);
 
+inline static unsigned get_key_usage(gnutls_session_t session, gnutls_pubkey_t pubkey)
+{
+	if (unlikely(session->internals.priorities &&
+	    session->internals.priorities->allow_server_key_usage_violation))
+		return 0;
+	else
+		return pubkey->key_usage;
+}
 
 #endif

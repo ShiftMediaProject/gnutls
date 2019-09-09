@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -302,7 +302,6 @@ _gnutls_base64_decode(const uint8_t * data, size_t data_size,
 
  fail:
 	gnutls_free(result->data);
-	result->data = NULL;
 
  cleanup:
 	gnutls_free(pdata.data);

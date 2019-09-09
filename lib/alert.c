@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -84,6 +84,8 @@ static const gnutls_alert_entry sup_alerts[] = {
 	ALERT_ENTRY(GNUTLS_A_NO_APPLICATION_PROTOCOL,
 		    N_
 		    ("No supported application protocol could be negotiated")),
+	ALERT_ENTRY(GNUTLS_A_CERTIFICATE_REQUIRED,
+		    N_("Certificate is required")),
 	{0, NULL, NULL}
 };
 
@@ -224,6 +226,7 @@ int gnutls_error_to_alert(int err, int *level)
 	case GNUTLS_E_ILLEGAL_SRP_USERNAME:
 	case GNUTLS_E_PK_INVALID_PUBKEY:
 	case GNUTLS_E_UNKNOWN_COMPRESSION_ALGORITHM:
+	case GNUTLS_E_RECEIVED_DISALLOWED_NAME:
 		ret = GNUTLS_A_ILLEGAL_PARAMETER;
 		_level = GNUTLS_AL_FATAL;
 		break;
@@ -323,6 +326,10 @@ int gnutls_error_to_alert(int err, int *level)
 		break;
 	case GNUTLS_E_UNRECOGNIZED_NAME:
 		ret = GNUTLS_A_UNRECOGNIZED_NAME;
+		_level = GNUTLS_AL_FATAL;
+		break;
+	case GNUTLS_E_CERTIFICATE_REQUIRED:
+		ret = GNUTLS_A_CERTIFICATE_REQUIRED;
 		_level = GNUTLS_AL_FATAL;
 		break;
 	default:

@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -26,6 +26,8 @@
 #include <common.h>
 #include "errors.h"
 #include <system.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 /**
  * gnutls_x509_crt_check_hostname:
@@ -170,7 +172,7 @@ gnutls_x509_crt_check_hostname2(gnutls_x509_crt_t cert,
 
 	/* check whether @hostname is an ip address */
 	if (!(flags & GNUTLS_VERIFY_DO_NOT_ALLOW_IP_MATCHES) &&
-	    ((p=strchr(hostname, ':')) != NULL || inet_aton(hostname, &ipv4) != 0)) {
+	    ((p=strchr(hostname, ':')) != NULL || inet_pton(AF_INET, hostname, &ipv4) != 0)) {
 
 		if (p != NULL) {
 			struct in6_addr ipv6;

@@ -16,7 +16,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -200,7 +200,6 @@ static void start(const char *test, unsigned try_resume)
 	gnutls_certificate_free_credentials(clientx509cred);
 
 	gnutls_free(dbdata.data);
-	dbdata.data = NULL;
 	dbdata.size = 0;
 }
 

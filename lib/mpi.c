@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -88,7 +88,6 @@ _gnutls_mpi_random_modp(bigint_t r, bigint_t p,
 
 	if (buf_release != 0) {
 		gnutls_free(buf);
-		buf = NULL;
 	}
 
 	if (r != NULL) {

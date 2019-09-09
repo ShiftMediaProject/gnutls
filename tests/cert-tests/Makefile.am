@@ -16,7 +16,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
+# along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 EXTRA_DIST = data/ca-no-pathlen.pem data/no-ca-or-pathlen.pem data/aki-cert.pem \
 	data/template-test.key data/template-test.pem templates/template-test.tmpl \
@@ -35,8 +35,8 @@ EXTRA_DIST = data/ca-no-pathlen.pem data/no-ca-or-pathlen.pem data/aki-cert.pem 
 	templates/template-generalized.tmpl data/privkey1.pem data/privkey2.pem data/privkey3.pem \
 	data/name-constraints-ip.pem data/cert-invalid-utf8.der data/very-long-dn.pem \
 	data/provable3072.pem data/provable2048.pem data/provable-dsa2048.pem \
-	data/provable-dsa2048-fips.pem templates/template-crq.tmpl \
-	templates/template-unique.tmpl data/template-unique.pem \
+	data/provable-dsa2048-fips.pem templates/template-crq.tmpl data/invalid-sig5.pem \
+	templates/template-unique.tmpl data/template-unique.pem data/invalid-sig4.pem \
 	templates/template-othername.tmpl data/template-othername.pem \
 	templates/template-othername-xmpp.tmpl data/template-othername-xmpp.pem \
 	templates/template-krb5name.tmpl data/crl-demo1.pem data/crl-demo2.pem data/crl-demo3.pem \
@@ -65,7 +65,7 @@ EXTRA_DIST = data/ca-no-pathlen.pem data/no-ca-or-pathlen.pem data/aki-cert.pem 
 	data/openssl-keyid.p7b data/openssl-keyid.p7b.out data/openssl.p12 \
 	data/x509-v1-with-sid.pem data/x509-v1-with-iid.pem data/x509-v3-with-fractional-time.pem \
 	templates/template-long-dns.tmpl templates/template-long-serial.tmpl \
-	data/key-rsa-pss-raw.pem data/key-rsa-pss.pem \
+	data/key-rsa-pss-raw.pem data/key-rsa-pss.pem data/cve-2019-3829.pem \
 	data/long-dns.pem data/template-long-dns-crq.pem data/chain-with-critical-on-root.pem \
 	data/chain-with-critical-on-intermediate.pem data/chain-with-critical-on-endcert.pem \
 	templates/crit-extensions.tmpl data/crit-extensions.pem data/x509-with-zero-version.pem \

@@ -14,7 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <sys/time.h>
@@ -23,6 +23,9 @@
 #if defined(_WIN32)
 #include <windows.h>
 #endif
+
+/* for uint64_t */
+# include <stdint.h>
 
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)
 #undef gettime
@@ -44,7 +47,7 @@ void benchmark_tls(int debug_level, int ciphers);
 
 struct benchmark_st {
 	struct timespec start;
-	unsigned long size;
+	uint64_t size;
 	sighandler_t old_handler;
 #if defined(_WIN32)
 	HANDLE wtimer;

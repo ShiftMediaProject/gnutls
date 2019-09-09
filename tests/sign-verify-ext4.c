@@ -16,7 +16,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 /* This tests the gnutls_privkey_import_ext4() APIs */
@@ -227,7 +227,6 @@ void doit(void)
 			testfail("gnutls_pubkey_verify_data2\n");
 
 		gnutls_free(signature.data);
-		signature.data = NULL;
 
 
 		if (!tests[i].data_only) {
@@ -243,7 +242,6 @@ void doit(void)
 				testfail("gnutls_pubkey_verify_hash2-1 (hashed data)\n");
 
 			gnutls_free(signature2.data);
-			signature2.data = NULL;
 		}
 
 		if (gnutls_pubkey_get_pk_algorithm(pubkey, NULL) ==

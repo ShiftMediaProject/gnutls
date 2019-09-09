@@ -16,7 +16,7 @@
 # Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
+# along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 ACLOCAL_AMFLAGS = -I ../m4 -I ../gl/m4
 
@@ -72,11 +72,11 @@ COBJECTS = range.c record.c compress.c debug.c cipher.c gthreads.h handshake-tls
 	pk.c cert-cred.c global.c constate.c anon_cred.c pkix_asn1_tab.c gnutls_asn1_tab.c	\
 	mem.c fingerprint.c tls-sig.c ecc.c alert.c privkey_raw.c atomic.h	\
 	system/certs.c system/threads.c system/fastopen.c system/sockets.c	\
-	system/inet_ntop.c str-iconv.c system.c \
+	str-iconv.c system.c \
 	str.c str-unicode.c str-idna.c state.c cert-cred-x509.c file.c supplemental.c	\
 	random.c crypto-api.c crypto-api.h privkey.c pcert.c pubkey.c locks.c dtls.c \
 	system_override.c crypto-backend.c verify-tofu.c pin.c tpm.c fips.c	\
-	safe-memfuncs.c system/inet_pton.c atfork.c atfork.h randomart.c \
+	safe-memfuncs.c atfork.c atfork.h randomart.c \
 	system-keys.h urls.c urls.h prf.c auto-verify.c dh-session.c \
 	cert-session.c handshake-checks.c dtls-sw.c dh-primes.c openpgp_compat.c \
 	crypto-selftests.c crypto-selftests-pk.c secrets.c extv.c extv.h \
@@ -111,11 +111,11 @@ if ENABLE_NETTLE
 SUBDIRS += nettle
 endif
 
-HFILES = abstract_int.h debug.h cipher.h	\
-	buffers.h errors.h gnutls_int.h dtls.h	\
-	handshake.h num.h algorithms.h		\
-	dh.h kx.h hash_int.h cipher_int.h	\
-	db.h auth.h hello_ext.h	\
+HFILES = abstract_int.h debug.h cipher.h	 \
+	buffers.h errors.h gnutls_int.h dtls.h	 \
+	handshake.h num.h algorithms.h		 \
+	dh.h kx.h hash_int.h cipher_int.h	 \
+	db.h auth.h hello_ext.h	handshake-defs.h \
 	x509_b64.h sslv2_compat.h datum.h \
 	mpi.h pk.h record.h		\
 	constate.h global.h tls-sig.h mem.h	\

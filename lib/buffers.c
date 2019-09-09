@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -277,7 +277,7 @@ _gnutls_dgram_read(gnutls_session_t session, mbuffer_st ** bufel,
 				 fd);
 		if (i == 0) {
 			/* If we get here, we likely have a stream socket.
-			 * FIXME: this probably breaks DCCP. */
+			 * That assumption may not work on DCCP. */
 			gnutls_assert();
 			ret = 0;
 			goto cleanup;

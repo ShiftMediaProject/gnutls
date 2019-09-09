@@ -85,7 +85,7 @@ ABIVERCMD="git for-each-ref --sort=taggerdate --format '%(refname)' refs/tags|ta
 	cd $(ABI_TMPCLONEDIR) && \
 	  git fetch --tags https://gitlab.com/gnutls/gnutls.git && \
 	  git checkout $$(eval $(ABIREFCMD)) && \
-	  $(MAKE) autoreconf && if test -f ../cache/config.cache;then \
+	  SUBMODULE_NOFETCH=1 ./bootstrap && if test -f ../cache/config.cache;then \
 	    CFLAGS="-g -Og" ./configure --disable-doc --cache-file ../cache/config.cache;\
 	  else\
 	    CFLAGS="-g -Og" ./configure --disable-doc;\
@@ -149,7 +149,9 @@ symbol-check:
 	fi
 	rm -f symbols.last.tmp symbols.diff.tmp
 
-@CODE_COVERAGE_RULES@
+include $(top_srcdir)/aminclude_static.am
+clean-local: code-coverage-clean
+distclean-local: code-coverage-dist-clean
 
 local-code-coverage-output: code-coverage-capture
 	cat GnuTLS-$(VERSION)-coverage/index.html|grep headerCovTableEntry|grep '%'|head -1|sed 's/^.*>\([0-9]\+\.[0-9]\+\s*%\)<.*$$/ coverage lines: \1/' || true

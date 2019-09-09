@@ -15,7 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -33,15 +33,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#ifndef _WIN32
-# include <arpa/inet.h>
-#else
-# undef endservent
-# define endservent()
-#endif
+#include <arpa/inet.h>
 #include <socket.h>
 #include <c-ctype.h>
 #include "sockets.h"
+#include "common.h"
+
+#ifdef _WIN32
+# undef endservent
+# define endservent()
+#endif
 
 #define MAX_BUF 4096
 
@@ -177,13 +178,13 @@ ssize_t wait_for_text(socket_st * socket, const char *txt, unsigned txt_size)
 		tv.tv_sec = 10;
 		tv.tv_usec = 0;
 		ret = select(socket->fd + 1, &read_fds, NULL, NULL, &tv);
-		if (ret <= 0)
-			ret = -1;
-		else
+		if (ret > 0)
 			ret = recv(socket->fd, pbuf, left, 0);
-		if (ret == -1 || ret == 0) {
-			int e = errno;
-			fprintf(stderr, "error receiving %s: %s\n", txt, strerror(e));
+		if (ret == -1) {
+			fprintf(stderr, "error receiving '%s': %s\n", txt, strerror(errno));
+			exit(2);
+		} else if (ret == 0) {
+			fprintf(stderr, "error receiving '%s': Timeout\n", txt);
 			exit(2);
 		}
 		pbuf[ret] = 0;
@@ -204,8 +205,8 @@ ssize_t wait_for_text(socket_st * socket, const char *txt, unsigned txt_size)
 			p = memmem(buf, got, txt, txt_size);
 			if (p != NULL && p != buf) {
 				p--;
-				if (*p == '\n' || *p == '\r')
-				break;
+				if (*p == '\n' || *p == '\r' || (*txt == '<' && *p == '>')) // XMPP is not line oriented, uses XML format
+					break;
 			}
 		}
 	} while(got < txt_size || strncmp(buf, txt, txt_size) != 0);
@@ -226,7 +227,7 @@ socket_starttls(socket_st * socket)
 
 	if (strcasecmp(socket->app_proto, "smtp") == 0 || strcasecmp(socket->app_proto, "submission") == 0) {
 		if (socket->verbose)
-			printf("Negotiating SMTP STARTTLS\n");
+			log_msg(stdout, "Negotiating SMTP STARTTLS\n");
 
 		wait_for_text(socket, "220 ", 4);
 		snprintf(buf, sizeof(buf), "EHLO %s\r\n", socket->hostname);
@@ -236,7 +237,7 @@ socket_starttls(socket_st * socket)
 		wait_for_text(socket, "220 ", 4);
 	} else if (strcasecmp(socket->app_proto, "imap") == 0 || strcasecmp(socket->app_proto, "imap2") == 0) {
 		if (socket->verbose)
-			printf("Negotiating IMAP STARTTLS\n");
+			log_msg(stdout, "Negotiating IMAP STARTTLS\n");
 
 		send_line(socket, "a CAPABILITY\r\n");
 		wait_for_text(socket, "a OK", 4);
@@ -244,7 +245,7 @@ socket_starttls(socket_st * socket)
 		wait_for_text(socket, "a OK", 4);
 	} else if (strcasecmp(socket->app_proto, "xmpp") == 0) {
 		if (socket->verbose)
-			printf("Negotiating XMPP STARTTLS\n");
+			log_msg(stdout, "Negotiating XMPP STARTTLS\n");
 
 		snprintf(buf, sizeof(buf), "<stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' to='%s' version='1.0'>\n", socket->hostname);
 		send_line(socket, buf);
@@ -253,13 +254,13 @@ socket_starttls(socket_st * socket)
 		wait_for_text(socket, "<proceed", 8);
 	} else if (strcasecmp(socket->app_proto, "ldap") == 0) {
 		if (socket->verbose)
-			printf("Negotiating LDAP STARTTLS\n");
+			log_msg(stdout, "Negotiating LDAP STARTTLS\n");
 #define LDAP_STR "\x30\x1d\x02\x01\x01\x77\x18\x80\x16\x31\x2e\x33\x2e\x36\x2e\x31\x2e\x34\x2e\x31\x2e\x31\x34\x36\x36\x2e\x32\x30\x30\x33\x37"
 		send(socket->fd, LDAP_STR, sizeof(LDAP_STR)-1, 0);
 		wait_for_text(socket, NULL, 0);
 	} else if (strcasecmp(socket->app_proto, "ftp") == 0 || strcasecmp(socket->app_proto, "ftps") == 0) {
 		if (socket->verbose)
-			printf("Negotiating FTP STARTTLS\n");
+			log_msg(stdout, "Negotiating FTP STARTTLS\n");
 
 		send_line(socket, "FEAT\r\n");
 		wait_for_text(socket, "211 ", 4);
@@ -267,7 +268,7 @@ socket_starttls(socket_st * socket)
 		wait_for_text(socket, "234", 3);
 	} else if (strcasecmp(socket->app_proto, "lmtp") == 0) {
 		if (socket->verbose)
-			printf("Negotiating LMTP STARTTLS\n");
+			log_msg(stdout, "Negotiating LMTP STARTTLS\n");
 
 		wait_for_text(socket, "220 ", 4);
 		snprintf(buf, sizeof(buf), "LHLO %s\r\n", socket->hostname);
@@ -277,28 +278,28 @@ socket_starttls(socket_st * socket)
 		wait_for_text(socket, "220 ", 4);
 	} else if (strcasecmp(socket->app_proto, "pop3") == 0) {
 		if (socket->verbose)
-			printf("Negotiating POP3 STARTTLS\n");
+			log_msg(stdout, "Negotiating POP3 STARTTLS\n");
 
 		wait_for_text(socket, "+OK", 3);
 		send_line(socket, "STLS\r\n");
 		wait_for_text(socket, "+OK", 3);
 	} else if (strcasecmp(socket->app_proto, "nntp") == 0) {
 		if (socket->verbose)
-			printf("Negotiating NNTP STARTTLS\n");
+			log_msg(stdout, "Negotiating NNTP STARTTLS\n");
 
 		wait_for_text(socket, "200 ", 4);
 		send_line(socket, "STARTTLS\r\n");
 		wait_for_text(socket, "382 ", 4);
 	} else if (strcasecmp(socket->app_proto, "sieve") == 0) {
 		if (socket->verbose)
-			printf("Negotiating Sieve STARTTLS\n");
+			log_msg(stdout, "Negotiating Sieve STARTTLS\n");
 
 		wait_for_text(socket, "OK ", 3);
 		send_line(socket, "STARTTLS\r\n");
 		wait_for_text(socket, "OK ", 3);
 	} else if (strcasecmp(socket->app_proto, "postgres") == 0 || strcasecmp(socket->app_proto, "postgresql") == 0) {
 		if (socket->verbose)
-			printf("Negotiating PostgreSQL STARTTLS\n");
+			log_msg(stdout, "Negotiating PostgreSQL STARTTLS\n");
 
 #define POSTGRES_STR "\x00\x00\x00\x08\x04\xD2\x16\x2F"
 		send(socket->fd, POSTGRES_STR, sizeof(POSTGRES_STR)-1, 0);
@@ -494,7 +495,7 @@ socket_open2(socket_st * hd, const char *hostname, const char *service,
 	a_hostname = (char*)idna.data;
 
 	if (msg != NULL)
-		printf("Resolving '%s:%s'...\n", a_hostname, service);
+		log_msg(stdout, "Resolving '%s:%s'...\n", a_hostname, service);
 
 	/* get server name */
 	memset(&hints, 0, sizeof(hints));
@@ -543,11 +544,11 @@ socket_open2(socket_st * hd, const char *hostname, const char *service,
 			hd->connect_addrlen = ptr->ai_addrlen;
 
 			if (msg)
-				printf("%s '%s:%s' (TFO)...\n", msg, buffer, portname);
+				log_msg(stdout, "%s '%s:%s' (TFO)...\n", msg, buffer, portname);
 
 		} else {
 			if (msg)
-				printf("%s '%s:%s'...\n", msg, buffer, portname);
+				log_msg(stdout, "%s '%s:%s'...\n", msg, buffer, portname);
 
 			if ((err = connect(sd, ptr->ai_addr, ptr->ai_addrlen)) < 0)
 				continue;

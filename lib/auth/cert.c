@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -181,6 +181,7 @@ find_x509_client_cert(gnutls_session_t session,
 	ssize_t data_size = _data_size;
 	unsigned i, j;
 	int result, cert_pk;
+	unsigned key_usage;
 
 	*indx = -1;
 
@@ -191,8 +192,16 @@ find_x509_client_cert(gnutls_session_t session,
 	    (data_size == 0
 	     || (session->internals.flags & GNUTLS_FORCE_CLIENT_CERT))) {
 		if (cred->certs[0].cert_list[0].type == GNUTLS_CRT_X509) {
-			/* This check is necessary to prevent sending other certificate
-			 * credentials that are set (e.g. raw public-key). */
+
+			key_usage = get_key_usage(session, cred->certs[0].cert_list[0].pubkey);
+
+			/* For client certificates we require signatures */
+			result = _gnutls_check_key_usage_for_sig(session, key_usage, 1);
+			if (result < 0) {
+				_gnutls_debug_log("Client certificate is not suitable for signing\n");
+				return gnutls_assert_val(result);
+			}
+
 			*indx = 0;
 			return 0;
 		}
@@ -220,6 +229,14 @@ find_x509_client_cert(gnutls_session_t session,
 
 				if (odn.size == 0 || odn.size != asked_dn.size)
 					continue;
+
+				key_usage = get_key_usage(session, cred->certs[i].cert_list[0].pubkey);
+
+				/* For client certificates we require signatures */
+				if (_gnutls_check_key_usage_for_sig(session, key_usage, 1) < 0) {
+					_gnutls_debug_log("Client certificate is not suitable for signing\n");
+					continue;
+				}
 
 				/* If the DN matches and
 				 * the *_SIGN algorithm matches
@@ -268,6 +285,7 @@ find_rawpk_client_cert(gnutls_session_t session,
 			int pk_algos_length, int* indx)
 {
 	unsigned i;
+	int ret;
 	gnutls_pk_algorithm_t pk;
 
 	*indx = -1;
@@ -276,15 +294,22 @@ find_rawpk_client_cert(gnutls_session_t session,
 		/* We know that our list length will be 1, therefore we can
 		 * ignore the rest.
 		 */
-		if (cred->certs[i].cert_list_length == 1) {
-			pk = gnutls_pubkey_get_pk_algorithm(cred->certs[i].
-																					cert_list[0].pubkey, NULL);
+		if (cred->certs[i].cert_list_length == 1 && cred->certs[i].cert_list[0].type == GNUTLS_CRT_RAWPK) {
+			pk = gnutls_pubkey_get_pk_algorithm(cred->certs[i].cert_list[0].pubkey, NULL);
+
+			/* For client certificates we require signatures */
+			ret = _gnutls_check_key_usage_for_sig(session, get_key_usage(session, cred->certs[i].cert_list[0].pubkey), 1);
+			if (ret < 0) {
+				/* we return an error instead of skipping so that the user is notified about
+				 * the key incompatibility */
+				_gnutls_debug_log("Client certificate is not suitable for signing\n");
+				return gnutls_assert_val(ret);
+			}
 
 			/* Check whether the public-key algorithm of our credential is in
 			 * the list with supported public-key algorithms and whether the
 			 * cert type matches. */
-			if ((check_pk_algo_in_list(pk_algos, pk_algos_length, pk) == 0)
-			   && (cred->certs[i].cert_list[0].type == GNUTLS_CRT_RAWPK))	{
+			if ((check_pk_algo_in_list(pk_algos, pk_algos_length, pk) == 0)) {
 				// We found a compatible credential
 				*indx = i;
 				break;
@@ -302,7 +327,7 @@ find_rawpk_client_cert(gnutls_session_t session,
 static int
 get_issuers_num(gnutls_session_t session, const uint8_t * data, ssize_t data_size)
 {
-	int issuers_dn_len = 0, result;
+	int issuers_dn_len = 0;
 	unsigned size;
 
 	/* Count the number of the given issuers;
@@ -313,34 +338,23 @@ get_issuers_num(gnutls_session_t session, const uint8_t * data, ssize_t data_siz
 	if (data_size == 0 || data == NULL)
 		return 0;
 
-	if (data_size > 0)
-		do {
-			/* This works like DECR_LEN()
-			 */
-			result = GNUTLS_E_UNEXPECTED_PACKET_LENGTH;
-			DECR_LENGTH_COM(data_size, 2, goto error);
-			size = _gnutls_read_uint16(data);
+	while (data_size > 0) {
+		/* This works like DECR_LEN()
+		 */
+		DECR_LENGTH_RET(data_size, 2, GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
+		size = _gnutls_read_uint16(data);
 
-			result = GNUTLS_E_UNEXPECTED_PACKET_LENGTH;
-			DECR_LENGTH_COM(data_size, size, goto error);
+		DECR_LENGTH_RET(data_size, size, GNUTLS_E_UNEXPECTED_PACKET_LENGTH);
 
-			data += 2;
+		data += 2;
 
-			if (size > 0) {
-				issuers_dn_len++;
-				data += size;
-			}
-
-			if (data_size == 0)
-				break;
-
+		if (size > 0) {
+			issuers_dn_len++;
+			data += size;
 		}
-		while (1);
+	}
 
 	return issuers_dn_len;
-
- error:
-	return result;
 }
 
 /* Returns the issuers in the server's certificate request
@@ -643,21 +657,24 @@ _gnutls_gen_rawpk_crt(gnutls_session_t session, gnutls_buffer_st* data)
 	/* Since we are transmitting a raw public key with no additional
 	 * certificate credentials attached to it, it doesn't make sense to
 	 * have more than one certificate set (i.e. to have a certificate chain).
-	 * This is enforced by the API so having a value other than 1 should
-	 * be an impossible situation.
 	 */
-	assert(apr_cert_list_length == 1);
-	
+	assert(apr_cert_list_length <= 1);
+
 	/* Write our certificate containing only the SubjectPublicKeyInfo to
 	 * the output buffer. We always have exactly one certificate that
 	 * contains our raw public key. Our message looks like:
 	 * <length++certificate> where
-	 * length = 3 bytes and
+	 * length = 3 bytes (or 24 bits) and
 	 * certificate = length bytes.
 	 */
-	ret = _gnutls_buffer_append_data_prefix(data, 24,
-					apr_cert_list[0].cert.data,
-					apr_cert_list[0].cert.size);
+	if (apr_cert_list_length == 0) {
+		ret = _gnutls_buffer_append_prefix(data, 24, 0);
+	} else {
+		ret = _gnutls_buffer_append_data_prefix(data, 24,
+							apr_cert_list[0].cert.data,
+							apr_cert_list[0].cert.size);
+	}
+
 
 	if (ret < 0) return gnutls_assert_val(ret);
 
@@ -962,7 +979,6 @@ cleanup:
 
 int _gnutls_proc_crt(gnutls_session_t session, uint8_t * data, size_t data_size)
 {
-	int ret;
 	gnutls_certificate_credentials_t cred;
 	gnutls_certificate_type_t cert_type;
 
@@ -986,8 +1002,6 @@ int _gnutls_proc_crt(gnutls_session_t session, uint8_t * data, size_t data_size)
 		default:
 			return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 	}
-
-	return ret;
 }
 
 /* Checks if we support the given signature algorithm
@@ -1462,11 +1476,11 @@ int cert_select_sign_algorithm(gnutls_session_t session,
 		return gnutls_assert_val(GNUTLS_E_INSUFFICIENT_CREDENTIALS);
 	}
 
-	if (unlikely(session->internals.priorities->allow_server_key_usage_violation)) {
-		key_usage = 0;
-	} else {
-		key_usage = pubkey->key_usage;
-	}
+	key_usage = get_key_usage(session, pubkey);
+
+	/* In TLS1.3 we support only signatures; ensure the selected key supports them */
+	if (ver->tls13_sem && _gnutls_check_key_usage_for_sig(session, key_usage, 1) < 0)
+		return gnutls_assert_val(GNUTLS_E_INSUFFICIENT_CREDENTIALS);
 
 	if (!ver->tls13_sem && !_gnutls_kx_supports_pk_usage(cs->kx_algorithm, pk, key_usage)) {
 		return gnutls_assert_val(GNUTLS_E_INSUFFICIENT_CREDENTIALS);

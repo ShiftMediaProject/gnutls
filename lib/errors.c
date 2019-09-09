@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -93,6 +93,8 @@ static const gnutls_error_entry error_entries[] = {
 		    GNUTLS_E_ERROR_IN_FINISHED_PACKET),
 	ERROR_ENTRY(N_("No certificate was found."),
 		    GNUTLS_E_NO_CERTIFICATE_FOUND),
+	ERROR_ENTRY(N_("Certificate is required."),
+		    GNUTLS_E_CERTIFICATE_REQUIRED),
 	ERROR_ENTRY(N_
 		    ("The given DSA key is incompatible with the selected TLS protocol."),
 		    GNUTLS_E_INCOMPAT_DSA_KEY_WITH_TLS_PROTOCOL),
@@ -206,6 +208,8 @@ static const gnutls_error_entry error_entries[] = {
 	ERROR_ENTRY(N_("An illegal parameter was found."),
 		    GNUTLS_E_ILLEGAL_PARAMETER),
 	ERROR_ENTRY(N_("Error while reading file."), GNUTLS_E_FILE_ERROR),
+	ERROR_ENTRY(N_("A disallowed SNI server name has been received."),
+		    GNUTLS_E_RECEIVED_DISALLOWED_NAME),
 
 	ERROR_ENTRY(N_("ASN1 parser: Element was not found."),
 		    GNUTLS_E_ASN1_ELEMENT_NOT_FOUND),
@@ -462,14 +466,14 @@ static const gnutls_error_entry non_fatal_error_entries[] = {
  *
  * If a GnuTLS function returns a negative error code you may feed that
  * value to this function to see if the error condition is fatal to
- * a TLS session (i.e., must be terminated). 
+ * a TLS session (i.e., must be terminated).
  *
  * Note that you may also want to check the error code manually, since some
  * non-fatal errors to the protocol (such as a warning alert or
  * a rehandshake request) may be fatal for your program.
  *
  * This function is only useful if you are dealing with errors from
- * functions that relate to a TLS session (e.g., record layer or handshake 
+ * functions that relate to a TLS session (e.g., record layer or handshake
  * layer handling functions).
  *
  * Returns: Non-zero value on fatal errors or zero on non-fatal.

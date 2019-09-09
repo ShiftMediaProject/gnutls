@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -127,15 +127,8 @@ typedef struct {
 #define GNUTLS_MASTER_SIZE 48
 #define GNUTLS_RANDOM_SIZE 32
 
-#define HRR_RANDOM \
-	 "\xCF\x21\xAD\x74\xE5\x9A\x61\x11\xBE\x1D\x8C\x02\x1E\x65\xB8\x91" \
-	 "\xC2\xA2\x11\x16\x7A\xBB\x8C\x5E\x07\x9E\x09\xE2\xC8\xA8\x33\x9C"
-
 /* Under TLS1.3 a hello retry request is sent as server hello */
 #define REAL_HSK_TYPE(t) ((t)==GNUTLS_HANDSHAKE_HELLO_RETRY_REQUEST?GNUTLS_HANDSHAKE_SERVER_HELLO:t)
-
-/* Enable: Appendix D4.  Middlebox Compatibility Mode */
-#define TLS13_APPENDIX_D4 1
 
 /* DTLS */
 #define DTLS_RETRANS_TIMEOUT 1000
@@ -325,8 +318,7 @@ typedef enum recv_state_t {
 /* IDs are allocated in a way that all values fit in 64-bit integer as (1<<val) */
 typedef enum extensions_t {
 	GNUTLS_EXTENSION_INVALID = 0xffff,
-	GNUTLS_EXTENSION_MAX_RECORD_SIZE = 0,
-	GNUTLS_EXTENSION_STATUS_REQUEST,
+	GNUTLS_EXTENSION_STATUS_REQUEST = 0,
 	GNUTLS_EXTENSION_CERT_TYPE,
 	GNUTLS_EXTENSION_CLIENT_CERT_TYPE,
 	GNUTLS_EXTENSION_SERVER_CERT_TYPE,
@@ -349,6 +341,7 @@ typedef enum extensions_t {
 	GNUTLS_EXTENSION_EARLY_DATA,
 	GNUTLS_EXTENSION_PSK_KE_MODES,
 	GNUTLS_EXTENSION_RECORD_SIZE_LIMIT,
+	GNUTLS_EXTENSION_MAX_RECORD_SIZE,
 	/*
 	 * pre_shared_key and dumbfw must always be the last extensions,
 	 * in that order */
@@ -1281,6 +1274,9 @@ typedef struct {
 
 	/* A handshake process has been completed */
 	bool initial_negotiation_completed;
+	void *post_negotiation_lock; /* protects access to the variable above
+				      * in the cases where negotiation is incomplete
+				      * after gnutls_handshake() - early/false start */
 
 	/* The type of transport protocol; stream or datagram */
 	transport_t transport;
@@ -1303,8 +1299,12 @@ typedef struct {
 	/* starting time of current handshake */
 	struct timespec handshake_start_time;
 
-	/* end time of current handshake */
-	struct timespec handshake_endtime;
+	/* expected end time of current handshake (start+timeout);
+	 * this is only filled if a handshake_time_ms is set. */
+	struct timespec handshake_abs_timeout;
+
+	/* An estimation of round-trip time under TLS1.3; populated in client side only */
+	unsigned ertt;
 
 	unsigned int handshake_timeout_ms;	/* timeout in milliseconds */
 	unsigned int record_timeout_ms;	/* timeout in milliseconds */
@@ -1357,6 +1357,8 @@ typedef struct {
 					 * server: intend to process early data
 					 */
 #define HSK_RECORD_SIZE_LIMIT_NEGOTIATED (1<<24)
+#define HSK_RECORD_SIZE_LIMIT_SENT (1<<25) /* record_size_limit extension was sent */
+#define HSK_RECORD_SIZE_LIMIT_RECEIVED (1<<26) /* server: record_size_limit extension was seen but not accepted yet */
 
 	/* The hsk_flags are for use within the ongoing handshake;
 	 * they are reset to zero prior to handshake start by gnutls_handshake. */
@@ -1464,6 +1466,10 @@ typedef struct {
 	/* anti-replay measure for 0-RTT mode */
 	gnutls_anti_replay_t anti_replay;
 
+	/* Protects _gnutls_epoch_gc() from _gnutls_epoch_get(); these may be
+	 * called in parallel when false start is used and false start is used. */
+	void *epoch_lock;
+
 	/* If you add anything here, check _gnutls_handshake_internal_state_clear().
 	 */
 } internals_st;
@@ -1546,17 +1552,20 @@ inline static int _gnutls_set_current_version(gnutls_session_t s, unsigned v)
 	return 0;
 }
 
+/* Returns the maximum size of the plaintext to be sent, considering
+ * both user-specified/negotiated maximum values.
+ */
 inline static size_t max_user_send_size(gnutls_session_t session,
 					record_parameters_st *
 					record_params)
 {
 	size_t max;
 
-	if (IS_DTLS(session)) {
-		max = MIN(gnutls_dtls_get_data_mtu(session), session->security_parameters.max_record_send_size);
-	} else {
-		max = session->security_parameters.max_record_send_size;
-	}
+	max = MIN(session->security_parameters.max_record_send_size,
+		  session->security_parameters.max_record_recv_size);
+
+	if (IS_DTLS(session))
+		max = MIN(gnutls_dtls_get_data_mtu(session), max);
 
 	return max;
 }
@@ -1566,9 +1575,9 @@ inline static size_t max_user_send_size(gnutls_session_t session,
  *
  * This function is made static inline for optimization reasons.
  */
-static inline gnutls_certificate_type_t
+inline static gnutls_certificate_type_t
 get_certificate_type(gnutls_session_t session,
-								gnutls_ctype_target_t target)
+		     gnutls_ctype_target_t target)
 {
 	switch (target) {
 		case GNUTLS_CTYPE_CLIENT:

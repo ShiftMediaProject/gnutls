@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -100,8 +100,13 @@ int _gnutls13_recv_certificate(gnutls_session_t session)
 
 	ret = parse_cert_list(session, buf.data, buf.length);
 	if (ret < 0) {
-		if (ret == GNUTLS_E_NO_CERTIFICATE_FOUND && optional)
-			ret = 0;
+		if (ret == GNUTLS_E_NO_CERTIFICATE_FOUND) {
+			if (optional)
+				ret = 0;
+			else if (session->security_parameters.entity ==
+				 GNUTLS_SERVER)
+				ret = GNUTLS_E_CERTIFICATE_REQUIRED;
+		}
 		gnutls_assert();
 		goto cleanup;
 	}

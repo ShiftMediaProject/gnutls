@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 #include "gnutls_int.h"
@@ -135,9 +135,9 @@ void _gnutls_fips_mode_reset_zombie(void)
 	}
 }
 
-#define GNUTLS_LIBRARY_NAME "libgnutls.so.28"
-#define NETTLE_LIBRARY_NAME "libnettle.so.4"
-#define HOGWEED_LIBRARY_NAME "libhogweed.so.2"
+#define GNUTLS_LIBRARY_NAME "libgnutls.so.30"
+#define NETTLE_LIBRARY_NAME "libnettle.so.6"
+#define HOGWEED_LIBRARY_NAME "libhogweed.so.4"
 #define GMP_LIBRARY_NAME "libgmp.so.10"
 
 #define HMAC_SUFFIX ".hmac"
@@ -250,6 +250,13 @@ static unsigned check_binary_integrity(const char* libname, const char* symbol)
 	}
 
 	hmac_size = hex_data_size(data.size);
+
+	/* trim eventual newlines from the end of the data read from file */
+	while ((data.size > 0) && (data.data[data.size - 1] == '\n')) {
+		data.data[data.size - 1] = 0;
+		data.size--;
+	}
+
 	ret = gnutls_hex_decode(&data, hmac, &hmac_size);
 	gnutls_free(data.data);
 
@@ -311,6 +318,31 @@ int _gnutls_fips_perform_self_checks2(void)
 	}
 
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_AES_256_GCM);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	/* Digest tests */
+	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_224);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_256);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_384);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_512);
 	if (ret < 0) {
 		gnutls_assert();
 		goto error;

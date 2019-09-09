@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -134,10 +134,6 @@ _gnutls_get_asn_mpis(ASN1_TYPE asn, const char *root,
 	_asnstr_append_name(name, sizeof(name), root,
 			    ".algorithm.parameters");
 
-	/* FIXME: If the parameters are not included in the certificate
-	 * then the issuer's parameters should be used. This is not
-	 * needed in practice though.
-	 */
 	if (pk_algorithm != GNUTLS_PK_RSA && pk_algorithm != GNUTLS_PK_EDDSA_ED25519 && pk_algorithm != GNUTLS_PK_ECDH_X25519) {
 		/* RSA and EdDSA do not use parameters */
 		result = _gnutls_x509_read_value(asn, name, &tmp);

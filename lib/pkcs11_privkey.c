@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 #include "gnutls_int.h"
@@ -443,7 +443,6 @@ _gnutls_pkcs11_privkey_sign(gnutls_pkcs11_privkey_t key,
 		}
 
 		gnutls_free(tmp.data);
-		tmp.data = NULL;
 	} else {
 		signature->size = siglen;
 		signature->data = tmp.data;
@@ -521,10 +520,8 @@ gnutls_pkcs11_privkey_import_url(gnutls_pkcs11_privkey_t pkey,
 
 	memset(&pkey->sinfo, 0, sizeof(pkey->sinfo));
 
-	if (pkey->url) {
+	if (pkey->url)
 		gnutls_free(pkey->url);
-		pkey->url = NULL;
-	}
 
 	if (pkey->uinfo) {
 		p11_kit_uri_free(pkey->uinfo);
@@ -621,7 +618,6 @@ gnutls_pkcs11_privkey_import_url(gnutls_pkcs11_privkey_t pkey,
 		pkey->uinfo = NULL;
 	}
 	gnutls_free(pkey->url);
-	pkey->url = NULL;
 
 	return ret;
 }

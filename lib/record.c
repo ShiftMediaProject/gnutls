@@ -18,7 +18,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -53,6 +53,7 @@
 #include <dh.h>
 #include <random.h>
 #include <xsize.h>
+#include "locks.h"
 
 struct tls_record_st {
 	uint16_t header_size;
@@ -1547,6 +1548,15 @@ _gnutls_recv_in_buffers(gnutls_session_t session, content_type_t type,
 		goto begin;
 	}
 
+	if (_mbuffer_get_udata_size(decrypted) > max_decrypted_size(session)) {
+		_gnutls_audit_log
+		    (session, "Received packet with illegal length: %u\n",
+		     (unsigned int) ret);
+
+		ret = gnutls_assert_val(GNUTLS_E_RECORD_OVERFLOW);
+		goto sanity_check_error;
+	}
+
 #ifdef ENABLE_SSL2
 	if (record.v2) {
 		decrypted->htype = GNUTLS_HANDSHAKE_CLIENT_HELLO_V2;
@@ -1685,8 +1695,7 @@ check_session_status(gnutls_session_t session, unsigned ms)
 		    !(session->internals.flags & GNUTLS_ENABLE_FALSE_START))
 			return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 
-		/* Attempt to complete handshake */
-
+		/* Attempt to complete handshake - we only need to receive */
 		session->internals.recv_state = RECV_STATE_FALSE_START_HANDLING;
 		ret = gnutls_handshake(session);
 		if (ret < 0) {
@@ -1705,7 +1714,7 @@ check_session_status(gnutls_session_t session, unsigned ms)
 		    !(session->internals.flags & GNUTLS_ENABLE_EARLY_START))
 			return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 
-		/* Attempt to complete handshake */
+		/* Attempt to complete handshake - we only need to receive */
 		session->internals.recv_state = RECV_STATE_EARLY_START_HANDLING;
 		ret = gnutls_handshake(session);
 		if (ret < 0) {
@@ -1978,12 +1987,23 @@ gnutls_record_send2(gnutls_session_t session, const void *data,
 
 	if (unlikely(!session->internals.initial_negotiation_completed)) {
 		/* this is to protect buggy applications from sending unencrypted
-		 * data. We allow sending however, if we are in false start handshake
-		 * state. */
-		if (session->internals.recv_state != RECV_STATE_FALSE_START &&
+		 * data. We allow sending however, if we are in false or early start
+		 * handshake state. */
+		gnutls_mutex_lock(&session->internals.post_negotiation_lock);
+
+		/* we intentionally re-check the initial_negotation_completed variable
+		 * to avoid locking during normal operation of gnutls_record_send2() */
+		if (!session->internals.initial_negotiation_completed &&
+		    session->internals.recv_state != RECV_STATE_FALSE_START &&
+		    session->internals.recv_state != RECV_STATE_FALSE_START_HANDLING &&
 		    session->internals.recv_state != RECV_STATE_EARLY_START &&
-		    !(session->internals.hsk_flags & HSK_EARLY_DATA_IN_FLIGHT))
+		    session->internals.recv_state != RECV_STATE_EARLY_START_HANDLING &&
+		    !(session->internals.hsk_flags & HSK_EARLY_DATA_IN_FLIGHT)) {
+
+			gnutls_mutex_unlock(&session->internals.post_negotiation_lock);
 			return gnutls_assert_val(GNUTLS_E_UNAVAILABLE_DURING_HANDSHAKE);
+		}
+		gnutls_mutex_unlock(&session->internals.post_negotiation_lock);
 	}
 
 	if (unlikely(!vers))

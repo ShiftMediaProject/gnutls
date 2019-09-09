@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -574,8 +574,6 @@ unpack_certificate_auth_info(gnutls_session_t session,
 
 		gnutls_free(info->raw_certificate_list);
 		gnutls_free(info->raw_ocsp_list);
-		info->raw_certificate_list = NULL;
-		info->raw_ocsp_list = NULL;
 	}
 
 	return ret;
@@ -923,9 +921,18 @@ pack_security_parameters(gnutls_session_t session, gnutls_buffer_st * ps)
 		BUFFER_APPEND_NUM(ps,
 				  session->security_parameters.
 				  max_record_send_size);
-		BUFFER_APPEND_NUM(ps,
-				  session->security_parameters.
-				  max_record_recv_size);
+
+		/* reset max_record_recv_size if it was negotiated
+		 * using the record_size_limit extension */
+		if (session->internals.hsk_flags & HSK_RECORD_SIZE_LIMIT_NEGOTIATED) {
+			BUFFER_APPEND_NUM(ps,
+					  session->security_parameters.
+					  max_record_send_size);
+		} else {
+			BUFFER_APPEND_NUM(ps,
+					  session->security_parameters.
+					  max_record_recv_size);
+		}
 
 		if (session->security_parameters.grp) {
 			BUFFER_APPEND_NUM(ps, session->security_parameters.grp->id);

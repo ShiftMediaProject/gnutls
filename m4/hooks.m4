@@ -15,7 +15,7 @@
 # Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
+# along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 AC_DEFUN([LIBGNUTLS_EXTRA_HOOKS],
 [
@@ -41,7 +41,7 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
   AC_SUBST(LT_CURRENT, 53)
-  AC_SUBST(LT_REVISION, 1)
+  AC_SUBST(LT_REVISION, 2)
   AC_SUBST(LT_AGE, 23)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
@@ -346,7 +346,7 @@ LIBTASN1_MINIMUM=4.9
   AM_CONDITIONAL(ENABLE_OCSP, test "$ac_enable_ocsp" != "no")
 
   # For storing integers in pointers without warnings
-  # http://developer.gnome.org/doc/API/2.0/glib/glib-Type-Conversion-Macros.html#desc
+  # https://developer.gnome.org/doc/API/2.0/glib/glib-Type-Conversion-Macros.html#desc
   AC_CHECK_SIZEOF(void *)
   AC_CHECK_SIZEOF(long long)
   AC_CHECK_SIZEOF(long)

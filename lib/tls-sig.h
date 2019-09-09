@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -31,6 +31,9 @@
  * format.
  */
 #define MAX_SIG_SIZE (19 + MAX_HASH_SIZE)
+
+int _gnutls_check_key_usage_for_sig(gnutls_session_t session, unsigned key_usage,
+				    unsigned our_cert);
 
 int _gnutls_handshake_sign_crt_vrfy(gnutls_session_t session,
 				    gnutls_pcert_st * cert,

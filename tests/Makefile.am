@@ -16,7 +16,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
+# along with this program.  If not, see <https://www.gnu.org/licenses/>
 #
 
 SUBDIRS = . cert-tests slow
@@ -41,7 +41,7 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
 	certs/ed25519.pem certs/cert-ed25519.pem \
 	system.prio pkcs11/softhsm.h pkcs11/pkcs11-pubkey-import.c gnutls-asan.supp \
 	rsa-md5-collision/README safe-renegotiation/README starttls-smtp.txt starttls-ftp.txt \
-	starttls-lmtp.txt starttls-pop3.txt starttls-nntp.txt starttls-sieve.txt \
+	starttls-lmtp.txt starttls-pop3.txt starttls-xmpp.txt starttls-nntp.txt starttls-sieve.txt \
 	rsa-md5-collision/colliding-chain-md5-2.pem rsa-md5-collision/colliding-chain-md5-1.pem \
 	ocsp-tests/certs/ocsp-amazon.com.der ocsp-tests/certs/chain-amazon.com.pem \
 	ocsp-tests/certs/chain-amazon.com-unsorted.pem cipher-neg-common.c \
@@ -147,7 +147,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 tls13-rehandshake-cert gnutls_ext_raw_parse handshake-large-cert \
 	 x509cert x509cert-tl infoaccess mini-dtls-hello-verify sign-verify-ed25519-rfc8080 \
 	 trustdb-tofu dtls-rehandshake-anon mini-alpn mini-dtls-large \
-	 mini-termination mini-x509-cas mini-x509-2 pkcs12_simple \
+	 mini-termination mini-x509-cas mini-x509-2 pkcs12_simple tls-pthread \
 	 mini-emsgsize-dtls chainverify-unsorted mini-overhead tls12-ffdhe \
 	 mini-dtls-heartbeat mini-x509-callbacks key-openssl priorities priorities-groups	\
 	 gnutls_x509_privkey_import gnutls_x509_crt_list_import \
@@ -163,7 +163,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 mini-chain-unsorted x509-verify-with-crl mini-dtls-mtu privkey-verify-broken \
 	 mini-dtls-record-asym key-import-export priority-set priority-set2 \
 	 pubkey-import-export sign-is-secure spki spki-abstract rsa-rsa-pss \
-	 mini-dtls-fork mini-dtls-pthread mini-key-material x509cert-invalid \
+	 mini-dtls-fork dtls-pthread mini-key-material x509cert-invalid \
 	 tls-ext-register tls-supplemental mini-dtls0-9 duplicate-extensions \
 	 record-retvals mini-server-name tls-etm tls-force-etm x509-cert-callback alerts \
 	 client-sign-md5-rep tls12-invalid-key-exchanges session-rdn-read \
@@ -238,10 +238,16 @@ gnutls_record_overhead_CPPFLAGS = $(AM_CPPFLAGS) \
 	-I$(top_builddir)/gl	\
 	$(NETTLE_CFLAGS)
 
+ip_utils_CPPFLAGS = $(AM_CPPFLAGS) \
+	-I$(top_srcdir)/gl	\
+	-I$(top_builddir)/gl	\
+	$(NETTLE_CFLAGS)
+
 endif
 
+tls_pthread_LDADD = $(LDADD) -lpthread
 fips_mode_pthread_LDADD = $(LDADD) -lpthread
-mini_dtls_pthread_LDADD = $(LDADD) -lpthread
+dtls_pthread_LDADD = $(LDADD) -lpthread
 rng_pthread_LDADD = $(LDADD) -lpthread
 
 memset0_CFLAGS = -DCHAR=0x0
@@ -456,12 +462,12 @@ dtls_stress_LDADD = $(COMMON_GNUTLS_LDADD) \
 	$(COMMON_DEPS_LDADD)
 
 dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh starttls-smtp.sh \
-	starttls-lmtp.sh starttls-pop3.sh starttls-nntp.sh starttls-sieve.sh \
+	starttls-lmtp.sh starttls-pop3.sh starttls-xmpp.sh starttls-nntp.sh starttls-sieve.sh \
 	ocsp-tests/ocsp-tls-connection ocsp-tests/ocsp-must-staple-connection \
 	ocsp-tests/ocsp-test cipher-listings.sh sni-hostname.sh server-multi-keys.sh \
 	psktool.sh ocsp-tests/ocsp-load-chain gnutls-cli-save-data.sh gnutls-cli-debug.sh \
 	sni-resume.sh ocsp-tests/ocsptool cert-reencoding.sh pkcs7-cat.sh long-crl.sh \
-	serv-udp.sh
+	serv-udp.sh logfile-option.sh gnutls-cli-resume.sh
 
 dist_check_SCRIPTS += gnutls-cli-self-signed.sh gnutls-cli-invalid-crl.sh
 

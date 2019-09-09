@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -193,9 +193,9 @@ _gnutls_x509_read_dsa_params(uint8_t * der, int dersize,
 		return _gnutls_asn2err(result);
 	}
 
-	/* FIXME: If the parameters are not included in the certificate
+	/* If the parameters are not included in the certificate
 	 * then the issuer's parameters should be used. This is not
-	 * done yet.
+	 * implemented, and is not used in practice (along with DSA).
 	 */
 
 	/* Read p */

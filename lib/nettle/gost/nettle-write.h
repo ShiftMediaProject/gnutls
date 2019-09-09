@@ -28,7 +28,7 @@
 
    You should have received copies of the GNU General Public License and
    the GNU Lesser General Public License along with this program.  If
-   not, see http://www.gnu.org/licenses/.
+   not, see https://www.gnu.org/licenses/.
 */
 
 #ifndef NETTLE_WRITE_H_INCLUDED
@@ -37,7 +37,7 @@
 /* For size_t */
 #include <stddef.h>
 
-#include <nettle/nettle-stdint.h>
+#include <stdint.h>
 
 /* Write the word array at SRC to the byte array at DST, using little
    endian (le) or big endian (be) byte order, and truncating the

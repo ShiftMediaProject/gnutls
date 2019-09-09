@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -105,8 +105,12 @@ _gnutls_server_name_recv_params(gnutls_session_t session,
 			DECR_LEN(data_size, len);
 
 			if (type == 0) { /* NAME_DNS */
-				if (!_gnutls_dnsname_is_valid((char*)p, len))
-					return gnutls_assert_val(GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER);
+				if (!_gnutls_dnsname_is_valid((char*)p, len)) {
+					_gnutls_handshake_log
+					    ("HSK[%p]: Server name is not acceptable: '%.*s'\n",
+					     session, (int) len, p);
+					return gnutls_assert_val(GNUTLS_E_RECEIVED_DISALLOWED_NAME);
+				}
 
 				name.data = (void*)p;
 				name.size = len;

@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -39,6 +39,7 @@
 #include "secrets.h"
 #include "handshake.h"
 #include "crypto-api.h"
+#include "locks.h"
 
 static const char keyexp[] = "key expansion";
 static const int keyexp_length = sizeof(keyexp) - 1;
@@ -55,8 +56,6 @@ static int
 _gnutls_set_keys(gnutls_session_t session, record_parameters_st * params,
 		 unsigned hash_size, unsigned IV_size, unsigned key_size)
 {
-	/* FIXME: This function is too long
-	 */
 	uint8_t rnd[2 * GNUTLS_RANDOM_SIZE];
 	int pos, ret;
 	int block_size;
@@ -822,6 +821,15 @@ int _gnutls_write_connection_state_init(gnutls_session_t session)
 	    session->security_parameters.epoch_next;
 	int ret;
 
+	/* reset max_record_recv_size if it was negotiated in the
+	 * previous handshake using the record_size_limit extension */
+	if (session->security_parameters.max_record_recv_size !=
+	    session->security_parameters.max_record_send_size &&
+	    !(session->internals.hsk_flags & HSK_RECORD_SIZE_LIMIT_NEGOTIATED) &&
+	    session->security_parameters.entity == GNUTLS_SERVER)
+		session->security_parameters.max_record_recv_size =
+			session->security_parameters.max_record_send_size;
+
 /* Update internals from CipherSuite selected.
  * If we are resuming just copy the connection session
  */
@@ -897,18 +905,28 @@ _gnutls_epoch_get(gnutls_session_t session, unsigned int epoch_rel,
 	record_parameters_st **params;
 	int ret;
 
+	gnutls_mutex_lock(&session->internals.epoch_lock);
+
 	ret = epoch_resolve(session, epoch_rel, &epoch);
-	if (ret < 0)
-		return gnutls_assert_val(ret);
+	if (ret < 0) {
+		gnutls_assert();
+		goto cleanup;
+	}
 
 	params = epoch_get_slot(session, epoch);
-	if (params == NULL || *params == NULL)
-		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+	if (params == NULL || *params == NULL) {
+		ret = gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+		goto cleanup;
+	}
 
 	if (params_out)
 		*params_out = *params;
 
-	return 0;
+	ret = 0;
+
+cleanup:
+	gnutls_mutex_unlock(&session->internals.epoch_lock);
+	return ret;
 }
 
 /* Ensures that the next epoch is setup. When an epoch will null ciphers
@@ -999,6 +1017,8 @@ void _gnutls_epoch_gc(gnutls_session_t session)
 
 	_gnutls_record_log("REC[%p]: Start of epoch cleanup\n", session);
 
+	gnutls_mutex_lock(&session->internals.epoch_lock);
+
 	/* Free all dead cipher state */
 	for (i = 0; i < MAX_EPOCH_INDEX; i++) {
 		if (session->record_parameters[i] != NULL) {
@@ -1040,6 +1060,8 @@ void _gnutls_epoch_gc(gnutls_session_t session)
 	if (session->record_parameters[0] != NULL)
 		session->security_parameters.epoch_min =
 		    session->record_parameters[0]->epoch;
+
+	gnutls_mutex_unlock(&session->internals.epoch_lock);
 
 	_gnutls_record_log("REC[%p]: End of epoch cleanup\n", session);
 }

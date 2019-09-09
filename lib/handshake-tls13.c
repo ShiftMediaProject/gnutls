@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -56,6 +56,7 @@
 #include "tls13/finished.h"
 #include "tls13/key_update.h"
 #include "ext/pre_shared_key.h"
+#include "locks.h"
 
 static int generate_rms_keys(gnutls_session_t session);
 static int generate_hs_traffic_keys(gnutls_session_t session);
@@ -202,8 +203,8 @@ int _gnutls13_handshake_client(gnutls_session_t session)
 		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 	}
 
-
-	/* explicitly reset any false start flags */
+	/* no lock of post_negotiation_lock is required here as this is not run
+	 * after handshake */
 	session->internals.recv_state = RECV_STATE_0;
 	session->internals.initial_negotiation_completed = 1;
 
@@ -361,8 +362,6 @@ static int generate_hs_traffic_keys(gnutls_session_t session)
 	return 0;
 }
 
-#define TICKETS_TO_SEND 1
-
 /*
  * _gnutls13_handshake_server
  * This function does the server stuff of the handshake protocol.
@@ -509,7 +508,7 @@ int _gnutls13_handshake_server(gnutls_session_t session)
 			_gnutls_set_resumed_parameters(session);
 
 		if (session->internals.hsk_flags & HSK_EARLY_START_USED) {
-			ret = _gnutls13_send_session_ticket(session, TICKETS_TO_SEND,
+			ret = _gnutls13_send_session_ticket(session, TLS13_TICKETS_TO_SEND,
 							    AGAIN(STATE109));
 
 			STATE = STATE109;
@@ -565,7 +564,7 @@ int _gnutls13_handshake_server(gnutls_session_t session)
 		FALLTHROUGH;
 	case STATE115:
 		if (!(session->internals.hsk_flags & (HSK_TLS13_TICKET_SENT|HSK_EARLY_START_USED))) {
-			ret = _gnutls13_send_session_ticket(session, TICKETS_TO_SEND,
+			ret = _gnutls13_send_session_ticket(session, TLS13_TICKETS_TO_SEND,
 							    AGAIN(STATE115));
 			STATE = STATE115;
 			IMED_RET("send session ticket", ret, 0);
@@ -577,9 +576,11 @@ int _gnutls13_handshake_server(gnutls_session_t session)
 		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 	}
 
-	/* explicitly reset any false start flags */
+	/* explicitly reset any early start flags */
+	gnutls_mutex_lock(&session->internals.post_negotiation_lock);
 	session->internals.recv_state = RECV_STATE_0;
 	session->internals.initial_negotiation_completed = 1;
+	gnutls_mutex_unlock(&session->internals.post_negotiation_lock);
 
 	SAVE_TRANSCRIPT;
 
@@ -604,6 +605,8 @@ _gnutls13_recv_async_handshake(gnutls_session_t session)
 		return gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
 
 	do {
+		_gnutls_handshake_buffer_init(&hsk);
+
 		/* the received handshake message has already been pushed into
 		 * handshake buffers. As we do not need to use the handshake hash
 		 * buffers we call the lower level receive functions */
@@ -735,7 +738,7 @@ _gnutls13_recv_async_handshake(gnutls_session_t session)
  *
  * Sends a fresh session ticket to the peer. This is relevant only
  * in server side under TLS1.3. This function may also return %GNUTLS_E_AGAIN
- * or %GNUTLS_E_INTERRUPTED.
+ * or %GNUTLS_E_INTERRUPTED and in that case it must be called again.
  *
  * Returns: %GNUTLS_E_SUCCESS on success, or a negative error code.
  **/

@@ -19,7 +19,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -1641,10 +1641,8 @@ gnutls_tpm_privkey_generate(gnutls_pk_algorithm_t pk, unsigned int bits,
 	gnutls_pubkey_deinit(pub);
       privkey_cleanup:
 	gnutls_free(privkey->data);
-	privkey->data = NULL;
       cleanup:
 	gnutls_free(tmpkey.data);
-	tmpkey.data = NULL;
       err_sa:
 	pTspi_Context_CloseObject(s.tpm_ctx, key_ctx);
       err_cc:

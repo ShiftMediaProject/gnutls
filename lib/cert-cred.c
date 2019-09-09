@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -258,7 +258,6 @@ void gnutls_certificate_free_keys(gnutls_certificate_credentials_t sc)
 
 		for (j = 0; j < sc->certs[i].ocsp_data_length; j++) {
 			gnutls_free(sc->certs[i].ocsp_data[j].response.data);
-			sc->certs[i].ocsp_data[j].response.data = NULL;
 		}
 		_gnutls_str_array_clear(&sc->certs[i].names);
 		gnutls_privkey_deinit(sc->certs[i].pkey);
@@ -266,8 +265,6 @@ void gnutls_certificate_free_keys(gnutls_certificate_credentials_t sc)
 
 	gnutls_free(sc->certs);
 	gnutls_free(sc->sorted_cert_idx);
-	sc->certs = NULL;
-	sc->sorted_cert_idx = NULL;
 
 	sc->ncerts = 0;
 }
@@ -276,14 +273,13 @@ void gnutls_certificate_free_keys(gnutls_certificate_credentials_t sc)
  * gnutls_certificate_free_cas:
  * @sc: is a #gnutls_certificate_credentials_t type.
  *
- * This function will delete all the CAs associated with the given
- * credentials. Servers that do not use
- * gnutls_certificate_verify_peers2() may call this to save some
- * memory.
+ * This function was operational on very early versions of gnutls.
+ * Due to internal refactorings and the fact that this was hardly ever
+ * used, it is currently a no-op.
+ *
  **/
 void gnutls_certificate_free_cas(gnutls_certificate_credentials_t sc)
 {
-	/* FIXME: do nothing for now */
 	return;
 }
 

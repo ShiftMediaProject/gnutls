@@ -18,7 +18,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 /* Parts copied from GnuTLS example programs. */
@@ -900,7 +900,6 @@ static void server(int sds[], struct params_res *params)
 	}
 
 	gnutls_free(session_ticket_key.data);
-	session_ticket_key.data = NULL;
 
 	if (debug)
 		success("server: finished\n");

@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.63)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.6.6], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.6.7], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -60,6 +60,7 @@ if test "$ac_cv_prog_cc_c99" = "no"; then
 fi
 
 AX_CODE_COVERAGE
+
 AM_MAINTAINER_MODE([enable])
 
 AC_ARG_ENABLE(bash-tests,
@@ -301,7 +302,7 @@ AC_C_BIGENDIAN
 
 dnl No fork on MinGW, disable some self-tests until we fix them.
 dnl Check clock_gettime and pthread_mutex_lock in libc (avoid linking to other libs)
-AC_CHECK_FUNCS([fork setitimer inet_ntop inet_pton getrusage getpwuid_r nanosleep daemon getpid localtime mmap explicit_bzero],,)
+AC_CHECK_FUNCS([fork setitimer getrusage getpwuid_r nanosleep daemon getpid localtime mmap explicit_bzero],,)
 dnl Manually check some functions by including headers first. On macOS, you
 dnl normally only have the latest SDK available, containing all existing
 dnl functions, but having them restricted according to target version in
@@ -356,10 +357,6 @@ if test "$ac_cv_func_nanosleep" != "yes";then
   gnutls_needs_librt=yes
 fi
 
-if test "$ac_cv_func_inet_pton" != "yes";then
-  AC_LIB_HAVE_LINKFLAGS(nsl,, [#include <arpa/inet.h>], [inet_pton(0,0,0);])
-fi
-
 if test "$ac_cv_func_clock_gettime" != "yes";then
   AC_LIB_HAVE_LINKFLAGS(rt,, [#include <time.h>], [clock_gettime (0, 0);])
   gnutls_needs_librt=yes
@@ -391,7 +388,7 @@ AM_CONDITIONAL(HAVE_LIBUNISTRING, test "$ac_have_unistring" = "yes")
 dnl Note that g*l_INIT are run after we check for library capabilities,
 dnl to prevent issues from caching lib dependencies. See discussion
 dnl in https://bugs.gentoo.org/show_bug.cgi?id=494940 and
-dnl http://gnu-autoconf.7623.n7.nabble.com/Correct-way-to-check-for-clock-gettime-td12276.html
+dnl https://gnu-autoconf.7623.n7.nabble.com/Correct-way-to-check-for-clock-gettime-td12276.html
 gl_INIT
 ggl_INIT
 unistring_INIT
@@ -537,7 +534,7 @@ AC_ARG_ENABLE(non-suiteb-curves,
 
 if test "$enable_non_suiteb" = "yes";then
 	dnl nettle_secp_192r1 is not really a function
-	AC_CHECK_LIB(hogweed, nettle_secp_192r1, enable_non_suiteb=yes, enable_non_suiteb=no, [$HOGWEED_LIBS])
+	AC_CHECK_LIB(hogweed, nettle_secp_192r1, enable_non_suiteb=yes, enable_non_suiteb=no, [$HOGWEED_LIBS $NETTLE_LIBS])
 
 	if test "$enable_non_suiteb" = "yes";then
 		AC_DEFINE([ENABLE_NON_SUITEB_CURVES], 1, [Enable all curves])
@@ -547,7 +544,7 @@ AM_CONDITIONAL(ENABLE_NON_SUITEB_CURVES, test "$enable_non_suiteb" = "yes")
 
 # We MUST require a Nettle version that has rsa_sec_decrypt now.
 save_LIBS=$LIBS
-LIBS="$LIBS $HOGWEED_LIBS"
+LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_rsa_sec_decrypt,
     [],
     [AC_MSG_ERROR([Nettle lacks the required rsa_sec_decrypt function])]
@@ -653,7 +650,7 @@ if test "$with_p11_kit" != "no"; then
 *** 
 *** p11-kit >= $P11_KIT_MINIMUM was not found. To disable PKCS #11 support 
 *** use --without-p11-kit, otherwise you may get p11-kit from
-*** http://p11-glue.freedesktop.org/p11-kit.html
+*** https://p11-glue.freedesktop.org/p11-kit.html
 *** ]])
 	fi
 fi
@@ -739,18 +736,6 @@ fi
 
 AM_CONDITIONAL(NEED_LIBOPTS, test "$included_libopts" = "yes")
 
-AC_CHECK_TYPE(ssize_t,
-  [
-    DEFINE_SSIZE_T="#include <sys/types.h>"
-    AC_SUBST(DEFINE_SSIZE_T)
-  ], [
-    AC_DEFINE([NO_SSIZE_T], 1, [no ssize_t type was found])
-    DEFINE_SSIZE_T="typedef int ssize_t;"
-    AC_SUBST(DEFINE_SSIZE_T)
-  ], [
-    #include <sys/types.h>
-  ])
-
 # For minitasn1.
 AC_CHECK_SIZEOF(unsigned long int, 4)
 AC_CHECK_SIZEOF(unsigned int, 4)
@@ -785,7 +770,7 @@ if test "x$with_default_trust_store_dir" != x; then
     ["$with_default_trust_store_dir"], [use the given directory as default trust store])
 fi
 
-dnl auto detect http://lists.gnu.org/archive/html/help-gnutls/2012-05/msg00004.html
+dnl auto detect https://lists.gnu.org/archive/html/help-gnutls/2012-05/msg00004.html
 AC_ARG_WITH([default-trust-store-file],
   [AS_HELP_STRING([--with-default-trust-store-file=FILE],
     [use the given file default trust store])], with_default_trust_store_file="$withval",
@@ -840,10 +825,6 @@ AC_ARG_ENABLE(guile,
 opt_guile_bindings=$enableval)
 AC_MSG_RESULT($opt_guile_bindings)
 
-AC_ARG_WITH([guile-site-dir],
-  [AS_HELP_STRING([--with-guile-site-dir],
-     [use the given directory as the Guile site (use with care)])])
-
 if test "$opt_guile_bindings" = "yes"; then
    AC_MSG_RESULT([***
 *** Detecting GNU Guile...
@@ -859,7 +840,9 @@ if test "$opt_guile_bindings" = "yes"; then
       AC_PATH_PROG([GUILD], [guild])
       AC_SUBST([GUILD])
 
+      GUILE_PKG
       GUILE_PROGS
+      GUILE_SITE_DIR
       GUILE_FLAGS
 
       save_CFLAGS="$CFLAGS"
@@ -878,24 +861,6 @@ if test "$opt_guile_bindings" = "yes"; then
 
       if test "$opt_guile_bindings" = "yes"; then
         AC_MSG_RESULT([yes])
-	case "x$with_guile_site_dir" in 
-	     xno)
-		# Use the default $(GUILE_SITE).
-		GUILE_SITE_DIR
-		;;
-	     x|xyes)
-		# Automatically derive $(GUILE_SITE) from $(pkgdatadir).  This
-		# hack is used to allow `distcheck' to work (see
-		# `DISTCHECK_CONFIGURE_FLAGS' in the top-level `Makefile.am').
-		GUILE_SITE="\$(datadir)/guile/site/$guile_effective_version"
-		AC_SUBST(GUILE_SITE)
-		;;
-	     *)
-		# Use the user-specified directory as $(GUILE_SITE).
-		GUILE_SITE="$with_guile_site_dir"
-		AC_SUBST(GUILE_SITE)
-		;;
-	esac
         AC_MSG_CHECKING([whether gcc supports -fgnu89-inline])
         _gcc_cflags_save="$CFLAGS"
         CFLAGS="${CFLAGS} -fgnu89-inline"
@@ -956,7 +921,6 @@ AC_CONFIG_FILES([
   doc/credentials/Makefile
   doc/credentials/srp/Makefile
   doc/credentials/x509/Makefile
-  doc/cyclo/Makefile
   doc/doxygen/Doxyfile
   doc/examples/Makefile
   doc/latex/Makefile

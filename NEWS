@@ -2,8 +2,54 @@ GnuTLS NEWS -- History of user-visible changes.                -*- outline -*-
 Bug numbers referenced in this log correspond to bug numbers at our issue tracker,
 available at https://gitlab.com/gnutls/gnutls/issues
 Copyright (C) 2000-2016 Free Software Foundation, Inc.
-Copyright (C) 2013-2017 Nikos Mavrogiannopoulos
+Copyright (C) 2013-2019 Nikos Mavrogiannopoulos
 See the end for copying conditions.
+
+* Version 3.6.7 (released 2019-03-27)
+
+** libgnutls, gnutls tools: Every gnutls_free() will automatically set
+   the free'd pointer to NULL. This prevents possible use-after-free and
+   double free issues. Use-after-free will be turned into NULL dereference.
+   The counter-measure does not extend to applications using gnutls_free().
+
+** libgnutls: Fixed a memory corruption (double free) vulnerability in the
+   certificate verification API. Reported by Tavis Ormandy; addressed with
+   the change above. [GNUTLS-SA-2019-03-27, #694]
+
+** libgnutls: Fixed an invalid pointer access via malformed TLS1.3 async messages;
+   Found using tlsfuzzer. [GNUTLS-SA-2019-03-27, #704]
+
+** libgnutls: enforce key usage limitations on certificates more actively.
+   Previously we would enforce it for TLS1.2 protocol, now we enforce it
+   even when TLS1.3 is negotiated, or on client certificates as well. When
+   an inappropriate for TLS1.3 certificate is seen on the credentials structure
+   GnuTLS will disable TLS1.3 support for that session (#690).
+
+** libgnutls: the default number of tickets sent under TLS 1.3 was increased to
+   two. This makes it easier for clients which perform multiple connections
+   to the server to use the tickets sent by a default server.
+
+** libgnutls: enforce the equality of the two signature parameters fields in
+   a certificate. We were already enforcing the signature algorithm, but there
+   was a bug in parameter checking code.
+
+** libgnutls: fixed issue preventing sending and receiving from different
+   threads when false start was enabled (#713).
+
+** libgnutls: the flag GNUTLS_PKCS11_OBJ_FLAG_LOGIN_SO now implies a writable
+   session, as non-writeable security officer sessions are undefined in PKCS#11
+   (#721).
+
+** libgnutls: no longer send downgrade sentinel in TLS 1.3.
+   Previously the sentinel value was embedded to early in version
+   negotiation and was sent even on TLS 1.3. It is now sent only when
+   TLS 1.2 or earlier is negotiated (#689).
+
+** gnutls-cli: Added option --logfile to redirect informational messages output.
+
+** API and ABI modifications:
+No changes since last version.
+
 
 * Version 3.6.6 (released 2019-01-25)
 
@@ -858,7 +904,7 @@ gnutls_ext_get_name: Added
 * Version 3.5.0 (released 2016-05-09)
 
 ** libgnutls: Added SHA3 based signing algorithms for DSA, RSA and ECDSA,
-   based on http://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html
+   based on https://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html
 
 ** libgnutls: Added support for curve X25519 (RFC 7748, draft-ietf-tls-rfc4492bis-07).
    This curve is disabled by default as it is still on specification status. It
@@ -4881,7 +4927,7 @@ trusting that name.  Thanks for report and analysis from Martin von
 Gagern <Martin.vGagern@gmx.net>.  [CVE-2008-4989]
 
 Any updates with more details about this vulnerability will be added
-to <http://www.gnu.org/software/gnutls/security.html>
+to <https://www.gnu.org/software/gnutls/security.html>
 
 ** libgnutls: Fix namespace issue with version symbols.
 The symbols LIBGNUTLS_VERSION, LIBGNUTLS_VERSION_MAJOR,
@@ -5039,7 +5085,7 @@ GNUTLS_VERIFY_DISABLE_TIME_CHECKS, that can be used to disable the new
 behaviour.
 
 More details about the vulnerabilities will be posted at
-<http://www.gnu.org/software/gnutls/security.html>.
+<https://www.gnu.org/software/gnutls/security.html>.
 
 ** gnutls-cli, gnutls-cli-debug: Fix AIX build problem.
 Reported by LAUPRETRE François (P) <francois.laupretre@ratp.fr> in
@@ -5156,7 +5202,7 @@ trusting that name.  Thanks for report and analysis from Martin von
 Gagern <Martin.vGagern@gmx.net>.  [CVE-2008-4989]
 
 Any updates with more details about this vulnerability will be added
-to <http://www.gnu.org/software/gnutls/security.html>
+to <https://www.gnu.org/software/gnutls/security.html>
 
 ** libgnutls: Add missing prototype for gnutls_srp_set_prime_bits.
 Reported by Kevin Quick <quick@sparq.org> in
@@ -5573,7 +5619,7 @@ trusting that name.  Thanks for report and analysis from Martin von
 Gagern <Martin.vGagern@gmx.net>.  [CVE-2008-4989]
 
 Any updates with more details about this vulnerability will be added
-to <http://www.gnu.org/software/gnutls/security.html>
+to <https://www.gnu.org/software/gnutls/security.html>
 
 ** libgnutls: Fix buffer overrun in gnutls_x509_crt_list_import.
 Report and patch by Jonathan Manktelow.
@@ -5614,7 +5660,7 @@ can happen for re-handshakes, the library would crash because it tried
 to hash some data using a libgcrypt handle that had been deallocated.
 Report and tiny patch from Tomas Mraz <tmraz@redhat.com>.  Any updates
 with more details about this vulnerability will be added to
-<http://www.gnu.org/software/gnutls/security.html>
+<https://www.gnu.org/software/gnutls/security.html>
 
 ** libgnutls: Fix memory leaks when doing a re-handshake.
 Reported by Sam Varshavchik <mrsam@courier-mta.com> in
@@ -5923,7 +5969,7 @@ Thanks to CERT-FI for finding the bugs and providing detailed reports,
 which allowed the bugs to be reproduced and fixed easily.  Patches
 developed by Simon Josefsson and Nikos Mavrogiannopoulos.  Any updates
 with more details about these vulnerabilities will be added to
-<http://www.gnu.org/software/gnutls/security.html>
+<https://www.gnu.org/software/gnutls/security.html>
 
 *** [GNUTLS-SA-2008-1-1]
 *** libgnutls: Fix crash when sending invalid server name.
@@ -6335,7 +6381,7 @@ Thanks to CERT-FI for finding the bugs and providing detailed reports,
 which allowed the bugs to be reproduced and fixed easily.  Patches
 developed by Simon Josefsson and Nikos Mavrogiannopoulos.  Any updates
 with more details about these vulnerabilities will be added to
-<http://www.gnu.org/software/gnutls/security.html>
+<https://www.gnu.org/software/gnutls/security.html>
 
 *** [GNUTLS-SA-2008-1-1]
 *** libgnutls: Fix crash when sending invalid server name.
@@ -7836,7 +7882,7 @@ This enables 'make distcheck' to succeed.
 Reported by Daniel Black <dragonheart@gentoo.org>.
 
 ** Fix a crash (strcmp() on a NULL value) in the certificate verification logic.
-See http://www.gnu.org/software/gnutls/security.html regardging
+See https://www.gnu.org/software/gnutls/security.html regardging
 GNUTLS-SA-2006-2 for more up to date information.  Reported by
 satyakumar <satyam_kkd@hyd.hellosoft.com>.
 
@@ -7909,7 +7955,7 @@ known at this point whether the crash can be triggered without the
 special local CA certificate, and thus turn this into a remote crash
 of clients that verify server certificates when they talk to a server
 with the special server certificate.  See GNUTLS-SA-2006-2 on
-http://www.gnu.org/software/gnutls/security.html for more up to date
+https://www.gnu.org/software/gnutls/security.html for more up to date
 information.  Reported by satyakumar <satyam_kkd@hyd.hellosoft.com>.
 
 ** Change SRP and Cert-Type extensions to match IANA registry.
@@ -8554,7 +8600,7 @@ LIBGNUTLS_VERSION_NUMBER: New CPP symbols, indicating the GnuTLS
 - Added self test that tests anonymous TLS client and server.
 - Added self tests of Nettle and generic crypto layer.
 - Added API reference manual in HTML format in doc/reference/ using GTK-DOC.
-  Online version at <http://www.gnu.org/software/gnutls/reference/>.
+  Online version at <https://www.gnu.org/software/gnutls/reference/>.
 - Assume C89 or better; removed checks for size_t, ptrdiff_t and time_t.
 - Man pages for API functions are included.
 

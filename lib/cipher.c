@@ -18,7 +18,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -871,6 +871,15 @@ decrypt_packet_tls13(gnutls_session_t session,
 					 plain->data, &length);
 	if (unlikely(ret < 0))
 		return gnutls_assert_val(ret);
+
+	/* 1 octet for content type */
+	if (length > max_decrypted_size(session) + 1) {
+		_gnutls_audit_log
+		    (session, "Received packet with illegal length: %u\n",
+		     (unsigned int) length);
+
+		return gnutls_assert_val(GNUTLS_E_RECORD_OVERFLOW);
+	}
 
 	length_set = 0;
 

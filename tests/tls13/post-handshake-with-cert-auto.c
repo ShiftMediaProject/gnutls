@@ -16,7 +16,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -360,7 +360,7 @@ void start(const char *name, int err, int type, unsigned max_auths, unsigned sen
 void doit(void)
 {
 	start("multi-reauth", 0, GNUTLS_CERT_REQUIRE, MAX_AUTHS, 1);
-	start("reauth-require with no-cert", GNUTLS_E_NO_CERTIFICATE_FOUND, GNUTLS_CERT_REQUIRE, 1, 0);
+	start("reauth-require with no-cert", GNUTLS_E_CERTIFICATE_REQUIRED, GNUTLS_CERT_REQUIRE, 1, 0);
 	start("reauth-request with no-cert", 0, GNUTLS_CERT_REQUEST, 1, 0);
 }
 #endif				/* _WIN32 */

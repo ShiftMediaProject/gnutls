@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -55,6 +55,7 @@
 #include <dtls.h>
 #include "secrets.h"
 #include "tls13/session_ticket.h"
+#include "locks.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -444,6 +445,9 @@ _gnutls_negotiate_version(gnutls_session_t session,
 
 		if (aversion && aversion->id == GNUTLS_TLS1_2) {
 			vers = _gnutls_version_max(session);
+			if (unlikely(vers == NULL))
+				return gnutls_assert_val(GNUTLS_E_NO_CIPHER_SUITES);
+
 			if (vers->id >= GNUTLS_TLS1_2) {
 				session->security_parameters.pversion = aversion;
 				return 0;
@@ -1005,8 +1009,6 @@ int _gnutls_recv_finished(gnutls_session_t session)
 	}
 
 
-	session->internals.initial_negotiation_completed = 1;
-
       cleanup:
 	_gnutls_buffer_clear(&buf);
 
@@ -1523,6 +1525,11 @@ _gnutls_recv_handshake(gnutls_session_t session,
 	switch (hsk.htype) {
 	case GNUTLS_HANDSHAKE_CLIENT_HELLO_V2:
 	case GNUTLS_HANDSHAKE_CLIENT_HELLO:
+		if (!(IS_SERVER(session))) {
+			ret = gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
+			goto cleanup;
+		}
+
 #ifdef ENABLE_SSL2
 		if (hsk.htype == GNUTLS_HANDSHAKE_CLIENT_HELLO_V2)
 			ret =
@@ -1549,6 +1556,11 @@ _gnutls_recv_handshake(gnutls_session_t session,
 		break;
 
 	case GNUTLS_HANDSHAKE_SERVER_HELLO:
+		if (IS_SERVER(session)) {
+			ret = gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
+			goto cleanup;
+		}
+
 		ret = read_server_hello(session, hsk.data.data,
 					hsk.data.length);
 
@@ -1559,6 +1571,11 @@ _gnutls_recv_handshake(gnutls_session_t session,
 
 		break;
 	case GNUTLS_HANDSHAKE_HELLO_VERIFY_REQUEST:
+		if (IS_SERVER(session)) {
+			ret = gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
+			goto cleanup;
+		}
+
 		ret =
 		    recv_hello_verify_request(session,
 					      hsk.data.data,
@@ -1576,6 +1593,12 @@ _gnutls_recv_handshake(gnutls_session_t session,
 	case GNUTLS_HANDSHAKE_HELLO_RETRY_REQUEST: {
 		/* hash buffer synth message is generated during hello retry parsing */
 		gnutls_datum_t hrr = {hsk.data.data, hsk.data.length};
+
+		if (IS_SERVER(session)) {
+			ret = gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
+			goto cleanup;
+		}
+
 		ret =
 		    _gnutls13_recv_hello_retry_request(session,
 						       &hsk.data);
@@ -2138,7 +2161,10 @@ static int send_client_hello(gnutls_session_t session, int again)
 
 		if (hver == NULL) {
 			gnutls_assert();
-			ret = GNUTLS_E_NO_PRIORITIES_WERE_SET;
+			if (session->internals.flags & INT_FLAG_NO_TLS13)
+				ret = GNUTLS_E_INSUFFICIENT_CREDENTIALS;
+			else
+				ret = GNUTLS_E_NO_PRIORITIES_WERE_SET;
 			goto cleanup;
 		}
 
@@ -2460,10 +2486,9 @@ recv_hello_verify_request(gnutls_session_t session,
 	unsigned int nb_verifs;
 	int ret;
 
-	if (!IS_DTLS(session)
-	    || session->security_parameters.entity == GNUTLS_SERVER) {
+	if (!IS_DTLS(session)) {
 		gnutls_assert();
-		return GNUTLS_E_INTERNAL_ERROR;
+		return GNUTLS_E_UNEXPECTED_PACKET;
 	}
 
 	nb_verifs = ++session->internals.dtls.hsk_hello_verify_requests;
@@ -2474,7 +2499,6 @@ recv_hello_verify_request(gnutls_session_t session,
 		return GNUTLS_E_UNEXPECTED_PACKET;
 	}
 
-	/* TODO: determine if we need to do anything with the server version field */
 	DECR_LEN(len, 2);
 	pos += 2;
 
@@ -2758,7 +2782,7 @@ int gnutls_handshake(gnutls_session_t session)
 		gnutls_gettime(&session->internals.handshake_start_time);
 
 		tmo_ms = session->internals.handshake_timeout_ms;
-		end = &session->internals.handshake_endtime;
+		end = &session->internals.handshake_abs_timeout;
 		start = &session->internals.handshake_start_time;
 
 		if (tmo_ms && end->tv_sec == 0 && end->tv_nsec == 0) {
@@ -2809,6 +2833,18 @@ int gnutls_handshake(gnutls_session_t session)
 		_gnutls_buffer_clear(&session->internals.record_presend_buffer);
 
 		_gnutls_epoch_bump(session);
+	}
+
+	/* Give an estimation of the round-trip under TLS1.3, used by gnutls_session_get_data2() */
+	if (!IS_SERVER(session) && vers->tls13_sem) {
+		struct timespec handshake_finish_time;
+		gnutls_gettime(&handshake_finish_time);
+
+		if (!(session->internals.hsk_flags & HSK_HRR_RECEIVED)) {
+			session->internals.ertt = timespec_sub_ms(&handshake_finish_time, &session->internals.handshake_start_time)/2;
+		} else {
+			session->internals.ertt = timespec_sub_ms(&handshake_finish_time, &session->internals.handshake_start_time)/4;
+		}
 	}
 
 	return 0;
@@ -3138,7 +3174,10 @@ static int handshake_client(gnutls_session_t session)
 	}
 
 	/* explicitly reset any false start flags */
+	gnutls_mutex_lock(&session->internals.post_negotiation_lock);
+	session->internals.initial_negotiation_completed = 1;
 	session->internals.recv_state = RECV_STATE_0;
+	gnutls_mutex_unlock(&session->internals.post_negotiation_lock);
 
 	return 0;
 }
@@ -3357,7 +3396,6 @@ static int recv_handshake_final(gnutls_session_t session, int init)
 		break;
 	}
 
-
 	return 0;
 }
 
@@ -3554,6 +3592,10 @@ static int handshake_server(gnutls_session_t session)
 		break;
 	}
 
+	/* no lock of post_negotiation_lock is required here as this is not run
+	 * after handshake */
+	session->internals.initial_negotiation_completed = 1;
+
 	return _gnutls_check_id_for_change(session);
 }
 
@@ -3640,9 +3682,6 @@ gnutls_handshake_get_last_out(gnutls_session_t session)
 }
 
 /* This returns the session hash as in draft-ietf-tls-session-hash-02.
- *
- * FIXME: It duplicates some of the actions in _gnutls_handshake_sign_crt_vrfy*.
- * See whether they can be merged.
  */
 int _gnutls_handshake_get_session_hash(gnutls_session_t session, gnutls_datum_t *shash)
 {

@@ -18,7 +18,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -1269,7 +1269,6 @@ _gnutls_pkcs_raw_decrypt_data(schema_id schema, ASN1_TYPE pkcs8_asn,
 	    _gnutls_cipher_init(&ch, ce, &dkey, &d_iv, 0);
 
 	gnutls_free(key);
-	key = NULL;
 
 	if (ret < 0) {
 		gnutls_assert();

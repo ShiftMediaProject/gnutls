@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -44,7 +44,7 @@ extern mod_auth_st srp_dss_auth_struct;
 
 
 /* Cred type mappings to KX algorithms
- * FIXME: The mappings are not 1-1. Some KX such as SRP_RSA require
+ * The mappings are not 1-1. Some KX such as SRP_RSA require
  * more than one credentials type.
  */
 typedef struct {

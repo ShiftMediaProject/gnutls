@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -122,7 +122,6 @@ static int wrap_nettle_mpi_init_multi(bigint_t *w, ...)
 fail:
 	mpz_clear(TOMPZ(*w));
 	gnutls_free(*w);
-	*w = NULL;
 
 	va_start(args, w);
 	
@@ -131,7 +130,6 @@ fail:
 		if (next != last_failed) {
 			mpz_clear(TOMPZ(*next));
 			gnutls_free(*next);
-			*next = NULL;
 		}
 	} while(next != last_failed);
 	

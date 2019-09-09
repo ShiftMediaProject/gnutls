@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -185,14 +185,6 @@ add_new_ca_to_rdn_seq(gnutls_x509_trust_list_t list,
 	/* Add DN of the last added CAs to the RDN sequence
 	 * This will be sent to clients when a certificate
 	 * request message is sent.
-	 */
-
-	/* FIXME: in case of a client it is not needed
-	 * to do that. This would save time and memory.
-	 * However we don't have that information available
-	 * here.
-	 * Further, this function is now much more efficient,
-	 * so optimizing that is less important.
 	 */
 	tmp.data = ca->raw_dn.data;
 	tmp.size = ca->raw_dn.size;

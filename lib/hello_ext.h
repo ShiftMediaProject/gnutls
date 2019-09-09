@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -159,7 +159,7 @@ typedef struct hello_ext_entry_st {
 inline static unsigned
 _gnutls_hello_ext_is_present(gnutls_session_t session, extensions_t id)
 {
-	if (id != 0 && ((1 << id) & session->internals.used_exts))
+	if ((1 << id) & session->internals.used_exts)
 		return 1;
 
 	return 0;

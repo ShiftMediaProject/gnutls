@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -227,8 +227,8 @@ int gnutls_x509_crt_init(gnutls_x509_crt_t * cert)
 	if (result < 0) {
 		gnutls_assert();
 		asn1_delete_structure(&tmp->cert);
-		gnutls_free(tmp);
 		gnutls_subject_alt_names_deinit(tmp->san);
+		gnutls_free(tmp);
 		return result;
 	}
 
@@ -338,7 +338,7 @@ static int compare_sig_algorithm(gnutls_x509_crt_t cert)
 		return ret;
 	}
 
-	ret = _gnutls_x509_read_value(cert->cert, "signatureAlgorithm.parameters", &sp2);
+	ret = _gnutls_x509_read_value(cert->cert, "tbsCertificate.signature.parameters", &sp2);
 	if (ret == GNUTLS_E_ASN1_ELEMENT_NOT_FOUND) {
 		empty2 = 1;
 	} else if (ret < 0) {
@@ -386,7 +386,6 @@ static int cache_alt_names(gnutls_x509_crt_t cert)
 	if (ret >= 0) {
 		ret = gnutls_x509_ext_import_subject_alt_names(&tmpder, cert->san, 0);
 		gnutls_free(tmpder.data);
-		tmpder.data = NULL;
 		if (ret < 0)
 			return gnutls_assert_val(ret);
 	}
@@ -3684,7 +3683,6 @@ gnutls_x509_crt_list_import2(gnutls_x509_crt_t ** certs,
 
 	if (ret < 0) {
 		gnutls_free(*certs);
-		*certs = NULL;
 		return ret;
 	}
 
@@ -4316,7 +4314,6 @@ gnutls_x509_crt_list_import_url(gnutls_x509_crt_t **certs,
 
 		if (gnutls_x509_crt_equals2(crts[i-1], &issuer)) {
 			gnutls_free(issuer.data);
-			issuer.data = NULL;
 			break;
 		}
 
@@ -4337,7 +4334,6 @@ gnutls_x509_crt_list_import_url(gnutls_x509_crt_t **certs,
 		}
 
 		gnutls_free(issuer.data);
-		issuer.data = NULL;
 	}
 
 	*certs = gnutls_malloc(total*sizeof(gnutls_x509_crt_t));

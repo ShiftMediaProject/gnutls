@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
@@ -80,7 +80,7 @@ void _gnutls_buffer_clear(gnutls_buffer_st * str)
 		return;
 	gnutls_free(str->allocd);
 
-	str->data = str->allocd = NULL;
+	str->data = NULL;
 	str->max_length = 0;
 	str->length = 0;
 }
