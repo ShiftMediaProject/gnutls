@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef ALGORITHMS_H
-#define ALGORITHMS_H
+#ifndef GNUTLS_LIB_ALGORITHMS_H
+#define GNUTLS_LIB_ALGORITHMS_H
 
 #include "auth.h"
 
@@ -395,6 +395,9 @@ _gnutls_tls_aid_to_sign(uint8_t id0, uint8_t id1, const version_entry_st *ver);
 const sign_algorithm_st *_gnutls_sign_to_tls_aid(gnutls_sign_algorithm_t
 						 sign);
 
+const gnutls_sign_entry_st *
+_gnutls13_sign_get_compatible_with_privkey(gnutls_privkey_t privkey);
+
 unsigned int _gnutls_pk_bits_to_subgroup_bits(unsigned int pk_bits);
 gnutls_digest_algorithm_t _gnutls_pk_bits_to_sha_hash(unsigned int pk_bits);
 
@@ -478,4 +481,4 @@ static inline int _sig_is_ecdsa(gnutls_sign_algorithm_t sig)
 
 bool _gnutls_pk_are_compat(gnutls_pk_algorithm_t pk1, gnutls_pk_algorithm_t pk2);
 
-#endif
+#endif /* GNUTLS_LIB_ALGORITHMS_H */

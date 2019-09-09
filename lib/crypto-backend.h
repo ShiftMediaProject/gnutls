@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef GNUTLS_CRYPTO_BACKEND_H
-#define GNUTLS_CRYPTO_BACKEND_H
+#ifndef GNUTLS_LIB_CRYPTO_BACKEND_H
+#define GNUTLS_LIB_CRYPTO_BACKEND_H
 
 #include <gnutls/crypto.h>
 
@@ -33,6 +33,7 @@ typedef struct {
 	gnutls_cipher_init_func init;
 	gnutls_cipher_setkey_func setkey;
 	gnutls_cipher_setiv_func setiv;
+	gnutls_cipher_getiv_func getiv;
 	gnutls_cipher_encrypt_func encrypt;
 	gnutls_cipher_decrypt_func decrypt;
 	gnutls_cipher_aead_encrypt_func aead_encrypt;
@@ -416,4 +417,4 @@ _gnutls_prf_raw(gnutls_mac_algorithm_t mac,
 		size_t seed_size, const uint8_t *seed, size_t outsize,
 		char *out);
 
-#endif
+#endif /* GNUTLS_LIB_CRYPTO_BACKEND_H */

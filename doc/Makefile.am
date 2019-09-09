@@ -19,9 +19,9 @@
 # along with this file; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-EXTRA_DIST = TODO certtool.cfg gnutls.pdf gnutls.html	\
+EXTRA_DIST = TODO certtool.cfg gnutls.html	\
 	doxygen/Doxyfile.in doxygen/Doxyfile.orig texinfo.css \
-	gnutls-guile.pdf gnutls-guile.html stamp_enums stamp_functions \
+	gnutls-guile.html stamp_enums stamp_functions \
 	doc.mk COPYING COPYING.LESSER
 
 IMAGES = \
@@ -951,6 +951,8 @@ FUNCS += functions/gnutls_dh_params_import_raw
 FUNCS += functions/gnutls_dh_params_import_raw.short
 FUNCS += functions/gnutls_dh_params_import_raw2
 FUNCS += functions/gnutls_dh_params_import_raw2.short
+FUNCS += functions/gnutls_dh_params_import_raw3
+FUNCS += functions/gnutls_dh_params_import_raw3.short
 FUNCS += functions/gnutls_dh_params_init
 FUNCS += functions/gnutls_dh_params_init.short
 FUNCS += functions/gnutls_dh_set_prime_bits
@@ -1547,6 +1549,8 @@ FUNCS += functions/gnutls_pk_to_sign
 FUNCS += functions/gnutls_pk_to_sign.short
 FUNCS += functions/gnutls_prf
 FUNCS += functions/gnutls_prf.short
+FUNCS += functions/gnutls_prf_early
+FUNCS += functions/gnutls_prf_early.short
 FUNCS += functions/gnutls_prf_raw
 FUNCS += functions/gnutls_prf_raw.short
 FUNCS += functions/gnutls_prf_rfc5705
@@ -1849,6 +1853,8 @@ FUNCS += functions/gnutls_record_send_range
 FUNCS += functions/gnutls_record_send_range.short
 FUNCS += functions/gnutls_record_set_max_early_data_size
 FUNCS += functions/gnutls_record_set_max_early_data_size.short
+FUNCS += functions/gnutls_record_set_max_recv_size
+FUNCS += functions/gnutls_record_set_max_recv_size.short
 FUNCS += functions/gnutls_record_set_max_size
 FUNCS += functions/gnutls_record_set_max_size.short
 FUNCS += functions/gnutls_record_set_state

@@ -47,6 +47,7 @@
 #else
 #include "cfb8.h"
 #endif /* HAVE_NETTLE_CFB8_ENCRYPT */
+#include "xts.h"
 #include <fips.h>
 
 struct nettle_cipher_ctx;
@@ -278,6 +279,34 @@ _cfb8_decrypt(struct nettle_cipher_ctx *ctx, size_t length, uint8_t * dst,
 	cfb8_decrypt(ctx->ctx_ptr, ctx->cipher->encrypt_block,
 		     ctx->iv_size, ctx->iv,
 		     length, dst, src);
+}
+
+static void
+_xts_aes128_encrypt(struct nettle_cipher_ctx *ctx, size_t length, uint8_t * dst,
+		    const uint8_t * src)
+{
+	xts_aes128_encrypt_message(ctx->ctx_ptr, ctx->iv, length, dst, src);
+}
+
+static void
+_xts_aes128_decrypt(struct nettle_cipher_ctx *ctx, size_t length, uint8_t * dst,
+		    const uint8_t * src)
+{
+	xts_aes128_decrypt_message(ctx->ctx_ptr, ctx->iv, length, dst, src);
+}
+
+static void
+_xts_aes256_encrypt(struct nettle_cipher_ctx *ctx, size_t length, uint8_t * dst,
+		    const uint8_t * src)
+{
+	xts_aes256_encrypt_message(ctx->ctx_ptr, ctx->iv, length, dst, src);
+}
+
+static void
+_xts_aes256_decrypt(struct nettle_cipher_ctx *ctx, size_t length, uint8_t * dst,
+		    const uint8_t * src)
+{
+	xts_aes256_decrypt_message(ctx->ctx_ptr, ctx->iv, length, dst, src);
 }
 
 static const struct nettle_cipher_st builtin_ciphers[] = {
@@ -677,6 +706,28 @@ static const struct nettle_cipher_st builtin_ciphers[] = {
 	   .set_decrypt_key = (nettle_set_key_func*)aes256_set_encrypt_key,
 	   .max_iv_size = AES_BLOCK_SIZE,
 	},
+	{  .algo = GNUTLS_CIPHER_AES_128_XTS,
+	   .block_size = AES_BLOCK_SIZE,
+	   .key_size = AES128_KEY_SIZE * 2,
+
+	   .ctx_size = sizeof(struct xts_aes128_key),
+	   .encrypt = _xts_aes128_encrypt,
+	   .decrypt = _xts_aes128_decrypt,
+	   .set_encrypt_key = (nettle_set_key_func*)xts_aes128_set_encrypt_key,
+	   .set_decrypt_key = (nettle_set_key_func*)xts_aes128_set_decrypt_key,
+	   .max_iv_size = AES_BLOCK_SIZE,
+	},
+	{  .algo = GNUTLS_CIPHER_AES_256_XTS,
+	   .block_size = AES_BLOCK_SIZE,
+	   .key_size = AES256_KEY_SIZE * 2,
+
+	   .ctx_size = sizeof(struct xts_aes256_key),
+	   .encrypt = _xts_aes256_encrypt,
+	   .decrypt = _xts_aes256_decrypt,
+	   .set_encrypt_key = (nettle_set_key_func*)xts_aes256_set_encrypt_key,
+	   .set_decrypt_key = (nettle_set_key_func*)xts_aes256_set_decrypt_key,
+	   .max_iv_size = AES_BLOCK_SIZE,
+	},
 };
 
 static int wrap_nettle_cipher_exists(gnutls_cipher_algorithm_t algo)
@@ -787,6 +838,19 @@ wrap_nettle_cipher_setiv(void *_ctx, const void *iv, size_t iv_size)
 	}
 
 	return 0;
+}
+
+static int
+wrap_nettle_cipher_getiv(void *_ctx, void *iv, size_t iv_size)
+{
+	struct nettle_cipher_ctx *ctx = _ctx;
+
+	if (iv_size < ctx->iv_size)
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	memcpy(iv, ctx->iv, ctx->iv_size);
+
+	return (int) ctx->iv_size;
 }
 
 static int
@@ -923,6 +987,7 @@ gnutls_crypto_cipher_st _gnutls_cipher_ops = {
 	.init = wrap_nettle_cipher_init,
 	.exists = wrap_nettle_cipher_exists,
 	.setiv = wrap_nettle_cipher_setiv,
+	.getiv = wrap_nettle_cipher_getiv,
 	.setkey = wrap_nettle_cipher_setkey,
 	.encrypt = wrap_nettle_cipher_encrypt,
 	.decrypt = wrap_nettle_cipher_decrypt,

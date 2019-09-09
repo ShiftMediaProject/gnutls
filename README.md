@@ -44,7 +44,7 @@ We require several tools to check out and build the software, including:
 * [AWK](https://www.gnu.org/software/awk/) (for make dist, pmccabe2html)
 * [bison](https://www.gnu.org/software/bison) (for datetime parser in certtool)
 * [libunbound](https://unbound.net/) (for DANE support)
-* [abi-compliance-checker](https://lvc.github.io/abi-compliance-checker/) (for make dist)
+* [libabigail](https://pagure.io/libabigail/) (for abi comparison in make dist)
 * [tcsd](https://trousers.sourceforge.net/) (for TPM support; optional)
 * [swtpm](https://github.com/stefanberger/swtpm) (for TPM test; optional)
 * [ncat](https://nmap.org/download.html) (for TPM test; optional)
@@ -59,8 +59,8 @@ Debian/Ubuntu:
 ```
 apt-get install -y dash git-core autoconf libtool gettext autopoint
 apt-get install -y automake autogen nettle-dev libp11-kit-dev libtspi-dev libunistring-dev
-apt-get install -y guile-2.0-dev libtasn1-6-dev libidn2-0-dev gawk gperf
-apt-get install -y libunbound-dev dns-root-data bison help2man gtk-doc-tools
+apt-get install -y guile-2.2-dev libtasn1-6-dev libidn2-0-dev gawk gperf
+apt-get install -y libunbound-dev dns-root-data bison gtk-doc-tools
 apt-get install -y texinfo texlive texlive-generic-recommended texlive-extra-utils
 ```
 
@@ -68,8 +68,8 @@ Fedora/RHEL:
 ```
 yum install -y dash git autoconf libtool gettext-devel automake autogen patch
 yum install -y nettle-devel p11-kit-devel autogen-libopts-devel libunistring-devel
-yum install -y trousers-devel guile-devel libtasn1-devel libidn2-devel gawk gperf
-yum install -y libtasn1-tools unbound-devel bison help2man gtk-doc texinfo texlive
+yum install -y trousers-devel guile22-devel libtasn1-devel libidn2-devel gawk gperf
+yum install -y libtasn1-tools unbound-devel bison gtk-doc texinfo texlive
 ```
 
 Sometimes, you may need to install more recent versions of Automake,
@@ -90,13 +90,13 @@ and mbedtls.
 Debian/Ubuntu:
 ```
 apt-get install -y valgrind libasan1 libubsan0 nodejs softhsm2 datefudge lcov libssl-dev libcmocka-dev expect
-apt-get install -y dieharder libpolarssl-runtime openssl abi-compliance-checker socat net-tools ppp lockfile-progs
+apt-get install -y dieharder libpolarssl-runtime openssl abigail-tools socat net-tools ppp lockfile-progs
 ```
 
 Fedora/RHEL:
 ```
 yum install -y valgrind libasan libasan-static libubsan nodejs softhsm datefudge lcov openssl-devel expect
-yum install -y dieharder mbedtls-utils openssl abi-compliance-checker libcmocka-devel socat lockfile-progs
+yum install -y dieharder mbedtls-utils openssl libabigail libcmocka-devel socat lockfile-progs
 ```
 
 

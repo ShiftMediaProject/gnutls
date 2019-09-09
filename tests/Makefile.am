@@ -104,7 +104,7 @@ noinst_LTLIBRARIES = libutils.la
 libutils_la_SOURCES = utils.h utils.c seccomp.c utils-adv.c
 libutils_la_LIBADD = ../lib/libgnutls.la
 
-indirect_tests =
+indirect_tests = tls13/prf-early
 ctests = tls13/supported_versions tls13/tls12-no-tls13-exts \
 	tls13/post-handshake-with-cert tls13/post-handshake-without-cert \
 	tls13/cookie tls13/key_share tls13/prf tls13/post-handshake-with-cert-ticket \
@@ -150,7 +150,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 mini-termination mini-x509-cas mini-x509-2 pkcs12_simple tls-pthread \
 	 mini-emsgsize-dtls chainverify-unsorted mini-overhead tls12-ffdhe \
 	 mini-dtls-heartbeat mini-x509-callbacks key-openssl priorities priorities-groups	\
-	 gnutls_x509_privkey_import gnutls_x509_crt_list_import \
+	 gnutls_x509_privkey_import gnutls_x509_crt_list_import time \
 	 sign-verify-ext4 tls-neg-ext4-key resume-lifetime memset0 memset1 \
 	 mini-dtls-srtp rsa-encrypt-decrypt mini-loss-time gnutls-strcodes \
 	 mini-record mini-dtls-record handshake-timeout mini-record-range \
@@ -208,7 +208,8 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 dss-sig-val sign-pk-api tls-session-ext-override record-pad \
 	 tls13-server-kx-neg gnutls_ext_raw_parse_dtls key-export-pkcs8 \
 	 null_retrieve_function tls-record-size-limit tls-crt_type-neg \
-	 resume-with-stek-expiration resume-with-previous-stek rawpk-api
+	 resume-with-stek-expiration resume-with-previous-stek rawpk-api \
+	 tls-record-size-limit-asym dh-compute ecdh-compute
 
 if HAVE_SECCOMP_TESTS
 ctests += dtls-with-seccomp tls-with-seccomp dtls-client-with-seccomp tls-client-with-seccomp
@@ -310,6 +311,11 @@ noinst_LTLIBRARIES += libpkcs11mock1.la
 libpkcs11mock1_la_SOURCES = pkcs11/pkcs11-mock.c pkcs11/pkcs11-mock.h pkcs11/pkcs11-mock-ext.h
 libpkcs11mock1_la_LDFLAGS = -shared -rpath $(pkglibdir) -module -no-undefined -avoid-version
 libpkcs11mock1_la_LIBADD =  ../gl/libgnu.la
+
+noinst_LTLIBRARIES += libpkcs11mock2.la
+libpkcs11mock2_la_SOURCES = pkcs11/pkcs11-mock2.c
+libpkcs11mock2_la_LDFLAGS = -shared -rpath $(pkglibdir) -module -no-undefined -avoid-version
+libpkcs11mock2_la_LIBADD =  ../gl/libgnu.la
 
 pkcs11_cert_import_url_exts_SOURCES = pkcs11/pkcs11-cert-import-url-exts.c
 pkcs11_cert_import_url_exts_DEPENDENCIES = libpkcs11mock1.la libutils.la
@@ -445,7 +451,17 @@ tls13_anti_replay_CPPFLAGS = $(AM_CPPFLAGS) \
 	-I$(top_builddir)/gl	\
 	$(NETTLE_CFLAGS)
 
-dist_check_SCRIPTS = rfc2253-escape-test rsa-md5-collision/rsa-md5-collision.sh systemkey.sh
+if ENABLE_PKCS11
+if !WINDOWS
+ctests += tls13/post-handshake-with-cert-pkcs11 pkcs11/tls-neg-pkcs11-no-key
+tls13_post_handshake_with_cert_pkcs11_DEPENDENCIES = libpkcs11mock2.la libutils.la
+tls13_post_handshake_with_cert_pkcs11_LDADD = $(LDADD) $(LIBDL)
+pkcs11_tls_neg_pkcs11_no_key_DEPENDENCIES = libpkcs11mock2.la libutils.la
+pkcs11_tls_neg_pkcs11_no_key_LDADD = $(LDADD) $(LIBDL)
+endif
+endif
+
+dist_check_SCRIPTS = rfc2253-escape-test rsa-md5-collision/rsa-md5-collision.sh systemkey.sh tls13/prf-early.sh
 
 if !WINDOWS
 
@@ -467,7 +483,7 @@ dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh start
 	ocsp-tests/ocsp-test cipher-listings.sh sni-hostname.sh server-multi-keys.sh \
 	psktool.sh ocsp-tests/ocsp-load-chain gnutls-cli-save-data.sh gnutls-cli-debug.sh \
 	sni-resume.sh ocsp-tests/ocsptool cert-reencoding.sh pkcs7-cat.sh long-crl.sh \
-	serv-udp.sh logfile-option.sh gnutls-cli-resume.sh
+	serv-udp.sh logfile-option.sh gnutls-cli-resume.sh profile-tests.sh
 
 dist_check_SCRIPTS += gnutls-cli-self-signed.sh gnutls-cli-invalid-crl.sh
 
@@ -514,6 +530,10 @@ sanity_cpp_CXXFLAGS = $(AM_CPPFLAGS) \
 endif
 endif
 
+if !WINDOWS
+indirect_tests += datefudge-check
+endif
+
 check_PROGRAMS = $(cpptests) $(ctests) $(indirect_tests)
 TESTS = $(cpptests) $(ctests) $(dist_check_SCRIPTS)
 
@@ -524,6 +544,7 @@ TESTS_ENVIRONMENT +=						\
 	LSAN_OPTIONS=suppressions=gnutls-asan.supp		\
 	CAFILE=$(srcdir)/cert-tests/data/ca-certs.pem		\
 	P11MOCKLIB1=$(abs_builddir)/.libs/libpkcs11mock1.so	\
+	P11MOCKLIB2=$(abs_builddir)/.libs/libpkcs11mock2.so	\
 	PKCS12_MANY_CERTS_FILE=$(srcdir)/cert-tests/data/pkcs12_5certs.p12	\
 	PKCS12FILE=$(srcdir)/cert-tests/data/client.p12		\
 	PKCS12PASSWORD=foobar					\

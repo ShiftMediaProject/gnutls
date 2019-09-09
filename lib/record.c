@@ -467,7 +467,7 @@ _gnutls_send_tlen_int(gnutls_session_t session, content_type_t type,
 			return GNUTLS_E_INVALID_SESSION;
 		}
 
-	max_send_size = max_user_send_size(session, record_params);
+	max_send_size = max_record_send_size(session, record_params);
 
 	if (data_size > max_send_size) {
 		if (IS_DTLS(session))
@@ -824,7 +824,9 @@ record_add_to_buffers(gnutls_session_t session,
 
 		/* application data cannot be inserted between (async) handshake
 		 * messages */
-		if (type == GNUTLS_APPLICATION_DATA && session->internals.handshake_recv_buffer_size != 0) {
+		if (type == GNUTLS_APPLICATION_DATA &&
+		    (session->internals.handshake_recv_buffer_size != 0 ||
+		     session->internals.handshake_header_recv_buffer.length != 0)) {
 			ret = gnutls_assert_val(GNUTLS_E_UNEXPECTED_PACKET);
 			goto unexpected_packet;
 		}

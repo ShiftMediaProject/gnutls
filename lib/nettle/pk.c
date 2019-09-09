@@ -240,15 +240,16 @@ static int _wrap_nettle_pk_derive(gnutls_pk_algorithm_t algo,
 
 	switch (algo) {
 	case GNUTLS_PK_DH: {
-		bigint_t f, x, prime;
-		bigint_t k = NULL, ff = NULL;
+		bigint_t f, x, q, prime;
+		bigint_t k = NULL, ff = NULL, r = NULL;
 		unsigned int bits;
 
 		f = pub->params[DH_Y];
 		x = priv->params[DH_X];
+		q = priv->params[DH_Q];
 		prime = priv->params[DH_P];
 
-		ret = _gnutls_mpi_init_multi(&k, &ff, NULL);
+		ret = _gnutls_mpi_init_multi(&k, &ff, &r, NULL);
 		if (ret < 0)
 			return gnutls_assert_val(ret);
 
@@ -264,6 +265,26 @@ static int _wrap_nettle_pk_derive(gnutls_pk_algorithm_t algo,
 		    || (_gnutls_mpi_cmp_ui(ff, 1) == 0)
 		    || (_gnutls_mpi_cmp(ff, prime) >= 0)) {
 			gnutls_assert();
+			ret = GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER;
+			goto dh_cleanup;
+		}
+
+		/* if we have Q check that y ^ q mod p == 1 */
+		if (q != NULL) {
+			ret = _gnutls_mpi_powm(r, f, q, prime);
+			if (ret < 0) {
+				gnutls_assert();
+				goto dh_cleanup;
+			}
+			ret = _gnutls_mpi_cmp_ui(r, 1);
+			if (ret != 0) {
+				gnutls_assert();
+				ret = GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER;
+				goto dh_cleanup;
+			}
+		} else if ((flags & PK_DERIVE_TLS13) &&
+			   _gnutls_fips_mode_enabled()) {
+			/* Mandatory in FIPS mode for TLS 1.3 */
 			ret = GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER;
 			goto dh_cleanup;
 		}
@@ -298,6 +319,7 @@ static int _wrap_nettle_pk_derive(gnutls_pk_algorithm_t algo,
 
 		ret = 0;
 dh_cleanup:
+		_gnutls_mpi_release(&r);
 		_gnutls_mpi_release(&ff);
 		zrelease_temp_mpi_key(&k);
 		if (ret < 0)
@@ -1533,6 +1555,8 @@ int _gnutls_dh_compute_key(gnutls_dh_params_t dh_params,
 
 	priv.params[DH_P] = _gnutls_mpi_copy(dh_params->params[0]);
 	priv.params[DH_G] = _gnutls_mpi_copy(dh_params->params[1]);
+	if (dh_params->params[2])
+		priv.params[DH_Q] = _gnutls_mpi_copy(dh_params->params[2]);
 
 	if (_gnutls_mpi_init_scan_nz
 		    (&priv.params[DH_X], priv_key->data,
@@ -1542,7 +1566,7 @@ int _gnutls_dh_compute_key(gnutls_dh_params_t dh_params,
 		goto cleanup;
 	}
 
-	priv.params_nr = 3; /* include empty q */
+	priv.params_nr = 3; /* include, possibly empty, q */
 	priv.algo = GNUTLS_PK_DH;
 
 	Z->data = NULL;

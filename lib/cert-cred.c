@@ -74,6 +74,9 @@ _gnutls_certificate_credential_append_keypair(gnutls_certificate_credentials_t r
 	res->certs[res->ncerts].names = names;
 	res->certs[res->ncerts].pkey = key;
 
+	if (_gnutls13_sign_get_compatible_with_privkey(key))
+		res->tls13_ok = 1;
+
 	/* move RSA-PSS certificates before any RSA key.
 	 * Note that we cannot assume that any previous pointers
 	 * to sorted list are ok, due to the realloc in res->certs. */
@@ -542,13 +545,14 @@ alloc_and_load_pkcs11_key(gnutls_pkcs11_privkey_t key, int deinit)
 /**
  * gnutls_certificate_server_set_request:
  * @session: is a #gnutls_session_t type.
- * @req: is one of GNUTLS_CERT_REQUEST, GNUTLS_CERT_REQUIRE
+ * @req: is one of GNUTLS_CERT_REQUEST, GNUTLS_CERT_REQUIRE, GNUTLS_CERT_IGNORE
  *
  * This function specifies if we (in case of a server) are going to
  * send a certificate request message to the client. If @req is
  * GNUTLS_CERT_REQUIRE then the server will return the %GNUTLS_E_NO_CERTIFICATE_FOUND
  * error if the peer does not provide a certificate. If you do not call this
- * function then the client will not be asked to send a certificate.
+ * function then the client will not be asked to send a certificate. Invoking
+ * the function with @req GNUTLS_CERT_IGNORE has the same effect.
  **/
 void
 gnutls_certificate_server_set_request(gnutls_session_t session,

@@ -876,6 +876,43 @@ void print_list(const char *priorities, int verbose)
 	}
 }
 
+void
+print_key_material(gnutls_session_t session, const char *label, size_t size)
+{
+	gnutls_datum_t bin = { NULL, 0 }, hex = { NULL, 0 };
+	int ret;
+
+	bin.data = gnutls_malloc(size);
+	if (!bin.data) {
+		fprintf(stderr, "Error in gnutls_malloc: %s\n",
+			gnutls_strerror(GNUTLS_E_MEMORY_ERROR));
+		goto out;
+	}
+
+	bin.size = size;
+
+	ret = gnutls_prf_rfc5705(session, strlen(label), label,
+				 0, NULL, size, (char *)bin.data);
+	if (ret < 0) {
+		fprintf(stderr, "Error in gnutls_prf_rfc5705: %s\n",
+			gnutls_strerror(ret));
+		goto out;
+	}
+
+	ret = gnutls_hex_encode2(&bin, &hex);
+	if (ret < 0) {
+		fprintf(stderr, "Error in hex encoding: %s\n",
+			gnutls_strerror(ret));
+		goto out;
+	}
+	log_msg(stdout, "- Key material: %s\n", hex.data);
+	fflush(stdout);
+
+ out:
+	gnutls_free(bin.data);
+	gnutls_free(hex.data);
+}
+
 int check_command(gnutls_session_t session, const char *str, unsigned no_cli_cert)
 {
 	size_t len = strnlen(str, 128);
@@ -1161,4 +1198,23 @@ int log_msg(FILE *file, const char *message, ...)
 void log_set(FILE *file)
 {
 	logfile = file;
+}
+
+/* This is very similar to ctime() but it does not force a newline.
+ */
+char *simple_ctime(const time_t *t, char out[SIMPLE_CTIME_BUF_SIZE])
+{
+	struct tm tm;
+
+	if (localtime_r(t, &tm) == NULL)
+		goto error;
+
+	if (!strftime(out, SIMPLE_CTIME_BUF_SIZE, "%c", &tm))
+		goto error;
+
+	return out;
+
+ error:
+	snprintf(out, SIMPLE_CTIME_BUF_SIZE, "[error]");
+	return out;
 }

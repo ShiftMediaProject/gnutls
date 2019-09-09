@@ -59,13 +59,16 @@ check_if_port_listening() {
 }
 
 # Find a port number not currently in use.
-GETPORT='rc=0; unset myrandom
-    if test -n "$RANDOM"; then myrandom=$(($RANDOM + $RANDOM)); fi
-    if test -z "$myrandom"; then myrandom=$(date +%N | sed s/^0*//); fi
-    if test -z "$myrandom"; then myrandom=0; fi
-    while test $rc = 0;do
-	PORT="$(((($$<<15)|$myrandom) % 63001 + 2000))"
-	check_if_port_in_use $PORT;rc=$?
+GETPORT='
+    rc=0
+    unset myrandom
+    while test $rc = 0; do
+        if test -n "$RANDOM"; then myrandom=$(($RANDOM + $RANDOM)); fi
+        if test -z "$myrandom"; then myrandom=$(date +%N | sed s/^0*//); fi
+        if test -z "$myrandom"; then myrandom=0; fi
+        PORT="$(((($$<<15)|$myrandom) % 63001 + 2000))"
+        check_if_port_in_use $PORT;rc=$?
+        echo "PORT=$PORT rc=$rc myrandom=$myrandom"
     done
 '
 
@@ -76,7 +79,7 @@ check_for_datefudge() {
 		return
 	fi
 
-	TSTAMP=`datefudge -s "2006-09-23" date -u +%s || true`
+	TSTAMP=`datefudge -s "2006-09-23" "${top_builddir}/tests/datefudge-check" || true`
 	if test "$TSTAMP" != "1158969600" || test "$WINDOWS" = 1; then
 	echo $TSTAMP
 		echo "You need datefudge to run this test"
@@ -158,7 +161,7 @@ launch_server() {
 	shift
 
 	wait_for_free_port ${PORT}
-	${SERV} ${DEBUG} -p "${PORT}" $* >/dev/null &
+	${SERV} ${DEBUG} -p "${PORT}" $* >${LOGFILE-/dev/null} &
 }
 
 launch_pkcs11_server() {
@@ -177,7 +180,7 @@ launch_bare_server() {
 	shift
 
 	wait_for_free_port ${PORT}
-	${SERV} $* >/dev/null &
+	${SERV} $* >${LOGFILE-/dev/null} &
 }
 
 wait_server() {

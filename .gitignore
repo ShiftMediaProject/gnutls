@@ -369,6 +369,7 @@ tests/cve-2009-1415
 tests/cve-2009-1416
 tests/dane
 tests/dane-strcodes
+tests/datefudge-check
 tests/dh-params
 tests/dhepskself
 tests/dhex509self
@@ -446,6 +447,7 @@ tests/key-usage-rsa
 tests/keygen
 tests/keylog-env
 tests/libpkcs11mock1.la
+tests/libpkcs11mock2.la
 tests/libutils.la
 tests/long-session-id
 tests/memset
@@ -580,6 +582,7 @@ tests/pkcs11/pkcs11-pubkey-import-ecdsa
 tests/pkcs11/pkcs11-pubkey-import-rsa
 tests/pkcs11/pkcs11-rsa-pss-privkey-test
 tests/pkcs11/tls-neg-pkcs11-key
+tests/pkcs11/tls-neg-pkcs11-no-key
 tests/pkcs12-decode/Makefile
 tests/pkcs12-decode/Makefile.in
 tests/pkcs12_encode
@@ -763,6 +766,7 @@ tests/tls-max-record
 tests/tls-neg-ext-key
 tests/tls-neg-ext4-key
 tests/tls-record-size-limit
+tests/tls-record-size-limit-asym
 tests/tls-rehandshake-anon
 tests/tls-rehandshake-cert
 tests/tls-rehandshake-cert-2
@@ -824,10 +828,12 @@ tests/tls13/no-psk-exts
 tests/tls13/ocsp-client
 tests/tls13/post-handshake-with-cert
 tests/tls13/post-handshake-with-cert-auto
+tests/tls13/post-handshake-with-cert-pkcs11
 tests/tls13/post-handshake-with-cert-ticket
 tests/tls13/post-handshake-with-psk
 tests/tls13/post-handshake-without-cert
 tests/tls13/prf
+tests/tls13/prf-early
 tests/tls13/psk-dumbfw
 tests/tls13/psk-ext
 tests/tls13/supported_versions

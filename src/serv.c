@@ -99,7 +99,7 @@ static void tcp_server(const char *name, int port);
 
 #define SMALL_READ_TEST (2147483647)
 
-#define GERR(ret) fprintf(stdout, "Error: %s\n", safe_strerror(ret))
+#define GERR(ret) fprintf(stderr, "Error: %s\n", safe_strerror(ret))
 
 #define HTTP_END  "</BODY></HTML>\n\n"
 
@@ -1331,6 +1331,13 @@ static void retry_handshake(listener_item *j)
 #endif
 
 			print_info(j->tls_session, verbose, verbose);
+
+			if (HAVE_OPT(KEYMATEXPORT))
+				print_key_material(j->tls_session,
+						   OPT_ARG(KEYMATEXPORT),
+						   HAVE_OPT(KEYMATEXPORTSIZE) ?
+						   OPT_VALUE_KEYMATEXPORTSIZE :
+						   20);
 		}
 
 		j->close_ok = 1;
@@ -1444,6 +1451,7 @@ static void tcp_server(const char *name, int port)
 				if (accept_fd < 0) {
 					perror("accept()");
 				} else {
+					char timebuf[SIMPLE_CTIME_BUF_SIZE];
 					time_t tt = time(0);
 					char *ctt;
 
@@ -1465,7 +1473,7 @@ static void tcp_server(const char *name, int port)
 					j->close_ok = 0;
 
 					if (verbose != 0) {
-						ctt = ctime(&tt);
+						ctt = simple_ctime(&tt, timebuf);
 						ctt[strlen(ctt) - 1] = 0;
 
 						printf

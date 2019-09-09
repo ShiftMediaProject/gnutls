@@ -1678,8 +1678,6 @@ gnutls_pubkey_import_dsa_raw(gnutls_pubkey_t key,
 
 }
 
-#define OLD_PUBKEY_VERIFY_FLAG_TLS1_RSA 1
-
 /* Updates the gnutls_x509_spki_st parameters based on the signature
  * information, and reports any incompatibilities between the existing
  * parameters (if any) with the signature algorithm */
@@ -1758,7 +1756,7 @@ gnutls_pubkey_verify_data2(gnutls_pubkey_t pubkey,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (flags & OLD_PUBKEY_VERIFY_FLAG_TLS1_RSA || flags & GNUTLS_VERIFY_USE_TLS1_RSA)
+	if (flags & GNUTLS_VERIFY_USE_TLS1_RSA)
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
 	memcpy(&params, &pubkey->params.spki, sizeof(gnutls_x509_spki_st));
@@ -1830,7 +1828,7 @@ gnutls_pubkey_verify_hash2(gnutls_pubkey_t key,
 
 	memcpy(&params, &key->params.spki, sizeof(gnutls_x509_spki_st));
 
-	if (flags & OLD_PUBKEY_VERIFY_FLAG_TLS1_RSA || flags & GNUTLS_VERIFY_USE_TLS1_RSA) {
+	if (flags & GNUTLS_VERIFY_USE_TLS1_RSA) {
 		if (!GNUTLS_PK_IS_RSA(key->params.algo))
 			return gnutls_assert_val(GNUTLS_E_INCOMPATIBLE_SIG_WITH_KEY);
 		params.pk = GNUTLS_PK_RSA;
@@ -2368,7 +2366,7 @@ int gnutls_pubkey_import_x509_raw(gnutls_pubkey_t pkey,
  * gnutls_pubkey_verify_params:
  * @key: should contain a #gnutls_pubkey_t type
  *
- * This function will verify the private key parameters.
+ * This function will verify the public key parameters.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.

@@ -21,8 +21,9 @@
  *
  */
 
-#ifndef AUTH_CERT_H
-#define AUTH_CERT_H
+#ifndef GNUTLS_LIB_AUTH_CERT_H
+#define GNUTLS_LIB_AUTH_CERT_H
+
 #include "auth.h"
 #include <auth/dh_common.h>
 #include <x509/x509_int.h>
@@ -101,6 +102,10 @@ typedef struct gnutls_certificate_credentials_st {
 	/* OCSP */
 	gnutls_status_request_ocsp_func glob_ocsp_func;
 	void *glob_ocsp_func_ptr; /* corresponding OCSP response function */
+
+	/* This is only used by server to indicate whether this
+	 * credentials can be used for signing in TLS 1.3. */
+	bool tls13_ok;
 } certificate_credentials_st;
 
 /* This is the information we keep for the peer
@@ -181,4 +186,4 @@ inline static unsigned get_key_usage(gnutls_session_t session, gnutls_pubkey_t p
 		return pubkey->key_usage;
 }
 
-#endif
+#endif /* GNUTLS_LIB_AUTH_CERT_H */

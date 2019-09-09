@@ -465,6 +465,7 @@ unsigned gnutls_sign_is_secure2(gnutls_sign_algorithm_t algorithm, unsigned int 
  * gnutls_sign_list:
  *
  * Get a list of supported public key signature algorithms.
+ * This function is not thread safe.
  *
  * Returns: a (0)-terminated list of #gnutls_sign_algorithm_t
  *   integers indicating the available ciphers.
@@ -729,6 +730,19 @@ _gnutls_tls_aid_to_sign_entry(uint8_t id0, uint8_t id1, const version_entry_st *
 		     p->aid.id[1] == id1 &&
 		     ((p->aid.tls_sem & ver->tls_sig_sem) != 0)) {
 
+			return p;
+		}
+	);
+
+	return NULL;
+}
+
+const gnutls_sign_entry_st *
+_gnutls13_sign_get_compatible_with_privkey(gnutls_privkey_t privkey)
+{
+	GNUTLS_SIGN_LOOP(
+		if (p->tls13_ok &&
+		    _gnutls_privkey_compatible_with_sig(privkey, p->id)) {
 			return p;
 		}
 	);

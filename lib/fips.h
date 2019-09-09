@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef FIPS_H
-# define FIPS_H
+#ifndef GNUTLS_LIB_FIPS_H
+#define GNUTLS_LIB_FIPS_H
 
 #include "gnutls_int.h"
 #include <gnutls/gnutls.h>
@@ -144,6 +144,8 @@ static unsigned is_cipher_algo_forbidden(gnutls_cipher_algorithm_t algo)
 			case GNUTLS_CIPHER_AES_128_CFB8:
 			case GNUTLS_CIPHER_AES_192_CFB8:
 			case GNUTLS_CIPHER_AES_256_CFB8:
+			case GNUTLS_CIPHER_AES_128_XTS:
+			case GNUTLS_CIPHER_AES_256_XTS:
 				return 0;
 			default:
 				if (mode == GNUTLS_FIPS140_LAX)
@@ -165,4 +167,4 @@ static unsigned is_cipher_algo_forbidden(gnutls_cipher_algorithm_t algo)
 # define FIPS_RULE(condition, ret_error, ...)
 #endif
 
-#endif /* FIPS_H */
+#endif /* GNUTLS_LIB_FIPS_H */

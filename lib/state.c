@@ -345,7 +345,7 @@ static void deinit_keys(gnutls_session_t session)
 	gnutls_pk_params_release(&session->key.kshare.ecdh_params);
 	gnutls_pk_params_release(&session->key.kshare.dh_params);
 
-	if (!vers->tls13_sem) {
+	if (!vers->tls13_sem && session->key.binders[0].prf == NULL) {
 		gnutls_pk_params_release(&session->key.proto.tls12.ecdh.params);
 		gnutls_pk_params_release(&session->key.proto.tls12.dh.params);
 		zrelease_temp_mpi_key(&session->key.proto.tls12.ecdh.x);
@@ -521,6 +521,10 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 	(*session)->security_parameters.max_record_recv_size =
 	    DEFAULT_MAX_RECORD_SIZE;
 	(*session)->security_parameters.max_record_send_size =
+	    DEFAULT_MAX_RECORD_SIZE;
+	(*session)->security_parameters.max_user_record_recv_size =
+	    DEFAULT_MAX_RECORD_SIZE;
+	(*session)->security_parameters.max_user_record_send_size =
 	    DEFAULT_MAX_RECORD_SIZE;
 
 	/* set the default early data size for TLS
@@ -1313,6 +1317,8 @@ gnutls_session_get_random(gnutls_session_t session,
  *
  * This function returns pointers to the master secret
  * used in the TLS session. The pointers are not to be modified or deallocated.
+ *
+ * This function is only applicable under TLS 1.2 or earlier versions.
  *
  * Since: 3.5.0
  **/

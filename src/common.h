@@ -18,8 +18,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_COMMON_H
-# define INCLUDE_COMMON_H
+#ifndef GNUTLS_SRC_COMMON_H
+#define GNUTLS_SRC_COMMON_H
 
 #define SERVER "127.0.0.1"
 
@@ -41,6 +41,7 @@
 #include <io.h>
 #include <winbase.h>
 #include <sys/select.h>
+#include "socket.h"
 #undef OCSP_RESPONSE
 #endif
 
@@ -60,6 +61,7 @@ extern const char str_unknown[];
 #define P_WAIT_FOR_CERT (1<<1)
 int print_info(gnutls_session_t state, int verbose, int flags);
 void print_cert_info(gnutls_session_t, int flag, int print_cert);
+void print_key_material(gnutls_session_t, const char *label, size_t size);
 
 int log_msg(FILE *file, const char *message, ...) __attribute__((format(printf, 2, 3)));
 void log_set(FILE *file);
@@ -103,7 +105,8 @@ static int system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
 {
 	fd_set rfds;
 	struct timeval tv;
-	int ret, fd = (long)ptr;
+	socket_st *hd = ptr;
+	int fd = hd->fd;
 
 	FD_ZERO(&rfds);
 	FD_SET(fd, &rfds);
@@ -117,13 +120,17 @@ static int system_recv_timeout(gnutls_transport_ptr_t ptr, unsigned int ms)
 static ssize_t
 system_write(gnutls_transport_ptr ptr, const void *data, size_t data_size)
 {
-	return send((long)ptr, data, data_size, 0);
+	socket_st *hd = ptr;
+
+	return send(hd->fd, data, data_size, 0);
 }
 
 static ssize_t
 system_read(gnutls_transport_ptr_t ptr, void *data, size_t data_size)
 {
-	return recv((long)ptr, data, data_size, 0);
+	socket_st *hd = ptr;
+
+	return recv(hd->fd, data, data_size, 0);
 }
 
 static
@@ -137,4 +144,7 @@ void set_read_funcs(gnutls_session_t session)
 # define set_read_funcs(x)
 #endif
 
-#endif
+#define SIMPLE_CTIME_BUF_SIZE 64
+char *simple_ctime(const time_t *t, char buf[SIMPLE_CTIME_BUF_SIZE]);
+
+#endif /* GNUTLS_SRC_COMMON_H */

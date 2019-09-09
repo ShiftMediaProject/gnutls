@@ -1297,8 +1297,12 @@ check_server_dh_params(gnutls_session_t session,
  * @cipher_algorithm: is a cipher algorithm
  * @mac_algorithm: is a MAC algorithm
  *
- * Note that the full cipher suite name must be prepended by TLS or
- * SSL depending of the protocol in use.
+ * This function returns the ciphersuite name under TLS1.2 or earlier
+ * versions when provided with individual algorithms. The full cipher suite
+ * name must be prepended by TLS or SSL depending of the protocol in use.
+ *
+ * To get a description of the current ciphersuite across versions, it
+ * is recommended to use gnutls_session_get_desc().
  *
  * Returns: a string that contains the name of a TLS cipher suite,
  * specified by the given algorithms, or %NULL.
@@ -1327,7 +1331,8 @@ const char *gnutls_cipher_suite_get_name(gnutls_kx_algorithm_t
  * @mac_algorithm: is a MAC algorithm
  * @suite: The id to be returned
  *
- * It fills @suite with the ID of the ciphersuite of the provided parameters.
+ * This function returns the ciphersuite ID in @suite, under TLS1.2 or earlier
+ * versions when provided with individual algorithms.
  *
  * Returns: 0 on success or a negative error code otherwise.
  -*/
@@ -1456,7 +1461,6 @@ _gnutls_figure_common_ciphersuite(gnutls_session_t session,
 	unsigned int is_dtls = IS_DTLS(session);
 	gnutls_kx_algorithm_t kx;
 	gnutls_credentials_type_t cred_type = GNUTLS_CRD_CERTIFICATE; /* default for TLS1.3 */
-	unsigned int no_cert_found = 0;
 	const gnutls_group_entry_st *sgroup = NULL;
 	gnutls_ext_priv_data_t epriv;
 	unsigned have_etm = 0;
@@ -1512,7 +1516,6 @@ _gnutls_figure_common_ciphersuite(gnutls_session_t session,
 						if (ret < 0) {
 							/* couldn't select cert with this ciphersuite */
 							gnutls_assert();
-							no_cert_found = 1;
 							break;
 						}
 					}
@@ -1557,7 +1560,6 @@ _gnutls_figure_common_ciphersuite(gnutls_session_t session,
 						if (ret < 0) {
 							/* couldn't select cert with this ciphersuite */
 							gnutls_assert();
-							no_cert_found = 1;
 							break;
 						}
 					}
@@ -1575,16 +1577,7 @@ _gnutls_figure_common_ciphersuite(gnutls_session_t session,
 
 	/* nothing in common */
 
-	/* RFC7919 requires that we reply with insufficient security if we have
-	 * negotiated an FFDHE group, but cannot find a common ciphersuite. However,
-	 * we must also distinguish between not matching a ciphersuite due to an
-	 * incompatible certificate which we traditionally return GNUTLS_E_NO_CIPHER_SUITES.
-	 */
-	if (!no_cert_found && (session->internals.hsk_flags & HSK_HAVE_FFDHE) &&
-	    session->internals.priorities->groups.have_ffdhe && !version->tls13_sem)
-		return gnutls_assert_val(GNUTLS_E_INSUFFICIENT_SECURITY);
-	else
-		return gnutls_assert_val(GNUTLS_E_NO_CIPHER_SUITES);
+	return gnutls_assert_val(GNUTLS_E_NO_CIPHER_SUITES);
 }
 
 #define CLIENT_VERSION_CHECK(minver, maxver, e) \

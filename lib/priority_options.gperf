@@ -33,7 +33,9 @@ PROFILE_LEGACY, enable_profile_legacy
 PROFILE_MEDIUM, enable_profile_medium
 PROFILE_HIGH, enable_profile_high
 PROFILE_ULTRA, enable_profile_ultra
+PROFILE_FUTURE, enable_profile_future
 PROFILE_SUITEB128, enable_profile_suiteb128
 PROFILE_SUITEB192, enable_profile_suiteb192
 NEW_PADDING, dummy_func
 DEBUG_ALLOW_KEY_USAGE_VIOLATIONS, enable_server_key_usage_violations
+ALLOW_SMALL_RECORDS, enable_allow_small_records

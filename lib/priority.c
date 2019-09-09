@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2004-2015 Free Software Foundation, Inc.
- * Copyright (C) 2015-2017 Red Hat, Inc.
+ * Copyright (C) 2015-2019 Red Hat, Inc.
  *
  * Author: Nikos Mavrogiannopoulos
  *
@@ -36,9 +36,16 @@
 #include "errno.h"
 #include "ext/srp.h"
 #include <gnutls/gnutls.h>
+#include "profiles.h"
 #include "c-strcase.h"
 
 #define MAX_ELEMENTS 64
+
+#define ENABLE_PROFILE(c, profile) do { \
+	c->additional_verify_flags &= 0x00ffffff; \
+	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(profile); \
+	c->level = _gnutls_profile_to_sec_level(profile); \
+	} while(0)
 
 /* This function is used by the test suite */
 char *_gnutls_resolve_priorities(const char* priorities);
@@ -620,6 +627,7 @@ gnutls_priority_set(gnutls_session_t session, gnutls_priority_t priority)
 #undef COPY_TO_INTERNALS
 #define COPY_TO_INTERNALS(xx) session->internals.xx = priority->_##xx
 	COPY_TO_INTERNALS(allow_large_records);
+	COPY_TO_INTERNALS(allow_small_records);
 	COPY_TO_INTERNALS(no_etm);
 	COPY_TO_INTERNALS(no_ext_master_secret);
 	COPY_TO_INTERNALS(allow_key_usage_violation);
@@ -809,6 +817,10 @@ static void enable_server_key_usage_violations(gnutls_priority_t c)
 {
 	c->allow_server_key_usage_violation = 1;
 }
+static void enable_allow_small_records(gnutls_priority_t c)
+{
+	c->_allow_small_records = 1;
+}
 static void enable_dumbfw(gnutls_priority_t c)
 {
 	c->_dumbfw = 1;
@@ -839,51 +851,39 @@ static void disable_wildcards(gnutls_priority_t c)
 }
 static void enable_profile_very_weak(gnutls_priority_t c)
 {
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_VERY_WEAK);
-	c->level = GNUTLS_SEC_PARAM_VERY_WEAK;
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_VERY_WEAK);
 }
 static void enable_profile_low(gnutls_priority_t c)
 {
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_LOW);
-	c->level = GNUTLS_SEC_PARAM_LOW;
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_LOW);
 }
 static void enable_profile_legacy(gnutls_priority_t c)
 {
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_LEGACY);
-	c->level = GNUTLS_SEC_PARAM_LEGACY;
-}
-static void enable_profile_high(gnutls_priority_t c)
-{
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_HIGH);
-	c->level = GNUTLS_SEC_PARAM_HIGH;
-}
-static void enable_profile_ultra(gnutls_priority_t c)
-{
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_ULTRA);
-	c->level = GNUTLS_SEC_PARAM_ULTRA;
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_LEGACY);
 }
 static void enable_profile_medium(gnutls_priority_t c)
 {
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_MEDIUM);
-	c->level = GNUTLS_SEC_PARAM_MEDIUM;
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_MEDIUM);
+}
+static void enable_profile_high(gnutls_priority_t c)
+{
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_HIGH);
+}
+static void enable_profile_ultra(gnutls_priority_t c)
+{
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_ULTRA);
+}
+static void enable_profile_future(gnutls_priority_t c)
+{
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_FUTURE);
 }
 static void enable_profile_suiteb128(gnutls_priority_t c)
 {
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_SUITEB128);
-	c->level = GNUTLS_SEC_PARAM_HIGH;
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_SUITEB128);
 }
 static void enable_profile_suiteb192(gnutls_priority_t c)
 {
-	c->additional_verify_flags &= 0x00ffffff;
-	c->additional_verify_flags |= GNUTLS_PROFILE_TO_VFLAGS(GNUTLS_PROFILE_SUITEB192);
-	c->level = GNUTLS_SEC_PARAM_ULTRA;
+	ENABLE_PROFILE(c, GNUTLS_PROFILE_SUITEB128);
 }
 static void enable_safe_renegotiation(gnutls_priority_t c)
 {

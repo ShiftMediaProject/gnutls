@@ -66,7 +66,9 @@ _gnutls_record_size_limit_recv_params(gnutls_session_t session,
 	session->internals.hsk_flags |= HSK_RECORD_SIZE_LIMIT_RECEIVED;
 
 	/* we do not want to accept sizes outside of our supported range */
-	if (new_size < MIN_RECORD_SIZE) {
+	if (new_size <
+	    (session->internals.allow_small_records ?
+	     MIN_RECORD_SIZE_SMALL : MIN_RECORD_SIZE)) {
 		/* for server, reject it by omitting the extension in the reply */
 		if (session->security_parameters.entity == GNUTLS_SERVER) {
 			_gnutls_handshake_log("EXT[%p]: client requested too small record_size_limit %u; ignoring\n",
@@ -81,6 +83,12 @@ _gnutls_record_size_limit_recv_params(gnutls_session_t session,
 
 	session->internals.hsk_flags |= HSK_RECORD_SIZE_LIMIT_NEGOTIATED;
 
+	/* client uses the reception of this extension as an
+	 * indication of the request was accepted by the server */
+	if (session->security_parameters.entity == GNUTLS_CLIENT)
+		session->security_parameters.max_record_recv_size =
+			session->security_parameters.max_user_record_recv_size;
+
 	_gnutls_handshake_log("EXT[%p]: record_size_limit %u negotiated\n",
 			      session, (unsigned)new_size);
 
@@ -89,9 +97,9 @@ _gnutls_record_size_limit_recv_params(gnutls_session_t session,
 	if (unlikely(vers == NULL))
 		return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
 
-	session->security_parameters.max_record_recv_size =
+	session->security_parameters.max_record_send_size =
 		MIN(new_size - vers->tls13_sem,
-		    session->security_parameters.max_record_send_size);
+		    session->security_parameters.max_user_record_send_size);
 
 	return 0;
 }
@@ -105,11 +113,11 @@ _gnutls_record_size_limit_send_params(gnutls_session_t session,
 	int ret;
 	uint16_t send_size;
 
-	assert(session->security_parameters.max_record_send_size >= 64 &&
-	       session->security_parameters.max_record_send_size <=
+	assert(session->security_parameters.max_user_record_recv_size >= 64 &&
+	       session->security_parameters.max_user_record_recv_size <=
 	       DEFAULT_MAX_RECORD_SIZE);
 
-	send_size = session->security_parameters.max_record_send_size;
+	send_size = session->security_parameters.max_user_record_recv_size;
 
 	if (session->security_parameters.entity == GNUTLS_SERVER) {
 		const version_entry_st *vers;
@@ -123,6 +131,9 @@ _gnutls_record_size_limit_send_params(gnutls_session_t session,
 		vers = get_version(session);
 		if (unlikely(vers == NULL))
 			return gnutls_assert_val(GNUTLS_E_INTERNAL_ERROR);
+
+		session->security_parameters.max_record_recv_size =
+			send_size;
 
 		send_size += vers->tls13_sem;
 	} else {

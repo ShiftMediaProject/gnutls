@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.63)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.6.7], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.6.8], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -211,7 +211,10 @@ AC_CHECK_HEADERS([netinet/tcp.h])
 AC_CHECK_HEADERS([stdatomic.h])
 
 dnl This ensures that we link with the right library for atomic operations on Linux SPARC
+save_LIBS=$LIBS
 AC_SEARCH_LIBS([__atomic_load_4], [atomic], [], [AC_MSG_NOTICE([Could not detect libatomic])])
+LIBS=$save_LIBS
+
 AS_IF([test "$ac_cv_search___atomic_load_4" = "none required" || test "$ac_cv_search___atomic_load_4" = "no"],
       [AC_SUBST([LIBATOMIC_LIBS], [])],
       [AC_SUBST([LIBATOMIC_LIBS], [$ac_cv_search___atomic_load_4])])
@@ -370,6 +373,7 @@ AC_ARG_WITH(included-unistring, AS_HELP_STRING([--with-included-unistring],
 if test "$included_unistring" = yes;then
   ac_have_unistring=no
 else
+  save_LIBS=$LIBS
   AC_SEARCH_LIBS(u8_normalize, unistring, [
     included_unistring=no
     ac_have_unistring=yes
@@ -381,6 +385,7 @@ else
   *** Libunistring was not found. To use the included one, use --with-included-unistring
     ]])
   ])
+  LIBS=$save_LIBS
 fi
 
 AM_CONDITIONAL(HAVE_LIBUNISTRING, test "$ac_have_unistring" = "yes")
@@ -506,7 +511,8 @@ idna_support=no
 with_libidn2=no
 
 if test "$try_libidn2" = yes;then
-  AC_SEARCH_LIBS(idn2_lookup_u8, idn2, [
+    save_LIBS=$LIBS
+    AC_SEARCH_LIBS(idn2_lookup_u8, idn2, [
       with_libidn2=yes;
       idna_support="IDNA 2008 (libidn2)"
       AC_DEFINE([HAVE_LIBIDN2], 1, [Define if IDNA 2008 support is enabled.])
@@ -522,8 +528,9 @@ dnl      fi
       with_libidn2=no;
       AC_MSG_WARN(*** LIBIDN2 was not found. You will not be able to use IDN2008 support)
     ])
+    LIBS=$save_LIBS
 else
-    with_libidn2=no
+  with_libidn2=no
 fi
 
 AM_CONDITIONAL(HAVE_LIBIDN2, test "$with_libidn2" != "no")
@@ -562,6 +569,13 @@ save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_cmac128_update)
 LIBS=$save_LIBS
+
+# Check if nettle has XTS support
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(xts_encrypt_message)
+LIBS=$save_LIBS
+
 
 AC_MSG_CHECKING([whether to build libdane])
 AC_ARG_ENABLE(libdane,
@@ -818,12 +832,24 @@ if test "x$with_default_blacklist_file" != x; then
 fi
 
 dnl Guile bindings.
-opt_guile_bindings=yes
 AC_MSG_CHECKING([whether building Guile bindings])
 AC_ARG_ENABLE(guile,
 	AS_HELP_STRING([--enable-guile], [build GNU Guile bindings]),
-opt_guile_bindings=$enableval)
+		[opt_guile_bindings=$enableval], [opt_guile_bindings=yes])
 AC_MSG_RESULT($opt_guile_bindings)
+
+AC_ARG_WITH([guile-site-dir], AS_HELP_STRING([--with-guile-site-dir=DIR],
+    [guile site directory for gnutls, default is guile system settings]),
+    [guilesitedir="${withval}"], [guilesitedir='$(GUILE_SITE)'])
+AC_ARG_WITH([guile-site-ccache-dir], AS_HELP_STRING([--with-guile-site-ccache-dir=DIR],
+    [guile ccache directory for gnutls, default is guile system settings]),
+    [guilesiteccachedir="${withval}"], [guilesiteccachedir='$(GUILE_SITE_CCACHE)'])
+AC_ARG_WITH([guile-extension-dir], AS_HELP_STRING([--with-guile-extension-dir=DIR],
+    [guile extension directory for gnutls, default is guile system settings]),
+    [guileextensiondir="${withval}"], [guileextensiondir='$(GUILE_EXTENSION)'])
+AC_SUBST([guilesitedir])
+AC_SUBST([guilesiteccachedir])
+AC_SUBST([guileextensiondir])
 
 if test "$opt_guile_bindings" = "yes"; then
    AC_MSG_RESULT([***
@@ -845,6 +871,28 @@ if test "$opt_guile_bindings" = "yes"; then
       GUILE_SITE_DIR
       GUILE_FLAGS
 
+      # Backward compatibility with <guile-2.2 m4 macro that is used
+      # due to autreconf of several CI machine.
+      # We need to guess the locations of ccache and extension
+      if test -z "${GUILE_SITE_CCACHE}"; then
+          AC_MSG_NOTICE([Found <guile-2.2 m4, macro emulating])
+
+          AC_MSG_CHECKING([for GUILE_SITE_CCACHE via pkg-config])
+          GUILE_SITE_CCACHE=`$PKG_CONFIG --variable=siteccachedir guile-$GUILE_EFFECTIVE_VERSION`
+          AC_MSG_RESULT([${GUILE_SITE_CCACHE}])
+          if test -z "${GUILE_SITE_CCACHE}"; then
+                  AC_MSG_CHECKING([for GUILE_SITE_CCACHE via guile])
+                  GUILE_SITE_CCACHE=`$GUILE -c "(display (if (defined? '%site-ccache-dir) (%site-ccache-dir) \"\"))"`
+                  AC_MSG_RESULT([${GUILE_SITE_CCACHE}])
+          fi
+          AC_SUBST([GUILE_SITE_CCACHE])
+
+          AC_MSG_CHECKING([for GUILE_EXTENSION])
+          GUILE_EXTENSION=`$PKG_CONFIG --print-errors --variable=extensiondir guile-$GUILE_EFFECTIVE_VERSION`
+          AC_MSG_RESULT([${GUILE_EXTENSION}])
+          AC_SUBST([GUILE_EXTENSION])
+      fi
+
       save_CFLAGS="$CFLAGS"
       save_LIBS="$LIBS"
       CFLAGS="$CFLAGS $GUILE_CFLAGS"
@@ -854,10 +902,6 @@ if test "$opt_guile_bindings" = "yes"; then
         [], [opt_guile_bindings=no])
       CFLAGS="$save_CFLAGS"
       LIBS="$save_LIBS"
-
-      AC_MSG_CHECKING([the Guile effective version])
-      guile_effective_version="`$GUILE -c '(display (effective-version))'`"
-      AC_MSG_RESULT([$guile_effective_version])
 
       if test "$opt_guile_bindings" = "yes"; then
         AC_MSG_RESULT([yes])
@@ -877,14 +921,6 @@ if test "$opt_guile_bindings" = "yes"; then
 	AC_CHECK_FUNCS([scm_gc_malloc_pointerless])
 	CFLAGS="$save_CFLAGS"
 	LIBS="$save_LIBS"
-
-	# The place where guile-gnutls.la will go.
-	guileextensiondir="$libdir/guile/$guile_effective_version"
-	AC_SUBST([guileextensiondir])
-
-	# The location of .go files.
-	guileobjectdir="$libdir/guile/$guile_effective_version/site-ccache"
-	AC_SUBST([guileobjectdir])
       else
         AC_MSG_RESULT([no])
         AC_MSG_WARN([A sufficiently recent GNU Guile not found.  Guile bindings not built.])

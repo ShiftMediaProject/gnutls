@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef GNUTLS_INT_H
-#define GNUTLS_INT_H
+#ifndef GNUTLS_LIB_GNUTLS_INT_H
+#define GNUTLS_LIB_GNUTLS_INT_H
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -194,6 +194,7 @@ typedef enum record_send_state_t {
 #define MAX_RECORD_HEADER_SIZE DTLS_RECORD_HEADER_SIZE
 
 #define MIN_RECORD_SIZE 512
+#define MIN_RECORD_SIZE_SMALL 64
 
 /* The following macro is used to calculate the overhead when sending.
  * when receiving we use a different way as there are implementations that
@@ -537,7 +538,7 @@ struct gnutls_key_st {
 			uint8_t hs_skey[MAX_HASH_SIZE]; /* server_hs_traffic_secret */
 			uint8_t ap_ckey[MAX_HASH_SIZE]; /* client_ap_traffic_secret */
 			uint8_t ap_skey[MAX_HASH_SIZE]; /* server_ap_traffic_secret */
-			uint8_t ap_expkey[MAX_HASH_SIZE]; /* exporter_master_secret */
+			uint8_t ap_expkey[MAX_HASH_SIZE]; /* {early_,}exporter_master_secret */
 			uint8_t ap_rms[MAX_HASH_SIZE]; /* resumption_master_secret */
 		} tls13; /* tls1.3 */
 
@@ -663,6 +664,7 @@ typedef struct gnutls_group_entry_st {
 	const char *name;
 	gnutls_group_t id;
 	const gnutls_datum_t *prime;
+	const gnutls_datum_t *q;
 	const gnutls_datum_t *generator;
 	const unsigned *q_bits;
 	gnutls_ecc_curve_t curve;
@@ -779,11 +781,17 @@ typedef struct {
 	/* whether client has agreed in post handshake auth - only set on server side */
 	uint8_t post_handshake_auth;
 
-	/* The send size is the one requested by the programmer.
-	 * The recv size is the one negotiated with the peer.
+	/* The maximum amount of plaintext sent in a record,
+	 * negotiated with the peer.
 	 */
 	uint16_t max_record_send_size;
 	uint16_t max_record_recv_size;
+
+	/* The maximum amount of plaintext sent in a record, set by
+	 * the programmer.
+	 */
+	uint16_t max_user_record_send_size;
+	uint16_t max_user_record_recv_size;
 
 	/* The maximum amount of early data */
 	uint32_t max_early_data_size;
@@ -963,6 +971,7 @@ struct gnutls_priority_st {
 	/* these should be accessed from
 	 * session->internals.VAR names */
 	bool _allow_large_records;
+	bool _allow_small_records;
 	bool _no_etm;
 	bool _no_ext_master_secret;
 	bool _allow_key_usage_violation;
@@ -980,6 +989,7 @@ struct gnutls_priority_st {
 
 #define ENABLE_COMPAT(x) \
 	      (x)->allow_large_records = 1; \
+	      (x)->allow_small_records = 1; \
 	      (x)->no_etm = 1; \
 	      (x)->no_ext_master_secret = 1; \
 	      (x)->allow_key_usage_violation = 1; \
@@ -988,6 +998,7 @@ struct gnutls_priority_st {
 
 #define ENABLE_PRIO_COMPAT(x) \
 	      (x)->_allow_large_records = 1; \
+	      (x)->_allow_small_records = 1; \
 	      (x)->_no_etm = 1; \
 	      (x)->_no_ext_master_secret = 1; \
 	      (x)->_allow_key_usage_violation = 1; \
@@ -997,9 +1008,9 @@ struct gnutls_priority_st {
 /* DH and RSA parameters types.
  */
 typedef struct gnutls_dh_params_int {
-	/* [0] is the prime, [1] is the generator.
+	/* [0] is the prime, [1] is the generator, [2] is Q if available.
 	 */
-	bigint_t params[2];
+	bigint_t params[3];
 	int q_bits;		/* length of q in bits. If zero then length is unknown.
 				 */
 } dh_params_st;
@@ -1112,6 +1123,7 @@ typedef struct {
 	/* variables directly set when setting the priorities above, or
 	 * when overriding them */
 	bool allow_large_records;
+	bool allow_small_records;
 	bool no_etm;
 	bool no_ext_master_secret;
 	bool allow_key_usage_violation;
@@ -1320,7 +1332,6 @@ typedef struct {
 #define HSK_PSK_KE_MODES_RECEIVED (HSK_PSK_KE_MODE_PSK|HSK_PSK_KE_MODE_DHE_PSK|HSK_PSK_KE_MODE_INVALID)
 
 #define HSK_CRT_VRFY_EXPECTED 1
-#define HSK_CRT_SENT (1<<1)
 #define HSK_CRT_ASKED (1<<2)
 #define HSK_HRR_SENT (1<<3)
 #define HSK_HRR_RECEIVED (1<<4)
@@ -1363,7 +1374,8 @@ typedef struct {
 	/* The hsk_flags are for use within the ongoing handshake;
 	 * they are reset to zero prior to handshake start by gnutls_handshake. */
 	unsigned hsk_flags;
-	time_t last_key_update;
+	struct timespec last_key_update;
+	unsigned key_update_count;
 	/* Read-only pointer to the full ClientHello message */
 	gnutls_buffer_st full_client_hello;
 	/* The offset at which extensions start in the ClientHello buffer */
@@ -1552,17 +1564,17 @@ inline static int _gnutls_set_current_version(gnutls_session_t s, unsigned v)
 	return 0;
 }
 
-/* Returns the maximum size of the plaintext to be sent, considering
+/* Returns the maximum amount of the plaintext to be sent, considering
  * both user-specified/negotiated maximum values.
  */
-inline static size_t max_user_send_size(gnutls_session_t session,
-					record_parameters_st *
-					record_params)
+inline static size_t max_record_send_size(gnutls_session_t session,
+					  record_parameters_st *
+					  record_params)
 {
 	size_t max;
 
 	max = MIN(session->security_parameters.max_record_send_size,
-		  session->security_parameters.max_record_recv_size);
+		  session->security_parameters.max_user_record_send_size);
 
 	if (IS_DTLS(session))
 		max = MIN(gnutls_dtls_get_data_mtu(session), max);
@@ -1609,4 +1621,6 @@ get_certificate_type(gnutls_session_t session,
 #define CONSTCHECK_NOT_EQUAL(a, b) ((-((uint32_t)(a) ^ (uint32_t)(b))) >> 31)
 #define CONSTCHECK_EQUAL(a, b) (1U - CONSTCHECK_NOT_EQUAL(a, b))
 
-#endif				/* GNUTLS_INT_H */
+extern unsigned int _gnutls_global_version;
+
+#endif /* GNUTLS_LIB_GNUTLS_INT_H */
