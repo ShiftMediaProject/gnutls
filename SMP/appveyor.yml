@@ -24,6 +24,7 @@ environment:
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
 
 install:
+- cmd: git submodule update --init --recursive
 # Install GitLink
 - cmd: nuget install gitlink -Version 2.4.0
 - cmd: for /f "tokens=*" %%f in ('dir /s /b gitlink.exe') do copy /b %%f .\

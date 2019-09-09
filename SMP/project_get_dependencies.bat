@@ -4,7 +4,6 @@ SETLOCAL EnableDelayedExpansion
 SET UPSTREAMURL=https://github.com/ShiftMediaProject
 SET DEPENDENCIES=( ^
 nettle, ^
-zlib, ^
 gmp ^
 )
 

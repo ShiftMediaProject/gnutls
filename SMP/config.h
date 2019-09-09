@@ -77,6 +77,9 @@
 /* Enable FIPS140-2 mode */
 /* #undef ENABLE_FIPS140 */
 
+/* enable GOST support */
+/* #undef ENABLE_GOST */
+
 /* enable heartbeat support */
 #define ENABLE_HEARTBEAT 1
 
@@ -89,9 +92,6 @@
 /* enable OCSP support */
 #define ENABLE_OCSP 1
 
-/* use openpgp authentication */
-#define ENABLE_OPENPGP 1
-
 /* Enable padlock acceleration */
 #define ENABLE_PADLOCK 1
 
@@ -100,12 +100,6 @@
 
 /* enable PSK authentication */
 #define ENABLE_PSK 1
-
-/* Self checks are included in the library */
-/* #undef ENABLE_SELF_CHECKS */
-
-/* enable session tickets support */
-#define ENABLE_SESSION_TICKETS 1
 
 /* enable SRP authentication */
 #define ENABLE_SRP 1
@@ -727,9 +721,6 @@
 /* Define to 1 if you have the <libgen.h> header file. */
 /* #undef HAVE_LIBGEN_H */
 
-/* Build IDNA support */
-/* #undef HAVE_LIBIDN */
-
 /* Define if IDNA 2008 support is enabled. */
 /* #undef HAVE_LIBIDN2 */
 
@@ -806,6 +797,12 @@
 /* Define to 1 on MSVC platforms that have the "invalid parameter handler"
    concept. */
 #define HAVE_MSVC_INVALID_PARAMETER_HANDLER 1
+
+/* Define to 1 if you have the `nettle_cmac128_update' function. */
+#define HAVE_NETTLE_CMAC128_UPDATE 1
+
+/* Define to 1 if you have the `nettle_cfb8_encrypt' function. */
+#define HAVE_NETTLE_CFB8_ENCRYPT 1
 
 /* Define to 1 if you have the `nanosleep' function. */
 /* #undef HAVE_NANOSLEEP */
@@ -2132,8 +2129,6 @@
 # define _GL_INLINE_HEADER_END
 #endif
 
-/* static lib rename */
-#define fread_file _gnutls_fread_file
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #define gid_t int
@@ -2175,12 +2170,6 @@
 /* Define as the type of the result of subtracting two pointers, if the system
    doesn't define it. */
 /* #undef ptrdiff_t */
-
-/* static lib rename */
-#define read_binary_file _gnutls_read_binary_file
-
-/* static lib rename */
-#define read_file _gnutls_read_file
 
 /* Define to the equivalent of the C99 'restrict' keyword, or to
    nothing if this is not supported.  Do not define if restrict is

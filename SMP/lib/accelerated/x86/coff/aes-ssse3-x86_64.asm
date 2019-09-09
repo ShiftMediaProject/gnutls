@@ -1,5 +1,7 @@
 default	rel
 %define XMMWORD
+%define YMMWORD
+%define ZMMWORD
 section	.text code align=64
 
 
@@ -222,7 +224,7 @@ _vpaes_schedule_core:
 
 
 
-	call	_vpaes_preheat		
+	call	_vpaes_preheat
 	movdqa	xmm8,XMMWORD[$L$k_rcon]
 	movdqu	xmm0,XMMWORD[rdi]
 
@@ -268,7 +270,7 @@ $L$oop_schedule_128:
 	call	_vpaes_schedule_round
 	dec	rsi
 	jz	NEAR $L$schedule_mangle_last
-	call	_vpaes_schedule_mangle	
+	call	_vpaes_schedule_mangle
 	jmp	NEAR $L$oop_schedule_128
 
 
@@ -289,7 +291,7 @@ $L$oop_schedule_128:
 ALIGN	16
 $L$schedule_192:
 	movdqu	xmm0,XMMWORD[8+rdi]
-	call	_vpaes_schedule_transform	
+	call	_vpaes_schedule_transform
 	movdqa	xmm6,xmm0
 	pxor	xmm4,xmm4
 	movhlps	xmm6,xmm4
@@ -298,13 +300,13 @@ $L$schedule_192:
 $L$oop_schedule_192:
 	call	_vpaes_schedule_round
 DB	102,15,58,15,198,8
-	call	_vpaes_schedule_mangle	
+	call	_vpaes_schedule_mangle
 	call	_vpaes_schedule_192_smear
-	call	_vpaes_schedule_mangle	
+	call	_vpaes_schedule_mangle
 	call	_vpaes_schedule_round
 	dec	rsi
 	jz	NEAR $L$schedule_mangle_last
-	call	_vpaes_schedule_mangle	
+	call	_vpaes_schedule_mangle
 	call	_vpaes_schedule_192_smear
 	jmp	NEAR $L$oop_schedule_192
 
@@ -321,18 +323,18 @@ DB	102,15,58,15,198,8
 ALIGN	16
 $L$schedule_256:
 	movdqu	xmm0,XMMWORD[16+rdi]
-	call	_vpaes_schedule_transform	
+	call	_vpaes_schedule_transform
 	mov	esi,7
 
 $L$oop_schedule_256:
-	call	_vpaes_schedule_mangle	
+	call	_vpaes_schedule_mangle
 	movdqa	xmm6,xmm0
 
 
 	call	_vpaes_schedule_round
 	dec	rsi
 	jz	NEAR $L$schedule_mangle_last
-	call	_vpaes_schedule_mangle	
+	call	_vpaes_schedule_mangle
 
 
 	pshufd	xmm0,xmm0,0xFF
@@ -370,7 +372,7 @@ DB	102,15,56,0,193
 $L$schedule_mangle_last_dec:
 	add	rdx,-16
 	pxor	xmm0,XMMWORD[$L$k_s63]
-	call	_vpaes_schedule_transform 
+	call	_vpaes_schedule_transform
 	movdqu	XMMWORD[rdx],xmm0
 
 
@@ -1003,11 +1005,11 @@ $L$k_dsbe:
 $L$k_dsbo:
 	DQ	0x1387EA537EF94000,0xC7AA6DB9D4943E2D
 	DQ	0x12D7560F93441D00,0xCA4B8159D8C58E9C
-DB	86,101,99,116,111,114,32,80,101,114,109,117,116,97,105,111
-DB	110,32,65,69,83,32,102,111,114,32,120,56,54,95,54,52
-DB	47,83,83,83,69,51,44,32,77,105,107,101,32,72,97,109
-DB	98,117,114,103,32,40,83,116,97,110,102,111,114,100,32,85
-DB	110,105,118,101,114,115,105,116,121,41,0
+DB	86,101,99,116,111,114,32,80,101,114,109,117,116,97,116,105
+DB	111,110,32,65,69,83,32,102,111,114,32,120,56,54,95,54
+DB	52,47,83,83,83,69,51,44,32,77,105,107,101,32,72,97
+DB	109,98,117,114,103,32,40,83,116,97,110,102,111,114,100,32
+DB	85,110,105,118,101,114,115,105,116,121,41,0
 ALIGN	64
 
 EXTERN	__imp_RtlVirtualUnwind
@@ -1046,7 +1048,7 @@ se_handler:
 	lea	rsi,[16+rax]
 	lea	rdi,[512+r8]
 	mov	ecx,20
-	DD	0xa548f3fc		
+	DD	0xa548f3fc
 	lea	rax,[184+rax]
 
 $L$in_prologue:
@@ -1059,7 +1061,7 @@ $L$in_prologue:
 	mov	rdi,QWORD[40+r9]
 	mov	rsi,r8
 	mov	ecx,154
-	DD	0xa548f3fc		
+	DD	0xa548f3fc
 
 	mov	rsi,r9
 	xor	rcx,rcx
@@ -1116,20 +1118,20 @@ ALIGN	8
 $L$SEH_info_vpaes_set_encrypt_key:
 DB	9,0,0,0
 	DD	se_handler wrt ..imagebase
-	DD	$L$enc_key_body wrt ..imagebase,$L$enc_key_epilogue wrt ..imagebase	
+	DD	$L$enc_key_body wrt ..imagebase,$L$enc_key_epilogue wrt ..imagebase
 $L$SEH_info_vpaes_set_decrypt_key:
 DB	9,0,0,0
 	DD	se_handler wrt ..imagebase
-	DD	$L$dec_key_body wrt ..imagebase,$L$dec_key_epilogue wrt ..imagebase	
+	DD	$L$dec_key_body wrt ..imagebase,$L$dec_key_epilogue wrt ..imagebase
 $L$SEH_info_vpaes_encrypt:
 DB	9,0,0,0
 	DD	se_handler wrt ..imagebase
-	DD	$L$enc_body wrt ..imagebase,$L$enc_epilogue wrt ..imagebase		
+	DD	$L$enc_body wrt ..imagebase,$L$enc_epilogue wrt ..imagebase
 $L$SEH_info_vpaes_decrypt:
 DB	9,0,0,0
 	DD	se_handler wrt ..imagebase
-	DD	$L$dec_body wrt ..imagebase,$L$dec_epilogue wrt ..imagebase		
+	DD	$L$dec_body wrt ..imagebase,$L$dec_epilogue wrt ..imagebase
 $L$SEH_info_vpaes_cbc_encrypt:
 DB	9,0,0,0
 	DD	se_handler wrt ..imagebase
-	DD	$L$cbc_body wrt ..imagebase,$L$cbc_epilogue wrt ..imagebase		
+	DD	$L$cbc_body wrt ..imagebase,$L$cbc_epilogue wrt ..imagebase

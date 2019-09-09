@@ -28,11 +28,20 @@ L$_padlock_capability_begin:
 	cpuid
 	xor	eax,eax
 	cmp	ebx,0x746e6543
-	jne	NEAR L$000noluck
+	jne	NEAR L$001zhaoxin
 	cmp	edx,0x48727561
 	jne	NEAR L$000noluck
 	cmp	ecx,0x736c7561
 	jne	NEAR L$000noluck
+	jmp	NEAR L$002zhaoxinEnd
+L$001zhaoxin:
+	cmp	ebx,0x68532020
+	jne	NEAR L$000noluck
+	cmp	edx,0x68676e61
+	jne	NEAR L$000noluck
+	cmp	ecx,0x20206961
+	jne	NEAR L$000noluck
+L$002zhaoxinEnd:
 	mov	eax,3221225472
 	cpuid
 	mov	edx,eax
@@ -63,13 +72,13 @@ _padlock_key_bswap:
 L$_padlock_key_bswap_begin:
 	mov	edx,DWORD [4+esp]
 	mov	ecx,DWORD [240+edx]
-L$001bswap_loop:
+L$003bswap_loop:
 	mov	eax,DWORD [edx]
 	bswap	eax
 	mov	DWORD [edx],eax
 	lea	edx,[4+edx]
 	sub	ecx,1
-	jnz	NEAR L$001bswap_loop
+	jnz	NEAR L$003bswap_loop
 	ret
 global	_padlock_verify_context
 align	16
@@ -79,18 +88,18 @@ L$_padlock_verify_context_begin:
 	lea	eax,[L$padlock_saved_context]
 	pushfd
 	call	__padlock_verify_ctx
-L$002verify_pic_point:
+L$004verify_pic_point:
 	lea	esp,[4+esp]
 	ret
 align	16
 __padlock_verify_ctx:
 	bt	DWORD [4+esp],30
-	jnc	NEAR L$003verified
+	jnc	NEAR L$005verified
 	cmp	edx,DWORD [eax]
-	je	NEAR L$003verified
+	je	NEAR L$005verified
 	pushfd
 	popfd
-L$003verified:
+L$005verified:
 	mov	DWORD [eax],edx
 	ret
 global	_padlock_reload_key
@@ -131,25 +140,25 @@ L$_padlock_ecb_encrypt_begin:
 	mov	edx,DWORD [28+esp]
 	mov	ecx,DWORD [32+esp]
 	test	edx,15
-	jnz	NEAR L$004ecb_abort
+	jnz	NEAR L$006ecb_abort
 	test	ecx,15
-	jnz	NEAR L$004ecb_abort
+	jnz	NEAR L$006ecb_abort
 	lea	eax,[L$padlock_saved_context]
 	pushfd
 	cld
 	call	__padlock_verify_ctx
-L$005ecb_pic_point:
+L$007ecb_pic_point:
 	lea	edx,[16+edx]
 	xor	eax,eax
 	xor	ebx,ebx
 	test	DWORD [edx],32
-	jnz	NEAR L$006ecb_aligned
+	jnz	NEAR L$008ecb_aligned
 	test	edi,15
 	setz	al
 	test	esi,15
 	setz	bl
 	test	eax,ebx
-	jnz	NEAR L$006ecb_aligned
+	jnz	NEAR L$008ecb_aligned
 	neg	eax
 	mov	ebx,512
 	not	eax
@@ -168,7 +177,7 @@ L$005ecb_pic_point:
 	and	esp,-16
 	mov	DWORD [16+ebp],eax
 	cmp	ecx,ebx
-	ja	NEAR L$007ecb_loop
+	ja	NEAR L$009ecb_loop
 	mov	eax,esi
 	cmp	ebp,esp
 	cmove	eax,edi
@@ -179,10 +188,10 @@ L$005ecb_pic_point:
 	mov	eax,-128
 	cmovae	eax,ebx
 	and	ebx,eax
-	jz	NEAR L$008ecb_unaligned_tail
-	jmp	NEAR L$007ecb_loop
+	jz	NEAR L$010ecb_unaligned_tail
+	jmp	NEAR L$009ecb_loop
 align	16
-L$007ecb_loop:
+L$009ecb_loop:
 	mov	DWORD [ebp],edi
 	mov	DWORD [4+ebp],esi
 	mov	DWORD [8+ebp],ecx
@@ -191,13 +200,13 @@ L$007ecb_loop:
 	test	edi,15
 	cmovnz	edi,esp
 	test	esi,15
-	jz	NEAR L$009ecb_inp_aligned
+	jz	NEAR L$011ecb_inp_aligned
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
 	mov	ecx,ebx
 	mov	esi,edi
-L$009ecb_inp_aligned:
+L$011ecb_inp_aligned:
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
@@ -205,23 +214,23 @@ db	243,15,167,200
 	mov	edi,DWORD [ebp]
 	mov	ebx,DWORD [12+ebp]
 	test	edi,15
-	jz	NEAR L$010ecb_out_aligned
+	jz	NEAR L$012ecb_out_aligned
 	mov	ecx,ebx
 	lea	esi,[esp]
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
-L$010ecb_out_aligned:
+L$012ecb_out_aligned:
 	mov	esi,DWORD [4+ebp]
 	mov	ecx,DWORD [8+ebp]
 	add	edi,ebx
 	add	esi,ebx
 	sub	ecx,ebx
 	mov	ebx,512
-	jz	NEAR L$011ecb_break
+	jz	NEAR L$013ecb_break
 	cmp	ecx,ebx
-	jae	NEAR L$007ecb_loop
-L$008ecb_unaligned_tail:
+	jae	NEAR L$009ecb_loop
+L$010ecb_unaligned_tail:
 	xor	eax,eax
 	cmp	esp,ebp
 	cmove	eax,ecx
@@ -234,24 +243,24 @@ db	243,165
 	mov	esi,esp
 	mov	edi,eax
 	mov	ecx,ebx
-	jmp	NEAR L$007ecb_loop
+	jmp	NEAR L$009ecb_loop
 align	16
-L$011ecb_break:
+L$013ecb_break:
 	cmp	esp,ebp
-	je	NEAR L$012ecb_done
+	je	NEAR L$014ecb_done
 	pxor	xmm0,xmm0
 	lea	eax,[esp]
-L$013ecb_bzero:
+L$015ecb_bzero:
 	movaps	[eax],xmm0
 	lea	eax,[16+eax]
 	cmp	ebp,eax
-	ja	NEAR L$013ecb_bzero
-L$012ecb_done:
+	ja	NEAR L$015ecb_bzero
+L$014ecb_done:
 	mov	ebp,DWORD [16+ebp]
 	lea	esp,[24+ebp]
-	jmp	NEAR L$014ecb_exit
+	jmp	NEAR L$016ecb_exit
 align	16
-L$006ecb_aligned:
+L$008ecb_aligned:
 	lea	ebp,[ecx*1+esi]
 	neg	ebp
 	and	ebp,4095
@@ -261,14 +270,14 @@ L$006ecb_aligned:
 	cmovae	ebp,eax
 	and	ebp,ecx
 	sub	ecx,ebp
-	jz	NEAR L$015ecb_aligned_tail
+	jz	NEAR L$017ecb_aligned_tail
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
 db	243,15,167,200
 	test	ebp,ebp
-	jz	NEAR L$014ecb_exit
-L$015ecb_aligned_tail:
+	jz	NEAR L$016ecb_exit
+L$017ecb_aligned_tail:
 	mov	ecx,ebp
 	lea	ebp,[esp-24]
 	mov	esp,ebp
@@ -285,11 +294,11 @@ db	243,165
 	mov	esi,esp
 	mov	edi,eax
 	mov	ecx,ebx
-	jmp	NEAR L$007ecb_loop
-L$014ecb_exit:
+	jmp	NEAR L$009ecb_loop
+L$016ecb_exit:
 	mov	eax,1
 	lea	esp,[4+esp]
-L$004ecb_abort:
+L$006ecb_abort:
 	pop	edi
 	pop	esi
 	pop	ebx
@@ -308,25 +317,25 @@ L$_padlock_cbc_encrypt_begin:
 	mov	edx,DWORD [28+esp]
 	mov	ecx,DWORD [32+esp]
 	test	edx,15
-	jnz	NEAR L$016cbc_abort
+	jnz	NEAR L$018cbc_abort
 	test	ecx,15
-	jnz	NEAR L$016cbc_abort
+	jnz	NEAR L$018cbc_abort
 	lea	eax,[L$padlock_saved_context]
 	pushfd
 	cld
 	call	__padlock_verify_ctx
-L$017cbc_pic_point:
+L$019cbc_pic_point:
 	lea	edx,[16+edx]
 	xor	eax,eax
 	xor	ebx,ebx
 	test	DWORD [edx],32
-	jnz	NEAR L$018cbc_aligned
+	jnz	NEAR L$020cbc_aligned
 	test	edi,15
 	setz	al
 	test	esi,15
 	setz	bl
 	test	eax,ebx
-	jnz	NEAR L$018cbc_aligned
+	jnz	NEAR L$020cbc_aligned
 	neg	eax
 	mov	ebx,512
 	not	eax
@@ -345,7 +354,7 @@ L$017cbc_pic_point:
 	and	esp,-16
 	mov	DWORD [16+ebp],eax
 	cmp	ecx,ebx
-	ja	NEAR L$019cbc_loop
+	ja	NEAR L$021cbc_loop
 	mov	eax,esi
 	cmp	ebp,esp
 	cmove	eax,edi
@@ -356,10 +365,10 @@ L$017cbc_pic_point:
 	mov	eax,-64
 	cmovae	eax,ebx
 	and	ebx,eax
-	jz	NEAR L$020cbc_unaligned_tail
-	jmp	NEAR L$019cbc_loop
+	jz	NEAR L$022cbc_unaligned_tail
+	jmp	NEAR L$021cbc_loop
 align	16
-L$019cbc_loop:
+L$021cbc_loop:
 	mov	DWORD [ebp],edi
 	mov	DWORD [4+ebp],esi
 	mov	DWORD [8+ebp],ecx
@@ -368,13 +377,13 @@ L$019cbc_loop:
 	test	edi,15
 	cmovnz	edi,esp
 	test	esi,15
-	jz	NEAR L$021cbc_inp_aligned
+	jz	NEAR L$023cbc_inp_aligned
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
 	mov	ecx,ebx
 	mov	esi,edi
-L$021cbc_inp_aligned:
+L$023cbc_inp_aligned:
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
@@ -384,23 +393,23 @@ db	243,15,167,208
 	mov	edi,DWORD [ebp]
 	mov	ebx,DWORD [12+ebp]
 	test	edi,15
-	jz	NEAR L$022cbc_out_aligned
+	jz	NEAR L$024cbc_out_aligned
 	mov	ecx,ebx
 	lea	esi,[esp]
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
-L$022cbc_out_aligned:
+L$024cbc_out_aligned:
 	mov	esi,DWORD [4+ebp]
 	mov	ecx,DWORD [8+ebp]
 	add	edi,ebx
 	add	esi,ebx
 	sub	ecx,ebx
 	mov	ebx,512
-	jz	NEAR L$023cbc_break
+	jz	NEAR L$025cbc_break
 	cmp	ecx,ebx
-	jae	NEAR L$019cbc_loop
-L$020cbc_unaligned_tail:
+	jae	NEAR L$021cbc_loop
+L$022cbc_unaligned_tail:
 	xor	eax,eax
 	cmp	esp,ebp
 	cmove	eax,ecx
@@ -413,24 +422,24 @@ db	243,165
 	mov	esi,esp
 	mov	edi,eax
 	mov	ecx,ebx
-	jmp	NEAR L$019cbc_loop
+	jmp	NEAR L$021cbc_loop
 align	16
-L$023cbc_break:
+L$025cbc_break:
 	cmp	esp,ebp
-	je	NEAR L$024cbc_done
+	je	NEAR L$026cbc_done
 	pxor	xmm0,xmm0
 	lea	eax,[esp]
-L$025cbc_bzero:
+L$027cbc_bzero:
 	movaps	[eax],xmm0
 	lea	eax,[16+eax]
 	cmp	ebp,eax
-	ja	NEAR L$025cbc_bzero
-L$024cbc_done:
+	ja	NEAR L$027cbc_bzero
+L$026cbc_done:
 	mov	ebp,DWORD [16+ebp]
 	lea	esp,[24+ebp]
-	jmp	NEAR L$026cbc_exit
+	jmp	NEAR L$028cbc_exit
 align	16
-L$018cbc_aligned:
+L$020cbc_aligned:
 	lea	ebp,[ecx*1+esi]
 	neg	ebp
 	and	ebp,4095
@@ -440,7 +449,7 @@ L$018cbc_aligned:
 	cmovae	ebp,eax
 	and	ebp,ecx
 	sub	ecx,ebp
-	jz	NEAR L$027cbc_aligned_tail
+	jz	NEAR L$029cbc_aligned_tail
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
@@ -448,8 +457,8 @@ db	243,15,167,208
 	movaps	xmm0,[eax]
 	movaps	[edx-16],xmm0
 	test	ebp,ebp
-	jz	NEAR L$026cbc_exit
-L$027cbc_aligned_tail:
+	jz	NEAR L$028cbc_exit
+L$029cbc_aligned_tail:
 	mov	ecx,ebp
 	lea	ebp,[esp-24]
 	mov	esp,ebp
@@ -466,11 +475,11 @@ db	243,165
 	mov	esi,esp
 	mov	edi,eax
 	mov	ecx,ebx
-	jmp	NEAR L$019cbc_loop
-L$026cbc_exit:
+	jmp	NEAR L$021cbc_loop
+L$028cbc_exit:
 	mov	eax,1
 	lea	esp,[4+esp]
-L$016cbc_abort:
+L$018cbc_abort:
 	pop	edi
 	pop	esi
 	pop	ebx
@@ -489,25 +498,25 @@ L$_padlock_cfb_encrypt_begin:
 	mov	edx,DWORD [28+esp]
 	mov	ecx,DWORD [32+esp]
 	test	edx,15
-	jnz	NEAR L$028cfb_abort
+	jnz	NEAR L$030cfb_abort
 	test	ecx,15
-	jnz	NEAR L$028cfb_abort
+	jnz	NEAR L$030cfb_abort
 	lea	eax,[L$padlock_saved_context]
 	pushfd
 	cld
 	call	__padlock_verify_ctx
-L$029cfb_pic_point:
+L$031cfb_pic_point:
 	lea	edx,[16+edx]
 	xor	eax,eax
 	xor	ebx,ebx
 	test	DWORD [edx],32
-	jnz	NEAR L$030cfb_aligned
+	jnz	NEAR L$032cfb_aligned
 	test	edi,15
 	setz	al
 	test	esi,15
 	setz	bl
 	test	eax,ebx
-	jnz	NEAR L$030cfb_aligned
+	jnz	NEAR L$032cfb_aligned
 	neg	eax
 	mov	ebx,512
 	not	eax
@@ -525,9 +534,9 @@ L$029cfb_pic_point:
 	and	ebp,-16
 	and	esp,-16
 	mov	DWORD [16+ebp],eax
-	jmp	NEAR L$031cfb_loop
+	jmp	NEAR L$033cfb_loop
 align	16
-L$031cfb_loop:
+L$033cfb_loop:
 	mov	DWORD [ebp],edi
 	mov	DWORD [4+ebp],esi
 	mov	DWORD [8+ebp],ecx
@@ -536,13 +545,13 @@ L$031cfb_loop:
 	test	edi,15
 	cmovnz	edi,esp
 	test	esi,15
-	jz	NEAR L$032cfb_inp_aligned
+	jz	NEAR L$034cfb_inp_aligned
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
 	mov	ecx,ebx
 	mov	esi,edi
-L$032cfb_inp_aligned:
+L$034cfb_inp_aligned:
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
@@ -552,45 +561,45 @@ db	243,15,167,224
 	mov	edi,DWORD [ebp]
 	mov	ebx,DWORD [12+ebp]
 	test	edi,15
-	jz	NEAR L$033cfb_out_aligned
+	jz	NEAR L$035cfb_out_aligned
 	mov	ecx,ebx
 	lea	esi,[esp]
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
-L$033cfb_out_aligned:
+L$035cfb_out_aligned:
 	mov	esi,DWORD [4+ebp]
 	mov	ecx,DWORD [8+ebp]
 	add	edi,ebx
 	add	esi,ebx
 	sub	ecx,ebx
 	mov	ebx,512
-	jnz	NEAR L$031cfb_loop
+	jnz	NEAR L$033cfb_loop
 	cmp	esp,ebp
-	je	NEAR L$034cfb_done
+	je	NEAR L$036cfb_done
 	pxor	xmm0,xmm0
 	lea	eax,[esp]
-L$035cfb_bzero:
+L$037cfb_bzero:
 	movaps	[eax],xmm0
 	lea	eax,[16+eax]
 	cmp	ebp,eax
-	ja	NEAR L$035cfb_bzero
-L$034cfb_done:
+	ja	NEAR L$037cfb_bzero
+L$036cfb_done:
 	mov	ebp,DWORD [16+ebp]
 	lea	esp,[24+ebp]
-	jmp	NEAR L$036cfb_exit
+	jmp	NEAR L$038cfb_exit
 align	16
-L$030cfb_aligned:
+L$032cfb_aligned:
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
 db	243,15,167,224
 	movaps	xmm0,[eax]
 	movaps	[edx-16],xmm0
-L$036cfb_exit:
+L$038cfb_exit:
 	mov	eax,1
 	lea	esp,[4+esp]
-L$028cfb_abort:
+L$030cfb_abort:
 	pop	edi
 	pop	esi
 	pop	ebx
@@ -609,25 +618,25 @@ L$_padlock_ofb_encrypt_begin:
 	mov	edx,DWORD [28+esp]
 	mov	ecx,DWORD [32+esp]
 	test	edx,15
-	jnz	NEAR L$037ofb_abort
+	jnz	NEAR L$039ofb_abort
 	test	ecx,15
-	jnz	NEAR L$037ofb_abort
+	jnz	NEAR L$039ofb_abort
 	lea	eax,[L$padlock_saved_context]
 	pushfd
 	cld
 	call	__padlock_verify_ctx
-L$038ofb_pic_point:
+L$040ofb_pic_point:
 	lea	edx,[16+edx]
 	xor	eax,eax
 	xor	ebx,ebx
 	test	DWORD [edx],32
-	jnz	NEAR L$039ofb_aligned
+	jnz	NEAR L$041ofb_aligned
 	test	edi,15
 	setz	al
 	test	esi,15
 	setz	bl
 	test	eax,ebx
-	jnz	NEAR L$039ofb_aligned
+	jnz	NEAR L$041ofb_aligned
 	neg	eax
 	mov	ebx,512
 	not	eax
@@ -645,9 +654,9 @@ L$038ofb_pic_point:
 	and	ebp,-16
 	and	esp,-16
 	mov	DWORD [16+ebp],eax
-	jmp	NEAR L$040ofb_loop
+	jmp	NEAR L$042ofb_loop
 align	16
-L$040ofb_loop:
+L$042ofb_loop:
 	mov	DWORD [ebp],edi
 	mov	DWORD [4+ebp],esi
 	mov	DWORD [8+ebp],ecx
@@ -656,13 +665,13 @@ L$040ofb_loop:
 	test	edi,15
 	cmovnz	edi,esp
 	test	esi,15
-	jz	NEAR L$041ofb_inp_aligned
+	jz	NEAR L$043ofb_inp_aligned
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
 	mov	ecx,ebx
 	mov	esi,edi
-L$041ofb_inp_aligned:
+L$043ofb_inp_aligned:
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
@@ -672,45 +681,45 @@ db	243,15,167,232
 	mov	edi,DWORD [ebp]
 	mov	ebx,DWORD [12+ebp]
 	test	edi,15
-	jz	NEAR L$042ofb_out_aligned
+	jz	NEAR L$044ofb_out_aligned
 	mov	ecx,ebx
 	lea	esi,[esp]
 	shr	ecx,2
 db	243,165
 	sub	edi,ebx
-L$042ofb_out_aligned:
+L$044ofb_out_aligned:
 	mov	esi,DWORD [4+ebp]
 	mov	ecx,DWORD [8+ebp]
 	add	edi,ebx
 	add	esi,ebx
 	sub	ecx,ebx
 	mov	ebx,512
-	jnz	NEAR L$040ofb_loop
+	jnz	NEAR L$042ofb_loop
 	cmp	esp,ebp
-	je	NEAR L$043ofb_done
+	je	NEAR L$045ofb_done
 	pxor	xmm0,xmm0
 	lea	eax,[esp]
-L$044ofb_bzero:
+L$046ofb_bzero:
 	movaps	[eax],xmm0
 	lea	eax,[16+eax]
 	cmp	ebp,eax
-	ja	NEAR L$044ofb_bzero
-L$043ofb_done:
+	ja	NEAR L$046ofb_bzero
+L$045ofb_done:
 	mov	ebp,DWORD [16+ebp]
 	lea	esp,[24+ebp]
-	jmp	NEAR L$045ofb_exit
+	jmp	NEAR L$047ofb_exit
 align	16
-L$039ofb_aligned:
+L$041ofb_aligned:
 	lea	eax,[edx-16]
 	lea	ebx,[16+edx]
 	shr	ecx,4
 db	243,15,167,232
 	movaps	xmm0,[eax]
 	movaps	[edx-16],xmm0
-L$045ofb_exit:
+L$047ofb_exit:
 	mov	eax,1
 	lea	esp,[4+esp]
-L$037ofb_abort:
+L$039ofb_abort:
 	pop	edi
 	pop	esi
 	pop	ebx
@@ -729,14 +738,14 @@ L$_padlock_ctr32_encrypt_begin:
 	mov	edx,DWORD [28+esp]
 	mov	ecx,DWORD [32+esp]
 	test	edx,15
-	jnz	NEAR L$046ctr32_abort
+	jnz	NEAR L$048ctr32_abort
 	test	ecx,15
-	jnz	NEAR L$046ctr32_abort
+	jnz	NEAR L$048ctr32_abort
 	lea	eax,[L$padlock_saved_context]
 	pushfd
 	cld
 	call	__padlock_verify_ctx
-L$047ctr32_pic_point:
+L$049ctr32_pic_point:
 	lea	edx,[16+edx]
 	xor	eax,eax
 	movq	mm0,[edx-16]
@@ -756,9 +765,9 @@ L$047ctr32_pic_point:
 	and	ebp,-16
 	and	esp,-16
 	mov	DWORD [16+ebp],eax
-	jmp	NEAR L$048ctr32_loop
+	jmp	NEAR L$050ctr32_loop
 align	16
-L$048ctr32_loop:
+L$050ctr32_loop:
 	mov	DWORD [ebp],edi
 	mov	DWORD [4+ebp],esi
 	mov	DWORD [8+ebp],ecx
@@ -767,7 +776,7 @@ L$048ctr32_loop:
 	mov	ecx,DWORD [edx-4]
 	xor	edi,edi
 	mov	eax,DWORD [edx-8]
-L$049ctr32_prepare:
+L$051ctr32_prepare:
 	mov	DWORD [12+edi*1+esp],ecx
 	bswap	ecx
 	movq	[edi*1+esp],mm0
@@ -776,7 +785,7 @@ L$049ctr32_prepare:
 	bswap	ecx
 	lea	edi,[16+edi]
 	cmp	edi,ebx
-	jb	NEAR L$049ctr32_prepare
+	jb	NEAR L$051ctr32_prepare
 	mov	DWORD [edx-4],ecx
 	lea	esi,[esp]
 	lea	edi,[esp]
@@ -789,33 +798,33 @@ db	243,15,167,200
 	mov	ebx,DWORD [12+ebp]
 	mov	esi,DWORD [4+ebp]
 	xor	ecx,ecx
-L$050ctr32_xor:
+L$052ctr32_xor:
 	movups	xmm1,[ecx*1+esi]
 	lea	ecx,[16+ecx]
 	pxor	xmm1,[ecx*1+esp-16]
 	movups	[ecx*1+edi-16],xmm1
 	cmp	ecx,ebx
-	jb	NEAR L$050ctr32_xor
+	jb	NEAR L$052ctr32_xor
 	mov	ecx,DWORD [8+ebp]
 	add	edi,ebx
 	add	esi,ebx
 	sub	ecx,ebx
 	mov	ebx,512
-	jnz	NEAR L$048ctr32_loop
+	jnz	NEAR L$050ctr32_loop
 	pxor	xmm0,xmm0
 	lea	eax,[esp]
-L$051ctr32_bzero:
+L$053ctr32_bzero:
 	movaps	[eax],xmm0
 	lea	eax,[16+eax]
 	cmp	ebp,eax
-	ja	NEAR L$051ctr32_bzero
-L$052ctr32_done:
+	ja	NEAR L$053ctr32_bzero
+L$054ctr32_done:
 	mov	ebp,DWORD [16+ebp]
 	lea	esp,[24+ebp]
 	mov	eax,1
 	lea	esp,[4+esp]
 	emms
-L$046ctr32_abort:
+L$048ctr32_abort:
 	pop	edi
 	pop	esi
 	pop	ebx
@@ -837,10 +846,10 @@ __win32_segv_handler:
 	mov	edx,DWORD [4+esp]
 	mov	ecx,DWORD [12+esp]
 	cmp	DWORD [edx],3221225477
-	jne	NEAR L$053ret
+	jne	NEAR L$055ret
 	add	DWORD [184+ecx],4
 	mov	eax,0
-L$053ret:
+L$055ret:
 	ret
 %if	__NASM_VERSION_ID__ >= 0x02030000
 safeseh	__win32_segv_handler

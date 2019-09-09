@@ -1,73 +1,49 @@
-diff --git a/lib/algorithms/ciphersuites.c b/lib/algorithms/ciphersuites.c
-index 3fb417dc70..808c5b9dcb 100644
---- a/lib/algorithms/ciphersuites.c
-+++ b/lib/algorithms/ciphersuites.c
-@@ -1327,7 +1327,11 @@ _gnutls_remove_unwanted_ciphersuites(gnutls_session_t session,
- 	    session->security_parameters.entity == GNUTLS_SERVER ? 1 : 0;
- 	gnutls_kx_algorithm_t alg[MAX_ALGOS];
- 	int alg_size = MAX_ALGOS;
--	uint8_t new_list[cipher_suites_size]; /* it's safe to use that size because it's provided by _gnutls_supported_ciphersuites() */
-+#if defined(_MSC_VER)
-+    uint8_t * new_list = (uint8_t *)_alloca(cipher_suites_size*sizeof(uint8_t));
-+#else
-+    uint8_t new_list[cipher_suites_size]; /* it's safe to use that size because it's provided by _gnutls_supported_ciphersuites() */
-+#endif
- 	int i, new_list_size = 0;
- 	const gnutls_cipher_suite_entry_st *entry;
- 	const uint8_t *cp;
-diff --git a/lib/algorithms/protocols.c b/lib/algorithms/protocols.c
-index b2bd675f5f..c3daa1ee73 100644
---- a/lib/algorithms/protocols.c
-+++ b/lib/algorithms/protocols.c
-@@ -342,19 +342,26 @@ gnutls_protocol_t _gnutls_version_get(uint8_t major, uint8_t minor)
- 
- int
- _gnutls_version_is_supported(gnutls_session_t session,
--			     const gnutls_protocol_t version)
-+				 const gnutls_protocol_t version)
- {
- 	int ret = 0;
- 
--	GNUTLS_VERSION_LOOP(
--		if(p->id == version) {
- #ifndef ENABLE_SSL3
-+	GNUTLS_VERSION_LOOP(
-+		if (p->id == version) {
- 			if (p->obsolete != 0) return 0;
--#endif
- 			ret = p->supported && p->transport == session->internals.transport;
- 			break;
- 		}
- 	)
-+#else
-+	GNUTLS_VERSION_LOOP(
-+		if (p->id == version) {
-+			ret = p->supported && p->transport == session->internals.transport;
-+			break;
-+		}
-+	)
-+#endif
- 
- 	if (ret == 0)
- 		return 0;
 diff --git a/lib/debug.c b/lib/debug.c
-index 252f2470a6..57a15073f7 100644
+index 19e316d9db..263c8e82c0 100644
 --- a/lib/debug.c
 +++ b/lib/debug.c
-@@ -44,7 +44,11 @@ void _gnutls_dump_mpi(const char *prefix, bigint_t a)
+@@ -31,7 +31,11 @@
+ void _gnutls_dump_mpi(const char *prefix, bigint_t a)
+ {
+ 	char buf[400];
++#if defined(_MSC_VER)
++	char* buf_hex = (char*)_alloca((2 * sizeof(buf) + 1) * sizeof(char));
++#else
+ 	char buf_hex[2 * sizeof(buf) + 1];
++#endif
+ 	size_t n = sizeof buf;
+ 
+ 	if (_gnutls_mpi_print(a, buf, &n))
+@@ -44,7 +48,11 @@ void _gnutls_dump_mpi(const char *prefix, bigint_t a)
  void
  _gnutls_dump_vector(const char *prefix, const uint8_t * a, size_t a_size)
  {
 +#if defined(_MSC_VER)
-+    char * buf_hex = (char *)_alloca((2 * a_size + 1)*sizeof(char));
++	char * buf_hex = (char *)_alloca((2 * a_size + 1)*sizeof(char));
 +#else
  	char buf_hex[2 * a_size + 1];
 +#endif
  
  	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
  			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
+diff --git a/lib/ext/pre_shared_key.c b/lib/ext/pre_shared_key.c
+index c42bd1646b..d9b85d6d2e 100644
+--- a/lib/ext/pre_shared_key.c
++++ b/lib/ext/pre_shared_key.c
+@@ -541,7 +541,11 @@ static int server_recv_params(gnutls_session_t session,
+ 			   psk.ob_ticket_age == 0 &&
+ 			   psk.identity.size > 0 && psk.identity.size <= MAX_USERNAME_SIZE) {
+ 			/* _gnutls_psk_pwd_find_entry() expects 0-terminated identities */
++#if defined(_MSC_VER)
++            uint8_t * identity_str = (uint8_t*)_alloca(psk.identity.size + 1);
++#else
+ 			char identity_str[psk.identity.size + 1];
++#endif
+ 
+ 			prf = pskcred->binder_algo;
+ 
 diff --git a/lib/global.c b/lib/global.c
-index d31d5bcae9..70409ee298 100644
+index d657f56d8c..83c19b4306 100644
 --- a/lib/global.c
 +++ b/lib/global.c
 @@ -46,11 +46,32 @@
@@ -80,22 +56,22 @@ index d31d5bcae9..70409ee298 100644
 +# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void);
 +#elif defined(_WIN32) && defined(_MSC_VER)
 +# define CONSTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
-+    static int _func ## _wrapper(void) { _func(); return 0; } \
-+    __pragma(section(".CRT$XCU",read)) \
-+    __declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _wrapper; \
-+    __pragma(comment(linker,"/include:" p #_func "_"))
++	static int _func ## _wrapper(void) { _func(); return 0; } \
++	__pragma(section(".CRT$XCU",read)) \
++	__declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _wrapper; \
++	__pragma(comment(linker,"/include:" p #_func "_"))
 +#ifdef _WIN64
-+#define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"")
++# define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"")
  #else
 -# define _CONSTRUCTOR __attribute__((constructor))
 -# define _DESTRUCTOR __attribute__((destructor))
-+#define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"_")
++# define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"_")
 +#endif
 +# define DESTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
-+    static int _func ## _constructor(void) { atexit (_func); return 0; } \
-+    __pragma(section(".CRT$XCU",read)) \
-+    __declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _constructor; \
-+    __pragma(comment(linker,"/include:" p #_func "_"))
++	static int _func ## _constructor(void) { atexit (_func); return 0; } \
++	__pragma(section(".CRT$XCU",read)) \
++	__declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _constructor; \
++	__pragma(comment(linker,"/include:" p #_func "_"))
 +#ifdef _WIN64
 +#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"")
 +#else
@@ -107,7 +83,7 @@ index d31d5bcae9..70409ee298 100644
  #endif
  
  #ifndef _WIN32
-@@ -489,7 +510,8 @@ const char *gnutls_check_version(const char *req_version)
+@@ -491,7 +512,8 @@ const char *gnutls_check_version(const char *req_version)
  	return NULL;
  }
  
@@ -117,7 +93,7 @@ index d31d5bcae9..70409ee298 100644
  {
  int ret;
  const char *e;
-@@ -511,7 +533,8 @@ const char *e;
+@@ -513,7 +535,8 @@ const char *e;
  	}
  }
  
@@ -127,33 +103,30 @@ index d31d5bcae9..70409ee298 100644
  {
  	const char *e;
  
-diff --git a/lib/nettle/int/provable-prime.c b/lib/nettle/int/provable-prime.c
-index e4a4325dcb..b6a106e608 100644
---- a/lib/nettle/int/provable-prime.c
-+++ b/lib/nettle/int/provable-prime.c
-@@ -1129,7 +1129,11 @@ st_provable_prime(mpz_t p,
- 	uint8_t tseed[MAX_PVP_SEED_SIZE+1];
- 	int ret;
- 	unsigned pseed_length, iterations;
-+#if defined(_MSC_VER)
-+	uint8_t * pseed = (uint8_t *)_alloca((seed_length + 2) * sizeof(uint8_t));
-+#else
- 	uint8_t pseed[seed_length + 2];
-+#endif
- 	unsigned old_counter, i;
- 	mpz_t s, tmp, r, dc0, c0, c, t, z;
- 	uint8_t *storage = NULL;
+diff --git a/lib/gthreads.h b/lib/gthreads.h
+index 5887d46ba5..ec2e4db91c 100644
+--- a/lib/gthreads.h
++++ b/lib/gthreads.h
+@@ -26,6 +26,8 @@
+ # include <threads.h>
+ #elif defined(__GNUC__)
+ # define _Thread_local __thread
++#elif defined(_MSC_VER)
++# define _Thread_local __declspec(thread)
+ #else
+ # error Unsupported platform
+ #endif
 diff --git a/lib/nettle/sysrng-windows.c b/lib/nettle/sysrng-windows.c
-index 2baeeb1480..eb17626f35 100644
+index 1e1305b4bd..0bc78e1687 100644
 --- a/lib/nettle/sysrng-windows.c
 +++ b/lib/nettle/sysrng-windows.c
-@@ -48,16 +48,30 @@
- #include <windows.h>
- #include <wincrypt.h>
+@@ -50,16 +50,30 @@
+ 
+ get_entropy_func _rnd_get_system_entropy = NULL;
  
 +#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-+#define WINRT
-+static BCRYPT_ALG_HANDLE device_fd = 0;
++ #define WINRT
++ static BCRYPT_ALG_HANDLE device_fd = 0;
 +#else
  static HCRYPTPROV device_fd = 0;
 +#endif
@@ -174,11 +147,11 @@ index 2baeeb1480..eb17626f35 100644
  					(int)GetLastError());
  		return GNUTLS_E_RANDOM_DEVICE_ERROR;
  	}
-+#endif
++#endif 
  
  	return 0;
  }
-@@ -69,6 +83,14 @@ int _rnd_system_entropy_check(void)
+@@ -71,6 +85,14 @@ int _rnd_system_entropy_check(void)
  
  int _rnd_system_entropy_init(void)
  {
@@ -193,7 +166,7 @@ index 2baeeb1480..eb17626f35 100644
  	if (!CryptAcquireContext
  		(&device_fd, NULL, NULL, PROV_RSA_FULL,
  		 CRYPT_SILENT | CRYPT_VERIFYCONTEXT)) {
-@@ -76,6 +98,7 @@ int _rnd_system_entropy_init(void)
+@@ -78,6 +100,7 @@ int _rnd_system_entropy_init(void)
  			("error in CryptAcquireContext!\n");
  		return GNUTLS_E_RANDOM_DEVICE_ERROR;
  	}
@@ -201,7 +174,7 @@ index 2baeeb1480..eb17626f35 100644
  
  	_rnd_get_system_entropy = _rnd_get_system_entropy_win32;
  	return 0;
-@@ -83,5 +106,9 @@ int _rnd_system_entropy_init(void)
+@@ -85,5 +108,9 @@ int _rnd_system_entropy_init(void)
  
  void _rnd_system_entropy_deinit(void)
  {
@@ -211,62 +184,8 @@ index 2baeeb1480..eb17626f35 100644
  	CryptReleaseContext(device_fd, 0);
 +#endif
  }
-diff --git a/lib/opencdk/misc.c b/lib/opencdk/misc.c
-index 7c411688a1..4332470970 100644
---- a/lib/opencdk/misc.c
-+++ b/lib/opencdk/misc.c
-@@ -157,7 +157,8 @@ FILE *_cdk_tmpfile(void)
- 	/* Because the tmpfile() version of wine is not really useful,
- 	   we implement our own version to avoid problems with 'make check'. */
- 	static const char *letters = "abcdefghijklmnopqrstuvwxyz";
--	unsigned char buf[512], rnd[24];
-+	WCHAR wbuf[512];
-+	unsigned char rnd[24];
- 	FILE *fp;
- 	int fd, i;
- 
-@@ -167,20 +168,20 @@ FILE *_cdk_tmpfile(void)
- 		rnd[i] = c;
- 	}
- 	rnd[DIM(rnd) - 1] = 0;
--	if (!GetTempPath(464, buf))
-+	if (!GetTempPathW(464, wbuf))
- 		return NULL;
--	_gnutls_str_cat(buf, sizeof(buf), "_cdk_");
--	_gnutls_str_cat(buf, sizeof(buf), rnd);
-+	wcscat(wbuf, L"_cdk_");
-+	wcscat(wbuf, (WCHAR *)rnd);
- 
- 	/* We need to make sure the file will be deleted when it is closed. */
--	fd = _open(buf, _O_CREAT | _O_EXCL | _O_TEMPORARY |
-+	fd = _wopen(wbuf, _O_CREAT | _O_EXCL | _O_TEMPORARY |
- 		   _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE);
- 	if (fd == -1)
- 		return NULL;
--	fp = fdopen(fd, "w+b");
-+	fp = _wfdopen(fd, L"w+b");
- 	if (fp != NULL)
- 		return fp;
--	_close(fd);
-+	fclose(fd);
- 	return NULL;
- }
- #else
-diff --git a/lib/priority.c b/lib/priority.c
-index 7ce44c7cf4..b67a8326a9 100644
---- a/lib/priority.c
-+++ b/lib/priority.c
-@@ -1057,7 +1057,7 @@ size_t n, n2 = 0, line_size;
- 			} while (l>0);
- 
- 			_gnutls_debug_log("resolved '%.*s' to '%s', next '%.*s'\n",
--					  ss_len, ss, p ? : "", ss_next_len, ss_next ? : "");
-+					  ss_len, ss, p ? ss_next_len : ss_next);
- 			ss = ss_next;
- 			fclose(fp);
- 			fp = NULL;
 diff --git a/lib/system/certs.c b/lib/system/certs.c
-index 53eb561d00..53da5e4510 100644
+index 53eb561d00..44f658f77a 100644
 --- a/lib/system/certs.c
 +++ b/lib/system/certs.c
 @@ -161,9 +161,11 @@ int add_system_trust(gnutls_x509_trust_list_t list, unsigned int tl_flags,
@@ -274,17 +193,17 @@ index 53eb561d00..53da5e4510 100644
  
  		if (i == 0)
 -			store = CertOpenSystemStore(0, "ROOT");
-+			store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL,
-+								CERT_SYSTEM_STORE_CURRENT_USER, L"ROOT");
++            store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
++			CERT_SYSTEM_STORE_CURRENT_USER, L"ROOT");
  		else
 -			store = CertOpenSystemStore(0, "CA");
-+			store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL,
-+								CERT_SYSTEM_STORE_CURRENT_USER, L"CA");
++            store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
++			CERT_SYSTEM_STORE_CURRENT_USER, L"CA");
  
  		if (store == NULL)
  			return GNUTLS_E_FILE_ERROR;
 diff --git a/lib/system/keys-win.c b/lib/system/keys-win.c
-index eac511b975..5bbe1180d3 100644
+index eac511b975..0bd9a1ca7e 100644
 --- a/lib/system/keys-win.c
 +++ b/lib/system/keys-win.c
 @@ -44,8 +44,6 @@
@@ -358,7 +277,7 @@ index eac511b975..5bbe1180d3 100644
  	NCRYPT_KEY_HANDLE nc = NULL;
 +#ifndef WINRT
  	HCRYPTPROV hCryptProv = NULL;
-+    DWORD i;
++	DWORD i;
 +#endif
  	NCRYPT_PROV_HANDLE sctx = NULL;
  	DWORD kpi_size;
@@ -368,24 +287,24 @@ index eac511b975..5bbe1180d3 100644
  	DWORD algo_str_size = 0;
  	priv_st *priv;
 -	DWORD i, dwErrCode = 0;
-+    DWORD dwErrCode = 0;
++	DWORD dwErrCode = 0;
  
  	if (ncrypt_init == 0)
  		return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
-@@ -647,7 +658,8 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
+@@ -647,7 +658,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
  	blob.cbData = id_size;
  	blob.pbData = id;
  
 -	store = CertOpenSystemStore(0, "MY");
-+	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL,
-+						CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
++	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
  	if (store == NULL) {
  		gnutls_assert();
  		ret = GNUTLS_E_FILE_ERROR;
-@@ -754,6 +766,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
+@@ -753,7 +764,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
+ 		_gnutls_debug_log
  		    ("error in opening CNG keystore: %x from %ls\n", (int)r,
  		     kpi->pwszProvName);
- 
+-
 +#ifdef WINRT
 +		/* CAPI isnt supported on WinRT */
 +		ret = -1;
@@ -393,7 +312,7 @@ index eac511b975..5bbe1180d3 100644
  		if (CryptAcquireContextW(&hCryptProv,
  					 kpi->pwszContainerName,
  					 kpi->pwszProvName,
-@@ -837,6 +853,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
+@@ -837,6 +851,7 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
  						 (enc_too !=
  						  0) ? capi_decrypt : NULL,
  						 capi_deinit, capi_info, 0);
@@ -401,7 +320,7 @@ index eac511b975..5bbe1180d3 100644
  		if (ret < 0) {
  			gnutls_assert();
  			goto cleanup;
-@@ -847,8 +864,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
+@@ -847,8 +862,10 @@ int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
  	if (ret < 0) {
  		if (nc != 0)
  			pNCryptFreeObject(nc);
@@ -412,37 +331,35 @@ index eac511b975..5bbe1180d3 100644
  		gnutls_free(priv);
  	}
  	if (sctx != 0)
-@@ -884,7 +903,8 @@ int _gnutls_x509_crt_import_system_url(gnutls_x509_crt_t crt, const char *url)
+@@ -884,7 +901,7 @@ int _gnutls_x509_crt_import_system_url(gnutls_x509_crt_t crt, const char *url)
  	blob.cbData = id_size;
  	blob.pbData = id;
  
 -	store = CertOpenSystemStore(0, "MY");
-+	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL,
-+						CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
++	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
  	if (store == NULL) {
  		gnutls_assert();
  		ret = GNUTLS_E_FILE_ERROR;
-@@ -1132,7 +1152,8 @@ gnutls_system_key_iter_get_info(gnutls_system_key_iter_t * iter,
+@@ -1132,7 +1149,7 @@ gnutls_system_key_iter_get_info(gnutls_system_key_iter_t * iter,
  		if (*iter == NULL)
  			return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
  
 -		(*iter)->store = CertOpenSystemStore(0, "MY");
-+		(*iter)->store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL,
-+						CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
++		(*iter)->store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
  		if ((*iter)->store == NULL) {
  			gnutls_free(*iter);
  			*iter = NULL;
-@@ -1205,7 +1226,8 @@ int gnutls_system_key_delete(const char *cert_url, const char *key_url)
+@@ -1205,7 +1222,8 @@ int gnutls_system_key_delete(const char *cert_url, const char *key_url)
  	blob.cbData = id_size;
  	blob.pbData = id;
  
 -	store = CertOpenSystemStore(0, "MY");
-+	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL,
-+						CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
++	store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, NULL, 
++		CERT_SYSTEM_STORE_CURRENT_USER, L"MY");
  	if (store != NULL) {
  		do {
  			cert = CertFindCertificateInStore(store,
-@@ -1423,9 +1445,9 @@ int gnutls_system_key_add_x509(gnutls_x509_crt_t crt,
+@@ -1423,9 +1441,9 @@ int gnutls_system_key_add_x509(gnutls_x509_crt_t crt,
  
  int _gnutls_system_key_init(void)
  {
@@ -453,7 +370,7 @@ index eac511b975..5bbe1180d3 100644
  	ncrypt_lib = LoadLibraryA("ncrypt.dll");
  	if (ncrypt_lib == NULL) {
  		return gnutls_assert_val(GNUTLS_E_CRYPTO_INIT_FAILED);
-@@ -1486,15 +1508,19 @@ int _gnutls_system_key_init(void)
+@@ -1486,15 +1504,19 @@ int _gnutls_system_key_init(void)
  	ncrypt_init = 1;
  
  	return 0;
@@ -473,33 +390,3 @@ index eac511b975..5bbe1180d3 100644
  		ncrypt_init = 0;
  	}
  }
-diff --git a/lib/x509.c b/lib/x509.c
-index 3e64fb14a8..f287b0b06e 100644
---- a/lib/x509.c
-+++ b/lib/x509.c
-@@ -1682,7 +1682,11 @@ gnutls_certificate_set_x509_trust(gnutls_certificate_credentials_t res,
- 				  int ca_list_size)
- {
- 	int ret, i, j;
--	gnutls_x509_crt_t new_list[ca_list_size];
-+#if defined(_MSC_VER)
-+    gnutls_x509_crt_t * new_list = (gnutls_x509_crt_t *)_alloca(ca_list_size*sizeof(gnutls_x509_crt_t));
-+#else
-+    gnutls_x509_crt_t new_list[ca_list_size];
-+#endif
- 
- 	for (i = 0; i < ca_list_size; i++) {
- 		ret = gnutls_x509_crt_init(&new_list[i]);
-@@ -1858,7 +1862,11 @@ gnutls_certificate_set_x509_crl(gnutls_certificate_credentials_t res,
- 				int crl_list_size)
- {
- 	int ret, i, j;
--	gnutls_x509_crl_t new_crl[crl_list_size];
-+#if defined(_MSC_VER)
-+    gnutls_x509_crl_t * new_crl = (gnutls_x509_crl_t *)_alloca(crl_list_size*sizeof(gnutls_x509_crl_t));
-+#else
-+    gnutls_x509_crl_t new_crl[crl_list_size];
-+#endif
- 
- 	for (i = 0; i < crl_list_size; i++) {
- 		ret = gnutls_x509_crl_init(&new_crl[i]);

@@ -94,6 +94,7 @@
     <ClInclude Include="..\lib\accelerated\x86\x86-common.h" />
     <ClInclude Include="..\lib\algorithms.h" />
     <ClInclude Include="..\lib\atfork.h" />
+    <ClInclude Include="..\lib\atomic.h" />
     <ClInclude Include="..\lib\auth.h" />
     <ClInclude Include="..\lib\auth\anon.h" />
     <ClInclude Include="..\lib\auth\cert.h" />
@@ -107,8 +108,8 @@
     <ClInclude Include="..\lib\buffers.h" />
     <ClInclude Include="..\lib\cipher.h" />
     <ClInclude Include="..\lib\cipher_int.h" />
-    <ClInclude Include="..\lib\compress.h" />
     <ClInclude Include="..\lib\constate.h" />
+    <ClInclude Include="..\lib\crypto-api.h" />
     <ClInclude Include="..\lib\crypto-backend.h" />
     <ClInclude Include="..\lib\crypto.h" />
     <ClInclude Include="..\lib\datum.h" />
@@ -118,30 +119,44 @@
     <ClInclude Include="..\lib\dtls.h" />
     <ClInclude Include="..\lib\ecc.h" />
     <ClInclude Include="..\lib\errors.h" />
-    <ClInclude Include="..\lib\extensions.h" />
     <ClInclude Include="..\lib\extras\hex.h" />
     <ClInclude Include="..\lib\extras\randomart.h" />
+    <ClInclude Include="..\lib\extv.h" />
     <ClInclude Include="..\lib\ext\alpn.h" />
-    <ClInclude Include="..\lib\ext\cert_type.h" />
+    <ClInclude Include="..\lib\ext\cert_types.h" />
+    <ClInclude Include="..\lib\ext\client_cert_type.h" />
+    <ClInclude Include="..\lib\ext\cookie.h" />
     <ClInclude Include="..\lib\ext\dumbfw.h" />
-    <ClInclude Include="..\lib\ext\ecc.h" />
+    <ClInclude Include="..\lib\ext\early_data.h" />
+    <ClInclude Include="..\lib\ext\ec_point_formats.h" />
     <ClInclude Include="..\lib\ext\etm.h" />
     <ClInclude Include="..\lib\ext\ext_master_secret.h" />
     <ClInclude Include="..\lib\ext\heartbeat.h" />
+    <ClInclude Include="..\lib\ext\key_share.h" />
     <ClInclude Include="..\lib\ext\max_record.h" />
+    <ClInclude Include="..\lib\ext\post_handshake.h" />
+    <ClInclude Include="..\lib\ext\pre_shared_key.h" />
+    <ClInclude Include="..\lib\ext\psk_ke_modes.h" />
+    <ClInclude Include="..\lib\ext\record_size_limit.h" />
     <ClInclude Include="..\lib\ext\safe_renegotiation.h" />
+    <ClInclude Include="..\lib\ext\server_cert_type.h" />
     <ClInclude Include="..\lib\ext\server_name.h" />
     <ClInclude Include="..\lib\ext\session_ticket.h" />
     <ClInclude Include="..\lib\ext\signature.h" />
     <ClInclude Include="..\lib\ext\srp.h" />
     <ClInclude Include="..\lib\ext\srtp.h" />
     <ClInclude Include="..\lib\ext\status_request.h" />
+    <ClInclude Include="..\lib\ext\supported_groups.h" />
+    <ClInclude Include="..\lib\ext\supported_versions.h" />
     <ClInclude Include="..\lib\file.h" />
     <ClInclude Include="..\lib\fips.h" />
     <ClInclude Include="..\lib\global.h" />
     <ClInclude Include="..\lib\gnutls_int.h" />
+    <ClInclude Include="..\lib\gthreads.h" />
     <ClInclude Include="..\lib\handshake.h" />
     <ClInclude Include="..\lib\hash_int.h" />
+    <ClInclude Include="..\lib\hello_ext.h" />
+    <ClInclude Include="..\lib\hello_ext_lib.h" />
     <ClInclude Include="..\lib\includes\gnutls\abstract.h" />
     <ClInclude Include="..\lib\includes\gnutls\compat.h" />
     <ClInclude Include="..\lib\includes\gnutls\crypto.h" />
@@ -169,88 +184,38 @@
     <ClInclude Include="..\lib\minitasn1\parser_aux.h" />
     <ClInclude Include="..\lib\minitasn1\structure.h" />
     <ClInclude Include="..\lib\mpi.h" />
-    <ClInclude Include="..\lib\nettle\gnettle.h" />
     <ClInclude Include="..\lib\nettle\int\dsa-fips.h" />
     <ClInclude Include="..\lib\nettle\int\rsa-fips.h" />
-    <ClInclude Include="..\lib\nettle\rnd-common.h" />
+    <ClInclude Include="..\lib\nettle\int\tls1-prf.h" />
     <ClInclude Include="..\lib\num.h" />
-    <ClInclude Include="..\lib\opencdk\context.h" />
-    <ClInclude Include="..\lib\opencdk\filters.h" />
-    <ClInclude Include="..\lib\opencdk\keydb.h" />
-    <ClInclude Include="..\lib\opencdk\main.h" />
-    <ClInclude Include="..\lib\opencdk\opencdk.h" />
-    <ClInclude Include="..\lib\opencdk\packet.h" />
-    <ClInclude Include="..\lib\opencdk\stream.h" />
-    <ClInclude Include="..\lib\opencdk\types.h" />
-    <ClInclude Include="..\lib\openpgp\openpgp.h" />
-    <ClInclude Include="..\lib\openpgp\openpgp_int.h" />
     <ClInclude Include="..\lib\pin.h" />
     <ClInclude Include="..\lib\pk.h" />
     <ClInclude Include="..\lib\random.h" />
     <ClInclude Include="..\lib\record.h" />
+    <ClInclude Include="..\lib\secrets.h" />
     <ClInclude Include="..\lib\session_pack.h" />
     <ClInclude Include="..\lib\srp.h" />
     <ClInclude Include="..\lib\sslv2_compat.h" />
     <ClInclude Include="..\lib\state.h" />
+    <ClInclude Include="..\lib\stek.h" />
     <ClInclude Include="..\lib\str.h" />
     <ClInclude Include="..\lib\str_array.h" />
     <ClInclude Include="..\lib\supplemental.h" />
     <ClInclude Include="..\lib\system-keys.h" />
     <ClInclude Include="..\lib\system.h" />
     <ClInclude Include="..\lib\tls-sig.h" />
-    <ClInclude Include="..\lib\unistring\unicase\special-casing-table.h" />
-    <ClInclude Include="..\lib\unistring\unictype\bitmap.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_C.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Cc.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Cf.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Cn.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Co.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Cs.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_L.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_LC.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Ll.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Lm.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Lo.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Lt.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Lu.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_M.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Mc.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Me.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Mn.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_N.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Nd.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Nl.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_No.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_of.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_P.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Pc.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Pd.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Pe.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Pf.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Pi.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Po.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Ps.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_S.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Sc.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Sk.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Sm.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_So.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Z.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Zl.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Zp.h" />
-    <ClInclude Include="..\lib\unistring\unictype\categ_Zs.h" />
-    <ClInclude Include="..\lib\unistring\unictype\combiningclass.h" />
-    <ClInclude Include="..\lib\unistring\unictype\pr_default_ignorable_code_point.h" />
-    <ClInclude Include="..\lib\unistring\unictype\pr_join_control.h" />
-    <ClInclude Include="..\lib\unistring\unictype\pr_not_a_character.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\composition-table.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\decompose-internal.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\decomposition-table.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\decomposition-table1.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\decomposition-table2.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\normalize-internal.h" />
-    <ClInclude Include="..\lib\unistring\uninorm\u-normalize-internal.h" />
-    <ClInclude Include="..\lib\unistring\unistr\u-cpy.h" />
+    <ClInclude Include="..\lib\tls13-sig.h" />
+    <ClInclude Include="..\lib\tls13\anti_replay.h" />
+    <ClInclude Include="..\lib\tls13\certificate.h" />
+    <ClInclude Include="..\lib\tls13\certificate_request.h" />
+    <ClInclude Include="..\lib\tls13\certificate_verify.h" />
+    <ClInclude Include="..\lib\tls13\early_data.h" />
+    <ClInclude Include="..\lib\tls13\encrypted_extensions.h" />
+    <ClInclude Include="..\lib\tls13\finished.h" />
+    <ClInclude Include="..\lib\tls13\hello_retry.h" />
+    <ClInclude Include="..\lib\tls13\key_update.h" />
+    <ClInclude Include="..\lib\tls13\psk_ext_parser.h" />
+    <ClInclude Include="..\lib\tls13\session_ticket.h" />
     <ClInclude Include="..\lib\urls.h" />
     <ClInclude Include="..\lib\vasprintf.h" />
     <ClInclude Include="..\lib\x509.h" />
@@ -259,6 +224,7 @@
     <ClInclude Include="..\lib\x509\ip-in-cidr.h" />
     <ClInclude Include="..\lib\x509\ip.h" />
     <ClInclude Include="..\lib\x509\krb5.h" />
+    <ClInclude Include="..\lib\x509\ocsp.h" />
     <ClInclude Include="..\lib\x509\pkcs7_int.h" />
     <ClInclude Include="..\lib\x509\prov-seed.h" />
     <ClInclude Include="..\lib\x509\verify-high.h" />
@@ -267,16 +233,80 @@
     <ClInclude Include="..\lib\x509\x509_int.h" />
     <ClInclude Include="..\lib\x509_b64.h" />
     <ClInclude Include="config.h" />
+    <ClInclude Include="gnutls\gnutls.h" />
     <ClInclude Include="lib\priority_options.h" />
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\gl\c-ctype.c" />
-    <ClCompile Include="..\gl\hash-pjw-bare.c" />
-    <ClCompile Include="..\gl\msvc-inval.c" />
-    <ClCompile Include="..\gl\msvc-nothrow.c" />
-    <ClCompile Include="..\gl\read-file.c" />
-    <ClCompile Include="..\gl\secure_getenv.c" />
+    <ClCompile Include="..\gnulib\lib\c-strcasecmp.c" />
+    <ClCompile Include="..\gnulib\lib\c-strncasecmp.c" />
+    <ClCompile Include="..\gnulib\lib\hash-pjw-bare.c" />
+    <ClCompile Include="..\gnulib\lib\read-file.c" />
+    <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_and_not.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Cc.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Cf.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Cn.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Co.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Cs.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_LC.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Ll.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Lm.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Lo.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Lt.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Lu.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Mc.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Me.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Mn.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Nd.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Nl.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_No.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_none.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_of.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_or.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Pc.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Pd.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Pe.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Pf.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Pi.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Po.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Ps.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Sc.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Sk.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Sm.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_So.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_test.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Zl.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Zp.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\categ_Zs.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\combiningclass.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\pr_default_ignorable_code_point.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\pr_join_control.c" />
+    <ClCompile Include="..\gnulib\lib\unictype\pr_not_a_character.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\canonical-decomposition.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\compat-decomposition.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\composition.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\decompose-internal.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\decomposition-table.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\decomposition.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\nfc.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\nfd.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\nfkc.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\nfkd.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\u16-normalize.c" />
+    <ClCompile Include="..\gnulib\lib\uninorm\u32-normalize.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u16-cpy.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u16-mbtouc-unsafe-aux.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u16-mbtoucr.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u16-to-u8.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u16-uctomb-aux.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u32-cpy.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u32-to-u8.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u8-check.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u8-mbtoucr.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u8-to-u16.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u8-to-u32.c" />
+    <ClCompile Include="..\gnulib\lib\unistr\u8-uctomb-aux.c" />
     <ClCompile Include="..\lib\accelerated\accelerated.c" />
     <ClCompile Include="..\lib\accelerated\cryptodev-gcm.c" />
     <ClCompile Include="..\lib\accelerated\cryptodev.c" />
@@ -311,6 +341,7 @@
     <ClCompile Include="..\lib\algorithms\ecc.c">
       <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\algorithms\groups.c" />
     <ClCompile Include="..\lib\algorithms\kx.c">
       <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -353,14 +384,18 @@
     <ClCompile Include="..\lib\auth\srp_sb64.c" />
     <ClCompile Include="..\lib\auto-verify.c" />
     <ClCompile Include="..\lib\buffers.c" />
+    <ClCompile Include="..\lib\cert-cred-x509.c" />
+    <ClCompile Include="..\lib\cert-cred.c" />
     <ClCompile Include="..\lib\cert-session.c" />
-    <ClCompile Include="..\lib\cert.c" />
+    <ClCompile Include="..\lib\cipher-cbc.c" />
     <ClCompile Include="..\lib\cipher.c" />
     <ClCompile Include="..\lib\cipher_int.c" />
     <ClCompile Include="..\lib\compress.c" />
     <ClCompile Include="..\lib\constate.c" />
     <ClCompile Include="..\lib\crypto-api.c" />
     <ClCompile Include="..\lib\crypto-backend.c" />
+    <ClCompile Include="..\lib\crypto-selftests-pk.c" />
+    <ClCompile Include="..\lib\crypto-selftests.c" />
     <ClCompile Include="..\lib\datum.c" />
     <ClCompile Include="..\lib\db.c" />
     <ClCompile Include="..\lib\debug.c" />
@@ -371,34 +406,38 @@
     <ClCompile Include="..\lib\dtls.c" />
     <ClCompile Include="..\lib\ecc.c" />
     <ClCompile Include="..\lib\errors.c" />
-    <ClCompile Include="..\lib\extensions.c" />
     <ClCompile Include="..\lib\extras\hex.c" />
     <ClCompile Include="..\lib\extras\randomart.c">
       <ObjectFileName>$(IntDir)\extras_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\extv.c" />
     <ClCompile Include="..\lib\ext\alpn.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="..\lib\ext\cert_type.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ext\client_cert_type.c" />
+    <ClCompile Include="..\lib\ext\cookie.c" />
     <ClCompile Include="..\lib\ext\dumbfw.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="..\lib\ext\ecc.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ext\early_data.c" />
+    <ClCompile Include="..\lib\ext\ec_point_formats.c" />
     <ClCompile Include="..\lib\ext\etm.c" />
     <ClCompile Include="..\lib\ext\ext_master_secret.c" />
     <ClCompile Include="..\lib\ext\heartbeat.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\ext\key_share.c" />
     <ClCompile Include="..\lib\ext\max_record.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\ext\post_handshake.c" />
+    <ClCompile Include="..\lib\ext\pre_shared_key.c" />
+    <ClCompile Include="..\lib\ext\psk_ke_modes.c" />
+    <ClCompile Include="..\lib\ext\record_size_limit.c" />
     <ClCompile Include="..\lib\ext\safe_renegotiation.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\ext\server_cert_type.c" />
     <ClCompile Include="..\lib\ext\server_name.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
@@ -417,14 +456,19 @@
     <ClCompile Include="..\lib\ext\status_request.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\ext\supported_groups.c" />
+    <ClCompile Include="..\lib\ext\supported_versions.c" />
     <ClCompile Include="..\lib\file.c" />
     <ClCompile Include="..\lib\fingerprint.c" />
     <ClCompile Include="..\lib\fips.c" />
     <ClCompile Include="..\lib\global.c" />
     <ClCompile Include="..\lib\gnutls_asn1_tab.c" />
     <ClCompile Include="..\lib\handshake-checks.c" />
+    <ClCompile Include="..\lib\handshake-tls13.c" />
     <ClCompile Include="..\lib\handshake.c" />
     <ClCompile Include="..\lib\hash_int.c" />
+    <ClCompile Include="..\lib\hello_ext.c" />
+    <ClCompile Include="..\lib\hello_ext_lib.c" />
     <ClCompile Include="..\lib\kx.c" />
     <ClCompile Include="..\lib\locks.c" />
     <ClCompile Include="..\lib\mbuffers.c" />
@@ -448,8 +492,9 @@
     <ClCompile Include="..\lib\nettle\int\dsa-validate.c" />
     <ClCompile Include="..\lib\nettle\int\provable-prime.c" />
     <ClCompile Include="..\lib\nettle\int\rsa-keygen-fips186.c" />
+    <ClCompile Include="..\lib\nettle\int\tls1-prf.c" />
     <ClCompile Include="..\lib\nettle\mac.c">
-      <ObjectFileName>$(IntDir)\net_%(Filename).obj</ObjectFileName>
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\nettle\mpi.c">
       <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
@@ -457,65 +502,14 @@
     <ClCompile Include="..\lib\nettle\pk.c">
       <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="..\lib\nettle\rnd-common.c" />
+    <ClCompile Include="..\lib\nettle\prf.c">
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\rnd-fuzzer.c" />
     <ClCompile Include="..\lib\nettle\rnd.c" />
     <ClCompile Include="..\lib\nettle\sysrng-windows.c" />
     <ClCompile Include="..\lib\num.c" />
-    <ClCompile Include="..\lib\opencdk\armor.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\kbnode.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\keydb.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\literal.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\misc.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\new-packet.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\pubkey.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\read-packet.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\seskey.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\sig-check.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\stream.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\opencdk\write-packet.c">
-      <ObjectFileName>$(IntDir)\cdk_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\openpgp\compat.c">
-      <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\openpgp\extras.c">
-      <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\openpgp\openpgp.c" />
-    <ClCompile Include="..\lib\openpgp\output.c">
-      <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\openpgp\pgp.c">
-      <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\openpgp\pgpverify.c">
-      <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\openpgp\privkey.c">
-      <ObjectFileName>$(IntDir)\pgp_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ocsp-api.c" />
     <ClCompile Include="..\lib\openpgp_compat.c" />
     <ClCompile Include="..\lib\pcert.c" />
     <ClCompile Include="..\lib\pin.c" />
@@ -532,11 +526,13 @@
     <ClCompile Include="..\lib\range.c" />
     <ClCompile Include="..\lib\record.c" />
     <ClCompile Include="..\lib\safe-memfuncs.c" />
+    <ClCompile Include="..\lib\secrets.c" />
     <ClCompile Include="..\lib\session.c" />
     <ClCompile Include="..\lib\session_pack.c" />
     <ClCompile Include="..\lib\srp.c" />
     <ClCompile Include="..\lib\sslv2_compat.c" />
     <ClCompile Include="..\lib\state.c" />
+    <ClCompile Include="..\lib\stek.c" />
     <ClCompile Include="..\lib\str-iconv.c" />
     <ClCompile Include="..\lib\str-idna.c" />
     <ClCompile Include="..\lib\str-unicode.c" />
@@ -553,94 +549,26 @@
     <ClCompile Include="..\lib\system\vasprintf.c" />
     <ClCompile Include="..\lib\system_override.c" />
     <ClCompile Include="..\lib\tls-sig.c" />
+    <ClCompile Include="..\lib\tls13-sig.c" />
+    <ClCompile Include="..\lib\tls13\anti_replay.c" />
+    <ClCompile Include="..\lib\tls13\certificate.c" />
+    <ClCompile Include="..\lib\tls13\certificate_request.c" />
+    <ClCompile Include="..\lib\tls13\certificate_verify.c" />
+    <ClCompile Include="..\lib\tls13\early_data.c">
+      <ObjectFileName>$(IntDir)\tls_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\tls13\encrypted_extensions.c" />
+    <ClCompile Include="..\lib\tls13\finished.c" />
+    <ClCompile Include="..\lib\tls13\hello_retry.c" />
+    <ClCompile Include="..\lib\tls13\key_update.c" />
+    <ClCompile Include="..\lib\tls13\post_handshake.c">
+      <ObjectFileName>$(IntDir)\tls_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\tls13\psk_ext_parser.c" />
+    <ClCompile Include="..\lib\tls13\session_ticket.c" />
     <ClCompile Include="..\lib\tpm.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_and.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_and_not.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_byname.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_C.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Cc.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Cf.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Cn.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Co.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Cs.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_L.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_LC.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Ll.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Lm.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Lo.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_longname.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Lt.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Lu.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_M.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Mc.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Me.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Mn.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_N.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_name.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Nd.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Nl.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_No.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_none.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_of.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_or.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_P.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Pc.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Pd.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Pe.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Pf.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Pi.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Po.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Ps.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_S.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Sc.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Sk.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Sm.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_So.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_test.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Z.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Zl.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Zp.c" />
-    <ClCompile Include="..\lib\unistring\unictype\categ_Zs.c" />
-    <ClCompile Include="..\lib\unistring\unictype\combiningclass.c" />
-    <ClCompile Include="..\lib\unistring\unictype\pr_default_ignorable_code_point.c" />
-    <ClCompile Include="..\lib\unistring\unictype\pr_join_control.c" />
-    <ClCompile Include="..\lib\unistring\unictype\pr_not_a_character.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\canonical-decomposition.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\compat-decomposition.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\composition.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\decompose-internal.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\decomposition-table.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\decomposition.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\nfc.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\nfd.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\nfkc.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\nfkd.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\u16-normalize.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\u32-normalize.c" />
-    <ClCompile Include="..\lib\unistring\uninorm\u8-normalize.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-cpy.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-mbtouc-unsafe-aux.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-mbtouc-unsafe.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-mbtoucr.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-to-u8.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-uctomb-aux.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u16-uctomb.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u32-cpy.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u32-mbtouc-unsafe.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u32-to-u8.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u32-uctomb.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-check.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-cpy.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-mbtouc-unsafe-aux.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-mbtouc-unsafe.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-mbtoucr.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-to-u16.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-to-u32.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-uctomb-aux.c" />
-    <ClCompile Include="..\lib\unistring\unistr\u8-uctomb.c" />
     <ClCompile Include="..\lib\urls.c" />
     <ClCompile Include="..\lib\verify-tofu.c" />
-    <ClCompile Include="..\lib\x509.c" />
     <ClCompile Include="..\lib\x509\attributes.c" />
     <ClCompile Include="..\lib\x509\common.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
@@ -712,6 +640,7 @@
     <ClCompile Include="..\lib\x509\sign.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\lib\x509\spki.c" />
     <ClCompile Include="..\lib\x509\time.c" />
     <ClCompile Include="..\lib\x509\tls_features.c" />
     <ClCompile Include="..\lib\x509\verify-high.c">
@@ -1294,7 +1223,7 @@
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(OutDir)\lib\x86\$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
@@ -1304,7 +1233,7 @@
       <OutputFile>$(OutDir)\lib\x86\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libzlibd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -1326,64 +1255,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -1409,7 +1287,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(OutDir)\lib\x86\$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -1422,7 +1300,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x86\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libzlibd_winrt.lib;libhogweedd_winrt.lib;libgmpd_winrt.lib;libnettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libhogweedd_winrt.lib;libgmpd_winrt.lib;libnettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -1444,64 +1322,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -1527,7 +1354,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(OutDir)\lib\x64\$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
@@ -1537,7 +1364,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x64\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libzlibd.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -1559,64 +1386,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -1642,7 +1418,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(OutDir)\lib\x64\$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -1655,7 +1431,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x64\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libzlibd_winrt.lib;libhogweedd_winrt.lib;libgmpd_winrt.lib;libnettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libhogweedd_winrt.lib;libgmpd_winrt.lib;libnettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -1677,64 +1453,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -1760,7 +1485,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
@@ -1774,7 +1499,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x86\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;zlibd.lib;hogweedd.lib;gmpd.lib;nettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;hogweedd.lib;gmpd.lib;nettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -1799,64 +1524,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -1882,7 +1556,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
@@ -1899,7 +1573,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x86\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>zlibd_winrt.lib;hogweedd_winrt.lib;gmpd_winrt.lib;nettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>hogweedd_winrt.lib;gmpd_winrt.lib;nettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -1926,64 +1600,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2009,7 +1632,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;_DEBUG;DEBUG;_WINDOWS;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
@@ -2022,7 +1645,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x64\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;zlibd.lib;hogweedd.lib;gmpd.lib;nettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;hogweedd.lib;gmpd.lib;nettled.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
@@ -2046,64 +1669,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2129,7 +1701,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <Optimization>Disabled</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -2145,7 +1717,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x64\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>zlibd_winrt.lib;hogweedd_winrt.lib;gmpd_winrt.lib;nettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>hogweedd_winrt.lib;gmpd_winrt.lib;nettled_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
@@ -2171,64 +1743,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2261,7 +1782,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InterproceduralOptimization>SingleFile</InterproceduralOptimization>
       <ProgramDataBaseFileName>$(OutDir)\lib\x86\$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
@@ -2271,7 +1792,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x86\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libzlib.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -2293,64 +1814,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2382,7 +1852,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InterproceduralOptimization>SingleFile</InterproceduralOptimization>
       <ProgramDataBaseFileName>$(OutDir)\lib\x86\$(TargetName).pdb</ProgramDataBaseFileName>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -2395,7 +1865,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x86\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libzlib_winrt.lib;libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -2417,64 +1887,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2506,7 +1925,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InterproceduralOptimization>SingleFile</InterproceduralOptimization>
       <ProgramDataBaseFileName>$(OutDir)\lib\x64\$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
@@ -2516,7 +1935,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x64\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libzlib.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -2538,64 +1957,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2627,7 +1995,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InterproceduralOptimization>SingleFile</InterproceduralOptimization>
       <ProgramDataBaseFileName>$(OutDir)\lib\x64\$(TargetName).pdb</ProgramDataBaseFileName>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -2640,7 +2008,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OutputFile>$(OutDir)\lib\x64\$(TargetName)$(TargetExt)</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libzlib_winrt.lib;libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -2662,64 +2030,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2751,7 +2068,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -2765,7 +2082,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x86\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;zlib.lib;hogweed.lib;gmp.lib;nettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;hogweed.lib;gmp.lib;nettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
@@ -2790,64 +2107,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -2879,7 +2145,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0502;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -2893,7 +2159,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x86\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libzlib.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
@@ -2918,64 +2184,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -3007,7 +2222,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -3024,7 +2239,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x86\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>zlib_winrt.lib;hogweed_winrt.lib;gmp_winrt.lib;nettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>hogweed_winrt.lib;gmp_winrt.lib;nettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
@@ -3051,64 +2266,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -3140,7 +2304,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -3157,7 +2321,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x86\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>libzlib_winrt.lib;libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x86\;$(ProjectDir)\..\..\prebuilt\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
@@ -3184,64 +2348,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -3273,7 +2386,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -3287,7 +2400,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x64\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;zlib.lib;hogweed.lib;gmp.lib;nettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;hogweed.lib;gmp.lib;nettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -3311,64 +2424,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -3400,7 +2462,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <TreatSpecificWarningsAsErrors>4113;%(TreatSpecificWarningsAsErrors)</TreatSpecificWarningsAsErrors>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -3414,7 +2476,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x64\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libzlib.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;libhogweed.lib;libgmp.lib;libnettle.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -3438,64 +2500,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -3527,7 +2538,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -3544,7 +2555,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x64\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>zlib_winrt.lib;hogweed_winrt.lib;gmp_winrt.lib;nettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>hogweed_winrt.lib;gmp_winrt.lib;nettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -3570,64 +2581,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>
@@ -3659,7 +2619,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\openpgp;..\lib\opencdk;..\lib\x509;..\lib\includes;..\gl;$(OutDir)\include;..\lib\accelerated\x86;.\lib\unistring;..\lib\unistring;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;$(OutDir)\include;$(ProjectDir)\..\..\prebuilt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -3676,7 +2636,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
       <ImportLibrary>$(OutDir)\lib\x64\$(TargetName).lib</ImportLibrary>
       <ProfileGuidedDatabase>$(IntDir)\$(TargetName).pgd</ProfileGuidedDatabase>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
-      <AdditionalDependencies>libzlib_winrt.lib;libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)\lib\x64\;$(ProjectDir)\..\..\prebuilt\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -3702,64 +2662,13 @@ del ..\lib\includes\gnutls\gnutls.h
 if exist ..\lib\priority_options.h (
 del ..\lib\priority_options.h
 )
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
 if exist "$(OutDir)"\include\gnutls (
 rd /s /q "$(OutDir)"\include\gnutls
 cd ../
 cd $(ProjectDir)
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\arpa\inet.h (
-del ..\gl\arpa\inet.h
-)
-if exist ..\gl\byteswap.h (
-del ..\gl\\byteswap.h
-)
-if exist ..\gl\signal.h (
-del ..\gl\signal.h
-)
-if exist ..\gl\stdio.h (
-del ..\gl\stdio.h
-)
-if exist ..\gl\stdlib.h (
-del ..\gl\stdlib.h
-)
-if exist ..\gl\string.h (
-del ..\gl\string.h
-)
-if exist ..\gl\strings.h (
-del ..\gl\strings.h
-)
-if exist ..\gl\sys\select.h (
-del ..\gl\sys\select.h
-)
-if exist ..\gl\sys\socket.h (
-del ..\gl\sys\socket.h
-)
-if exist ..\gl\sys\stat.h (
-del ..\gl\sys\stat.h
-)
-if exist ..\gl\sys\time.h (
-del ..\gl\sys\time.h
-)
-if exist ..\gl\sys\types.h (
-del ..\gl\sys\types.h
-)
-if exist ..\gl\sys\uio.h (
-del ..\gl\sys\uio.h
-)
-if exist ..\gl\time.h (
-del ..\gl\time.h
-)
-if exist ..\gl\unistd.h (
-del ..\gl\unistd.h
-)
-if exist ..\gl\wchar.h (
-del ..\gl\wchar.h
-)
-if exist ..\gl\errno.h (
-del ..\gl\errno.h
 )</Command>
     </PreBuildEvent>
     <CustomBuildStep>

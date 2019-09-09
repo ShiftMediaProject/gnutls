@@ -1,5 +1,7 @@
 default	rel
 %define XMMWORD
+%define YMMWORD
+%define ZMMWORD
 section	.text code align=64
 
 global	padlock_capability
@@ -11,11 +13,20 @@ padlock_capability:
 	cpuid
 	xor	eax,eax
 	cmp	ebx,0x746e6543
-	jne	NEAR $L$noluck
+	jne	NEAR $L$zhaoxin
 	cmp	edx,0x48727561
 	jne	NEAR $L$noluck
 	cmp	ecx,0x736c7561
 	jne	NEAR $L$noluck
+	jmp	NEAR $L$zhaoxinEnd
+$L$zhaoxin:
+	cmp	ebx,0x68532020
+	jne	NEAR $L$noluck
+	cmp	edx,0x68676e61
+	jne	NEAR $L$noluck
+	cmp	ecx,0x20206961
+	jne	NEAR $L$noluck
+$L$zhaoxinEnd:
 	mov	eax,0xC0000000
 	cpuid
 	mov	edx,eax
@@ -100,7 +111,7 @@ $L$SEH_begin_padlock_aes_block:
 	mov	rcx,1
 	lea	rbx,[32+rdx]
 	lea	rdx,[16+rdx]
-DB	0xf3,0x0f,0xa7,0xc8	
+DB	0xf3,0x0f,0xa7,0xc8
 	mov	rbx,r8
 	mov	rdi,QWORD[8+rsp]	;WIN64 epilogue
 	mov	rsi,QWORD[16+rsp]
@@ -120,7 +131,7 @@ $L$SEH_begin_padlock_xstore:
 
 
 	mov	edx,esi
-DB	0x0f,0xa7,0xc0		
+DB	0x0f,0xa7,0xc0
 	mov	rdi,QWORD[8+rsp]	;WIN64 epilogue
 	mov	rsi,QWORD[16+rsp]
 	DB	0F3h,0C3h		;repret
@@ -148,7 +159,7 @@ $L$SEH_begin_padlock_sha1_oneshot:
 	mov	rdi,rsp
 	mov	DWORD[16+rsp],eax
 	xor	rax,rax
-DB	0xf3,0x0f,0xa6,0xc8	
+DB	0xf3,0x0f,0xa6,0xc8
 	movaps	xmm0,XMMWORD[rsp]
 	mov	eax,DWORD[16+rsp]
 	add	rsp,128+8
@@ -181,7 +192,7 @@ $L$SEH_begin_padlock_sha1_blocks:
 	mov	rdi,rsp
 	mov	DWORD[16+rsp],eax
 	mov	rax,-1
-DB	0xf3,0x0f,0xa6,0xc8	
+DB	0xf3,0x0f,0xa6,0xc8
 	movaps	xmm0,XMMWORD[rsp]
 	mov	eax,DWORD[16+rsp]
 	add	rsp,128+8
@@ -214,7 +225,7 @@ $L$SEH_begin_padlock_sha256_oneshot:
 	mov	rdi,rsp
 	movaps	XMMWORD[16+rsp],xmm1
 	xor	rax,rax
-DB	0xf3,0x0f,0xa6,0xd0	
+DB	0xf3,0x0f,0xa6,0xd0
 	movaps	xmm0,XMMWORD[rsp]
 	movaps	xmm1,XMMWORD[16+rsp]
 	add	rsp,128+8
@@ -247,7 +258,7 @@ $L$SEH_begin_padlock_sha256_blocks:
 	mov	rdi,rsp
 	movaps	XMMWORD[16+rsp],xmm1
 	mov	rax,-1
-DB	0xf3,0x0f,0xa6,0xd0	
+DB	0xf3,0x0f,0xa6,0xd0
 	movaps	xmm0,XMMWORD[rsp]
 	movaps	xmm1,XMMWORD[16+rsp]
 	add	rsp,128+8
@@ -283,7 +294,7 @@ $L$SEH_begin_padlock_sha512_blocks:
 	movaps	XMMWORD[16+rsp],xmm1
 	movaps	XMMWORD[32+rsp],xmm2
 	movaps	XMMWORD[48+rsp],xmm3
-DB	0xf3,0x0f,0xa6,0xe0	
+DB	0xf3,0x0f,0xa6,0xe0
 	movaps	xmm0,XMMWORD[rsp]
 	movaps	xmm1,XMMWORD[16+rsp]
 	movaps	xmm2,XMMWORD[32+rsp]
@@ -375,7 +386,7 @@ $L$ecb_loop:
 	test	rsi,0x0f
 	jz	NEAR $L$ecb_inp_aligned
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 	mov	rcx,rbx
 	mov	rsi,rdi
@@ -383,7 +394,7 @@ $L$ecb_inp_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,200	
+DB	0xf3,0x0f,0xa7,200
 	mov	rdi,r8
 	mov	rbx,r11
 	test	rdi,0x0f
@@ -391,7 +402,7 @@ DB	0xf3,0x0f,0xa7,200
 	mov	rcx,rbx
 	lea	rsi,[rsp]
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$ecb_out_aligned:
 	mov	rsi,r9
@@ -412,7 +423,7 @@ $L$ecb_unaligned_tail:
 	sub	rsp,rax
 	shr	rcx,3
 	lea	rdi,[rsp]
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	mov	rsi,rsp
 	mov	rdi,r8
 	mov	rcx,rbx
@@ -449,7 +460,7 @@ $L$ecb_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,200	
+DB	0xf3,0x0f,0xa7,200
 	test	rbp,rbp
 	jz	NEAR $L$ecb_exit
 
@@ -461,7 +472,7 @@ $L$ecb_aligned_tail:
 	sub	rsp,rcx
 	shr	rcx,3
 	lea	rdi,[rsp]
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	lea	rdi,[r8]
 	lea	rsi,[rsp]
 	mov	rcx,rbx
@@ -554,7 +565,7 @@ $L$cbc_loop:
 	test	rsi,0x0f
 	jz	NEAR $L$cbc_inp_aligned
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 	mov	rcx,rbx
 	mov	rsi,rdi
@@ -562,7 +573,7 @@ $L$cbc_inp_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,208	
+DB	0xf3,0x0f,0xa7,208
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
 	mov	rdi,r8
@@ -572,7 +583,7 @@ DB	0xf3,0x0f,0xa7,208
 	mov	rcx,rbx
 	lea	rsi,[rsp]
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$cbc_out_aligned:
 	mov	rsi,r9
@@ -593,7 +604,7 @@ $L$cbc_unaligned_tail:
 	sub	rsp,rax
 	shr	rcx,3
 	lea	rdi,[rsp]
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	mov	rsi,rsp
 	mov	rdi,r8
 	mov	rcx,rbx
@@ -630,7 +641,7 @@ $L$cbc_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,208	
+DB	0xf3,0x0f,0xa7,208
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
 	test	rbp,rbp
@@ -644,7 +655,7 @@ $L$cbc_aligned_tail:
 	sub	rsp,rcx
 	shr	rcx,3
 	lea	rdi,[rsp]
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	lea	rdi,[r8]
 	lea	rsi,[rsp]
 	mov	rcx,rbx
@@ -724,7 +735,7 @@ $L$cfb_loop:
 	test	rsi,0x0f
 	jz	NEAR $L$cfb_inp_aligned
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 	mov	rcx,rbx
 	mov	rsi,rdi
@@ -732,7 +743,7 @@ $L$cfb_inp_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,224	
+DB	0xf3,0x0f,0xa7,224
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
 	mov	rdi,r8
@@ -742,7 +753,7 @@ DB	0xf3,0x0f,0xa7,224
 	mov	rcx,rbx
 	lea	rsi,[rsp]
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$cfb_out_aligned:
 	mov	rsi,r9
@@ -772,7 +783,7 @@ $L$cfb_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,224	
+DB	0xf3,0x0f,0xa7,224
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
 $L$cfb_exit:
@@ -850,7 +861,7 @@ $L$ofb_loop:
 	test	rsi,0x0f
 	jz	NEAR $L$ofb_inp_aligned
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 	mov	rcx,rbx
 	mov	rsi,rdi
@@ -858,7 +869,7 @@ $L$ofb_inp_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,232	
+DB	0xf3,0x0f,0xa7,232
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
 	mov	rdi,r8
@@ -868,7 +879,7 @@ DB	0xf3,0x0f,0xa7,232
 	mov	rcx,rbx
 	lea	rsi,[rsp]
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$ofb_out_aligned:
 	mov	rsi,r9
@@ -898,7 +909,7 @@ $L$ofb_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,232	
+DB	0xf3,0x0f,0xa7,232
 	movdqa	xmm0,XMMWORD[rax]
 	movdqa	XMMWORD[(-16)+rdx],xmm0
 $L$ofb_exit:
@@ -1000,7 +1011,7 @@ $L$ctr32_loop:
 	test	rsi,0x0f
 	jz	NEAR $L$ctr32_inp_aligned
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 	mov	rcx,rbx
 	mov	rsi,rdi
@@ -1008,7 +1019,7 @@ $L$ctr32_inp_aligned:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,216	
+DB	0xf3,0x0f,0xa7,216
 	mov	eax,DWORD[((-4))+rdx]
 	test	eax,0xffff0000
 	jnz	NEAR $L$ctr32_no_carry
@@ -1024,7 +1035,7 @@ $L$ctr32_no_carry:
 	mov	rcx,rbx
 	lea	rsi,[rsp]
 	shr	rcx,3
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	sub	rdi,rbx
 $L$ctr32_out_aligned:
 	mov	rsi,r9
@@ -1057,7 +1068,7 @@ $L$ctr32_unaligned_tail:
 	sub	rsp,rax
 	shr	rcx,3
 	lea	rdi,[rsp]
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	mov	rsi,rsp
 	mov	rdi,r8
 	mov	rcx,rbx
@@ -1101,7 +1112,7 @@ $L$ctr32_aligned_loop:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,216	
+DB	0xf3,0x0f,0xa7,216
 
 	mov	eax,DWORD[((-4))+rdx]
 	bswap	eax
@@ -1130,7 +1141,7 @@ $L$ctr32_aligned_skip:
 	lea	rax,[((-16))+rdx]
 	lea	rbx,[16+rdx]
 	shr	rcx,4
-DB	0xf3,0x0f,0xa7,216	
+DB	0xf3,0x0f,0xa7,216
 	test	rbp,rbp
 	jz	NEAR $L$ctr32_exit
 
@@ -1142,7 +1153,7 @@ $L$ctr32_aligned_tail:
 	sub	rsp,rcx
 	shr	rcx,3
 	lea	rdi,[rsp]
-DB	0xf3,0x48,0xa5		
+DB	0xf3,0x48,0xa5
 	lea	rdi,[r8]
 	lea	rsi,[rsp]
 	mov	rcx,rbx
