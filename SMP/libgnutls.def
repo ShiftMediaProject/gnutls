@@ -227,6 +227,7 @@ gnutls_fingerprint
 gnutls_fips140_mode_enabled
 gnutls_fips140_set_mode
 gnutls_free
+gnutls_get_system_config_file
 gnutls_global_deinit
 gnutls_global_init
 gnutls_global_set_audit_log_function
@@ -252,6 +253,7 @@ gnutls_handshake_set_private_extensions
 gnutls_handshake_set_random
 gnutls_handshake_set_timeout
 gnutls_hash
+gnutls_hash_copy
 gnutls_hash_deinit
 gnutls_hash_fast
 gnutls_hash_get_len
@@ -269,6 +271,7 @@ gnutls_hex_decode
 gnutls_hex_encode2
 gnutls_hex_encode
 gnutls_hmac
+gnutls_hmac_copy
 gnutls_hmac_deinit
 gnutls_hmac_fast
 gnutls_hmac_get_len

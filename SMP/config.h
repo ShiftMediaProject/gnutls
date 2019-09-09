@@ -404,7 +404,7 @@
 #define HAVE_COMPOUND_LITERALS 1
 
 /* Define to 1 if you have the <cpuid.h> header file. */
-#define HAVE_CPUID_H 1
+/* #undef HAVE_CPUID_H */
 
 /* Define to 1 if you have the `daemon' function. */
 /* #undef HAVE_DAEMON */
@@ -803,6 +803,18 @@
 
 /* Define to 1 if you have the `nettle_cfb8_encrypt' function. */
 #define HAVE_NETTLE_CFB8_ENCRYPT 1
+
+/* Define to 1 if you have the `nettle_xts_encrypt_message' function. */
+#define HAVE_NETTLE_XTS_ENCRYPT_MESSAGE 1
+
+/* Define to 1 if you have the `nettle_gosthash94cp_update' function. */
+#define HAVE_NETTLE_GOSTHASH94CP_UPDATE 1
+
+/* Define to 1 if you have the `nettle_gost28147_set_key' function. */
+#define HAVE_NETTLE_GOST28147_SET_KEY 1
+
+/* Define to 1 if you have the `ettle_streebog512_update' function. */
+#define HAVE_ETTLE_STREEBOG512_UPDATE 1
 
 /* Define to 1 if you have the `nanosleep' function. */
 /* #undef HAVE_NANOSLEEP */
@@ -1784,9 +1796,6 @@
 /* Define to 1 if you have the <ws2tcpip.h> header file. */
 #define HAVE_WS2TCPIP_H 1
 
-/* Define to 1 if you have the `xts_encrypt_message' function. */
-#define HAVE_XTS_ENCRYPT_MESSAGE 1
-
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
 
@@ -1813,6 +1822,21 @@
 
 /* Have __va_copy() */
 /* #undef HAVE___VA_COPY */
+
+/* inih maximum line size */
+#define INI_MAX_LINE 2048
+
+/* whether to allowin inline comments */
+#define INI_ALLOW_INLINE_COMMENTS 1
+
+/* whether to stop on first error */
+#define INI_STOP_ON_FIRST_ERROR 1
+
+/* The inline comment prefixes */
+#define INI_INLINE_COMMENT_PREFIXES ";#"
+
+/* The comment prefixes */
+#define INI_START_COMMENT_PREFIXES ";#"
 
 /* Define to 1 if lseek does not detect pipes. */
 #define LSEEK_PIPE_BROKEN 1
@@ -2170,6 +2194,12 @@
 /* Define as the type of the result of subtracting two pointers, if the system
    doesn't define it. */
 /* #undef ptrdiff_t */
+
+/* static lib rename */
+#define read_file _gnutls_read_file
+
+/* static lib rename */
+#define secure_getenv _gnutls_secure_getenv
 
 /* Define to the equivalent of the C99 'restrict' keyword, or to
    nothing if this is not supported.  Do not define if restrict is

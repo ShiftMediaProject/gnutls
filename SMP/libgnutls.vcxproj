@@ -174,6 +174,7 @@
     <ClInclude Include="..\lib\includes\gnutls\urls.h" />
     <ClInclude Include="..\lib\includes\gnutls\x509-ext.h" />
     <ClInclude Include="..\lib\includes\gnutls\x509.h" />
+    <ClInclude Include="..\lib\inih\ini.h" />
     <ClInclude Include="..\lib\kx.h" />
     <ClInclude Include="..\lib\locks.h" />
     <ClInclude Include="..\lib\mbuffers.h" />
@@ -185,6 +186,7 @@
     <ClInclude Include="..\lib\minitasn1\parser_aux.h" />
     <ClInclude Include="..\lib\minitasn1\structure.h" />
     <ClInclude Include="..\lib\mpi.h" />
+    <ClInclude Include="..\lib\name_val_array.h" />
     <ClInclude Include="..\lib\nettle\int\dsa-fips.h" />
     <ClInclude Include="..\lib\nettle\int\rsa-fips.h" />
     <ClInclude Include="..\lib\nettle\int\tls1-prf.h" />
@@ -472,6 +474,7 @@
     <ClCompile Include="..\lib\hash_int.c" />
     <ClCompile Include="..\lib\hello_ext.c" />
     <ClCompile Include="..\lib\hello_ext_lib.c" />
+    <ClCompile Include="..\lib\inih\ini.c" />
     <ClCompile Include="..\lib\kx.c" />
     <ClCompile Include="..\lib\locks.c" />
     <ClCompile Include="..\lib\mbuffers.c" />
@@ -685,12 +688,6 @@
     <YASM Include="lib\accelerated\x86\coff\aesni-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
     </YASM>
-    <YASM Include="lib\accelerated\x86\coff\cpuid-x86.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
-    </YASM>
-    <YASM Include="lib\accelerated\x86\coff\cpuid-x86_64.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-    </YASM>
     <YASM Include="lib\accelerated\x86\coff\e_padlock-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
     </YASM>
@@ -709,10 +706,19 @@
     <YASM Include="lib\accelerated\x86\coff\sha1-ssse3-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
     </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha256-avx-x86_64.asm">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
     <YASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
     </YASM>
     <YASM Include="lib\accelerated\x86\coff\sha256-ssse3-x86_64.asm">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha512-ssse3-x86.asm">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="lib\accelerated\x86\coff\sha512-ssse3-x86_64.asm">
       <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
     </YASM>
   </ItemGroup>

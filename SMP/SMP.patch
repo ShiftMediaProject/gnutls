@@ -1,3 +1,42 @@
+diff --git a/lib/accelerated/x86/x86-common.c b/lib/accelerated/x86/x86-common.c
+index fb3ff9091..76f579ed6 100644
+--- a/lib/accelerated/x86/x86-common.c
++++ b/lib/accelerated/x86/x86-common.c
+@@ -40,6 +40,34 @@
+ #include <aes-padlock.h>
+ #ifdef HAVE_CPUID_H
+ # include <cpuid.h>
++#elif defined(_MSC_VER)
++#include <intrin.h>
++static __inline int
++__get_cpuid(unsigned int __leaf,
++	unsigned int* __eax, unsigned int* __ebx,
++	unsigned int* __ecx, unsigned int* __edx)
++{
++	int regs[4];
++	__cpuid(regs, __leaf);
++	*__eax = (uint32_t)regs[0];
++	*__ebx = (uint32_t)regs[1];
++	*__ecx = (uint32_t)regs[2];
++	*__edx = (uint32_t)regs[3];
++	return 1;
++}
++static __inline int
++__get_cpuid_count(unsigned int __leaf, unsigned int __subleaf,
++	unsigned int* __eax, unsigned int* __ebx,
++	unsigned int* __ecx, unsigned int* __edx)
++{
++	int regs[4];
++	__cpuidex(regs, __leaf, __subleaf);
++	*__eax = (uint32_t)regs[0];
++	*__ebx = (uint32_t)regs[1];
++	*__ecx = (uint32_t)regs[2];
++	*__edx = (uint32_t)regs[3];
++	return 1;
++}
+ #else
+ # define __get_cpuid(...) 0
+ # define __get_cpuid_count(...) 0
 diff --git a/lib/debug.c b/lib/debug.c
 index 166dd61ca..bb81ddce4 100644
 --- a/lib/debug.c
@@ -88,7 +127,7 @@ index 334148342..878444f2b 100644
  	const char *e;
  
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index 1555ab333..ba26b794b 100644
+index f5a5a66ac..f39b9ac2f 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -38,7 +38,12 @@
