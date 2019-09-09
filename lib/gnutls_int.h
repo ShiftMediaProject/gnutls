@@ -1101,7 +1101,7 @@ typedef struct {
 
 	bool invalid_connection;	/* true or FALSE - if this session is valid */
 
-	bool may_not_read;	/* if it's 0 then we can read/write, otherwise it's forbiden to read/write
+	bool may_not_read;	/* if it's 0 then we can read/write, otherwise it's forbidden to read/write
 				 */
 	bool may_not_write;
 	bool read_eof;		/* non-zero if we have received a closure alert. */
@@ -1263,7 +1263,7 @@ typedef struct {
 	 */
 	bool ignore_rdn_sequence;
 
-	/* This is used to set an arbitary version in the RSA
+	/* This is used to set an arbitrary version in the RSA
 	 * PMS secret. Can be used by clients to test whether the
 	 * server checks that version. (** only used in gnutls-cli-debug)
 	 */
@@ -1303,7 +1303,9 @@ typedef struct {
 	/* starting time of current handshake */
 	struct timespec handshake_start_time;
 
-	time_t handshake_endtime;	/* end time in seconds */
+	/* end time of current handshake */
+	struct timespec handshake_endtime;
+
 	unsigned int handshake_timeout_ms;	/* timeout in milliseconds */
 	unsigned int record_timeout_ms;	/* timeout in milliseconds */
 
@@ -1559,9 +1561,39 @@ inline static size_t max_user_send_size(gnutls_session_t session,
 	return max;
 }
 
-inline static bool _gnutls_has_negotiate_ctypes(gnutls_session_t session)
+/* Returns the during the handshake negotiated certificate type(s).
+ * See state.c for the full function documentation.
+ *
+ * This function is made static inline for optimization reasons.
+ */
+static inline gnutls_certificate_type_t
+get_certificate_type(gnutls_session_t session,
+								gnutls_ctype_target_t target)
 {
-	return session->internals.flags & GNUTLS_ENABLE_CERT_TYPE_NEG;
+	switch (target) {
+		case GNUTLS_CTYPE_CLIENT:
+			return session->security_parameters.client_ctype;
+			break;
+		case GNUTLS_CTYPE_SERVER:
+			return session->security_parameters.server_ctype;
+			break;
+		case GNUTLS_CTYPE_OURS:
+			if (IS_SERVER(session)) {
+				return session->security_parameters.server_ctype;
+			} else {
+				return session->security_parameters.client_ctype;
+			}
+			break;
+		case GNUTLS_CTYPE_PEERS:
+			if (IS_SERVER(session)) {
+				return session->security_parameters.client_ctype;
+			} else {
+				return session->security_parameters.server_ctype;
+			}
+			break;
+		default:	// Illegal parameter passed
+			return GNUTLS_CRT_UNKNOWN;
+	}
 }
 
 /* Macros to aide constant time/mem checks */

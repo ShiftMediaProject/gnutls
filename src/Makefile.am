@@ -33,6 +33,11 @@ ARGS_BUILT = \
 	tpmtool-args.c tpmtool-args.h \
 	systemkey-args.c systemkey-args.h
 
+# We bundle autogen-generated files as *.bak files.  This is awkward,
+# but it covers the common use-cases where autogen/libopts is
+# installed or not.  Do not attempt to simplify it unless autogen
+# gains a support for better handling of intermediate files with
+# autotools.
 ARGS_BAK = \
 	srptool-args.c.bak srptool-args.h.bak \
 	psktool-args.c.bak psktool-args.h.bak \
@@ -277,9 +282,11 @@ SUFFIXES = .stamp .def .c.bak .h.bak
 	touch $@
 
 .c.c.bak:
+	-@rm -f $@
 	$(AM_V_GEN) cp -p $< $@
 
 .h.h.bak:
+	-@rm -f $@
 	$(AM_V_GEN) cp -p $< $@
 
 danetool-args.h: danetool-args.stamp

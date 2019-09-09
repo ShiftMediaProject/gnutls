@@ -37,6 +37,7 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
 	certs/cert-rsa-2432.pem certs/ecc384.pem certs/ecc.pem hex.h \
 	certs/ca-ecc.pem certs/cert-ecc384.pem certs/cert-ecc.pem certs/ecc256.pem \
 	certs/ecc521.pem certs/rsa-2432.pem x509cert-dir/ca.pem psk.passwd \
+	certs/rawpk_priv.pem certs/rawpk_pub.pem \
 	certs/ed25519.pem certs/cert-ed25519.pem \
 	system.prio pkcs11/softhsm.h pkcs11/pkcs11-pubkey-import.c gnutls-asan.supp \
 	rsa-md5-collision/README safe-renegotiation/README starttls-smtp.txt starttls-ftp.txt \
@@ -199,7 +200,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 set_known_dh_params_anon set_known_dh_params_psk session-tickets-ok \
 	 session-tickets-missing set_x509_key_file_legacy status-request-ext \
 	 gnutls_x509_crt_sign gnutls_x509_crq_sign dtls-repro-20170915 \
-	 rng-no-onload dtls1-2-mtu-check crl_apis cert_verify_inv_utf8 \
+	 rng-no-onload dtls1-2-mtu-check crl_apis cert_verify_inv_utf8 no-extensions \
 	 hostname-check-utf8 pkcs8-key-decode-encrypted priority-mix pkcs7 \
 	 send-data-before-handshake recv-data-before-handshake crt_inv_write \
 	 x509sign-verify-error rng-op-nonce rng-op-random rng-op-key x509-dn-decode-compat \
@@ -207,7 +208,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 dss-sig-val sign-pk-api tls-session-ext-override record-pad \
 	 tls13-server-kx-neg gnutls_ext_raw_parse_dtls key-export-pkcs8 \
 	 null_retrieve_function tls-record-size-limit tls-crt_type-neg \
-	 resume-with-stek-expiration resume-with-previous-stek
+	 resume-with-stek-expiration resume-with-previous-stek rawpk-api
 
 if HAVE_SECCOMP_TESTS
 ctests += dtls-with-seccomp tls-with-seccomp dtls-client-with-seccomp tls-client-with-seccomp
@@ -399,7 +400,8 @@ endif
 if HAVE_FORK
 ctests += x509self x509dn anonself pskself dhepskself	\
 	setcredcrash tls12-resume-x509 tls12-resume-psk tls12-resume-anon \
-	tls13-resume-x509 tls13-resume-psk tls13-early-data tls13-early-data-neg
+	tls13-resume-x509 tls13-resume-psk tls13-early-data tls13-early-data-neg \
+	resume-with-record-size-limit
 endif
 
 gc_CPPFLAGS = $(AM_CPPFLAGS) \
@@ -458,7 +460,8 @@ dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh start
 	ocsp-tests/ocsp-tls-connection ocsp-tests/ocsp-must-staple-connection \
 	ocsp-tests/ocsp-test cipher-listings.sh sni-hostname.sh server-multi-keys.sh \
 	psktool.sh ocsp-tests/ocsp-load-chain gnutls-cli-save-data.sh gnutls-cli-debug.sh \
-	sni-resume.sh ocsp-tests/ocsptool cert-reencoding.sh pkcs7-cat.sh long-crl.sh
+	sni-resume.sh ocsp-tests/ocsptool cert-reencoding.sh pkcs7-cat.sh long-crl.sh \
+	serv-udp.sh
 
 dist_check_SCRIPTS += gnutls-cli-self-signed.sh gnutls-cli-invalid-crl.sh
 
@@ -484,6 +487,10 @@ endif
 else
 
 TESTS_ENVIRONMENT += WINDOWS=1
+
+win32_certopenstore_SOURCES = win-certopenstore.c
+win32_certopenstore_LDADD = $(LDADD) -lcrypt32
+ctests += win32-certopenstore
 
 endif
 
@@ -539,4 +546,4 @@ LOG_COMPILER = $(VALGRIND)
 endif
 
 distclean-local:
-	rm -rf softhsm-*.db *.tmp tmp-* x509-crt-list-import-url.config.db
+	rm -rf softhsm-*.db softhsm-*.config *.tmp tmp-* x509-crt-list-import-url.config.db

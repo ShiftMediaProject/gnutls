@@ -612,12 +612,17 @@ gnutls_pkcs11_obj_set_info(gnutls_pkcs11_obj_t obj,
  * @obj: should contain a #gnutls_pkcs11_obj_t type
  * @itype: Denotes the type of information requested
  * @output: where output will be stored
- * @output_size: contains the maximum size of the output and will be overwritten with actual
+ * @output_size: contains the maximum size of the output buffer and will be
+ *     overwritten with the actual size.
  *
  * This function will return information about the PKCS11 certificate
  * such as the label, id as well as token information where the key is
- * stored. When output is text it returns null terminated string
- * although @output_size contains the size of the actual data only.
+ * stored.
+ *
+ * When output is text, a null terminated string is written to @output and its
+ * string length is written to @output_size (without null terminator). If the
+ * buffer is too small, @output_size will contain the expected buffer size
+ * (with null terminator for text) and return %GNUTLS_E_SHORT_MEMORY_BUFFER.
  *
  * In versions previously to 3.6.0 this function included the null terminator
  * to @output_size. After 3.6.0 the output size doesn't include the terminator character.
@@ -1286,7 +1291,7 @@ void gnutls_pkcs11_obj_deinit(gnutls_pkcs11_obj_t obj)
  *   replaced by the actual size of parameters)
  *
  * This function will export the PKCS11 object data.  It is normal for
- * data to be inaccesible and in that case %GNUTLS_E_INVALID_REQUEST
+ * data to be inaccessible and in that case %GNUTLS_E_INVALID_REQUEST
  * will be returned.
  *
  * If the buffer provided is not long enough to hold the output, then
@@ -1324,7 +1329,7 @@ gnutls_pkcs11_obj_export(gnutls_pkcs11_obj_t obj,
  * @out: will contain the object data
  *
  * This function will export the PKCS11 object data.  It is normal for
- * data to be inaccesible and in that case %GNUTLS_E_INVALID_REQUEST
+ * data to be inaccessible and in that case %GNUTLS_E_INVALID_REQUEST
  * will be returned.
  *
  * The output buffer is allocated using gnutls_malloc().
@@ -1347,7 +1352,7 @@ gnutls_pkcs11_obj_export2(gnutls_pkcs11_obj_t obj, gnutls_datum_t * out)
  * @fmt: The format of the exported data
  *
  * This function will export the PKCS11 object data.  It is normal for
- * data to be inaccesible and in that case %GNUTLS_E_INVALID_REQUEST
+ * data to be inaccessible and in that case %GNUTLS_E_INVALID_REQUEST
  * will be returned.
  *
  * The output buffer is allocated using gnutls_malloc().
@@ -2447,10 +2452,16 @@ gnutls_pkcs11_token_get_url(unsigned int seq,
  * @url: should contain a PKCS 11 URL
  * @ttype: Denotes the type of information requested
  * @output: where output will be stored
- * @output_size: contains the maximum size of the output and will be overwritten with actual
+ * @output_size: contains the maximum size of the output buffer and will be
+ *     overwritten with the actual size.
  *
  * This function will return information about the PKCS 11 token such
  * as the label, id, etc.
+ *
+ * When output is text, a null terminated string is written to @output and its
+ * string length is written to @output_size (without null terminator). If the
+ * buffer is too small, @output_size will contain the expected buffer size
+ * (with null terminator for text) and return %GNUTLS_E_SHORT_MEMORY_BUFFER.
  *
  * Returns: %GNUTLS_E_SUCCESS (0) on success or a negative error code
  * on error.
@@ -2465,6 +2476,7 @@ gnutls_pkcs11_token_get_info(const char *url,
 	struct p11_kit_uri *info = NULL;
 	const uint8_t *str;
 	size_t str_max;
+	char *temp_str = NULL;
 	size_t len;
 	int ret;
 
@@ -2505,10 +2517,14 @@ gnutls_pkcs11_token_get_info(const char *url,
 			goto cleanup;
 		}
 
-		snprintf(output, *output_size, "%s", tn.modname);
-		*output_size = strlen(output);
-		ret = 0;
-		goto cleanup;
+		temp_str = tn.modname;
+		if (temp_str == NULL) {
+			gnutls_assert();
+			str_max = 0;
+		} else {
+			str = (uint8_t *)temp_str;
+		}
+		break;
 	}
 	default:
 		gnutls_assert();
@@ -2516,14 +2532,21 @@ gnutls_pkcs11_token_get_info(const char *url,
 		goto cleanup;
 	}
 
-	len = p11_kit_space_strlen(str, str_max);
+	if (temp_str)
+		len = strlen(temp_str);
+	else if (str_max == 0)
+		len = 0;
+	else
+		len = p11_kit_space_strlen(str, str_max);
 
 	if (len + 1 > *output_size) {
 		*output_size = len + 1;
-		return GNUTLS_E_SHORT_MEMORY_BUFFER;
+		ret = GNUTLS_E_SHORT_MEMORY_BUFFER;
+		goto cleanup;
 	}
 
-	memcpy(output, str, len);
+	if (len)
+		memcpy(output, str, len);
 	((char *) output)[len] = '\0';
 
 	*output_size = len;
@@ -2531,6 +2554,7 @@ gnutls_pkcs11_token_get_info(const char *url,
 	ret = 0;
 
  cleanup:
+	free(temp_str);
 	p11_kit_uri_free(info);
 	return ret;
 }
@@ -2584,6 +2608,7 @@ gnutls_pkcs11_token_get_ptr(const char *url, void **ptr, unsigned long *slot_id,
 	ret = 0;
 
  cleanup:
+	free(tn.modname);
 	p11_kit_uri_free(info);
 	return ret;
 }
@@ -4227,7 +4252,7 @@ find_cert_cb(struct ck_function_list *module, struct pkcs11_session_info *sinfo,
  *
  * This function will return the issuer of a given certificate, if it
  * is stored in the token. By default only marked as trusted issuers
- * are retuned. If any issuer should be returned specify
+ * are returned. If any issuer should be returned specify
  * %GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_ANY in @flags.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
@@ -4330,7 +4355,7 @@ int gnutls_pkcs11_get_raw_issuer(const char *url, gnutls_x509_crt_t cert,
  *
  * This function will return the certificate with the given DN, if it
  * is stored in the token. By default only marked as trusted issuers
- * are retuned. If any issuer should be returned specify
+ * are returned. If any issuer should be returned specify
  * %GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_ANY in @flags.
  *
  * The name of the function includes issuer because it can
@@ -4415,7 +4440,7 @@ int gnutls_pkcs11_get_raw_issuer_by_dn (const char *url, const gnutls_datum_t *d
  *
  * This function will return the certificate with the given DN and @spki, if it
  * is stored in the token. By default only marked as trusted issuers
- * are retuned. If any issuer should be returned specify
+ * are returned. If any issuer should be returned specify
  * %GNUTLS_PKCS11_OBJ_FLAG_RETRIEVE_ANY in @flags.
  *
  * The name of the function includes issuer because it can

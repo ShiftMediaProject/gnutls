@@ -72,7 +72,7 @@ COBJECTS = range.c record.c compress.c debug.c cipher.c gthreads.h handshake-tls
 	pk.c cert-cred.c global.c constate.c anon_cred.c pkix_asn1_tab.c gnutls_asn1_tab.c	\
 	mem.c fingerprint.c tls-sig.c ecc.c alert.c privkey_raw.c atomic.h	\
 	system/certs.c system/threads.c system/fastopen.c system/sockets.c	\
-	system/inet_ntop.c str-iconv.c system/vasprintf.c vasprintf.h system.c \
+	system/inet_ntop.c str-iconv.c system.c \
 	str.c str-unicode.c str-idna.c state.c cert-cred-x509.c file.c supplemental.c	\
 	random.c crypto-api.c crypto-api.h privkey.c pcert.c pubkey.c locks.c dtls.c \
 	system_override.c crypto-backend.c verify-tofu.c pin.c tpm.c fips.c	\
@@ -80,7 +80,7 @@ COBJECTS = range.c record.c compress.c debug.c cipher.c gthreads.h handshake-tls
 	system-keys.h urls.c urls.h prf.c auto-verify.c dh-session.c \
 	cert-session.c handshake-checks.c dtls-sw.c dh-primes.c openpgp_compat.c \
 	crypto-selftests.c crypto-selftests-pk.c secrets.c extv.c extv.h \
-	hello_ext_lib.c hello_ext_lib.h ocsp-api.c stek.c
+	hello_ext_lib.c hello_ext_lib.h ocsp-api.c stek.c cert-cred-rawpk.c
 
 if WINDOWS
 COBJECTS += system/keys-win.c
@@ -124,7 +124,7 @@ HFILES = abstract_int.h debug.h cipher.h	\
 	srp.h auth/srp_kx.h auth/srp_passwd.h	\
 	file.h supplemental.h crypto.h random.h system.h\
 	locks.h mbuffers.h ecc.h pin.h fips.h \
-	priority_options.h secrets.h stek.h
+	priority_options.h secrets.h stek.h cert-cred.h
 
 if ENABLE_PKCS11
 HFILES += pkcs11_int.h pkcs11x.h
@@ -149,7 +149,7 @@ thirdparty_libadd += $(LIBIDN2_LIBS)
 endif
 
 if HAVE_LIBUNISTRING
-thirdparty_libadd += $(LTLIBUNISTRING)
+thirdparty_libadd += $(LIBUNISTRING)
 else
 libgnutls_la_LIBADD += unistring/libunistring.la
 endif
@@ -216,7 +216,7 @@ libgnutlsxx_la_CPPFLAGS = -I$(top_srcdir)/includes -I$(top_builddir)/includes -I
 
 AM_CXXFLAGS = \
 	-I$(srcdir)/includes	\
-	-I$(builddir)/includes	
+	-I$(builddir)/includes
 
 lib_LTLIBRARIES += libgnutlsxx.la
 

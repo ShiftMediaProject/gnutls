@@ -73,13 +73,21 @@ int gnutls_idna_map(const char *input, unsigned ilen, gnutls_datum_t *out, unsig
 	/* IDN2_NONTRANSITIONAL automatically converts to lowercase
 	 * IDN2_NFC_INPUT converts to NFC before toASCII conversion
 	 *
-	 * Since IDN2_NONTRANSITIONAL implicitely does NFC conversion, we don't need
+	 * Since IDN2_NONTRANSITIONAL implicitly does NFC conversion, we don't need
 	 * the additional IDN2_NFC_INPUT. But just for the unlikely case that the linked
 	 * library is not matching the headers when building and it doesn't support TR46,
 	 * we provide IDN2_NFC_INPUT. */
 	idn2_flags |= IDN2_NONTRANSITIONAL;
 	idn2_tflags |= IDN2_TRANSITIONAL;
 #endif
+
+	/* This avoids excessive CPU usage with libidn2 < 2.1.1 */
+	if (ilen > 2048) {
+		gnutls_assert();
+		_gnutls_debug_log("unable to convert name '%.*s' to IDNA format: %s\n",
+			(int) ilen, input, idn2_strerror(IDN2_TOO_BIG_DOMAIN));
+		return GNUTLS_E_INVALID_UTF8_STRING;
+	}
 
 	if (ilen == 0) {
 		out->data = (uint8_t*)gnutls_strdup("");

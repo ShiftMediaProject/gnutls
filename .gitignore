@@ -1,5 +1,6 @@
 *~
 /ABOUT-NLS
+AUTHORS
 ABOUT-NLS
 aclocal.m4
 autom4te.cache/
@@ -187,6 +188,7 @@ fuzz/*_fuzzer
 *.gcno
 *.gcov
 gl
+/GNUmakefile
 GnuTLS-*-coverage/
 gnutls-*.tar.*
 gtk-doc.m4
@@ -249,6 +251,7 @@ lib/x509/x509-api.texi
 *.log
 m4/*
 !m4/hooks.m4
+/maint.mk
 Makefile
 Makefile.in
 Makefile.user
@@ -600,6 +603,7 @@ tests/privkey-verify-broken
 tests/psk-file
 tests/pskself
 tests/pubkey-import-export
+tests/rawpk-api
 tests/random-art
 tests/record-pad
 tests/record-retvals
@@ -621,6 +625,7 @@ tests/resume-lifetime
 tests/resume-psk
 tests/resume-with-false-start
 tests/resume-with-previous-stek
+tests/resume-with-record-size-limit
 tests/resume-with-stek-expiration
 tests/resume-x509
 tests/rng-fork
@@ -688,6 +693,7 @@ tests/sign-verify-ed25519-rfc8080
 tests/sign-verify-ext
 tests/sign-verify-ext4
 tests/simple
+tests/slow/cipher-api-test
 tests/slow/cipher-compat
 tests/slow/cipher-openssl-compat
 tests/slow/cipher-override

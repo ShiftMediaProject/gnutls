@@ -29,7 +29,6 @@
 #include <c-ctype.h>
 #include <intprops.h>
 #include <nettle/base64.h>
-#include "vasprintf.h"
 #include "extras/hex.h"
 
 /* These functions are like strcat, strcpy. They only
@@ -224,7 +223,7 @@ _gnutls_buffer_pop_datum(gnutls_buffer_st * str, gnutls_datum_t * data,
 	str->data += req_size;
 	str->length -= req_size;
 
-	/* if string becomes empty start from begining */
+	/* if string becomes empty start from beginning */
 	if (str->length == 0) {
 		str->data = str->allocd;
 	}

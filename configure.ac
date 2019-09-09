@@ -20,8 +20,10 @@ dnl Process this file with autoconf to produce a configure script.
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 # USA
 
-AC_PREREQ(2.61)
-AC_INIT([GnuTLS], [3.6.5], [bugs@gnutls.org])
+AC_PREREQ(2.63)
+
+dnl when updating version also update LT_REVISION in m4/hooks.m4
+AC_INIT([GnuTLS], [3.6.6], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -59,6 +61,11 @@ fi
 
 AX_CODE_COVERAGE
 AM_MAINTAINER_MODE([enable])
+
+AC_ARG_ENABLE(bash-tests,
+  AS_HELP_STRING([--disable-bash-tests], [skip some tests that badly need bash]),
+    enable_bash_tests=$enableval, enable_bash_tests=yes)
+AM_CONDITIONAL(DISABLE_BASH_TESTS, test "$enable_bash_tests" != "yes")
 
 AC_ARG_ENABLE(doc,
   AS_HELP_STRING([--disable-doc], [don't generate any documentation]),
@@ -110,6 +117,7 @@ case "$host" in
   ;;
   *mingw32* | *mingw64*)
     have_win=yes
+    AC_DEFINE([_UNICODE], [1], [Defined to 1 for Unicode (wide chars) APIs])
   ;;
   *darwin*)
     have_macosx=yes
@@ -201,6 +209,12 @@ dnl Need netinet/tcp.h for TCP_FASTOPEN
 AC_CHECK_HEADERS([netinet/tcp.h])
 AC_CHECK_HEADERS([stdatomic.h])
 
+dnl This ensures that we link with the right library for atomic operations on Linux SPARC
+AC_SEARCH_LIBS([__atomic_load_4], [atomic], [], [AC_MSG_NOTICE([Could not detect libatomic])])
+AS_IF([test "$ac_cv_search___atomic_load_4" = "none required" || test "$ac_cv_search___atomic_load_4" = "no"],
+      [AC_SUBST([LIBATOMIC_LIBS], [])],
+      [AC_SUBST([LIBATOMIC_LIBS], [$ac_cv_search___atomic_load_4])])
+
 dnl We use its presence to detect C11 threads
 AC_CHECK_HEADERS([threads.h])
 
@@ -287,7 +301,7 @@ AC_C_BIGENDIAN
 
 dnl No fork on MinGW, disable some self-tests until we fix them.
 dnl Check clock_gettime and pthread_mutex_lock in libc (avoid linking to other libs)
-AC_CHECK_FUNCS([fork setitimer inet_ntop inet_pton getrusage getpwuid_r nanosleep daemon getpid localtime vasprintf mmap explicit_bzero],,)
+AC_CHECK_FUNCS([fork setitimer inet_ntop inet_pton getrusage getpwuid_r nanosleep daemon getpid localtime mmap explicit_bzero],,)
 dnl Manually check some functions by including headers first. On macOS, you
 dnl normally only have the latest SDK available, containing all existing
 dnl functions, but having them restricted according to target version in
@@ -305,28 +319,6 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>], [fmemopen(0, 0, 0);])],
   [AC_MSG_RESULT(yes); ac_cv_func_fmemopen=yes
   AC_DEFINE([HAVE_FMEMOPEN], 1, [Define to 1 if you have the `fmemopen' function.])],
   [AC_MSG_RESULT(no); ac_cv_func_fmemopen=no])
-if test "$ac_cv_func_vasprintf" != "yes";then
-  AC_MSG_CHECKING([for va_copy])
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([
-	#include <stdarg.h>
-	va_list a;],[
-	va_list b;
-	va_copy(b,a);
-	va_end(b);])],
-	[AC_DEFINE([HAVE_VA_COPY], 1, [Have va_copy()])
-	AC_MSG_RESULT(va_copy)],
-	[AC_LINK_IFELSE([AC_LANG_PROGRAM([
-		#include <stdarg.h>
-		va_list a;],[
-		va_list b;
-		__va_copy(b,a);
-		va_end(b);])],
-		[AC_DEFINE([HAVE___VA_COPY], 1, [Have __va_copy()])
-		AC_MSG_RESULT(__va_copy)],
-		[AC_MSG_RESULT(no)
-		AC_MSG_ERROR([Your system lacks vasprintf() and va_copy()])])
-	])
-fi
 
 AM_CONDITIONAL(HAVE_FORK, test "$ac_cv_func_fork" != "no")
 
@@ -381,17 +373,17 @@ AC_ARG_WITH(included-unistring, AS_HELP_STRING([--with-included-unistring],
 if test "$included_unistring" = yes;then
   ac_have_unistring=no
 else
-  AC_LIB_HAVE_LINKFLAGS(unistring,, [#include <uninorm.h>], [u8_normalize(0, 0, 0, 0, 0);])
-
-  if test "$HAVE_LIBUNISTRING" = "yes";then
+  AC_SEARCH_LIBS(u8_normalize, unistring, [
     included_unistring=no
     ac_have_unistring=yes
-  else
-      AC_MSG_ERROR([[
+    AC_SUBST([LIBUNISTRING], [$ac_cv_search_u8_normalize])
+  ], [
+    ac_cv_libunistring=no
+    AC_MSG_ERROR([[
   ***
   *** Libunistring was not found. To use the included one, use --with-included-unistring
-  ]])
-  fi
+    ]])
+  ])
 fi
 
 AM_CONDITIONAL(HAVE_LIBUNISTRING, test "$ac_have_unistring" = "yes")

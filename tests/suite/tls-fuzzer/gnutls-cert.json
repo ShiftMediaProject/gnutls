@@ -37,9 +37,11 @@
                          "-p", "@PORT@"]
           },
          {"name" : "test-rsa-pss-sigs-on-certificate-verify.py",
+	  "comment": "tlsfuzzer doesn't know ed25519 scheme which we advertise",
           "arguments" : ["-k", "tests/clientX509Key.pem",
                          "-c", "tests/clientX509Cert.pem",
                          "-e", "check CertificateRequest sigalgs",
+                         "--illegpar",
                          "-n", "100",
                          "-p", "@PORT@"]
           },

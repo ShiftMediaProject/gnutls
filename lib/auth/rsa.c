@@ -92,7 +92,7 @@ int check_key_usage_for_enc(gnutls_session_t session, unsigned key_usage)
  * server. Therefore the correct cert type needs to be retrieved to be
  * used for the _gnutls_get_auth_info_pcert call. If this
  * function is to be called on the server side in the future, extra
- * checks need to be build in order to retrieve te correct
+ * checks need to be build in order to retrieve the correct
  * certificate type.
  */
 int
@@ -117,7 +117,7 @@ _gnutls_get_public_rsa_params(gnutls_session_t session,
 	}
 
 	// Get the negotiated server certificate type
-	cert_type = gnutls_certificate_type_get2(session, GNUTLS_CTYPE_SERVER);
+	cert_type = get_certificate_type(session, GNUTLS_CTYPE_SERVER);
 
 	ret = _gnutls_get_auth_info_pcert(&peer_cert, cert_type, info);
 
@@ -213,12 +213,12 @@ proc_rsa_client_kx(gnutls_session_t session, uint8_t * data,
 					 session->key.key.size);
 	/* After this point, any conditional on failure that cause differences
 	 * in execution may create a timing or cache access pattern side
-	 * channel that can be used as an oracle, so tread very carefully */
+	 * channel that can be used as an oracle, so treat very carefully */
 
 	/* Error handling logic:
 	 * In case decryption fails then don't inform the peer. Just use the
 	 * random key previously generated. (in order to avoid attack against
-	 * pkcs-1 formating).
+	 * pkcs-1 formatting).
 	 *
 	 * If we get version mismatches no error is returned either. We
 	 * proceed normally. This is to defend against the attack described
