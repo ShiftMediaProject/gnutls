@@ -29,3 +29,12 @@ YASM is required to compile all assembly files.
 1) Visual Studio YASM integration can be downloaded from https://github.com/ShiftMediaProject/VSYASM/releases/latest
 
 2) Once downloaded simply follow the install instructions included in the download.
+
+
+*** Building with Gnulib submodule ***
+
+In order to build libgnutls you must first ensure that the gnulib submodule is correctly initialised.
+
+1) If not already installed then download and install git for windows.
+
+2) Either run the supplied 'project_get_dependencies.bat' file or manually execute 'git submodule update --init' from within the project folder.
