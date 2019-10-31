@@ -1,12 +1,13 @@
 diff --git a/lib/accelerated/x86/x86-common.c b/lib/accelerated/x86/x86-common.c
-index fb3ff9091..76f579ed6 100644
+index 516d6776c..20f572184 100644
 --- a/lib/accelerated/x86/x86-common.c
 +++ b/lib/accelerated/x86/x86-common.c
-@@ -40,6 +40,34 @@
+@@ -40,6 +40,35 @@
  #include <aes-padlock.h>
  #ifdef HAVE_CPUID_H
  # include <cpuid.h>
 +#elif defined(_MSC_VER)
++#define HAVE_GET_CPUID_COUNT
 +#include <intrin.h>
 +static __inline int
 +__get_cpuid(unsigned int __leaf,
@@ -127,7 +128,7 @@ index 334148342..878444f2b 100644
  	const char *e;
  
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index f5a5a66ac..f39b9ac2f 100644
+index 6b35c4434..0940a1173 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -38,7 +38,12 @@

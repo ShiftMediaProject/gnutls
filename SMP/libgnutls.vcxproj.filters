@@ -582,6 +582,18 @@
     <ClInclude Include="..\lib\inih\ini.h">
       <Filter>Header Files\lib\inih</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\iov.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\dsa-compute-k.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\ecdsa-compute-k.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\mpn-base256.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -1501,6 +1513,18 @@
     </ClCompile>
     <ClCompile Include="..\lib\inih\ini.c">
       <Filter>Source Files\lib\inih</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\iov.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\dsa-compute-k.c">
+      <Filter>Source Files\lib\nettle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\ecdsa-compute-k.c">
+      <Filter>Source Files\lib\nettle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\mpn-base256.c">
+      <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

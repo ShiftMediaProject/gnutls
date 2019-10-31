@@ -813,8 +813,11 @@
 /* Define to 1 if you have the `nettle_gost28147_set_key' function. */
 #define HAVE_NETTLE_GOST28147_SET_KEY 1
 
-/* Define to 1 if you have the `ettle_streebog512_update' function. */
-#define HAVE_ETTLE_STREEBOG512_UPDATE 1
+/* Define to 1 if you have the `nettle_streebog512_update' function. */
+#define HAVE_NETTLE_STREEBOG512_UPDATE 1
+
+/* Define to 1 if you have the `nettle_secp_192r1' function. */
+#define HAVE_NETTLE_GET_SECP_192R1 1
 
 /* Define to 1 if you have the `nanosleep' function. */
 /* #undef HAVE_NANOSLEEP */

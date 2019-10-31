@@ -57,13 +57,13 @@ extern "C" {
 #endif
 /* *INDENT-ON* */
 
-#define GNUTLS_VERSION "3.6.9"
+#define GNUTLS_VERSION "3.6.10"
 
 #define GNUTLS_VERSION_MAJOR 3
 #define GNUTLS_VERSION_MINOR 6
-#define GNUTLS_VERSION_PATCH 9
+#define GNUTLS_VERSION_PATCH 10
 
-#define GNUTLS_VERSION_NUMBER 0x030609
+#define GNUTLS_VERSION_NUMBER 0x03060a
 
 #define GNUTLS_CIPHER_RIJNDAEL_128_CBC GNUTLS_CIPHER_AES_128_CBC
 #define GNUTLS_CIPHER_RIJNDAEL_256_CBC GNUTLS_CIPHER_AES_256_CBC
@@ -130,6 +130,7 @@ extern "C" {
  *                             The whole message needs to be provided with a single call, because
  *                             cipher-stealing requires to know where the message actually terminates
  *                             in order to be able to compute where the stealing occurs.
+ * @GNUTLS_CIPHER_GOST28147_TC26Z_CNT: GOST 28147-89 (Magma) cipher in CNT mode with TC26 Z S-box.
  * @GNUTLS_CIPHER_IDEA_PGP_CFB: IDEA in CFB mode (placeholder - unsupported).
  * @GNUTLS_CIPHER_3DES_PGP_CFB: 3DES in CFB mode (placeholder - unsupported).
  * @GNUTLS_CIPHER_CAST5_PGP_CFB: CAST5 in CFB mode (placeholder - unsupported).
@@ -177,6 +178,7 @@ typedef enum gnutls_cipher_algorithm {
 	GNUTLS_CIPHER_AES_256_CFB8 = 31,
 	GNUTLS_CIPHER_AES_128_XTS = 32,
 	GNUTLS_CIPHER_AES_256_XTS = 33,
+	GNUTLS_CIPHER_GOST28147_TC26Z_CNT = 34,
 
 	/* used only for PGP internals. Ignored in TLS/SSL
 	 */
@@ -294,6 +296,7 @@ typedef enum {
  * @GNUTLS_MAC_SHA3_256: Reserved; unimplemented.
  * @GNUTLS_MAC_SHA3_384: Reserved; unimplemented.
  * @GNUTLS_MAC_SHA3_512: Reserved; unimplemented.
+ * @GNUTLS_MAC_GOST28147_TC26Z_IMIT: The GOST 28147-89 working in IMIT mode with TC26 Z S-box.
  *
  * Enumeration of different Message Authentication Code (MAC)
  * algorithms.
@@ -327,6 +330,7 @@ typedef enum {
 	GNUTLS_MAC_AES_GMAC_128 = 205,
 	GNUTLS_MAC_AES_GMAC_192 = 206,
 	GNUTLS_MAC_AES_GMAC_256 = 207,
+	GNUTLS_MAC_GOST28147_TC26Z_IMIT = 208,
 } gnutls_mac_algorithm_t;
 
 /**

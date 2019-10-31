@@ -175,6 +175,7 @@
     <ClInclude Include="..\lib\includes\gnutls\x509-ext.h" />
     <ClInclude Include="..\lib\includes\gnutls\x509.h" />
     <ClInclude Include="..\lib\inih\ini.h" />
+    <ClInclude Include="..\lib\iov.h" />
     <ClInclude Include="..\lib\kx.h" />
     <ClInclude Include="..\lib\locks.h" />
     <ClInclude Include="..\lib\mbuffers.h" />
@@ -187,7 +188,10 @@
     <ClInclude Include="..\lib\minitasn1\structure.h" />
     <ClInclude Include="..\lib\mpi.h" />
     <ClInclude Include="..\lib\name_val_array.h" />
+    <ClInclude Include="..\lib\nettle\int\dsa-compute-k.h" />
     <ClInclude Include="..\lib\nettle\int\dsa-fips.h" />
+    <ClInclude Include="..\lib\nettle\int\ecdsa-compute-k.h" />
+    <ClInclude Include="..\lib\nettle\int\mpn-base256.h" />
     <ClInclude Include="..\lib\nettle\int\rsa-fips.h" />
     <ClInclude Include="..\lib\nettle\int\tls1-prf.h" />
     <ClInclude Include="..\lib\num.h" />
@@ -475,6 +479,7 @@
     <ClCompile Include="..\lib\hello_ext.c" />
     <ClCompile Include="..\lib\hello_ext_lib.c" />
     <ClCompile Include="..\lib\inih\ini.c" />
+    <ClCompile Include="..\lib\iov.c" />
     <ClCompile Include="..\lib\kx.c" />
     <ClCompile Include="..\lib\locks.c" />
     <ClCompile Include="..\lib\mbuffers.c" />
@@ -494,8 +499,11 @@
       <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\nettle\init.c" />
+    <ClCompile Include="..\lib\nettle\int\dsa-compute-k.c" />
     <ClCompile Include="..\lib\nettle\int\dsa-keygen-fips186.c" />
     <ClCompile Include="..\lib\nettle\int\dsa-validate.c" />
+    <ClCompile Include="..\lib\nettle\int\ecdsa-compute-k.c" />
+    <ClCompile Include="..\lib\nettle\int\mpn-base256.c" />
     <ClCompile Include="..\lib\nettle\int\provable-prime.c" />
     <ClCompile Include="..\lib\nettle\int\rsa-keygen-fips186.c" />
     <ClCompile Include="..\lib\nettle\int\tls1-prf.c" />
