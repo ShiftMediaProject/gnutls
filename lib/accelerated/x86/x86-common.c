@@ -41,6 +41,7 @@
 #ifdef HAVE_CPUID_H
 # include <cpuid.h>
 #elif defined(_MSC_VER)
+#define HAVE_GET_CPUID_COUNT
 #include <intrin.h>
 static __inline int
 __get_cpuid(unsigned int __leaf,
