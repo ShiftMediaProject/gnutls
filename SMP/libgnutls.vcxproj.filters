@@ -1016,9 +1016,6 @@
     <ClCompile Include="..\lib\mpi.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\num.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\pcert.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>

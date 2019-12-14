@@ -128,7 +128,7 @@ index 334148342..878444f2b 100644
  	const char *e;
  
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index 6b35c4434..0940a1173 100644
+index d8464c94d..f9a7d58ab 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -38,7 +38,12 @@

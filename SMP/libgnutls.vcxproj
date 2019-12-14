@@ -522,7 +522,6 @@
     <ClCompile Include="..\lib\nettle\rnd-fuzzer.c" />
     <ClCompile Include="..\lib\nettle\rnd.c" />
     <ClCompile Include="..\lib\nettle\sysrng-windows.c" />
-    <ClCompile Include="..\lib\num.c" />
     <ClCompile Include="..\lib\ocsp-api.c" />
     <ClCompile Include="..\lib\openpgp_compat.c" />
     <ClCompile Include="..\lib\pcert.c" />

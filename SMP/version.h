@@ -1,5 +1,5 @@
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "3.6.10"
+#define PACKAGE_VERSION "3.6.11"
 
 /* Version number of package */
-#define VERSION "3.6.10"
+#define VERSION "3.6.11"
