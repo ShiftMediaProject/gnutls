@@ -44,7 +44,9 @@
 		      ((x)==GNUTLS_PK_GOST_12_256)|| \
 		      ((x)==GNUTLS_PK_GOST_12_512))
 
-#define IS_EC(x) (((x)==GNUTLS_PK_ECDSA)||((x)==GNUTLS_PK_ECDH_X25519)||((x)==GNUTLS_PK_EDDSA_ED25519))
+#define IS_EC(x) (((x)==GNUTLS_PK_ECDSA)|| \
+		  ((x)==GNUTLS_PK_ECDH_X25519)||((x)==GNUTLS_PK_EDDSA_ED25519)|| \
+		  ((x)==GNUTLS_PK_ECDH_X448)||((x)==GNUTLS_PK_EDDSA_ED448))
 
 #define SIG_SEM_PRE_TLS12 (1<<1)
 #define SIG_SEM_TLS13 (1<<2)
@@ -450,7 +452,8 @@ inline static int _curve_is_eddsa(const gnutls_ecc_curve_entry_st * e)
 {
 	if (unlikely(e == NULL))
 		return 0;
-	if (e->pk == GNUTLS_PK_EDDSA_ED25519)
+	if (e->pk == GNUTLS_PK_EDDSA_ED25519 ||
+	    e->pk == GNUTLS_PK_EDDSA_ED448)
 		return 1;
 	return 0;
 }
@@ -486,6 +489,24 @@ static inline int _gnutls_kx_is_dhe(gnutls_kx_algorithm_t kx)
 		return 1;
 
 	return 0;
+}
+
+static inline unsigned _gnutls_kx_is_vko_gost(gnutls_kx_algorithm_t kx)
+{
+	if (kx == GNUTLS_KX_VKO_GOST_12)
+		return 1;
+
+	return 0;
+}
+
+static inline bool
+_sign_is_gost(const gnutls_sign_entry_st *se)
+{
+	gnutls_pk_algorithm_t pk = se->pk;
+
+	return  (pk == GNUTLS_PK_GOST_01) ||
+		(pk == GNUTLS_PK_GOST_12_256) ||
+		(pk == GNUTLS_PK_GOST_12_512);
 }
 
 static inline int _sig_is_ecdsa(gnutls_sign_algorithm_t sig)

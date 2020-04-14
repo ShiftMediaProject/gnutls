@@ -50,3 +50,7 @@ changed_enumerators = GNUTLS_GROUP_MAX
 name = gnutls_sec_param_t
 changed_enumerators = GNUTLS_SEC_PARAM_MAX
 
+# return type changed from int to unsigned int; no ABI change
+[suppress_function]
+name = gnutls_ocsp_status_request_is_checked
+return_type_name = unsigned int

@@ -231,6 +231,7 @@ lib/minitasn1/libminitasn1.la
 lib/minitasn1/Makefile
 lib/minitasn1/Makefile.in
 lib/nettle/libcrypto.la
+lib/nettle/curve448
 lib/opencdk/libminiopencdk.la
 lib/opencdk/Makefile
 lib/opencdk/Makefile.in
@@ -729,6 +730,7 @@ tests/status-request
 tests/status-request-ext
 tests/status-request-missing
 tests/status-request-ok
+tests/status-request-revoked
 tests/str-idna
 tests/str-unicode
 tests/strict-der
