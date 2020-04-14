@@ -105,6 +105,8 @@ gnutls_certificate_type_get
 gnutls_certificate_type_get_id
 gnutls_certificate_type_get_name
 gnutls_certificate_type_list
+gnutls_certificate_verification_profile_get_id
+gnutls_certificate_verification_profile_get_name
 gnutls_certificate_verification_status_print
 gnutls_certificate_verify_peers2
 gnutls_certificate_verify_peers3
@@ -276,6 +278,7 @@ gnutls_hmac
 gnutls_hmac_copy
 gnutls_hmac_deinit
 gnutls_hmac_fast
+gnutls_hmac_get_key_size
 gnutls_hmac_get_len
 gnutls_hmac_init
 gnutls_hmac_output

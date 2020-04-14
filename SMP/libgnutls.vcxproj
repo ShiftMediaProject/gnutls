@@ -249,6 +249,7 @@
     <ClCompile Include="..\gnulib\lib\c-strcasecmp.c" />
     <ClCompile Include="..\gnulib\lib\c-strncasecmp.c" />
     <ClCompile Include="..\gnulib\lib\hash-pjw-bare.c" />
+    <ClCompile Include="..\gnulib\lib\hash.c" />
     <ClCompile Include="..\gnulib\lib\read-file.c" />
     <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_and_not.c" />

@@ -101,6 +101,9 @@
 /* enable PSK authentication */
 #define ENABLE_PSK 1
 
+/* enable sha1 authentication */
+/* #undef ENABLE_SHA1 */
+
 /* enable SRP authentication */
 #define ENABLE_SRP 1
 
@@ -405,6 +408,9 @@
 
 /* Define to 1 if you have the <cpuid.h> header file. */
 /* #undef HAVE_CPUID_H */
+
+/* Define to 1 if you have the `nettle_curve448_mul nettle_ed448_shake256_sign' functions. */
+#define HAVE_CURVE448 1
 
 /* Define to 1 if you have the `daemon' function. */
 /* #undef HAVE_DAEMON */
@@ -807,14 +813,23 @@
 /* Define to 1 if you have the `nettle_xts_encrypt_message' function. */
 #define HAVE_NETTLE_XTS_ENCRYPT_MESSAGE 1
 
+/* Define to 1 if you have the `nettle_get_gost_gc256b' function. */
+#define HAVE_NETTLE_GET_GOST_GC256B 1
+
+/* Define to 1 if you have the `nettle_get_gost_gc512a' function. */
+#define HAVE_NETTLE_GET_GOST_GC512A 1
+
+/* Define to 1 if you have the `nettle_gostdsa_sign' function. */
+#define HAVE_NETTLE_GOSTDSA_SIGN 1
+
 /* Define to 1 if you have the `nettle_gosthash94cp_update' function. */
 #define HAVE_NETTLE_GOSTHASH94CP_UPDATE 1
 
 /* Define to 1 if you have the `nettle_gost28147_set_key' function. */
-#define HAVE_NETTLE_GOST28147_SET_KEY 1
+/*#undef HAVE_NETTLE_GOST28147_SET_KEY */
 
 /* Define to 1 if you have the `nettle_streebog512_update' function. */
-#define HAVE_NETTLE_STREEBOG512_UPDATE 1
+/*#undef HAVE_NETTLE_STREEBOG512_UPDATE */
 
 /* Define to 1 if you have the `nettle_secp_192r1' function. */
 #define HAVE_NETTLE_GET_SECP_192R1 1

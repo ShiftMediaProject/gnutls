@@ -1523,6 +1523,9 @@
     <ClCompile Include="..\lib\nettle\int\mpn-base256.c">
       <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
+    <ClCompile Include="..\gnulib\lib\hash.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">
