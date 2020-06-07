@@ -50,30 +50,16 @@
 
 get_entropy_func _rnd_get_system_entropy = NULL;
 
-#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
- #define WINRT
- static BCRYPT_ALG_HANDLE device_fd = 0;
-#else
 static HCRYPTPROV device_fd = 0;
-#endif
 
 static
 int _rnd_get_system_entropy_win32(void* rnd, size_t size)
 {
-#ifdef WINRT
-	NTSTATUS status;
-	if (!BCRYPT_SUCCESS(status = BCryptGenRandom(device_fd, rnd, (ULONG)size, 0))) {
-		_gnutls_debug_log("Error in BCryptGenRandom: %s\n",
-						  status);
-		return GNUTLS_E_RANDOM_DEVICE_ERROR;
-	}
-#else
 	if (!CryptGenRandom(device_fd, (DWORD) size, rnd)) {
 		_gnutls_debug_log("Error in CryptGenRandom: %d\n",
 					(int)GetLastError());
 		return GNUTLS_E_RANDOM_DEVICE_ERROR;
 	}
-#endif 
 
 	return 0;
 }
@@ -85,14 +71,6 @@ int _rnd_system_entropy_check(void)
 
 int _rnd_system_entropy_init(void)
 {
-#ifdef WINRT
-	NTSTATUS status;
-	if (!BCRYPT_SUCCESS(status = BCryptOpenAlgorithmProvider(&device_fd, BCRYPT_RNG_ALGORITHM, NULL, 0))) {
-		_gnutls_debug_log("error in BCryptOpenAlgorithmProvider: %s\n",
-						  status);
-		return GNUTLS_E_RANDOM_DEVICE_ERROR;
-	}
-#else
 	if (!CryptAcquireContext
 		(&device_fd, NULL, NULL, PROV_RSA_FULL,
 		 CRYPT_SILENT | CRYPT_VERIFYCONTEXT)) {
@@ -100,7 +78,6 @@ int _rnd_system_entropy_init(void)
 			("error in CryptAcquireContext!\n");
 		return GNUTLS_E_RANDOM_DEVICE_ERROR;
 	}
-#endif
 
 	_rnd_get_system_entropy = _rnd_get_system_entropy_win32;
 	return 0;
@@ -108,9 +85,5 @@ int _rnd_system_entropy_init(void)
 
 void _rnd_system_entropy_deinit(void)
 {
-#ifdef WINRT
-	BCryptCloseAlgorithmProvider(device_fd, 0);
-#else
 	CryptReleaseContext(device_fd, 0);
-#endif
 }

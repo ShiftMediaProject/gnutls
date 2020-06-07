@@ -75,12 +75,6 @@ typedef struct _BCRYPT_PKCS1_PADDING_INFO {
 # include <ncrypt.h>
 #endif
 
-#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#define WINRT
-#else
-#define DYN_NCRYPT
-#endif
-
 // MinGW headers may not have these defines
 #ifndef NCRYPT_SHA1_ALGORITHM
 #define NCRYPT_SHA1_ALGORITHM	   BCRYPT_SHA1_ALGORITHM
@@ -115,10 +109,8 @@ struct system_key_iter_st {
 };
 
 typedef struct priv_st {
-#ifndef WINRT
 	DWORD dwKeySpec;	/* CAPI key */
 	HCRYPTPROV hCryptProv;	/* CAPI keystore */
-#endif
 	NCRYPT_KEY_HANDLE nc;	/* CNG Keystore */
 	gnutls_pk_algorithm_t pk;
 	gnutls_sign_algorithm_t sign_algo;
@@ -184,7 +176,6 @@ static NCryptGetPropertyFunc pNCryptGetProperty;
 static NCryptFreeObjectFunc pNCryptFreeObject;
 static NCryptDecryptFunc pNCryptDecrypt;
 static NCryptSignHashFunc pNCryptSignHash;
-static HMODULE ncrypt_lib;
 #else
 #define pNCryptDeleteKey NCryptDeleteKey
 #define pNCryptOpenStorageProvider NCryptOpenStorageProvider
@@ -196,6 +187,7 @@ static HMODULE ncrypt_lib;
 #endif
 
 static unsigned ncrypt_init = 0;
+static HMODULE ncrypt_lib;
 
 #define WIN_URL SYSTEM_URL"win:"
 #define WIN_URL_SIZE 11
@@ -256,7 +248,6 @@ void *memrev(unsigned char *pvData, DWORD cbData)
 	return pvData;
 }
 
-#ifndef WINRT
 static
 int capi_sign(gnutls_privkey_t key, void *userdata,
 	      const gnutls_datum_t * raw_data, gnutls_datum_t * signature)
@@ -445,7 +436,6 @@ static int capi_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
 		return priv->sign_algo;
 	return -1;
 }
-#endif
 
 static 
 int privkey_import_capi(gnutls_privkey_t pkey, const char *url, 
@@ -1471,9 +1461,9 @@ int gnutls_system_key_add_x509(gnutls_x509_crt_t crt,
 
 int _gnutls_system_key_init(void)
 {
-#ifdef DYN_NCRYPT
 	int ret;
 
+#ifdef DYN_NCRYPT
 	ncrypt_lib = LoadLibrary(TEXT("ncrypt.dll"));
 	if (ncrypt_lib == NULL) {
 		return gnutls_assert_val(GNUTLS_E_CRYPTO_INIT_FAILED);
@@ -1533,7 +1523,6 @@ int _gnutls_system_key_init(void)
 	ncrypt_init = 1;
 
 	return 0;
-#ifdef DYN_NCRYPT
  fail:
 	FreeLibrary(ncrypt_lib);
 	return ret;
@@ -1546,9 +1535,7 @@ int _gnutls_system_key_init(void)
 void _gnutls_system_key_deinit(void)
 {
 	if (ncrypt_init != 0) {
-#ifdef DYN_NCRYPT
 		FreeLibrary(ncrypt_lib);
-#endif
 		ncrypt_init = 0;
 	}
 }
