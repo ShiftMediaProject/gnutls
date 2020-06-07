@@ -48,7 +48,7 @@ void _gnutls_free_datum(gnutls_datum_t * dat)
 	}
 }
 
-inline static ATTRIBUTE_NONNULL()
+inline static ATTRIBUTE_NONNULL((1))
 void _gnutls_free_temp_key_datum(gnutls_datum_t * dat)
 {
 	if (dat->data != NULL) {
@@ -59,7 +59,7 @@ void _gnutls_free_temp_key_datum(gnutls_datum_t * dat)
 	dat->size = 0;
 }
 
-inline static ATTRIBUTE_NONNULL()
+inline static ATTRIBUTE_NONNULL((1))
 void _gnutls_free_key_datum(gnutls_datum_t * dat)
 {
 	if (dat->data != NULL) {
