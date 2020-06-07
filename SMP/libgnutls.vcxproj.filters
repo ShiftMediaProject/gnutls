@@ -49,12 +49,6 @@
     <Filter Include="Header Files\lib\extras">
       <UniqueIdentifier>{d11cb355-4d28-468c-a771-99d8caaa37b8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\lib\minitasn1">
-      <UniqueIdentifier>{ea53b459-c726-4e60-ae2a-e8b1942d1e04}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\lib\minitasn1">
-      <UniqueIdentifier>{0b42137d-60dd-4225-89f7-04f9c16bc03f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\lib\nettle">
       <UniqueIdentifier>{1d37e53c-2b42-4c10-b915-8d5ea32ad5b8}</UniqueIdentifier>
     </Filter>
@@ -108,6 +102,9 @@
     </Filter>
     <Filter Include="Header Files\lib\inih">
       <UniqueIdentifier>{ae0c3eeb-53df-4c72-a85a-6b46de35e7ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\libtasn1">
+      <UniqueIdentifier>{32be60b7-8c65-486e-9df5-7e529443cf07}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -218,24 +215,6 @@
     </ClInclude>
     <ClInclude Include="..\lib\extras\randomart.h">
       <Filter>Header Files\lib\extras</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\minitasn1\element.h">
-      <Filter>Header Files\lib\minitasn1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\minitasn1\gstr.h">
-      <Filter>Header Files\lib\minitasn1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\minitasn1\int.h">
-      <Filter>Header Files\lib\minitasn1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\minitasn1\libtasn1.h">
-      <Filter>Header Files\lib\minitasn1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\minitasn1\parser_aux.h">
-      <Filter>Header Files\lib\minitasn1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib\minitasn1\structure.h">
-      <Filter>Header Files\lib\minitasn1</Filter>
     </ClInclude>
     <ClInclude Include="version.h">
       <Filter>Header Files</Filter>
@@ -594,6 +573,9 @@
     <ClInclude Include="..\lib\nettle\int\mpn-base256.h">
       <Filter>Header Files\lib\nettle\int</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\block8.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -790,30 +772,6 @@
     </ClCompile>
     <ClCompile Include="..\lib\extras\randomart.c">
       <Filter>Source Files\lib\extras</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\parser_aux.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\structure.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\version.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\coding.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\decoding.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\element.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\errors.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\minitasn1\gstr.c">
-      <Filter>Source Files\lib\minitasn1</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\nettle\mac.c">
       <Filter>Source Files\lib\nettle</Filter>
@@ -1123,9 +1081,6 @@
     </ClCompile>
     <ClCompile Include="..\lib\system\threads.c">
       <Filter>Source Files\lib\system</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\nettle\sysrng-windows.c">
-      <Filter>Source Files\lib\nettle</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\nettle\int\dsa-keygen-fips186.c">
       <Filter>Source Files\lib\nettle\int</Filter>
@@ -1525,6 +1480,36 @@
     </ClCompile>
     <ClCompile Include="..\gnulib\lib\hash.c">
       <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\x86\aes-xts-x86-aesni.c">
+      <Filter>Source Files\lib\accelerated\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\sysrng-bcrypt.c">
+      <Filter>Source Files\lib\nettle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\coding.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\decoding.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\element.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\errors.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\gstr.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\parser_aux.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\structure.c">
+      <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\version.c">
+      <Filter>Source Files\libtasn1</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

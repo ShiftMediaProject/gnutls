@@ -22,7 +22,16 @@ environment:
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
 
 install:
-- cmd: git submodule update --init --recursive
+# Need to manually init the libtasn1 submodule as the tests folder contains filenames with invalid chars that must be skipped
+- cmd: git submodule init
+- cmd: for /F "tokens=*" %%n IN ('git config submodule.devel/libtasn1.url') DO @(git clone -n --depth=1 %%n devel/libtasn1)
+- cmd: git -C devel/libtasn1 config core.protectNTFS false
+- cmd: git -C devel/libtasn1 config core.sparseCheckout true
+- cmd: echo /* > devel\libtasn1\.git\info\sparse-checkout
+- cmd: echo !/tests/ >> devel\libtasn1\.git\info\sparse-checkout
+- cmd: git submodule absorbgitdirs devel/libtasn1
+- cmd: git -C devel/libtasn1 reset --hard
+- cmd: git submodule update --init --depth=1
 # Install GitLink
 - cmd: nuget install gitlink -Version 2.4.0
 - cmd: for /f "tokens=*" %%f in ('dir /s /b gitlink.exe') do copy /b %%f .\

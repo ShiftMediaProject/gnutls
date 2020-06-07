@@ -203,6 +203,7 @@ gnutls_error_to_alert
 gnutls_est_record_overhead_size
 gnutls_ext_get_current_msg
 gnutls_ext_get_data
+gnutls_ext_get_name2
 gnutls_ext_get_name
 gnutls_ext_raw_parse
 gnutls_ext_register
@@ -496,6 +497,7 @@ gnutls_pkcs7_get_signature_info
 gnutls_pkcs7_import
 gnutls_pkcs7_init
 gnutls_pkcs7_print
+gnutls_pkcs7_print_signature_info
 gnutls_pkcs7_set_crl
 gnutls_pkcs7_set_crl_raw
 gnutls_pkcs7_set_crt

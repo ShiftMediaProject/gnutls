@@ -1,5 +1,5 @@
 diff --git a/lib/accelerated/x86/x86-common.c b/lib/accelerated/x86/x86-common.c
-index 516d6776c..20f572184 100644
+index 3845c6b4c..a1111a6f3 100644
 --- a/lib/accelerated/x86/x86-common.c
 +++ b/lib/accelerated/x86/x86-common.c
 @@ -40,6 +40,35 @@
@@ -38,6 +38,28 @@ index 516d6776c..20f572184 100644
  #else
  # define __get_cpuid(...) 0
  # define __get_cpuid_count(...) 0
+diff --git a/lib/datum.h b/lib/datum.h
+index 35b9e3b97..e19211146 100644
+--- a/lib/datum.h
++++ b/lib/datum.h
+@@ -48,7 +48,7 @@ void _gnutls_free_datum(gnutls_datum_t * dat)
+ 	}
+ }
+ 
+-inline static ATTRIBUTE_NONNULL()
++inline static ATTRIBUTE_NONNULL((1))
+ void _gnutls_free_temp_key_datum(gnutls_datum_t * dat)
+ {
+ 	if (dat->data != NULL) {
+@@ -59,7 +59,7 @@ void _gnutls_free_temp_key_datum(gnutls_datum_t * dat)
+ 	dat->size = 0;
+ }
+ 
+-inline static ATTRIBUTE_NONNULL()
++inline static ATTRIBUTE_NONNULL((1))
+ void _gnutls_free_key_datum(gnutls_datum_t * dat)
+ {
+ 	if (dat->data != NULL) {
 diff --git a/lib/debug.c b/lib/debug.c
 index 166dd61ca..bb81ddce4 100644
 --- a/lib/debug.c
@@ -128,7 +150,7 @@ index 9a65d114c..46d2b1a4f 100644
  	const char *e;
  
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index a6c3c0ef3..1f5388c1b 100644
+index 264da238a..8a177bb88 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -38,7 +38,12 @@
@@ -144,74 +166,6 @@ index a6c3c0ef3..1f5388c1b 100644
  
  /* Get size_t. */
  #include <stddef.h>
-diff --git a/lib/nettle/sysrng-windows.c b/lib/nettle/sysrng-windows.c
-index 9d38e67ec..175a528bd 100644
---- a/lib/nettle/sysrng-windows.c
-+++ b/lib/nettle/sysrng-windows.c
-@@ -50,16 +50,30 @@
- 
- get_entropy_func _rnd_get_system_entropy = NULL;
- 
-+#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-+ #define WINRT
-+ static BCRYPT_ALG_HANDLE device_fd = 0;
-+#else
- static HCRYPTPROV device_fd = 0;
-+#endif
- 
- static
- int _rnd_get_system_entropy_win32(void* rnd, size_t size)
- {
-+#ifdef WINRT
-+	NTSTATUS status;
-+	if (!BCRYPT_SUCCESS(status = BCryptGenRandom(device_fd, rnd, (ULONG)size, 0))) {
-+		_gnutls_debug_log("Error in BCryptGenRandom: %s\n",
-+						  status);
-+		return GNUTLS_E_RANDOM_DEVICE_ERROR;
-+	}
-+#else
- 	if (!CryptGenRandom(device_fd, (DWORD) size, rnd)) {
- 		_gnutls_debug_log("Error in CryptGenRandom: %d\n",
- 					(int)GetLastError());
- 		return GNUTLS_E_RANDOM_DEVICE_ERROR;
- 	}
-+#endif 
- 
- 	return 0;
- }
-@@ -71,6 +85,14 @@ int _rnd_system_entropy_check(void)
- 
- int _rnd_system_entropy_init(void)
- {
-+#ifdef WINRT
-+	NTSTATUS status;
-+	if (!BCRYPT_SUCCESS(status = BCryptOpenAlgorithmProvider(&device_fd, BCRYPT_RNG_ALGORITHM, NULL, 0))) {
-+		_gnutls_debug_log("error in BCryptOpenAlgorithmProvider: %s\n",
-+						  status);
-+		return GNUTLS_E_RANDOM_DEVICE_ERROR;
-+	}
-+#else
- 	if (!CryptAcquireContext
- 		(&device_fd, NULL, NULL, PROV_RSA_FULL,
- 		 CRYPT_SILENT | CRYPT_VERIFYCONTEXT)) {
-@@ -78,6 +100,7 @@ int _rnd_system_entropy_init(void)
- 			("error in CryptAcquireContext!\n");
- 		return GNUTLS_E_RANDOM_DEVICE_ERROR;
- 	}
-+#endif
- 
- 	_rnd_get_system_entropy = _rnd_get_system_entropy_win32;
- 	return 0;
-@@ -85,5 +108,9 @@ int _rnd_system_entropy_init(void)
- 
- void _rnd_system_entropy_deinit(void)
- {
-+#ifdef WINRT
-+	BCryptCloseAlgorithmProvider(device_fd, 0);
-+#else
- 	CryptReleaseContext(device_fd, 0);
-+#endif
- }
 diff --git a/lib/system/fastopen.c b/lib/system/fastopen.c
 index 8d8409e48..6b0fa7d49 100644
 --- a/lib/system/fastopen.c
@@ -226,115 +180,6 @@ index 8d8409e48..6b0fa7d49 100644
  #include <errno.h>
  #include <sys/stat.h>
  #include <sys/types.h>
-diff --git a/lib/system/keys-win.c b/lib/system/keys-win.c
-index 678a668e4..d881681ca 100644
---- a/lib/system/keys-win.c
-+++ b/lib/system/keys-win.c
-@@ -45,8 +45,6 @@
- #include <winbase.h>
- #include <winapifamily.h>
- 
--#define DYN_NCRYPT
--
- #ifdef __MINGW32__
- # include <_mingw.h>
- # ifdef __MINGW64_VERSION_MAJOR
-@@ -76,6 +74,12 @@ typedef struct _BCRYPT_PKCS1_PADDING_INFO {
- # include <ncrypt.h>
- #endif
- 
-+#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-+#define WINRT
-+#else
-+#define DYN_NCRYPT
-+#endif
-+
- // MinGW headers may not have these defines
- #ifndef NCRYPT_SHA1_ALGORITHM
- #define NCRYPT_SHA1_ALGORITHM	   BCRYPT_SHA1_ALGORITHM
-@@ -110,8 +114,10 @@ struct system_key_iter_st {
- };
- 
- typedef struct priv_st {
-+#ifndef WINRT
- 	DWORD dwKeySpec;	/* CAPI key */
- 	HCRYPTPROV hCryptProv;	/* CAPI keystore */
-+#endif
- 	NCRYPT_KEY_HANDLE nc;	/* CNG Keystore */
- 	gnutls_pk_algorithm_t pk;
- 	gnutls_sign_algorithm_t sign_algo;
-@@ -177,6 +183,7 @@ static NCryptGetPropertyFunc pNCryptGetProperty;
- static NCryptFreeObjectFunc pNCryptFreeObject;
- static NCryptDecryptFunc pNCryptDecrypt;
- static NCryptSignHashFunc pNCryptSignHash;
-+static HMODULE ncrypt_lib;
- #else
- #define pNCryptDeleteKey NCryptDeleteKey
- #define pNCryptOpenStorageProvider NCryptOpenStorageProvider
-@@ -188,7 +195,6 @@ static NCryptSignHashFunc pNCryptSignHash;
- #endif
- 
- static unsigned ncrypt_init = 0;
--static HMODULE ncrypt_lib;
- 
- #define WIN_URL SYSTEM_URL"win:"
- #define WIN_URL_SIZE 11
-@@ -248,6 +254,7 @@ void *memrev(unsigned char *pvData, DWORD cbData)
- 	return pvData;
- }
- 
-+#ifndef WINRT
- static
- int capi_sign(gnutls_privkey_t key, void *userdata,
- 	      const gnutls_datum_t * raw_data, gnutls_datum_t * signature)
-@@ -436,6 +443,7 @@ static int capi_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
- 		return priv->sign_algo;
- 	return -1;
- }
-+#endif
- 
- static
- int cng_sign(gnutls_privkey_t key, void *userdata,
-@@ -613,7 +621,7 @@ static int cng_info(gnutls_privkey_t key, unsigned int flags, void *userdata)
-  -*/
- int _gnutls_privkey_import_system_url(gnutls_privkey_t pkey, const char *url)
- {
--#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
-+#ifdef WINRT
-     return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
- #else
- 	uint8_t id[MAX_WID_SIZE];
-@@ -1428,9 +1436,9 @@ int gnutls_system_key_add_x509(gnutls_x509_crt_t crt,
- 
- int _gnutls_system_key_init(void)
- {
-+#ifdef DYN_NCRYPT
- 	int ret;
- 
--#ifdef DYN_NCRYPT
- 	ncrypt_lib = LoadLibrary(TEXT("ncrypt.dll"));
- 	if (ncrypt_lib == NULL) {
- 		return gnutls_assert_val(GNUTLS_E_CRYPTO_INIT_FAILED);
-@@ -1491,15 +1499,19 @@ int _gnutls_system_key_init(void)
- 	ncrypt_init = 1;
- 
- 	return 0;
-+#ifdef DYN_NCRYPT
-  fail:
- 	FreeLibrary(ncrypt_lib);
- 	return ret;
-+#endif
- }
- 
- void _gnutls_system_key_deinit(void)
- {
- 	if (ncrypt_init != 0) {
-+#ifdef DYN_NCRYPT
- 		FreeLibrary(ncrypt_lib);
-+#endif
- 		ncrypt_init = 0;
- 	}
- }
 diff --git a/lib/x509/hostname-verify.c b/lib/x509/hostname-verify.c
 index 6ef8ba030..378b29c90 100644
 --- a/lib/x509/hostname-verify.c

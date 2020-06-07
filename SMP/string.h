@@ -125,6 +125,11 @@ static __inline int strverscmp(const char *s1, const char *s2)
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
 
+static __inline void explicit_bzero(void *s, size_t len)
+{
+    memset(s, '\0', len);
+}
+
 #endif /* _MSC_VER */
 
 #endif /* SMP_STRING_H */
