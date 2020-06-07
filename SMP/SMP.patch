@@ -67,7 +67,7 @@ index 166dd61ca..bb81ddce4 100644
  	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
  			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
 diff --git a/lib/global.c b/lib/global.c
-index b42fcb263..bea13fcab 100644
+index 9a65d114c..46d2b1a4f 100644
 --- a/lib/global.c
 +++ b/lib/global.c
 @@ -46,11 +46,32 @@
@@ -128,7 +128,7 @@ index b42fcb263..bea13fcab 100644
  	const char *e;
  
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index d05ef8e5a..ec776a75b 100644
+index a6c3c0ef3..1f5388c1b 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -38,7 +38,12 @@
@@ -336,7 +336,7 @@ index 678a668e4..d881681ca 100644
  	}
  }
 diff --git a/lib/x509/hostname-verify.c b/lib/x509/hostname-verify.c
-index 967d9b821..6eaed3c20 100644
+index 6ef8ba030..378b29c90 100644
 --- a/lib/x509/hostname-verify.c
 +++ b/lib/x509/hostname-verify.c
 @@ -26,8 +26,10 @@
