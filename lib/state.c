@@ -54,6 +54,7 @@
 #include "tls13/session_ticket.h"
 #include "ext/cert_types.h"
 #include "locks.h"
+#include "kx.h"
 
 /* to be used by supplemental data support to disable TLS1.3
  * when supplemental data have been globally registered */
@@ -227,6 +228,32 @@ gnutls_compression_method_t
 gnutls_compression_get(gnutls_session_t session)
 {
 	return GNUTLS_COMP_NULL;
+}
+
+/**
+ * gnutls_prf_hash_get:
+ * @session: is a #gnutls_session_t type.
+ *
+ * Get the currently used hash algorithm. In TLS 1.3, the hash
+ * algorithm is used for both the key derivation function and
+ * handshake message authentication code. In TLS 1.2, it matches the
+ * hash algorithm used for PRF.
+ *
+ * Returns: the currently used hash algorithm, a
+ *    #gnutls_digest_algorithm_t value.
+ *
+ * Since: 3.6.13
+ **/
+gnutls_digest_algorithm_t
+gnutls_prf_hash_get(const gnutls_session_t session)
+{
+	if (session->security_parameters.prf == NULL)
+		return gnutls_assert_val(GNUTLS_DIG_UNKNOWN);
+
+	if (session->security_parameters.prf->id >= GNUTLS_MAC_AEAD)
+		return gnutls_assert_val(GNUTLS_DIG_UNKNOWN);
+
+	return (gnutls_digest_algorithm_t)session->security_parameters.prf->id;
 }
 
 void reset_binders(gnutls_session_t session)
@@ -557,6 +584,8 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 	(*session)->internals.pull_func = system_read;
 	(*session)->internals.errno_func = system_errno;
 
+	(*session)->internals.saved_username_size = -1;
+
 	/* heartbeat timeouts */
 	(*session)->internals.hb_retrans_timeout_ms = 1000;
 	(*session)->internals.hb_total_timeout_ms = 60000;
@@ -586,6 +615,9 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 
 	if (_gnutls_disable_tls13 != 0)
 		(*session)->internals.flags |= INT_FLAG_NO_TLS13;
+
+	/* Install the default keylog function */
+	gnutls_session_set_keylog_function(*session, _gnutls_nss_keylog_func);
 
 	return 0;
 }

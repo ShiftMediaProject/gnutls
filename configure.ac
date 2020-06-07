@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.63)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.6.12], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.6.13], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -668,6 +668,15 @@ AC_CHECK_FUNCS([nettle_get_gost_gc256b nettle_get_gost_gc512a nettle_gostdsa_sig
 LIBS=$save_LIBS
 AS_IF([test "$have_gostdsa" != "yes"], AC_DEFINE([NEED_GOSTDSA], 1, [Use backported GOST R 34.10 DSA support]))
 AM_CONDITIONAL(NEED_GOSTDSA, [test "$have_gostdsa" != "yes"])
+
+# Check if nettle has ChaCha20 initial block counter support
+have_chacha_set_counter=no
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS([nettle_chacha_set_counter],
+               [have_chacha_set_counter=yes])
+LIBS=$save_LIBS
+AM_CONDITIONAL(NEED_CHACHA, [test "$have_chacha_set_counter" != "yes"])
 
 AC_MSG_CHECKING([whether to build libdane])
 AC_ARG_ENABLE(libdane,

@@ -217,7 +217,8 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 tls-record-size-limit-asym dh-compute ecdh-compute sign-verify-data-newapi \
 	 sign-verify-newapi sign-verify-deterministic iov aead-cipher-vec \
 	 tls13-without-timeout-func buffer status-request-revoked \
-	 set_x509_ocsp_multi_cli
+	 set_x509_ocsp_multi_cli kdf-api keylog-func \
+	 dtls_hello_random_value tls_hello_random_value
 
 if HAVE_SECCOMP_TESTS
 ctests += dtls-with-seccomp tls-with-seccomp dtls-client-with-seccomp tls-client-with-seccomp
@@ -426,7 +427,7 @@ openssl_LDADD = ../extra/libgnutls-openssl.la $(LDADD)
 endif
 
 if HAVE_FORK
-ctests += x509self x509dn anonself pskself dhepskself	\
+ctests += x509self x509dn anonself pskself pskself2 dhepskself	\
 	setcredcrash tls12-resume-x509 tls12-resume-psk tls12-resume-anon \
 	tls13-resume-x509 tls13-resume-psk tls13-early-data tls13-early-data-neg \
 	resume-with-record-size-limit

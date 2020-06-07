@@ -232,6 +232,7 @@ lib/minitasn1/Makefile
 lib/minitasn1/Makefile.in
 lib/nettle/libcrypto.la
 lib/nettle/curve448
+lib/nettle/chacha
 lib/opencdk/libminiopencdk.la
 lib/opencdk/Makefile
 lib/opencdk/Makefile.in
@@ -436,6 +437,7 @@ tests/insecure_key
 tests/iov
 tests/ip-check
 tests/ip-utils
+tests/kdf-api
 tests/key-export-pkcs8
 tests/key-id/Makefile
 tests/key-id/Makefile.in
@@ -660,6 +662,7 @@ tests/safe-renegotiation/srn2
 tests/safe-renegotiation/srn3
 tests/sanity-cpp
 tests/sec-params
+tests/secret-hook
 tests/send-client-cert
 tests/send-data-befor
 tests/send-data-before-handshake
