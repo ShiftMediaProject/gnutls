@@ -1,3 +1,4 @@
+/.#configure.ac
 *~
 /ABOUT-NLS
 AUTHORS
@@ -188,7 +189,8 @@ fuzz/*_fuzzer
 *.gcda
 *.gcno
 *.gcov
-gl
+/gl/*
+!/gl/override
 /GNUmakefile
 GnuTLS-*-coverage/
 gnutls-*.tar.*
@@ -207,6 +209,7 @@ guile/src/Makefile.in
 guile/tests/Makefile
 guile/tests/Makefile.in
 INSTALL
+ldd.sh
 lib/accelerated/aarch64/libaarch64.la
 lib/accelerated/libaccelerated.la
 lib/accelerated/x86/libx86.la
@@ -231,8 +234,8 @@ lib/minitasn1/libminitasn1.la
 lib/minitasn1/Makefile
 lib/minitasn1/Makefile.in
 lib/nettle/libcrypto.la
-lib/nettle/curve448
-lib/nettle/chacha
+lib/nettle/backport
+lib/nettle/ecc
 lib/opencdk/libminiopencdk.la
 lib/opencdk/Makefile
 lib/opencdk/Makefile.in
@@ -848,6 +851,7 @@ tests/tls13/psk-dumbfw
 tests/tls13/psk-ext
 tests/tls13/supported_versions
 tests/tls13/tls12-no-tls13-exts
+tests/tls13/no-auto-send-ticket
 tests/tlsext-decoding
 tests/tlsfeature-crt
 tests/tlsfeature-ext
@@ -870,6 +874,7 @@ tests/x509-extensions
 tests/x509-verify-with-crl
 tests/x509_altname
 tests/x509cert
+tests/x509cert-dntypes
 tests/x509cert-invalid
 tests/x509cert-tl
 tests/x509dn

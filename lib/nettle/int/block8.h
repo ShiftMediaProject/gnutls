@@ -1,6 +1,6 @@
-/* ecc-gost-curve.h
+/* nettle-types.h
 
-   Copyright (C) 2013 Niels Möller
+   Copyright (C) 2005, 2014 Niels Möller
 
    This file is part of GNU Nettle.
 
@@ -26,36 +26,36 @@
 
    You should have received copies of the GNU General Public License and
    the GNU Lesser General Public License along with this program.  If
-   not, see https://www.gnu.org/licenses/.
+   not, see http://www.gnu.org/licenses/.
 */
 
-/* Development of Nettle's ECC support was funded by the .SE Internet Fund. */
+#ifndef GNUTLS_LIB_NETTLE_BLOCK8_H
+#define GNUTLS_LIB_NETTLE_BLOCK8_H
 
-#ifndef GNUTLS_LIB_NETTLE_GOST_ECC_GOST_CURVE_H
-#define GNUTLS_LIB_NETTLE_GOST_ECC_GOST_CURVE_H
+#include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
+#ifndef HAVE_UNION_NETTLE_BLOCK8
+
+/* An aligned 16-byte block. */
+union gnutls_nettle_backport_nettle_block16
+{
+  uint8_t b[16];
+  unsigned long w[16 / sizeof(unsigned long)];
+  uint64_t u64[2];
+};
+
+union gnutls_nettle_backport_nettle_block8
+{
+  uint8_t b[8];
+  uint64_t u64;
+};
+
+#undef nettle_block16
+#undef nettle_block8
+
+#define nettle_block16 gnutls_nettle_backport_nettle_block16
+#define nettle_block8 gnutls_nettle_backport_nettle_block8
+
 #endif
 
-/* The contents of this struct is internal. */
-struct ecc_curve;
-
-#ifndef NETTLE_PURE
-#ifdef __GNUC__
-#define NETTLE_PURE __attribute__((pure))
-#else
-#define NETTLE_PURE
-#endif
-#endif
-
-#define nettle_get_gost_gc256b _gnutls_get_gost_gc256b
-#define nettle_get_gost_gc512a _gnutls_get_gost_gc512a
-const struct ecc_curve * NETTLE_PURE nettle_get_gost_gc256b(void);
-const struct ecc_curve * NETTLE_PURE nettle_get_gost_gc512a(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* GNUTLS_LIB_NETTLE_GOST_ECC_GOST_CURVE_H */
+#endif /* GNUTLS_LIB_NETTLE_BLOCK8_H */

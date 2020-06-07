@@ -48,20 +48,22 @@
 #include <nettle/ecdsa.h>
 #include <nettle/ecc-curve.h>
 #include <nettle/curve25519.h>
-#if HAVE_CURVE448
+#if !NEED_INT_ECC
 #include <nettle/curve448.h>
 #else
-#include "curve448/curve448.h"
-#include "curve448/eddsa.h"
+#include "ecc/curve448.h"
+#include "ecc/eddsa.h"
 #endif
 #include <nettle/eddsa.h>
 #include <nettle/version.h>
 #if ENABLE_GOST
-#if NEED_GOSTDSA
-#include "gost/gostdsa.h"
-#include "gost/ecc-gost-curve.h"
+#if NEED_INT_ECC
+#include "ecc/gostdsa.h"
+#include "ecc-gost-curve.h"
 #else
 #include <nettle/gostdsa.h>
+#define gost_point_mul_g ecc_point_mul_g
+#define gost_point_set ecc_point_set
 #endif
 #include "gost/gostdsa2.h"
 #endif
@@ -103,6 +105,15 @@ static void rnd_mpz_func(void *_ctx, size_t length, uint8_t * data)
 {
 	mpz_t *k = _ctx;
 	nettle_mpz_get_str_256 (length, data, *k);
+}
+
+static void rnd_nonce_func_fallback(void *_ctx, size_t length, uint8_t * data)
+{
+	if (unlikely(_gnutls_get_lib_state() != LIB_STATE_SELFTEST)) {
+		_gnutls_switch_lib_state(LIB_STATE_ERROR);
+	}
+
+	memset(data, 0xAA, length);
 }
 
 static void
@@ -208,7 +219,7 @@ _gost_params_to_pubkey(const gnutls_pk_params_st * pk_params,
 		       struct ecc_point *pub, const struct ecc_curve *curve)
 {
 	ecc_point_init(pub, curve);
-	if (ecc_point_set
+	if (gost_point_set
 	    (pub, pk_params->params[GOST_X], pk_params->params[GOST_Y]) == 0) {
 		ecc_point_clear(pub);
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
@@ -484,11 +495,9 @@ dh_cleanup:
 			goto gost_cleanup;
 		}
 
-		out->size = gostdsa_vko(&ecc_priv, &ecc_pub,
-					nonce->size, nonce->data,
-					out->size, out->data);
-		if (out->size == 0)
-			ret = GNUTLS_E_INVALID_REQUEST;
+		gostdsa_vko(&ecc_priv, &ecc_pub,
+			    nonce->size, nonce->data,
+			    out->data);
 
 	      gost_cleanup:
 		ecc_point_clear(&ecc_pub);
@@ -526,6 +535,7 @@ _wrap_nettle_pk_encrypt(gnutls_pk_algorithm_t algo,
 	case GNUTLS_PK_RSA:
 		{
 			struct rsa_public_key pub;
+			nettle_random_func *random_func;
 
 			ret = _rsa_params_to_pubkey(pk_params, &pub);
 			if (ret < 0) {
@@ -533,8 +543,12 @@ _wrap_nettle_pk_encrypt(gnutls_pk_algorithm_t algo,
 				goto cleanup;
 			}
 
+			if (_gnutls_get_lib_state() == LIB_STATE_SELFTEST)
+				random_func = rnd_nonce_func_fallback;
+			else
+				random_func = rnd_nonce_func;
 			ret =
-			    rsa_encrypt(&pub, NULL, rnd_nonce_func,
+			    rsa_encrypt(&pub, NULL, random_func,
 					plaintext->size, plaintext->data,
 					p);
 			if (ret == 0 || HAVE_LIB_ERROR()) {
@@ -587,6 +601,7 @@ _wrap_nettle_pk_decrypt(gnutls_pk_algorithm_t algo,
 			struct rsa_public_key pub;
 			size_t length;
 			bigint_t c;
+			nettle_random_func *random_func;
 
 			_rsa_params_to_privkey(pk_params, &priv);
 			ret = _rsa_params_to_pubkey(pk_params, &pub);
@@ -617,8 +632,12 @@ _wrap_nettle_pk_decrypt(gnutls_pk_algorithm_t algo,
 				goto cleanup;
 			}
 
+			if (_gnutls_get_lib_state() == LIB_STATE_SELFTEST)
+				random_func = rnd_nonce_func_fallback;
+			else
+				random_func = rnd_nonce_func;
 			ret =
-			    rsa_decrypt_tr(&pub, &priv, NULL, rnd_nonce_func,
+			    rsa_decrypt_tr(&pub, &priv, NULL, random_func,
 					   &length, plaintext->data,
 					   TOMPZ(c));
 			_gnutls_mpi_release(&c);
@@ -664,6 +683,7 @@ _wrap_nettle_pk_decrypt2(gnutls_pk_algorithm_t algo,
 	bigint_t c;
 	uint32_t is_err;
 	int ret;
+	nettle_random_func *random_func;
 
 	if (algo != GNUTLS_PK_RSA || plaintext == NULL) {
 		gnutls_assert();
@@ -683,7 +703,11 @@ _wrap_nettle_pk_decrypt2(gnutls_pk_algorithm_t algo,
 		return gnutls_assert_val (GNUTLS_E_MPI_SCAN_FAILED);
 	}
 
-	ret = rsa_sec_decrypt(&pub, &priv, NULL, rnd_nonce_func,
+	if (_gnutls_get_lib_state() == LIB_STATE_SELFTEST)
+		random_func = rnd_nonce_func_fallback;
+	else
+		random_func = rnd_nonce_func;
+	ret = rsa_sec_decrypt(&pub, &priv, NULL, random_func,
 			     plaintext_size, plaintext, TOMPZ(c));
 	/* after this point, any conditional on failure that cause differences
 	 * in execution may create a timing or cache access pattern side
@@ -1072,6 +1096,7 @@ _wrap_nettle_pk_sign(gnutls_pk_algorithm_t algo,
 		{
 			struct rsa_private_key priv;
 			struct rsa_public_key pub;
+			nettle_random_func *random_func;
 			mpz_t s;
 
 			_rsa_params_to_privkey(pk_params, &priv);
@@ -1082,8 +1107,12 @@ _wrap_nettle_pk_sign(gnutls_pk_algorithm_t algo,
 
 			mpz_init(s);
 
+			if (_gnutls_get_lib_state() == LIB_STATE_SELFTEST)
+				random_func = rnd_nonce_func_fallback;
+			else
+				random_func = rnd_nonce_func;
 			ret =
-			    rsa_pkcs1_sign_tr(&pub, &priv, NULL, rnd_nonce_func,
+			    rsa_pkcs1_sign_tr(&pub, &priv, NULL, random_func,
 					      vdata->size, vdata->data, s);
 			if (ret == 0 || HAVE_LIB_ERROR()) {
 				gnutls_assert();
@@ -2791,7 +2820,7 @@ wrap_nettle_pk_verify_priv_params(gnutls_pk_algorithm_t algo,
 			ecc_point_init(&r, curve);
 			/* verify that x,y lie on the curve */
 			ret =
-			    ecc_point_set(&r, TOMPZ(params->params[GOST_X]),
+			    gost_point_set(&r, TOMPZ(params->params[GOST_X]),
 					  TOMPZ(params->params[GOST_Y]));
 			if (ret == 0) {
 				ret =
@@ -2802,7 +2831,7 @@ wrap_nettle_pk_verify_priv_params(gnutls_pk_algorithm_t algo,
 			ecc_point_clear(&r);
 
 			ecc_point_init(&r, curve);
-			ecc_point_mul_g(&r, &priv);
+			gost_point_mul_g(&r, &priv);
 
 			mpz_init(x1);
 			mpz_init(y1);
@@ -3101,7 +3130,7 @@ wrap_nettle_pk_fixup(gnutls_pk_algorithm_t algo,
 		}
 
 		ecc_point_init(&r, curve);
-		ecc_point_mul_g(&r, &priv);
+		gost_point_mul_g(&r, &priv);
 
 		ecc_point_get(&r, params->params[GOST_X],
 				  params->params[GOST_Y]);

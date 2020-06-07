@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.63)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.6.13], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.6.14], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -111,6 +111,7 @@ AM_CONDITIONAL(ENABLE_CXX, test "$use_cxx" != "no")
 
 dnl Detect windows build
 use_accel=yes
+have_vista_dynamic=yes
 case "$host" in
   *android*)
     have_android=yes
@@ -119,6 +120,24 @@ case "$host" in
   *mingw32* | *mingw64*)
     have_win=yes
     AC_DEFINE([_UNICODE], [1], [Defined to 1 for Unicode (wide chars) APIs])
+    LIB_CRYPT32="-lcrypt32"
+    AC_SUBST([LIB_CRYPT32])
+    AC_PREPROC_IFELSE([AC_LANG_PROGRAM(
+      [[#include <windows.h>
+       #if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600
+       # error Vista APIs allowed statically
+       #endif
+      ]],[[;]])],[have_vista_dynamic=yes],[have_vista_dynamic=no])
+    AC_ARG_ENABLE(dyn_ncrypt,
+      AS_HELP_STRING([--enable-dyn-ncrypt], [use ncrypt dynamically]),
+      enable_dyn_ncrypt=$enableval, enable_dyn_ncrypt=$have_vista_dynamic
+    )
+    if test "x$enable_dyn_ncrypt" = "xyes"; then
+      AC_DEFINE([DYN_NCRYPT], 1, [Dynamic use of ncrypt API (win32)])
+    else
+      LIBNCRYPT="-lncrypt"
+    fi
+    AC_SUBST([LIBNCRYPT])
   ;;
   *darwin*)
     have_macosx=yes
@@ -128,7 +147,7 @@ case "$host" in
     dnl intended minimum runtime version.
     LDFLAGS="$LDFLAGS -Wl,-no_weak_imports"
     AC_MSG_CHECKING([whether the linker supports -Wl,-no_weak_imports])
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <sys/select.h>], [fd_set rfds; FD_ZERO(&rfds); FD_SET(0, &rfds);])],
       [AC_MSG_RESULT(yes)], [AC_MSG_RESULT(no); LDFLAGS="$save_LDFLAGS"])
   ;;
   *solaris*)
@@ -232,6 +251,8 @@ AS_IF([test "$ac_cv_search___atomic_load_4" = "none required" || test "$ac_cv_se
 
 dnl We use its presence to detect C11 threads
 AC_CHECK_HEADERS([threads.h])
+
+AC_CHECK_HEADERS([valgrind/memcheck.h])
 
 AC_ARG_ENABLE(padlock,
   AS_HELP_STRING([--disable-padlock], [unconditionally disable padlock acceleration]),
@@ -511,6 +532,10 @@ if test "$gl_gcc_warnings" = yes; then
   gl_WARN_ADD([-fdiagnostics-show-option])
 fi
 
+if test "$gl_cv_opt_valgrind_tests" != no; then
+  gl_WARN_ADD([-fno-builtin-strcmp])
+fi
+
 AC_SUBST([WERROR_CFLAGS])
 AC_SUBST([WSTACK_CFLAGS])
 AC_SUBST([WARN_CFLAGS])
@@ -559,29 +584,28 @@ idna_support=no
 with_libidn2=no
 
 if test "$try_libidn2" = yes;then
-    save_LIBS=$LIBS
-    AC_SEARCH_LIBS(idn2_lookup_u8, idn2, [
-      with_libidn2=yes;
+    PKG_CHECK_MODULES(LIBIDN2, [libidn2 >= 2.0.0], [with_libidn2=yes], [with_libidn2=no])
+    if test "${with_libidn2}" = "yes";then
       idna_support="IDNA 2008 (libidn2)"
       AC_DEFINE([HAVE_LIBIDN2], 1, [Define if IDNA 2008 support is enabled.])
-      AC_SUBST([LIBIDN2_CFLAGS], [])
-      AC_SUBST([LIBIDN2_LIBS], [-lidn2]) dnl used in gnutls.pc.in
-dnl enable once libidn2.pc is widespread; and remove LIBIDN2_LIBS from gnutls.pc.in (Libs.private)
-dnl      if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
-dnl        GNUTLS_REQUIRES_PRIVATE="Requires.private: libidn2"
-dnl      else
-dnl        GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libidn2"
-dnl      fi
-    ],[
-      with_libidn2=no;
+      if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
+        GNUTLS_REQUIRES_PRIVATE="Requires.private: libidn2"
+      else
+        GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libidn2"
+      fi
+    else
       AC_MSG_WARN(*** LIBIDN2 was not found. You will not be able to use IDN2008 support)
-    ])
-    LIBS=$save_LIBS
-else
-  with_libidn2=no
+    fi
 fi
 
 AM_CONDITIONAL(HAVE_LIBIDN2, test "$with_libidn2" != "no")
+
+if test "x$have_vista_dynamic" = "xno"; then
+  AC_CHECK_TYPES([BCRYPT_ALG_HANDLE],[LIBBCRYPT="-lbcrypt"],[],[#include <windows.h>
+  #include <bcrypt.h>])
+fi
+AM_CONDITIONAL(HAVE_BCRYPT, test "$ac_cv_type_BCRYPT_ALG_HANDLE" = "yes")
+AC_SUBST([LIBBCRYPT])
 
 AC_ARG_ENABLE(non-suiteb-curves,
   AS_HELP_STRING([--disable-non-suiteb-curves], [disable curves not in SuiteB]),
@@ -608,9 +632,8 @@ LIBS=$save_LIBS
 
 # Check if nettle has CFB8 support
 if test -z "$ac_cv_func_nettle_cfb8_encrypt"; then
-	# nettle_cfb8_decrypt in nettle 3.5 is known to be broken
-	ver=`$PKG_CONFIG --modversion nettle`
-	if expr "$ver" : '^3\.5\b' >/dev/null; then
+	# nettle_cfb8_decrypt in nettle upto 3.6 is known to be broken
+	if ! $PKG_CONFIG --atleast-version=3.6 nettle; then
 		ac_cv_func_nettle_cfb8_encrypt=no
 	fi
 fi
@@ -619,18 +642,26 @@ save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_cfb8_encrypt)
 LIBS=$save_LIBS
+AM_CONDITIONAL(NEED_CFB, [test "$ac_cv_func_nettle_cfb8_encrypt" != "yes"])
 
 # Check if nettle has CMAC support
+save_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS $NETTLE_CFLAGS"
+AC_CHECK_TYPES([union nettle_block8], , , [[#include <nettle/nettle-types.h>]])
+CFLAGS=$save_CFLAGS
+
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_cmac128_update)
 LIBS=$save_LIBS
+AM_CONDITIONAL(NEED_CMAC, [test "$ac_cv_func_nettle_cmac128_update" != "yes"])
 
 # Check if nettle has XTS support
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_xts_encrypt_message)
 LIBS=$save_LIBS
+AM_CONDITIONAL(NEED_XTS, [test "$ac_cv_func_nettle_xts_encrypt_message" != "yes"])
 
 # Check for Gosthash94 with CryptoPro S-box support
 save_LIBS=$LIBS
@@ -651,23 +682,14 @@ AC_CHECK_FUNCS(nettle_streebog512_update)
 LIBS=$save_LIBS
 
 # Check for Curve448 and Ed448
-have_curve448=no
+have_new_ecc=yes
 save_LIBS=$LIBS
 LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS([nettle_curve448_mul nettle_ed448_shake256_sign],
-               [AC_DEFINE([HAVE_CURVE448], 1, [Enable Curve448])
-	        have_curve448=yes])
+AC_CHECK_FUNCS([nettle_curve448_mul nettle_ed448_shake256_sign nettle_get_gost_gc256b nettle_get_gost_gc512a nettle_gostdsa_sign],
+	       [], [have_new_ecc=no])
 LIBS=$save_LIBS
-AM_CONDITIONAL(NEED_CURVE448, test "$have_curve448" != "yes")
-
-have_gostdsa=yes
-save_LIBS=$LIBS
-LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS([nettle_get_gost_gc256b nettle_get_gost_gc512a nettle_gostdsa_sign], [],
-	       have_gostdsa=no)
-LIBS=$save_LIBS
-AS_IF([test "$have_gostdsa" != "yes"], AC_DEFINE([NEED_GOSTDSA], 1, [Use backported GOST R 34.10 DSA support]))
-AM_CONDITIONAL(NEED_GOSTDSA, [test "$have_gostdsa" != "yes"])
+AS_IF([test "$have_new_ecc" != "yes"], AC_DEFINE([NEED_INT_ECC], 1, [Use backported Curve448/GOST R 34.10 DSA support]))
+AM_CONDITIONAL(NEED_INT_ECC, test "$have_new_ecc" != "yes")
 
 # Check if nettle has ChaCha20 initial block counter support
 have_chacha_set_counter=no
@@ -677,6 +699,56 @@ AC_CHECK_FUNCS([nettle_chacha_set_counter],
                [have_chacha_set_counter=yes])
 LIBS=$save_LIBS
 AM_CONDITIONAL(NEED_CHACHA, [test "$have_chacha_set_counter" != "yes"])
+
+# Check for SIV-CMAC
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_siv_cmac_aes128_set_key)
+LIBS=$save_LIBS
+AM_CONDITIONAL(NEED_SIV, [test "$ac_cv_func_nettle_siv_cmac_aes128_set_key" != "yes"])
+
+# Check sonames of the linked libraries needed for FIPS selftests.
+save_LIBS=$LIBS
+LIBS="$LIBS $GMP_LIBS"
+AC_MSG_CHECKING([gmp soname])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+	[gmp_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libgmp\.so'`],
+	[gmp_so=none])
+if test -z "$gmp_so"; then
+	gmp_so=none
+fi
+AC_MSG_RESULT($gmp_so)
+AC_DEFINE_UNQUOTED([GMP_LIBRARY_SONAME], ["$gmp_so"], [The soname of gmp library])
+LIBS=$save_LIBS
+
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_MSG_CHECKING([nettle soname])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+	[nettle_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libnettle\.so'`],
+	[nettle_so=none])
+if test -z "$nettle_so"; then
+	nettle_so=none
+fi
+AC_MSG_RESULT($nettle_so)
+AC_DEFINE_UNQUOTED([NETTLE_LIBRARY_SONAME], ["$nettle_so"], [The soname of nettle library])
+LIBS=$save_LIBS
+
+save_LIBS=$LIBS
+LIBS="$LIBS $HOGWEED_LIBS"
+AC_MSG_CHECKING([hogweed soname])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+	[hogweed_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libhogweed\.so'`],
+	[hogweed_so=none])
+if test -z "$hogweed_so"; then
+	hogweed_so=none
+fi
+AC_MSG_RESULT($hogweed_so)
+AC_DEFINE_UNQUOTED([HOGWEED_LIBRARY_SONAME], ["$hogweed_so"], [The soname of hogweed library])
+LIBS=$save_LIBS
+
+gnutls_so=libgnutls.so.`expr "$LT_CURRENT" - "$LT_AGE"`
+AC_DEFINE_UNQUOTED([GNUTLS_LIBRARY_SONAME], ["$gnutls_so"], [The soname of gnutls library])
 
 AC_MSG_CHECKING([whether to build libdane])
 AC_ARG_ENABLE(libdane,
@@ -1062,11 +1134,6 @@ AC_DEFINE([GNUTLS_INTERNAL_BUILD], 1, [We allow temporarily usage of deprecated 
 
 AC_DEFINE([fread_file], [_gnutls_fread_file], [static lib rename])
 AC_DEFINE([read_file], [_gnutls_read_file], [static lib rename])
-AC_DEFINE([read_binary_file], [_gnutls_read_binary_file], [static lib rename])
-
-dnl Some variables needed in makefiles
-YEAR=`date +%Y`
-AC_SUBST([YEAR], $YEAR)
 
 dnl configuration options for config file parsing (inih)
 AC_DEFINE([INI_MAX_LINE], 2048, [inih maximum line size])

@@ -55,6 +55,9 @@
 #include "ext/cert_types.h"
 #include "locks.h"
 #include "kx.h"
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+#include <valgrind/memcheck.h>
+#endif
 
 /* to be used by supplemental data support to disable TLS1.3
  * when supplemental data have been globally registered */
@@ -564,10 +567,25 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 			UINT32_MAX;
 	}
 
-	/* everything else not initialized here is initialized
-	 * as NULL or 0. This is why calloc is used.
+	/* Everything else not initialized here is initialized as NULL
+	 * or 0. This is why calloc is used. However, we want to
+	 * ensure that certain portions of data are initialized at
+	 * runtime before being used. Mark such regions with a
+	 * valgrind client request as undefined.
 	 */
-
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+	if (RUNNING_ON_VALGRIND) {
+		if (flags & GNUTLS_CLIENT)
+			VALGRIND_MAKE_MEM_UNDEFINED((*session)->security_parameters.client_random,
+						    GNUTLS_RANDOM_SIZE);
+		if (flags & GNUTLS_SERVER) {
+			VALGRIND_MAKE_MEM_UNDEFINED((*session)->security_parameters.server_random,
+						    GNUTLS_RANDOM_SIZE);
+			VALGRIND_MAKE_MEM_UNDEFINED((*session)->key.session_ticket_key,
+						    TICKET_MASTER_KEY_SIZE);
+		}
+	}
+#endif
 	handshake_internal_state_clear1(*session);
 
 #ifdef HAVE_WRITEV
@@ -677,6 +695,8 @@ void gnutls_deinit(gnutls_session_t session)
 	_gnutls_free_datum(&session->internals.resumption_data);
 	_gnutls_free_datum(&session->internals.dtls.dcookie);
 
+	for (i = 0; i < session->internals.rexts_size; i++)
+		gnutls_free(session->internals.rexts[i].name);
 	gnutls_free(session->internals.rexts);
 	gnutls_free(session->internals.post_handshake_cr_context.data);
 

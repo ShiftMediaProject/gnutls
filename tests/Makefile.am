@@ -140,6 +140,8 @@ ctests += tls13/psk-dumbfw
 
 ctests += tls13-early-start
 
+ctests += tls13/no-auto-send-ticket
+
 ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniqueid tls-neg-ext-key \
 	 mpi certificate_set_x509_crl dn parse_ca x509-dn x509-dn-decode record-sizes \
 	 hostname-check cve-2008-4989 pkcs12_s2k chainverify record-sizes-range \
@@ -218,7 +220,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 sign-verify-newapi sign-verify-deterministic iov aead-cipher-vec \
 	 tls13-without-timeout-func buffer status-request-revoked \
 	 set_x509_ocsp_multi_cli kdf-api keylog-func \
-	 dtls_hello_random_value tls_hello_random_value
+	 dtls_hello_random_value tls_hello_random_value x509cert-dntypes
 
 if HAVE_SECCOMP_TESTS
 ctests += dtls-with-seccomp tls-with-seccomp dtls-client-with-seccomp tls-client-with-seccomp
@@ -565,6 +567,7 @@ endif
 
 if !WINDOWS
 indirect_tests += datefudge-check
+noinst_PROGRAMS = datefudge-check
 endif
 
 check_PROGRAMS = $(cpptests) $(ctests) $(indirect_tests)
