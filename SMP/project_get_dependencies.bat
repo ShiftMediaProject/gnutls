@@ -29,8 +29,20 @@ SET ERROR=0
 REM Init the required submodules
 IF "%MSVC_VER%"=="" (
     cd ..\
+    REM Need to manually init the libtasn1 submodule as the tests folder contains filenames with invalid chars that must be skipped
+    IF NOT EXIST devel\libtasn1\.git (
+        ECHO %REPONAME%: Correcting libtasn1 filename error...
+        git submodule init
+        FOR /F "tokens=*" %%n IN ('git config submodule.devel/libtasn1.url') DO @(git clone -n %%n devel/libtasn1)
+        git -C devel/libtasn1 config core.protectNTFS false
+        git -C devel/libtasn1 config core.sparseCheckout true
+        ECHO /* > devel\libtasn1\.git\info\sparse-checkout
+        ECHO ^^!/tests/ >> devel\libtasn1\.git\info\sparse-checkout
+        git submodule absorbgitdirs devel/libtasn1
+        git -C devel/libtasn1 reset --hard
+    )
     git submodule update --init
-    cd "%CURRDIR%" >NUL
+    CD "%CURRDIR%" >NUL
 )
 
 cd ..\..
