@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.63)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.6.14], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.6.15], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -120,8 +120,7 @@ case "$host" in
   *mingw32* | *mingw64*)
     have_win=yes
     AC_DEFINE([_UNICODE], [1], [Defined to 1 for Unicode (wide chars) APIs])
-    LIB_CRYPT32="-lcrypt32"
-    AC_SUBST([LIB_CRYPT32])
+    GNUTLS_LIBS_PRIVATE="${GNUTLS_LIBS_PRIVATE} -lcrypt32"
     AC_PREPROC_IFELSE([AC_LANG_PROGRAM(
       [[#include <windows.h>
        #if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600
@@ -135,9 +134,8 @@ case "$host" in
     if test "x$enable_dyn_ncrypt" = "xyes"; then
       AC_DEFINE([DYN_NCRYPT], 1, [Dynamic use of ncrypt API (win32)])
     else
-      LIBNCRYPT="-lncrypt"
+      GNUTLS_LIBS_PRIVATE="${GNUTLS_LIBS_PRIVATE} -lncrypt"
     fi
-    AC_SUBST([LIBNCRYPT])
   ;;
   *darwin*)
     have_macosx=yes
@@ -349,6 +347,9 @@ AM_CONDITIONAL([GTK_DOC_USE_LIBTOOL], false)
 
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.19])
+m4_ifdef([AM_GNU_GETTEXT_REQUIRE_VERSION],[
+AM_GNU_GETTEXT_REQUIRE_VERSION([0.19])
+])
 
 AC_C_BIGENDIAN
 
@@ -461,6 +462,9 @@ fi
 
 AM_CONDITIONAL(WANT_TEST_SUITE, test "$full_test_suite" = "yes")
 
+# parts of the extended test suite use Python
+AM_PATH_PYTHON(,, [:])
+
 AC_ARG_ENABLE(oldgnutls-interop,
   AS_HELP_STRING([--enable-oldgnutls-interop], [enable interoperability testing with old gnutls version]),
     enable_oldgnutls_interop=$enableval, enable_oldgnutls_interop=no)
@@ -518,6 +522,7 @@ if test "$gl_gcc_warnings" = yes; then
   nw="$nw -Wstack-protector"        # Some functions cannot be protected
   nw="$nw -Wunsafe-loop-optimizations" # Warnings with no point
   nw="$nw -Wredundant-decls"        # Some files cannot be compiled with that (gl_fd_to_handle)
+  nw="$nw -Wtype-limits"            # Too many warnings in gnulib macros
 
   gl_MANYWARN_ALL_GCC([ws])
   gl_MANYWARN_COMPLEMENT(ws, [$ws], [$nw])
@@ -601,11 +606,12 @@ fi
 AM_CONDITIONAL(HAVE_LIBIDN2, test "$with_libidn2" != "no")
 
 if test "x$have_vista_dynamic" = "xno"; then
-  AC_CHECK_TYPES([BCRYPT_ALG_HANDLE],[LIBBCRYPT="-lbcrypt"],[],[#include <windows.h>
+  AC_CHECK_TYPES([BCRYPT_ALG_HANDLE],[
+    GNUTLS_LIBS_PRIVATE="${GNUTLS_LIBS_PRIVATE} -lbcrypt"
+  ],[],[#include <windows.h>
   #include <bcrypt.h>])
 fi
 AM_CONDITIONAL(HAVE_BCRYPT, test "$ac_cv_type_BCRYPT_ALG_HANDLE" = "yes")
-AC_SUBST([LIBBCRYPT])
 
 AC_ARG_ENABLE(non-suiteb-curves,
   AS_HELP_STRING([--disable-non-suiteb-curves], [disable curves not in SuiteB]),
@@ -711,7 +717,10 @@ AM_CONDITIONAL(NEED_SIV, [test "$ac_cv_func_nettle_siv_cmac_aes128_set_key" != "
 save_LIBS=$LIBS
 LIBS="$LIBS $GMP_LIBS"
 AC_MSG_CHECKING([gmp soname])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+AC_LINK_IFELSE([AC_LANG_PROGRAM([
+               #include <gmp.h>],[
+               mpz_t n;
+               mpz_init(n);])],
 	[gmp_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libgmp\.so'`],
 	[gmp_so=none])
 if test -z "$gmp_so"; then
@@ -724,7 +733,10 @@ LIBS=$save_LIBS
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_MSG_CHECKING([nettle soname])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+AC_LINK_IFELSE([AC_LANG_PROGRAM([
+               #include <nettle/sha2.h>],[
+               struct sha256_ctx ctx;
+               sha256_init(&ctx);])],
 	[nettle_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libnettle\.so'`],
 	[nettle_so=none])
 if test -z "$nettle_so"; then
@@ -737,7 +749,10 @@ LIBS=$save_LIBS
 save_LIBS=$LIBS
 LIBS="$LIBS $HOGWEED_LIBS"
 AC_MSG_CHECKING([hogweed soname])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+AC_LINK_IFELSE([AC_LANG_PROGRAM([
+               #include <nettle/rsa.h>],[
+               struct rsa_private_key priv;
+               nettle_rsa_private_key_init(&priv);])],
 	[hogweed_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libhogweed\.so'`],
 	[hogweed_so=none])
 if test -z "$hogweed_so"; then
@@ -937,6 +952,7 @@ AC_CHECK_SIZEOF(time_t, 4)
 # export for use in scripts
 AC_SUBST(ac_cv_sizeof_time_t)
 
+AC_SUBST(GNUTLS_LIBS_PRIVATE)
 AC_SUBST(GNUTLS_REQUIRES_PRIVATE)
 
 
