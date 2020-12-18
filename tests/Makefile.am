@@ -32,7 +32,7 @@ SUBDIRS += suite
 endif
 
 EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
-	ocsp-common.h cmocka-common.h virt-time.h \
+	ocsp-common.h cmocka-common.h virt-time.h test-chains-issuer.h test-chains-issuer-aia.h \
 	certs/ca-cert-ecc.pem  certs/cert-ecc256.pem  certs/cert-ecc521.pem \
 	certs/cert-rsa-2432.pem certs/ecc384.pem certs/ecc.pem hex.h \
 	certs/ca-ecc.pem certs/cert-ecc384.pem certs/cert-ecc.pem certs/ecc256.pem \
@@ -57,7 +57,7 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
 	scripts/common.sh scripts/starttls-common.sh \
 	rng-op.c x509sign-verify-common.h common-key-tests.h \
 	ocsp-tests/certs/ca.key ocsp-tests/certs/ca.pem ocsp-tests/certs/ocsp-server.key ocsp-tests/certs/ocsp-server.pem ocsp-tests/response1.der \
-	ocsp-tests/response2.der ocsp-tests/certs/ocsp_index.txt ocsp-tests/certs/ocsp_index.txt.attr \
+	ocsp-tests/response2.der ocsp-tests/response3.der ocsp-tests/certs/ocsp_index.txt ocsp-tests/certs/ocsp_index.txt.attr \
 	ocsp-tests/response1.pem ocsp-tests/response2.pem \
 	ocsp-tests/certs/server_good.key ocsp-tests/certs/server_bad.key ocsp-tests/certs/server_good.template \
 	ocsp-tests/certs/server_bad.template ocsp-tests/certs/ocsp-staple-unrelated.der ocsp-tests/suppressions.valgrind \
@@ -144,7 +144,7 @@ ctests += tls13/no-auto-send-ticket
 
 ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniqueid tls-neg-ext-key \
 	 mpi certificate_set_x509_crl dn parse_ca x509-dn x509-dn-decode record-sizes \
-	 hostname-check cve-2008-4989 pkcs12_s2k chainverify record-sizes-range \
+	 hostname-check cve-2008-4989 pkcs12_s2k chainverify missingissuer missingissuer_aia record-sizes-range \
 	 crq_key_id x509sign-verify sign-verify cve-2009-1415 cve-2009-1416		\
 	 tls10-server-kx-neg tls11-server-kx-neg tls12-server-kx-neg ssl30-server-kx-neg \
 	 tls12-cipher-neg tls11-cipher-neg tls10-cipher-neg ssl30-cipher-neg \
@@ -219,7 +219,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 tls-record-size-limit-asym dh-compute ecdh-compute sign-verify-data-newapi \
 	 sign-verify-newapi sign-verify-deterministic iov aead-cipher-vec \
 	 tls13-without-timeout-func buffer status-request-revoked \
-	 set_x509_ocsp_multi_cli kdf-api keylog-func \
+	 set_x509_ocsp_multi_cli kdf-api keylog-func handshake-write \
 	 dtls_hello_random_value tls_hello_random_value x509cert-dntypes
 
 if HAVE_SECCOMP_TESTS
@@ -607,10 +607,17 @@ else
 TESTS_ENVIRONMENT += ENABLE_SSL3=0
 endif
 
+if ENABLE_GOST
+TESTS_ENVIRONMENT += ENABLE_GOST=1
+else
+TESTS_ENVIRONMENT += ENABLE_GOST=0
+endif
+
+
 if WANT_TEST_SUITE
 
 LOG_COMPILER = $(VALGRIND)
 endif
 
 distclean-local:
-	rm -rf softhsm-*.db softhsm-*.config *.tmp tmp-* x509-crt-list-import-url.config.db
+	rm -rf softhsm-*.db softhsm-*.config *.tmp tmp-* x509-crt-list-import-url.config.db port.lock.d

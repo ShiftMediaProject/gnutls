@@ -20,9 +20,9 @@
 
 #set -e
 
-srcdir="${srcdir:-.}"
-CERTTOOL="${CERTTOOL:-../../src/certtool${EXEEXT}}"
-DIFF="${DIFF:-diff -b -B}"
+: ${srcdir=.}
+: ${CERTTOOL=../../src/certtool${EXEEXT}}
+: ${DIFF=diff -b -B}
 
 if ! test -x "${CERTTOOL}"; then
 	exit 77
@@ -328,6 +328,15 @@ then
 
 	FILE="gost01-signing-verify"
 	${VALGRIND} "${CERTTOOL}" --p7-verify --load-certificate "${srcdir}/../../doc/credentials/x509/cert-gost01.pem" <"${OUTFILE}"
+	rc=$?
+
+	if test "${rc}" != "1"; then
+		echo "${FILE}: PKCS7 struct signing succeeded verification with broken algo"
+		exit ${rc}
+	fi
+
+	FILE="gost01-signing-verify"
+	${VALGRIND} "${CERTTOOL}" --p7-verify --verify-allow-broken --load-certificate "${srcdir}/../../doc/credentials/x509/cert-gost01.pem" <"${OUTFILE}"
 	rc=$?
 
 	if test "${rc}" != "0"; then

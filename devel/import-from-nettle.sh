@@ -11,31 +11,6 @@ DST=$srcdir/lib/nettle/backport
 
 IMPORTS="
 block-internal.h
-cfb.c
-cfb.h
-cmac.c
-cmac.h
-cmac-aes128.c
-cmac-aes256.c
-chacha-core-internal.c
-chacha-crypt.c
-chacha-internal.h
-chacha-poly1305.c
-chacha-poly1305.h
-chacha-set-key.c
-chacha-set-nonce.c
-chacha.h
-poly1305-internal.c
-poly1305-internal.h
-poly1305.h
-xts.c
-xts.h
-xts-aes128.c
-xts-aes256.c
-siv-cmac.c
-siv-cmac.h
-siv-cmac-aes128.c
-siv-cmac-aes256.c
 "
 
 PUBLIC="
@@ -100,13 +75,6 @@ for f in $IMPORTS; do
       ;;
     esac
     case $dst in
-      */cfb.c | */cmac.c | */xts.c | */siv-cmac.c)
-	sed \
-	  -e 's/"nettle-internal\.h"/"nettle-alloca.h"/' \
-	  $dst > $dst-t && mv $dst-t $dst
-	;;
-    esac
-    case $dst in
       */*.[ch])
 	sed \
 	  -e '/^#include <nettle\/nettle-types\.h>/a\
@@ -114,20 +82,6 @@ for f in $IMPORTS; do
 ' \
 	  $dst > $dst-t && mv $dst-t $dst
 	;;
-    esac
-    case $dst in
-      */siv-cmac*.[ch])
-	sed \
-	  -e '/^#include "cmac\.h"/ { i\
-#ifdef HAVE_NETTLE_CMAC128_UPDATE\
-#include <nettle/cmac.h>\
-#else\
-#include "cmac.h"\
-#endif
-; d
-}' \
-	$dst > $dst-t && mv $dst-t $dst
-      ;;
     esac
   else
     echo "Error: $src not found" 1>&2

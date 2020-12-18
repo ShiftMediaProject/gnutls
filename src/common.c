@@ -1141,6 +1141,15 @@ pin_callback(void *user, int attempt, const char *token_url,
 			getenv_copy(password, sizeof(password), "GNUTLS_PIN");
 	}
 
+	if (password[0] == 0 && info != NULL && info->password != NULL && info->ask_pass == 0) {
+		if (strlen(info->password) < sizeof(password)) {
+			strcpy(password, info->password);
+		} else {
+			memcpy(password, info->password, sizeof(password) - 1);
+			password[sizeof(password) - 1] = '\0';
+		}
+	}
+
 	if (password[0] == 0 && (info == NULL || info->batch == 0 || info->ask_pass != 0)) {
 		if (token_label && token_label[0] != 0) {
 			fprintf(stderr, "Token '%s' with URL '%s' ", token_label, token_url);
@@ -1256,6 +1265,8 @@ void log_set(FILE *file)
 	logfile = file;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-y2k"
 /* This is very similar to ctime() but it does not force a newline.
  */
 char *simple_ctime(const time_t *t, char out[SIMPLE_CTIME_BUF_SIZE])
@@ -1274,3 +1285,4 @@ char *simple_ctime(const time_t *t, char out[SIMPLE_CTIME_BUF_SIZE])
 	snprintf(out, SIMPLE_CTIME_BUF_SIZE, "[error]");
 	return out;
 }
+#pragma GCC diagnostic pop

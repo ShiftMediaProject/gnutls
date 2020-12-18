@@ -851,6 +851,7 @@ struct record_state_st {
 	unsigned aead_tag_size;
 	unsigned is_aead;
 	uint64_t sequence_number;
+	gnutls_record_encryption_level_t level;
 };
 
 
@@ -1196,6 +1197,11 @@ typedef struct {
 	 */
 	gnutls_certificate_request_t send_cert_req;
 
+	/* callback to print the full path of certificate
+	 * validation to the trusted root.
+	 */
+	gnutls_verify_output_function *cert_output_callback;
+
 	size_t max_handshake_data_buffer_size;
 
 	/* PUSH & PULL functions.
@@ -1226,6 +1232,9 @@ typedef struct {
 	gnutls_handshake_hook_func h_hook;
 	unsigned int h_type;	/* the hooked type */
 	int16_t h_post;		/* whether post-generation/receive */
+	gnutls_handshake_read_func h_read_func;
+	gnutls_handshake_secret_func h_secret_func;
+	gnutls_alert_read_func alert_read_func;
 
 	gnutls_keylog_func keylog_func;
 

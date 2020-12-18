@@ -20,10 +20,10 @@ dnl Process this file with autoconf to produce a configure script.
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
 # USA
 
-AC_PREREQ(2.63)
+AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.6.15], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.7.0], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -523,6 +523,7 @@ if test "$gl_gcc_warnings" = yes; then
   nw="$nw -Wunsafe-loop-optimizations" # Warnings with no point
   nw="$nw -Wredundant-decls"        # Some files cannot be compiled with that (gl_fd_to_handle)
   nw="$nw -Wtype-limits"            # Too many warnings in gnulib macros
+  nw="$nw -Warith-conversion"       # Too compiler dependent
 
   gl_MANYWARN_ALL_GCC([ws])
   gl_MANYWARN_COMPLEMENT(ws, [$ws], [$nw])
@@ -636,45 +637,6 @@ AC_CHECK_FUNCS(nettle_rsa_sec_decrypt,
 )
 LIBS=$save_LIBS
 
-# Check if nettle has CFB8 support
-if test -z "$ac_cv_func_nettle_cfb8_encrypt"; then
-	# nettle_cfb8_decrypt in nettle upto 3.6 is known to be broken
-	if ! $PKG_CONFIG --atleast-version=3.6 nettle; then
-		ac_cv_func_nettle_cfb8_encrypt=no
-	fi
-fi
-
-save_LIBS=$LIBS
-LIBS="$LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS(nettle_cfb8_encrypt)
-LIBS=$save_LIBS
-AM_CONDITIONAL(NEED_CFB, [test "$ac_cv_func_nettle_cfb8_encrypt" != "yes"])
-
-# Check if nettle has CMAC support
-save_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS $NETTLE_CFLAGS"
-AC_CHECK_TYPES([union nettle_block8], , , [[#include <nettle/nettle-types.h>]])
-CFLAGS=$save_CFLAGS
-
-save_LIBS=$LIBS
-LIBS="$LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS(nettle_cmac128_update)
-LIBS=$save_LIBS
-AM_CONDITIONAL(NEED_CMAC, [test "$ac_cv_func_nettle_cmac128_update" != "yes"])
-
-# Check if nettle has XTS support
-save_LIBS=$LIBS
-LIBS="$LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS(nettle_xts_encrypt_message)
-LIBS=$save_LIBS
-AM_CONDITIONAL(NEED_XTS, [test "$ac_cv_func_nettle_xts_encrypt_message" != "yes"])
-
-# Check for Gosthash94 with CryptoPro S-box support
-save_LIBS=$LIBS
-LIBS="$LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS(nettle_gosthash94cp_update)
-LIBS=$save_LIBS
-
 # Check for GOST28147
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
@@ -687,31 +649,29 @@ LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_streebog512_update)
 LIBS=$save_LIBS
 
-# Check for Curve448 and Ed448
-have_new_ecc=yes
-save_LIBS=$LIBS
-LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS([nettle_curve448_mul nettle_ed448_shake256_sign nettle_get_gost_gc256b nettle_get_gost_gc512a nettle_gostdsa_sign],
-	       [], [have_new_ecc=no])
-LIBS=$save_LIBS
-AS_IF([test "$have_new_ecc" != "yes"], AC_DEFINE([NEED_INT_ECC], 1, [Use backported Curve448/GOST R 34.10 DSA support]))
-AM_CONDITIONAL(NEED_INT_ECC, test "$have_new_ecc" != "yes")
-
-# Check if nettle has ChaCha20 initial block counter support
-have_chacha_set_counter=no
+# Check for Magma
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS([nettle_chacha_set_counter],
-               [have_chacha_set_counter=yes])
+AC_CHECK_FUNCS(nettle_magma_set_key)
 LIBS=$save_LIBS
-AM_CONDITIONAL(NEED_CHACHA, [test "$have_chacha_set_counter" != "yes"])
 
-# Check for SIV-CMAC
+# Check for Kuznyechik
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
-AC_CHECK_FUNCS(nettle_siv_cmac_aes128_set_key)
+AC_CHECK_FUNCS(nettle_kuznyechik_set_key)
 LIBS=$save_LIBS
-AM_CONDITIONAL(NEED_SIV, [test "$ac_cv_func_nettle_siv_cmac_aes128_set_key" != "yes"])
+
+# Check for CMAC MAGMA support
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_cmac_magma_update)
+LIBS=$save_LIBS
+
+# Check for CMAC KUZNYECHIK support
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_cmac_kuznyechik_update)
+LIBS=$save_LIBS
 
 # Check sonames of the linked libraries needed for FIPS selftests.
 save_LIBS=$LIBS
@@ -1145,7 +1105,6 @@ AC_SUBST(LIBGNUTLS_CFLAGS)
 
 AM_CONDITIONAL(NEEDS_LIBRT, test "$gnutls_needs_librt" = "yes")
 
-AC_DEFINE([GNUTLS_COMPAT_H], 1, [Make sure we don't use old features in code.])
 AC_DEFINE([GNUTLS_INTERNAL_BUILD], 1, [We allow temporarily usage of deprecated functions - until they are removed.])
 
 AC_DEFINE([fread_file], [_gnutls_fread_file], [static lib rename])
@@ -1178,7 +1137,6 @@ AC_CONFIG_FILES([
   libdane/includes/Makefile
   libdane/gnutls-dane.pc
   gl/Makefile
-  gl/tests/Makefile
   guile/Makefile
   guile/src/Makefile
   lib/Makefile
@@ -1200,6 +1158,7 @@ AC_CONFIG_FILES([
   src/Makefile
   src/args-std.def
   src/gl/Makefile
+  src/gl/tests/Makefile
   tests/Makefile
   tests/windows/Makefile
   tests/cert-tests/Makefile

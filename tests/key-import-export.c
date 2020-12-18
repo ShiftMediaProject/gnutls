@@ -285,6 +285,20 @@ int check_x509_privkey(void)
 static
 int check_privkey_import_export(void)
 {
+	static const struct rsa_privkey_opt_args
+	{
+		gnutls_datum_t *_u, *_e1, *_e2;
+	}
+	rsa_opt_args[] =
+	{
+		{ NULL, NULL, NULL },
+		{ NULL, &_rsa_e1, &_rsa_e2 },
+		{ NULL, &_rsa_e1, NULL },
+		{ NULL, NULL, &_rsa_e2 },
+		{ &_rsa_u, NULL, NULL },
+		{ &_rsa_u, &_rsa_e1, NULL },
+		{ &_rsa_u, NULL, &_rsa_e2 },
+	};
 	gnutls_privkey_t key;
 	gnutls_datum_t p, q, g, y, x;
 	gnutls_datum_t m, e, u, e1, e2, d;
@@ -293,6 +307,7 @@ int check_privkey_import_export(void)
 	gnutls_digest_algorithm_t digest;
 	gnutls_gost_paramset_t paramset;
 #endif
+	unsigned i;
 	int ret;
 
 	global_init();
@@ -336,11 +351,84 @@ int check_privkey_import_export(void)
 	gnutls_free(x.data);
 	gnutls_privkey_deinit(key);
 
-	/* RSA */
+	/* Optional y argument */
 	ret = gnutls_privkey_init(&key);
 	if (ret < 0)
 		fail("error\n");
 
+	ret = gnutls_privkey_import_dsa_raw(key, &_dsa_p, &_dsa_q, &_dsa_g, NULL, &_dsa_x);
+	if (ret < 0)
+		fail("error\n");
+
+	ret = gnutls_privkey_export_dsa_raw2(key, &p, &q, &g, &y, &x, 0);
+	if (ret < 0)
+		fail("error: %s\n", gnutls_strerror(ret));
+
+	CMP("p", &p, dsa_p);
+	CMP("q", &q, dsa_q);
+	CMP("g", &g, dsa_g);
+	CMP("y", &y, dsa_y);
+	CMP("x", &x, dsa_x);
+	gnutls_free(p.data);
+	gnutls_free(q.data);
+	gnutls_free(g.data);
+	gnutls_free(y.data);
+	gnutls_free(x.data);
+	gnutls_privkey_deinit(key);
+
+	/* RSA */
+
+	/* Optional arguments */
+	for (i = 0; i < sizeof(rsa_opt_args) / sizeof(rsa_opt_args[0]); i++)
+	{
+		ret = gnutls_privkey_init(&key);
+		if (ret < 0)
+			fail("error\n");
+
+		ret = gnutls_privkey_import_rsa_raw(key, &_rsa_m, &_rsa_e, &_rsa_d, &_rsa_p, &_rsa_q, rsa_opt_args[i]._u, rsa_opt_args[i]._e1, rsa_opt_args[i]._e2);
+		if (ret < 0)
+			fail("error\n");
+
+		gnutls_privkey_deinit(key);
+	}
+
+	/* Optional private exponent */
+	ret = gnutls_privkey_init(&key);
+	if (ret < 0)
+		fail("error\n");
+
+	ret = gnutls_privkey_import_rsa_raw(key, &_rsa_m, &_rsa_e, NULL, &_rsa_p, &_rsa_q, NULL, NULL, NULL);
+	if (ret < 0)
+		fail("error\n");
+
+	ret = gnutls_privkey_export_rsa_raw2(key, &m, &e, &d, &p, &q, &u, &e1, &e2, 0);
+	if (ret < 0)
+		fail("error\n");
+
+	CMP("m", &m, rsa_m);
+	CMP("e", &e, rsa_e);
+	CMP("d", &d, rsa_d);
+	CMP("p", &p, rsa_p);
+	CMP("q", &q, rsa_q);
+	CMP("u", &u, rsa_u);
+	CMP("e1", &e1, rsa_e1);
+	CMP("e2", &e2, rsa_e2);
+	gnutls_free(m.data);
+	gnutls_free(e.data);
+	gnutls_free(d.data);
+	gnutls_free(p.data);
+	gnutls_free(q.data);
+	gnutls_free(u.data);
+	gnutls_free(e1.data);
+	gnutls_free(e2.data);
+
+	gnutls_privkey_deinit(key);
+
+	ret = gnutls_privkey_init(&key);
+	if (ret < 0)
+		fail("error\n");
+
+	/* Import/export */
 	ret = gnutls_privkey_import_rsa_raw(key, &_rsa_m, &_rsa_e, &_rsa_d, &_rsa_p, &_rsa_q, &_rsa_u, &_rsa_e1, &_rsa_e2);
 	if (ret < 0)
 		fail("error\n");

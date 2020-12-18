@@ -5,6 +5,56 @@ Copyright (C) 2000-2016 Free Software Foundation, Inc.
 Copyright (C) 2013-2019 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.7.0 (released 2020-12-02)
+
+** libgnutls: Depend on nettle 3.6 (!1322).
+
+** libgnutls: Added a new API that provides a callback function to
+   retrieve missing certificates from incomplete certificate chains
+   (#202, #968, #1100).
+
+** libgnutls: Added a new API that provides a callback function to
+   output the complete path to the trusted root during certificate
+   chain verification (#1012).
+
+** libgnutls: OIDs exposed as gnutls_datum_t no longer account for the
+   terminating null bytes, while the data field is null terminated.
+   The affected API functions are: gnutls_ocsp_req_get_extension,
+   gnutls_ocsp_resp_get_response, and gnutls_ocsp_resp_get_extension
+   (#805).
+
+** libgnutls: Added a new set of API to enable QUIC implementation (#826, #849,
+   #850).
+
+** libgnutls: The crypto implementation override APIs deprecated in 3.6.9 are
+   now no-op (#790).
+
+** libgnutls: Added MAGMA/KUZNYECHIK CTR-ACPKM and CMAC support (!1161).
+
+** libgnutls: Support for padlock has been fixed to make it work with Zhaoxin
+   CPU (#1079).
+
+** libgnutls: The maximum PIN length for PKCS #11 has been increased from 31
+   bytes to 255 bytes (#932).
+
+** API and ABI modifications:
+gnutls_x509_trust_list_set_getissuer_function: Added
+gnutls_x509_trust_list_get_ptr: Added
+gnutls_x509_trust_list_set_ptr: Added
+gnutls_session_set_verify_output_function: Added
+gnutls_record_encryption_level_t: New enum
+gnutls_handshake_read_func: New callback type
+gnutls_handshake_set_read_function: New function
+gnutls_handshake_write: New function
+gnutls_handshake_secret_func: New callback type
+gnutls_handshake_set_secret_function: New function
+gnutls_alert_read_func: New callback type
+gnutls_alert_set_read_function: New function
+gnutls_crypto_register_cipher: Deprecated; no-op
+gnutls_crypto_register_aead_cipher: Deprecated; no-op
+gnutls_crypto_register_mac: Deprecated; no-op
+gnutls_crypto_register_digest: Deprecated; no-op
+
 * Version 3.6.15 (releases 2020-09-04)
 
 ** libgnutls: Fixed "no_renegotiation" alert handling at incorrect timing.
@@ -77,6 +127,8 @@ No changes since last version.
 GNUTLS_CIPHER_AES_128_SIV: Added
 GNUTLS_CIPHER_AES_256_SIV: Added
 GNUTLS_CIPHER_AES_192_GCM: Added
+GNUTLS_NO_AUTO_SEND_TICKET: Added
+gnutls_ext_get_name2: Added
 gnutls_pkcs7_print_signature_info: Added
 
 * Version 3.6.13 (released 2020-03-31)

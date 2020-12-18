@@ -324,7 +324,7 @@ gnutls_privkey_export_gost_raw2(gnutls_privkey_t key,
  * @key: The structure to store the parsed key
  * @m: holds the modulus
  * @e: holds the public exponent
- * @d: holds the private exponent
+ * @d: holds the private exponent (optional)
  * @p: holds the first prime (p)
  * @q: holds the second prime (q)
  * @u: holds the coefficient (optional)
@@ -381,7 +381,7 @@ error:
  * @p: holds the p
  * @q: holds the q
  * @g: holds the g
- * @y: holds the y
+ * @y: holds the y (optional)
  * @x: holds the x
  *
  * This function will convert the given DSA raw parameters to the

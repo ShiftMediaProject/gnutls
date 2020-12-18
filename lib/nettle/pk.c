@@ -48,12 +48,7 @@
 #include <nettle/ecdsa.h>
 #include <nettle/ecc-curve.h>
 #include <nettle/curve25519.h>
-#if !NEED_INT_ECC
 #include <nettle/curve448.h>
-#else
-#include "ecc/curve448.h"
-#include "ecc/eddsa.h"
-#endif
 #include <nettle/eddsa.h>
 #include <nettle/version.h>
 #if ENABLE_GOST
@@ -146,12 +141,12 @@ static void
 _rsa_params_to_privkey(const gnutls_pk_params_st * pk_params,
 		       struct rsa_private_key *priv)
 {
-	memcpy(priv->d, pk_params->params[2], SIZEOF_MPZT);
-	memcpy(priv->p, pk_params->params[3], SIZEOF_MPZT);
-	memcpy(priv->q, pk_params->params[4], SIZEOF_MPZT);
-	memcpy(priv->c, pk_params->params[5], SIZEOF_MPZT);
-	memcpy(priv->a, pk_params->params[6], SIZEOF_MPZT);
-	memcpy(priv->b, pk_params->params[7], SIZEOF_MPZT);
+	memcpy(priv->d, pk_params->params[RSA_PRIV], SIZEOF_MPZT);
+	memcpy(priv->p, pk_params->params[RSA_PRIME1], SIZEOF_MPZT);
+	memcpy(priv->q, pk_params->params[RSA_PRIME2], SIZEOF_MPZT);
+	memcpy(priv->c, pk_params->params[RSA_COEF], SIZEOF_MPZT);
+	memcpy(priv->a, pk_params->params[RSA_E1], SIZEOF_MPZT);
+	memcpy(priv->b, pk_params->params[RSA_E2], SIZEOF_MPZT);
 	/* we do not rsa_private_key_prepare() because it involves a multiplication.
 	 * we call it once when we import the parameters */
 	priv->size =
@@ -2511,14 +2506,14 @@ wrap_nettle_pk_generate_keys(gnutls_pk_algorithm_t algo,
 				params->params_nr++;
 			}
 
-			mpz_set(TOMPZ(params->params[0]), pub.n);
-			mpz_set(TOMPZ(params->params[1]), pub.e);
-			mpz_set(TOMPZ(params->params[2]), priv.d);
-			mpz_set(TOMPZ(params->params[3]), priv.p);
-			mpz_set(TOMPZ(params->params[4]), priv.q);
-			mpz_set(TOMPZ(params->params[5]), priv.c);
-			mpz_set(TOMPZ(params->params[6]), priv.a);
-			mpz_set(TOMPZ(params->params[7]), priv.b);
+			mpz_set(TOMPZ(params->params[RSA_MODULUS]), pub.n);
+			mpz_set(TOMPZ(params->params[RSA_PUB]), pub.e);
+			mpz_set(TOMPZ(params->params[RSA_PRIV]), priv.d);
+			mpz_set(TOMPZ(params->params[RSA_PRIME1]), priv.p);
+			mpz_set(TOMPZ(params->params[RSA_PRIME2]), priv.q);
+			mpz_set(TOMPZ(params->params[RSA_COEF]), priv.c);
+			mpz_set(TOMPZ(params->params[RSA_E1]), priv.a);
+			mpz_set(TOMPZ(params->params[RSA_E2]), priv.b);
 
 			ret = 0;
 
@@ -3275,22 +3270,22 @@ static int calc_rsa_exp(gnutls_pk_params_st * params)
 		return GNUTLS_E_INTERNAL_ERROR;
 	}
 
-	params->params[6] = params->params[7] = NULL;
+	params->params[RSA_E1] = params->params[RSA_E2] = NULL;
 
-	ret = _gnutls_mpi_init_multi(&tmp, &params->params[6], &params->params[7], NULL);
+	ret = _gnutls_mpi_init_multi(&tmp, &params->params[RSA_E1], &params->params[RSA_E2], NULL);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
 	/* [6] = d % p-1, [7] = d % q-1 */
-	_gnutls_mpi_sub_ui(tmp, params->params[3], 1);
+	_gnutls_mpi_sub_ui(tmp, params->params[RSA_PRIME1], 1);
 	ret =
-	    _gnutls_mpi_modm(params->params[6], params->params[2] /*d */ , tmp);
+	    _gnutls_mpi_modm(params->params[RSA_E1], params->params[RSA_PRIV] /*d */ , tmp);
 	if (ret < 0)
 		goto fail;
 
-	_gnutls_mpi_sub_ui(tmp, params->params[4], 1);
+	_gnutls_mpi_sub_ui(tmp, params->params[RSA_PRIME2], 1);
 	ret =
-	    _gnutls_mpi_modm(params->params[7], params->params[2] /*d */ , tmp);
+	    _gnutls_mpi_modm(params->params[RSA_E2], params->params[RSA_PRIV] /*d */ , tmp);
 	if (ret < 0)
 		goto fail;
 
@@ -3300,12 +3295,64 @@ static int calc_rsa_exp(gnutls_pk_params_st * params)
 
 fail:
 	zrelease_mpi_key(&tmp);
-	zrelease_mpi_key(&params->params[6]);
-	zrelease_mpi_key(&params->params[7]);
+	zrelease_mpi_key(&params->params[RSA_E1]);
+	zrelease_mpi_key(&params->params[RSA_E2]);
 
 	return ret;
 }
 
+static int calc_rsa_priv(gnutls_pk_params_st * params)
+{
+	bigint_t lcm, p1, q1;
+	int ret;
+
+	params->params[RSA_PRIV] = NULL;
+
+	ret = _gnutls_mpi_init_multi(&params->params[RSA_PRIV], &lcm, &p1, &q1, NULL);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	/* lcm(p - 1, q - 1) */
+	mpz_sub_ui(p1, params->params[RSA_PRIME1], 1);
+	mpz_sub_ui(q1, params->params[RSA_PRIME2], 1);
+	mpz_lcm(lcm, p1, q1);
+
+	zrelease_mpi_key(&p1);
+	zrelease_mpi_key(&q1);
+
+	/* d = e^{-1} (mod lcm) */
+	ret = mpz_invert(params->params[RSA_PRIV], params->params[RSA_PUB], lcm);
+
+	zrelease_mpi_key(&lcm);
+
+	if (ret == 0) {
+		zrelease_mpi_key(&params->params[RSA_PRIV]);
+		return GNUTLS_E_INVALID_REQUEST;
+	}
+
+	return 0;
+}
+
+static int calc_dsa_pub(gnutls_pk_params_st * params)
+{
+	int ret;
+
+	params->params[DSA_Y] = NULL;
+
+	ret = _gnutls_mpi_init(&params->params[DSA_Y]);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	/* y = g^x mod p */
+	ret = _gnutls_mpi_powm(params->params[DSA_Y], params->params[DSA_G],
+			params->params[DSA_X], params->params[DSA_P]);
+	if (ret < 0) {
+		zrelease_mpi_key(&params->params[DSA_Y]);
+		return gnutls_assert_val(ret);
+	}
+
+	return 0;
+}
 
 static int
 wrap_nettle_pk_fixup(gnutls_pk_algorithm_t algo,
@@ -3319,6 +3366,13 @@ wrap_nettle_pk_fixup(gnutls_pk_algorithm_t algo,
 
 	if (algo == GNUTLS_PK_RSA) {
 		struct rsa_private_key priv;
+
+		if (params->params[RSA_PRIV] == NULL) {
+			ret = calc_rsa_priv(params);
+			if (ret < 0)
+				return gnutls_assert_val(ret);
+			params->params_nr++;
+		}
 
 		/* do not trust the generated values. Some old private keys
 		 * generated by us have mess on the values. Those were very
@@ -3346,6 +3400,8 @@ wrap_nettle_pk_fixup(gnutls_pk_algorithm_t algo,
 		zrelease_mpi_key(&params->params[RSA_E1]);
 		zrelease_mpi_key(&params->params[RSA_E2]);
 
+		/* marks RSA_COEF as present */
+		params->params_nr = RSA_PRIVATE_PARAMS - 2;
 		ret = calc_rsa_exp(params);
 		if (ret < 0)
 			return gnutls_assert_val(ret);
@@ -3393,7 +3449,13 @@ wrap_nettle_pk_fixup(gnutls_pk_algorithm_t algo,
 						     params->spki.salt_size, pub_size,
 						     GNUTLS_E_PK_INVALID_PUBKEY_PARAMS);
 		}
-
+	} else if (algo == GNUTLS_PK_DSA) {
+		if (params->params[DSA_Y] == NULL) {
+			ret = calc_dsa_pub(params);
+			if (ret < 0)
+				return gnutls_assert_val(ret);
+			params->params_nr++;
+		}
 	}
 #if ENABLE_GOST
 	else if (algo == GNUTLS_PK_GOST_01 ||

@@ -706,7 +706,7 @@ void gnutls_deinit(gnutls_session_t session)
 	_gnutls_selected_certs_deinit(session);
 
 	/* destroy any session ticket we may have received */
-	_gnutls13_session_ticket_unset(session);
+	tls13_ticket_deinit(&session->internals.tls13_ticket);
 
 	/* we rely on priorities' internal reference counting */
 	gnutls_priority_deinit(session->internals.priorities);
@@ -1471,6 +1471,40 @@ gnutls_handshake_set_hook_function(gnutls_session_t session,
 	session->internals.h_hook = func;
 	session->internals.h_type = htype;
 	session->internals.h_post = when;
+}
+
+/**
+ * gnutls_handshake_set_read_function:
+ * @session: is #gnutls_session_t type
+ * @func: is the function to be called
+ *
+ * This function will set a callback to be called when a handshake
+ * message is being sent.
+ *
+ * Since: 3.7.0
+ */
+void
+gnutls_handshake_set_read_function(gnutls_session_t session,
+				   gnutls_handshake_read_func func)
+{
+	session->internals.h_read_func = func;
+}
+
+/**
+ * gnutls_alert_set_read_function:
+ * @session: is #gnutls_session_t type
+ * @func: is the function to be called
+ *
+ * This function will set a callback to be called when an alert
+ * message is being sent.
+ *
+ * Since: 3.7.0
+ */
+void
+gnutls_alert_set_read_function(gnutls_session_t session,
+			       gnutls_alert_read_func func)
+{
+	session->internals.alert_read_func = func;
 }
 
 /**

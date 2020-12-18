@@ -1,8 +1,8 @@
-/* hmac-gosthash94.c
+/* acpkm.h
 
-   HMAC-GOSTHASH94 message authentication code.
+   The R 1323565.1.017-2018 cipher function. See draft-irtf-cfrg-re-keying.
 
-   Copyright (C) 2016 Dmitry Eremin-Solenikov
+   Copyright (C) 2018 Dmitry Eremin-Solenikov
 
    This file is part of GNU Nettle.
 
@@ -28,38 +28,41 @@
 
    You should have received copies of the GNU General Public License and
    the GNU Lesser General Public License along with this program.  If
-   not, see https://www.gnu.org/licenses/.
+   not, see http://www.gnu.org/licenses/.
 */
 
-#if HAVE_CONFIG_H
-# include <config.h>
+#ifndef NETTLE_ACPKM_H_INCLUDED
+#define NETTLE_ACPKM_H_INCLUDED
+
+#include <nettle/nettle-types.h>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifndef HAVE_NETTLE_GOSTHASH94CP_UPDATE
+#define acpkm_crypt _gnutls_acpkm_crypt
 
-#include <gnutls_int.h>
-
-#include <nettle/hmac.h>
-#include "hmac-gost.h"
-#include "gosthash94.h"
-
-void
-hmac_gosthash94cp_set_key(struct hmac_gosthash94cp_ctx *ctx,
-		    size_t key_length, const uint8_t *key)
+struct acpkm_ctx
 {
-  HMAC_SET_KEY(ctx, &nettle_gosthash94cp, key_length, key);
-}
+  size_t N;
+  size_t pos;
+};
 
-void
-hmac_gosthash94cp_update(struct hmac_gosthash94cp_ctx *ctx,
-		   size_t length, const uint8_t *data)
-{
-  gosthash94cp_update(&ctx->state, length, data);
-}
-void
-hmac_gosthash94cp_digest(struct hmac_gosthash94cp_ctx *ctx,
-		   size_t length, uint8_t *digest)
-{
-  HMAC_DIGEST(ctx, &nettle_gosthash94cp, length, digest);
+#define ACPKM_CTX(type) \
+{ struct acpkm_ctx ctx; type cipher; }
+
+#define ACPKM_KEY_SIZE 32
+
+void acpkm_crypt(struct acpkm_ctx *ctx,
+		 void *cipher,
+		 nettle_cipher_func *encrypt,
+		 nettle_set_key_func *set_key,
+		 size_t length, uint8_t *dst,
+		 const uint8_t *src);
+
+#ifdef __cplusplus
 }
 #endif
+
+#endif /* NETTLE_ACPKM_H_INCLUDED */
+

@@ -18,12 +18,12 @@
 # along with GnuTLS; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-srcdir="${srcdir:-.}"
-P11TOOL="${P11TOOL:-../src/p11tool${EXEEXT}}"
-CERTTOOL="${CERTTOOL:-../src/certtool${EXEEXT}}"
-DIFF="${DIFF:-diff -b -B}"
-SERV="${SERV:-../src/gnutls-serv${EXEEXT}}"
-CLI="${CLI:-../src/gnutls-cli${EXEEXT}}"
+: ${srcdir=.}
+: ${P11TOOL=../src/p11tool${EXEEXT}}
+: ${CERTTOOL=../src/certtool${EXEEXT}}
+: ${DIFF=diff -b -B}
+: ${SERV=../src/gnutls-serv${EXEEXT}}
+: ${CLI=../src/gnutls-cli${EXEEXT}}
 RETCODE=0
 
 if test "${GNUTLS_FORCE_FIPS_MODE}" = 1;then
@@ -900,7 +900,7 @@ use_certificate_test () {
 	echo -n "* Using PKCS #11 with gnutls-cli (${txt})... "
 	# start server
 	eval "${GETPORT}"
-	launch_pkcs11_server $$ "${ADDITIONAL_PARAM}" --echo --priority NORMAL --x509certfile="${certfile}" \
+	launch_server ${ADDITIONAL_PARAM} --echo --priority NORMAL --x509certfile="${certfile}" \
 		--x509keyfile="$keyfile" --x509cafile="${cafile}" \
 		--verify-client-cert --require-client-cert >>"${LOGFILE}" 2>&1
 
@@ -931,8 +931,15 @@ reset_pins () {
 	UPIN="$2"
 	SOPIN="$3"
 	NEWPIN=88654321
-	LARGE_NEWPIN="1234123412341234123412341234123" #31 chars
-	TOO_LARGE_NEWPIN="12341234123412341234123412341234" #32 chars
+	# 255 chars
+	LARGE_NEWPIN="\
+1234123412341234123412341234123412341234123412341234123412341234\
+1234123412341234123412341234123412341234123412341234123412341234\
+1234123412341234123412341234123412341234123412341234123412341234\
+123412341234123412341234123412341234123412341234123412341234123\
+"
+	# 256 chars
+	TOO_LARGE_NEWPIN="$LARGE_NEWPIN"4
 
 	echo -n "* Setting SO PIN... "
 	# Test admin PIN

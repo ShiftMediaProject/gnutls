@@ -339,7 +339,6 @@ wrap_padlock_hmac_fast(gnutls_mac_algorithm_t algo,
 		wrap_padlock_hmac_update(&ctx, text, text_size);
 
 		wrap_padlock_hmac_output(&ctx, digest, ctx.length);
-		wrap_padlock_hmac_deinit(&ctx);
 
 		zeroize_temp_key(&ctx, sizeof(ctx));
 	}
@@ -347,7 +346,7 @@ wrap_padlock_hmac_fast(gnutls_mac_algorithm_t algo,
 	return 0;
 }
 
-const gnutls_crypto_mac_st _gnutls_hmac_sha_padlock = {
+const gnutls_crypto_mac_st _gnutls_hmac_sha_padlock_oneshot = {
 	.init = NULL,
 	.setkey = NULL,
 	.setnonce = NULL,
@@ -357,7 +356,7 @@ const gnutls_crypto_mac_st _gnutls_hmac_sha_padlock = {
 	.fast = wrap_padlock_hmac_fast
 };
 
-const gnutls_crypto_mac_st _gnutls_hmac_sha_padlock_nano = {
+const gnutls_crypto_mac_st _gnutls_hmac_sha_padlock = {
 	.init = wrap_padlock_hmac_init,
 	.setkey = wrap_padlock_hmac_setkey,
 	.setnonce = NULL,

@@ -882,6 +882,111 @@ void
 	cred->verify_callback = func;
 }
 
+/**
+ * gnutls_x509_trust_list_set_getissuer_function:
+ * @tlist: is a #gnutls_x509_trust_list_t type.
+ * @func: is the callback function
+ *
+ * This function sets a callback to be called when the peer's certificate
+ * chain is incomplete due a missing intermediate certificate. The callback
+ * may provide the missing certificate for use during verification.
+ *
+ * The callback's function prototype is defined in <gnutls/x509.h> as:
+ *
+ *   int (*callback)(gnutls_x509_trust_list_t list,
+ *                   const gnutls_x509_crt_t cert,
+ *                   gnutls_x509_crt_t **issuers,
+ *                   unsigned int *issuers_size);
+ *
+ * If the callback function is provided then gnutls will call it during the
+ * certificate verification procedure. The callback may wish to use
+ * gnutls_x509_crt_get_authority_info_access() to get a URI from which
+ * to attempt to download the missing issuer certificate, if available.
+ *
+ * On a successful call, the callback shall allocate the 'issuers' array with
+ * gnutls_x509_crt_list_import2(). The ownership of both the array and the
+ * elements is transferred to the caller and thus the application does not need
+ * to maintain the memory after the call.
+ *
+ * The callback function should return 0 if the missing issuer certificate
+ * for 'crt' was properly populated and added to the 'issuers', or non-zero
+ * to continue the certificate list verification but with issuer as %NULL.
+ *
+ * Since: 3.7.0
+ **/
+void gnutls_x509_trust_list_set_getissuer_function(gnutls_x509_trust_list_t tlist,
+		gnutls_x509_trust_list_getissuer_function * func)
+{
+	tlist->issuer_callback = func;
+}
+
+/**
+ * gnutls_x509_trust_list_set_ptr:
+ * @tlist: is a #gnutls_x509_trust_list_t type.
+ * @ptr: is the user pointer
+ *
+ * This function will set (associate) the user given pointer @ptr to
+ * the tlist structure. This pointer can be accessed with
+ * gnutls_x509_trust_list_get_ptr(). Useful in the callback function
+ * gnutls_x509_trust_list_set_getissuer_function.
+ *
+ * Since: 3.7.0
+ **/
+void gnutls_x509_trust_list_set_ptr(gnutls_x509_trust_list_t tlist, void *ptr)
+{
+	tlist->usr_ptr = ptr;
+}
+
+/**
+ * gnutls_x509_trust_list_get_ptr:
+ * @tlist: is a #gnutls_x509_trust_list_t type.
+ *
+ * Get user pointer for tlist. Useful in callback function
+ * gnutls_x509_trust_list_set_getissuer_function.
+ * This is the pointer set with gnutls_x509_trust_list_set_ptr().
+ *
+ * Returns: the user given pointer from the tlist structure, or
+ *   %NULL if it was never set.
+ *
+ * Since: 3.7.0
+ **/
+void *gnutls_x509_trust_list_get_ptr(gnutls_x509_trust_list_t tlist)
+{
+	return tlist->usr_ptr;
+}
+
+/**
+ * gnutls_session_set_verify_output_function:
+ * @session: is a #gnutls_x509_trust_list_t type.
+ * @func: is the callback function
+ *
+ * This function sets a callback to be called when the peer's certificate
+ * chain has to be verified and full path to the trusted root has to be
+ * printed.
+ *
+ * The callback's function prototype is defined in `x509.h':
+ * int (*callback)(
+ * gnutls_x509_crt_t cert,
+ * gnutls_x509_crt_t issuer,
+ * gnutls_x509_crl_t crl,
+ * unsigned int verification_output);
+ *
+ * If the callback function is provided then gnutls will call it, in the
+ * certificate verification procedure.
+ * To verify the certificate chain and print its path uptp the trusted root,
+ * functions such as gnutls_certificate_verify_peers(),
+ * gnutls_x509_trust_list_verify_crt(), and gnutls_x509_trust_list_verify_crt2()
+ * can be used. The callback is set in _gnutls_verify_crt_status() and
+ * _gnutls_pkcs11_verify_crt_status().
+ *
+ * Since: 3.7.0
+ **/
+void gnutls_session_set_verify_output_function(gnutls_session_t session,
+		gnutls_verify_output_function * func)
+{
+	session->internals.cert_output_callback = func;
+}
+
 #define TEST_TEXT "test text"
 /* returns error if the certificate has different algorithm than
  * the given key parameters.

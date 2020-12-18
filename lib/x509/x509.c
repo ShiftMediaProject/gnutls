@@ -704,7 +704,7 @@ gnutls_x509_crt_get_issuer_dn(gnutls_x509_crt_t cert, char *buf,
 /**
  * gnutls_x509_crt_get_issuer_dn2:
  * @cert: should contain a #gnutls_x509_crt_t type
- * @dn: a pointer to a structure to hold the name
+ * @dn: a pointer to a structure to hold the name; must be freed using gnutls_free()
  *
  * This function will allocate buffer and copy the name of issuer of the Certificate.
  * The name will be in the form "C=xxxx,O=yyyy,CN=zzzz" as
@@ -735,7 +735,7 @@ gnutls_x509_crt_get_issuer_dn2(gnutls_x509_crt_t cert, gnutls_datum_t * dn)
 /**
  * gnutls_x509_crt_get_issuer_dn3:
  * @cert: should contain a #gnutls_x509_crt_t type
- * @dn: a pointer to a structure to hold the name
+ * @dn: a pointer to a structure to hold the name; must be freed using gnutls_free()
  * @flags: zero or %GNUTLS_X509_DN_FLAG_COMPAT
  *
  * This function will allocate buffer and copy the name of issuer of the Certificate.
@@ -888,7 +888,7 @@ gnutls_x509_crt_get_dn(gnutls_x509_crt_t cert, char *buf,
 /**
  * gnutls_x509_crt_get_dn2:
  * @cert: should contain a #gnutls_x509_crt_t type
- * @dn: a pointer to a structure to hold the name
+ * @dn: a pointer to a structure to hold the name; must be freed using gnutls_free()
  *
  * This function will allocate buffer and copy the name of the Certificate.
  * The name will be in the form "C=xxxx,O=yyyy,CN=zzzz" as
@@ -918,7 +918,7 @@ int gnutls_x509_crt_get_dn2(gnutls_x509_crt_t cert, gnutls_datum_t * dn)
 /**
  * gnutls_x509_crt_get_dn3:
  * @cert: should contain a #gnutls_x509_crt_t type
- * @dn: a pointer to a structure to hold the name
+ * @dn: a pointer to a structure to hold the name; must be freed using gnutls_free()
  * @flags: zero or %GNUTLS_X509_DN_FLAG_COMPAT
  *
  * This function will allocate buffer and copy the name of the Certificate.
@@ -1774,12 +1774,6 @@ _gnutls_parse_general_name2(ASN1_TYPE src, const char *src_name,
 		if (ret < 0) {
 			gnutls_assert();
 			return ret;
-		}
-
-		if (type == GNUTLS_SAN_REGISTERED_ID && tmp.size > 0) {
-			/* see #805; OIDs contain the null termination byte */
-			assert(tmp.data[tmp.size-1] == 0);
-			tmp.size--;
 		}
 
 		/* _gnutls_x509_read_value() null terminates */
@@ -3873,20 +3867,17 @@ gnutls_x509_crt_list_import(gnutls_x509_crt_t * certs,
 
 	if (nocopy == 0) {
 		if (flags & GNUTLS_X509_CRT_LIST_SORT && *cert_max > 1) {
-			gnutls_x509_crt_t sorted[DEFAULT_MAX_VERIFY_DEPTH];
-			gnutls_x509_crt_t *s;
-
-			s = _gnutls_sort_clist(sorted, certs, cert_max, gnutls_x509_crt_deinit);
-			if (s == certs) {
-				gnutls_assert();
+			if (*cert_max > DEFAULT_MAX_VERIFY_DEPTH) {
 				ret = GNUTLS_E_UNIMPLEMENTED_FEATURE;
 				goto error;
 			}
-
-			count = *cert_max;
-			if (s == sorted) {
-				memcpy(certs, s, (*cert_max)*sizeof(gnutls_x509_crt_t));
+			count = _gnutls_sort_clist(certs, *cert_max);
+			if (count < *cert_max) {
+				for (j = count; j < *cert_max; j++) {
+					gnutls_x509_crt_deinit(certs[j]);
+				}
 			}
+			*cert_max = count;
 		}
 
 		if (flags & GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED) {
