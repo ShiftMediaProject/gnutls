@@ -107,6 +107,12 @@
     <ClInclude Include="..\lib\nettle\int\mpn-base256.h" />
     <ClInclude Include="..\lib\nettle\int\rsa-fips.h" />
     <ClInclude Include="..\lib\nettle\int\tls1-prf.h" />
+    <ClInclude Include="..\lib\nettle\gost\hmac-gost.h" />
+    <ClInclude Include="..\lib\nettle\gost\magma.h" />
+    <ClInclude Include="..\lib\nettle\gost\kuznyechik.h" />
+    <ClInclude Include="..\lib\nettle\gost\kuztable.h" />
+    <ClInclude Include="..\lib\nettle\gost\acpkm.h" />
+    <ClInclude Include="..\lib\nettle\gost\cmac.h" />
     <ClInclude Include="..\lib\num.h" />
     <ClInclude Include="..\lib\pin.h" />
     <ClInclude Include="..\lib\pk.h" />
@@ -422,6 +428,12 @@
     <ClCompile Include="..\lib\nettle\int\provable-prime.c" />
     <ClCompile Include="..\lib\nettle\int\rsa-keygen-fips186.c" />
     <ClCompile Include="..\lib\nettle\int\tls1-prf.c" />
+    <ClCompile Include="..\lib\nettle\gost\hmac-streebog.c" />
+    <ClCompile Include="..\lib\nettle\gost\magma.c" />
+    <ClCompile Include="..\lib\nettle\gost\kuznyechik.c" />
+    <ClCompile Include="..\lib\nettle\gost\acpkm.c" />
+    <ClCompile Include="..\lib\nettle\gost\cmac-magma.c" />
+    <ClCompile Include="..\lib\nettle\gost\cmac-kuznyechik.c" />
     <ClCompile Include="..\lib\nettle\mac.c">
       <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
     </ClCompile>

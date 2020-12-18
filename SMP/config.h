@@ -355,9 +355,6 @@ whether the gnulib module unistr/u8-mbtoucr shall be considered present. */
 whether the gnulib module unistr/u8-uctomb shall be considered present. */
 #define GNULIB_UNISTR_U8_UCTOMB 1
 
-/* Make sure we don't use old features in code. */
-#define GNUTLS_COMPAT_H 1
-
 /* We allow temporarily usage of deprecated functions - until they are
  removed. */
 #define GNUTLS_INTERNAL_BUILD 1
@@ -803,17 +800,11 @@ don't. */
  concept. */
 #define HAVE_MSVC_INVALID_PARAMETER_HANDLER 1
 
- /* Define to 1 if you have the `nettle_chacha_set_counter' function. */
-#define HAVE_NETTLE_CHACHA_SET_COUNTER 1
+ /* Define to 1 if you have the `nettle_cmac_magma_update' function. */
+#define HAVE_NETTLE_CMAC_MAGMA_UPDATE 1
 
-/* Define to 1 if you have the `nettle_cmac128_update' function. */
-#define HAVE_NETTLE_CMAC128_UPDATE 1
-
-/* Define to 1 if you have the `nettle_cfb8_encrypt' function. */
-#define HAVE_NETTLE_CFB8_ENCRYPT 1
-
-/* Define to 1 if you have the `nettle_xts_encrypt_message' function. */
-#define HAVE_NETTLE_XTS_ENCRYPT_MESSAGE 1
+ /* Define to 1 if you have the `nettle_cmac_kuznyechik_update' function. */
+#define HAVE_NETTLE_CMAC_KUZNYECHIK_UPDATE 1
 
 /* Define to 1 if you have the `nettle_get_gost_gc256b' function. */
 #define HAVE_NETTLE_GET_GOST_GC256B 1
@@ -821,23 +812,23 @@ don't. */
 /* Define to 1 if you have the `nettle_get_gost_gc512a' function. */
 #define HAVE_NETTLE_GET_GOST_GC512A 1
 
-/* Define to 1 if you have the `nettle_gostdsa_sign' function. */
-#define HAVE_NETTLE_GOSTDSA_SIGN 1
-
-/* Define to 1 if you have the `nettle_gosthash94cp_update' function. */
-#define HAVE_NETTLE_GOSTHASH94CP_UPDATE 1
-
-/* Define to 1 if you have the `nettle_gost28147_set_key' function. */
-/*#undef HAVE_NETTLE_GOST28147_SET_KEY */
-
-/* Define to 1 if you have the `nettle_streebog512_update' function. */
-/*#undef HAVE_NETTLE_STREEBOG512_UPDATE */
-
 /* Define to 1 if you have the `nettle_secp_192r1' function. */
 #define HAVE_NETTLE_GET_SECP_192R1 1
 
-/* Define to 1 if you have the `nettle_siv_cmac_aes128_set_ke' function. */
-#define HAVE_NETTLE_SIV_CMAC_AES128_SET_KEY 1
+/* Define to 1 if you have the `nettle_gostdsa_sign' function. */
+#define HAVE_NETTLE_GOSTDSA_SIGN 1
+
+/* Define to 1 if you have the `nettle_gost28147_set_key' function. */
+#define HAVE_NETTLE_GOST28147_SET_KEY 1
+
+/* Define to 1 if you have the `nettle_kuznyechik_set_key' function. */
+#define HAVE_NETTLE_KUZNYECHIK_SET_KEY 1
+
+/* Define to 1 if you have the `nettle_magma_set_key' function. */
+#define HAVE_NETTLE_MAGMA_SET_KEY 1
+
+/* Define to 1 if you have the `nettle_streebog512_update' function. */
+#define HAVE_NETTLE_STREEBOG512_UPDATE 1
 
 /* Define to 1 if you have the `nanosleep' function. */
 /* #undef HAVE_NANOSLEEP */
