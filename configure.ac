@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.7.0], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.7.1], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -145,7 +145,7 @@ case "$host" in
     dnl intended minimum runtime version.
     LDFLAGS="$LDFLAGS -Wl,-no_weak_imports"
     AC_MSG_CHECKING([whether the linker supports -Wl,-no_weak_imports])
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <sys/select.h>], [fd_set rfds; FD_ZERO(&rfds); FD_SET(0, &rfds);])],
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
       [AC_MSG_RESULT(yes)], [AC_MSG_RESULT(no); LDFLAGS="$save_LDFLAGS"])
   ;;
   *solaris*)
@@ -355,7 +355,7 @@ AC_C_BIGENDIAN
 
 dnl No fork on MinGW, disable some self-tests until we fix them.
 dnl Check clock_gettime and pthread_mutex_lock in libc (avoid linking to other libs)
-AC_CHECK_FUNCS([fork setitimer getrusage getpwuid_r nanosleep daemon getpid localtime mmap explicit_bzero],,)
+AC_CHECK_FUNCS([fork setitimer getrusage getpwuid_r nanosleep daemon getpid localtime mmap],,)
 dnl Manually check some functions by including headers first. On macOS, you
 dnl normally only have the latest SDK available, containing all existing
 dnl functions, but having them restricted according to target version in
@@ -413,6 +413,23 @@ fi
 if test "$ac_cv_func_clock_gettime" != "yes";then
   AC_LIB_HAVE_LINKFLAGS(rt,, [#include <time.h>], [clock_gettime (0, 0);])
   gnutls_needs_librt=yes
+fi
+
+if test "$have_macosx" = "yes";then
+  dnl Remove -no_weak_imports from LDFLAGS after testing for function
+  dnl availability; keeping it included later breaks code that uses
+  dnl FD_SET, which since Xcode 11.4 implicitly adds a call to the
+  dnl weakly linked function __darwin_check_fd_set_overflow. We only
+  dnl need it above to make sure that we don't detect functions that
+  dnl are linked weakly (and can end up null at runtime) unless
+  dnl we check for their availability at runtime.
+  new_LDFLAGS=""
+  for f in $LDFLAGS; do
+    if test "$f" != "-Wl,-no_weak_imports"; then
+      new_LDFLAGS="$new_LDFLAGS $f"
+    fi
+  done
+  LDFLAGS="$new_LDFLAGS"
 fi
 
 AC_ARG_WITH(included-unistring, AS_HELP_STRING([--with-included-unistring],
@@ -630,7 +647,7 @@ AM_CONDITIONAL(ENABLE_NON_SUITEB_CURVES, test "$enable_non_suiteb" = "yes")
 
 # We MUST require a Nettle version that has rsa_sec_decrypt now.
 save_LIBS=$LIBS
-LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS"
+LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS $GMP_LIBS"
 AC_CHECK_FUNCS(nettle_rsa_sec_decrypt,
     [],
     [AC_MSG_ERROR([Nettle lacks the required rsa_sec_decrypt function])]
@@ -724,6 +741,7 @@ LIBS=$save_LIBS
 
 gnutls_so=libgnutls.so.`expr "$LT_CURRENT" - "$LT_AGE"`
 AC_DEFINE_UNQUOTED([GNUTLS_LIBRARY_SONAME], ["$gnutls_so"], [The soname of gnutls library])
+AC_SUBST([gnutls_so])
 
 AC_MSG_CHECKING([whether to build libdane])
 AC_ARG_ENABLE(libdane,
@@ -989,7 +1007,7 @@ fi
 dnl Guile bindings.
 AC_MSG_CHECKING([whether building Guile bindings])
 AC_ARG_ENABLE(guile,
-	AS_HELP_STRING([--enable-guile], [build GNU Guile bindings]),
+	AS_HELP_STRING([--disable-guile], [don't build GNU Guile bindings]),
 		[opt_guile_bindings=$enableval], [opt_guile_bindings=yes])
 AC_MSG_RESULT($opt_guile_bindings)
 
@@ -1054,7 +1072,7 @@ if test "$opt_guile_bindings" = "yes"; then
       CFLAGS="$CFLAGS $GUILE_CFLAGS"
       LIBS="$LIBS $GUILE_LDFLAGS"
       AC_MSG_CHECKING([whether GNU Guile is recent enough])
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([], [scm_from_locale_string ("")])],
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <libguile.h>], [scm_from_locale_string ("")])],
         [], [opt_guile_bindings=no])
       CFLAGS="$save_CFLAGS"
       LIBS="$save_LIBS"

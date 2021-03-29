@@ -548,6 +548,8 @@ _wrap_nettle_pk_encrypt(gnutls_pk_algorithm_t algo,
 	int ret;
 	mpz_t p;
 
+	FAIL_IF_LIB_ERROR;
+
 	mpz_init(p);
 
 	switch (algo) {
@@ -609,6 +611,8 @@ _wrap_nettle_pk_decrypt(gnutls_pk_algorithm_t algo,
 			const gnutls_pk_params_st * pk_params)
 {
 	int ret;
+
+	FAIL_IF_LIB_ERROR;
 
 	plaintext->data = NULL;
 
@@ -703,6 +707,8 @@ _wrap_nettle_pk_decrypt2(gnutls_pk_algorithm_t algo,
 	uint32_t is_err;
 	int ret;
 	nettle_random_func *random_func;
+
+	FAIL_IF_LIB_ERROR;
 
 	if (algo != GNUTLS_PK_RSA || plaintext == NULL) {
 		gnutls_assert();
@@ -862,6 +868,8 @@ _wrap_nettle_pk_sign(gnutls_pk_algorithm_t algo,
 	int ret;
 	unsigned int hash_len;
 	const mac_entry_st *me;
+
+	FAIL_IF_LIB_ERROR;
 
 	if (IS_EC(algo)) {
 		/* check if the curve relates to the algorithm used */
@@ -1282,6 +1290,8 @@ _wrap_nettle_pk_verify(gnutls_pk_algorithm_t algo,
 	unsigned int hash_len;
 	bigint_t tmp[2] = { NULL, NULL };
 
+	FAIL_IF_LIB_ERROR;
+
 	if (IS_EC(algo)) {
 		/* check if the curve relates to the algorithm used */
 		if (gnutls_ecc_curve_get_pk(pk_params->curve) != algo)
@@ -1664,6 +1674,8 @@ wrap_nettle_pk_generate_params(gnutls_pk_algorithm_t algo,
 	int ret;
 	unsigned int i, q_bits;
 
+	FAIL_IF_LIB_ERROR;
+
 	params->algo = algo;
 
 	switch (algo) {
@@ -1824,7 +1836,7 @@ int _gnutls_dh_generate_key(gnutls_dh_params_t dh_params,
 	params.params[DH_P] = _gnutls_mpi_copy(dh_params->params[0]);
 	params.params[DH_G] = _gnutls_mpi_copy(dh_params->params[1]);
 
-	params.params_nr = 3; /* include empty q */
+	params.params_nr = 5;
 	params.algo = GNUTLS_PK_DH;
 
 	priv_key->data = NULL;
@@ -1856,6 +1868,7 @@ int _gnutls_dh_generate_key(gnutls_dh_params_t dh_params,
 	gnutls_free(priv_key->data);
  cleanup:
 	gnutls_pk_params_clear(&params);
+	gnutls_pk_params_release(&params);
 	return ret;
 }
 
@@ -1869,8 +1882,12 @@ int _gnutls_dh_compute_key(gnutls_dh_params_t dh_params,
 	int ret;
 
 	gnutls_pk_params_init(&pub);
-	gnutls_pk_params_init(&priv);
+	pub.params_nr = 5;
 	pub.algo = GNUTLS_PK_DH;
+
+	gnutls_pk_params_init(&priv);
+	priv.params_nr = 5;
+	priv.algo = GNUTLS_PK_DH;
 
 	if (_gnutls_mpi_init_scan_nz
 		    (&pub.params[DH_Y], peer_key->data,
@@ -1893,9 +1910,6 @@ int _gnutls_dh_compute_key(gnutls_dh_params_t dh_params,
 		goto cleanup;
 	}
 
-	priv.params_nr = 3; /* include, possibly empty, q */
-	priv.algo = GNUTLS_PK_DH;
-
 	Z->data = NULL;
 
 	ret = _gnutls_pk_derive(GNUTLS_PK_DH, Z, &priv, &pub);
@@ -1907,7 +1921,9 @@ int _gnutls_dh_compute_key(gnutls_dh_params_t dh_params,
 	ret = 0;
  cleanup:
 	gnutls_pk_params_clear(&pub);
+	gnutls_pk_params_release(&pub);
 	gnutls_pk_params_clear(&priv);
+	gnutls_pk_params_release(&priv);
 	return ret;
 }
 
@@ -1919,6 +1935,7 @@ int _gnutls_ecdh_generate_key(gnutls_ecc_curve_t curve,
 	int ret;
 
 	gnutls_pk_params_init(&params);
+	params.params_nr = 3;
 	params.curve = curve;
 	params.algo = GNUTLS_PK_ECDSA;
 
@@ -1960,6 +1977,7 @@ int _gnutls_ecdh_generate_key(gnutls_ecc_curve_t curve,
 	gnutls_free(k->data);
  cleanup:
 	gnutls_pk_params_clear(&params);
+	gnutls_pk_params_release(&params);
 	return ret;
 }
 
@@ -1973,10 +1991,14 @@ int _gnutls_ecdh_compute_key(gnutls_ecc_curve_t curve,
 	int ret;
 
 	gnutls_pk_params_init(&pub);
-	gnutls_pk_params_init(&priv);
-
+	pub.params_nr = 3;
 	pub.algo = GNUTLS_PK_ECDSA;
 	pub.curve = curve;
+
+	gnutls_pk_params_init(&priv);
+	priv.params_nr = 3;
+	priv.algo = GNUTLS_PK_ECDSA;
+	priv.curve = curve;
 
 	if (_gnutls_mpi_init_scan_nz
 		    (&pub.params[ECC_Y], peer_y->data,
@@ -1993,8 +2015,6 @@ int _gnutls_ecdh_compute_key(gnutls_ecc_curve_t curve,
 		    gnutls_assert_val(GNUTLS_E_MPI_SCAN_FAILED);
 		goto cleanup;
 	}
-
-	pub.params_nr = 2;
 
 	if (_gnutls_mpi_init_scan_nz
 		    (&priv.params[ECC_Y], y->data,
@@ -2020,11 +2040,6 @@ int _gnutls_ecdh_compute_key(gnutls_ecc_curve_t curve,
 		goto cleanup;
 	}
 
-
-	priv.params_nr = 3;
-	priv.algo = GNUTLS_PK_ECDSA;
-	priv.curve = curve;
-
 	Z->data = NULL;
 
 	ret = _gnutls_pk_derive(GNUTLS_PK_ECDSA, Z, &priv, &pub);
@@ -2036,7 +2051,9 @@ int _gnutls_ecdh_compute_key(gnutls_ecc_curve_t curve,
 	ret = 0;
  cleanup:
 	gnutls_pk_params_clear(&pub);
+	gnutls_pk_params_release(&pub);
 	gnutls_pk_params_clear(&priv);
+	gnutls_pk_params_release(&priv);
 	return ret;
 }
 
@@ -2261,6 +2278,8 @@ wrap_nettle_pk_generate_keys(gnutls_pk_algorithm_t algo,
 	unsigned int i;
 	unsigned rnd_level;
 	nettle_random_func *rnd_func;
+
+	FAIL_IF_LIB_ERROR;
 
 	if (IS_EC(algo)) {
 		/* check if the curve relates to the algorithm used */

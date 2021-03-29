@@ -165,7 +165,7 @@ static void client(int fd, int *resumption_should_succeed, unsigned num_sessions
 				clientx509cred);
 
 	gnutls_transport_set_int(session, fd);
-	gnutls_handshake_set_timeout(session, 20 * 1000);
+	gnutls_handshake_set_timeout(session, get_timeout());
 
 	if (handshake(session, &session_data, resumption_should_succeed[0]) < 0)
 		return;
@@ -235,7 +235,7 @@ static void server(int fd, int *resumption_should_succeed, unsigned num_sessions
 		_gnutls_set_session_ticket_key_rotation_callback(session, stek_rotation_callback);
 
 		gnutls_transport_set_int(session, fd);
-		gnutls_handshake_set_timeout(session, 20 * 1000);
+		gnutls_handshake_set_timeout(session, get_timeout());
 
 		do {
 			retval = gnutls_handshake(session);
@@ -297,11 +297,13 @@ static void run(const char *name, const char *prio, int resumption_should_succee
 
 	if (child) {
 		/* We are the parent */
+		close(sockets[1]);
 		server(sockets[0], resumption_should_succeed, rounds, prio);
 		waitpid(child, &status, 0);
 		check_wait_status(status);
 	} else {
 		/* We are the child */
+		close(sockets[0]);
 		client(sockets[1], resumption_should_succeed, rounds, prio);
 		exit(0);
 	}

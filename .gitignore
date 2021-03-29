@@ -219,6 +219,7 @@ libdane/gnutls-dane.pc
 libdane/libgnutls-dane.la
 lib/ext/libgnutls_ext.la
 lib/extras/libgnutls_extras.la
+lib/fipshmac
 lib/gcrypt/libcrypto.la
 lib/gnutls-api.texi
 lib/gnutls.pc
@@ -407,7 +408,6 @@ tests/dtls1.0-cert-key-exchange
 tests/dtls1.2-cert-key-exchange
 tests/dtls10-cert-key-exchange
 tests/dtls12-cert-key-exchange
-tests/dtls_hello_random_value
 tests/duplicate-extensions
 tests/eagain
 tests/eagain-auto-auth
@@ -438,11 +438,12 @@ tests/handshake-large-cert
 tests/handshake-large-packet
 tests/handshake-timeout
 tests/handshake-versions
+tests/handshake-write
 tests/hex
 tests/hostname-check
 tests/hostname-check-utf8
+tests/id-on-xmppAddr
 tests/infoaccess
-tests/init_fds
 tests/init_roundtrip
 tests/insecure_key
 tests/iov
@@ -467,9 +468,6 @@ tests/libpkcs11mock1.la
 tests/libpkcs11mock2.la
 tests/libutils.la
 tests/long-session-id
-tests/memset
-tests/memset0
-tests/memset1
 tests/mini
 tests/mini-alignment
 tests/mini-alpn
@@ -583,6 +581,7 @@ tests/pkcs11-token-raw
 tests/pkcs11/gnutls_pcert_list_import_x509_file
 tests/pkcs11/gnutls_x509_crt_list_import_url
 tests/pkcs11/list-objects
+tests/pkcs11/list-tokens
 tests/pkcs11/pkcs11-chainverify
 tests/pkcs11/pkcs11-combo
 tests/pkcs11/pkcs11-ec-privkey-test
@@ -855,8 +854,8 @@ tests/tls13-without-timeout-func
 tests/tls13/anti_replay
 tests/tls13/change_cipher_spec
 tests/tls13/cookie
-tests/tls13/hello_random_value
 tests/tls13/hello_retry_request
+tests/tls13/hello_retry_request_resume
 tests/tls13/key_limits
 tests/tls13/key_share
 tests/tls13/key_update
@@ -877,7 +876,6 @@ tests/tls13/psk-dumbfw
 tests/tls13/psk-ext
 tests/tls13/supported_versions
 tests/tls13/tls12-no-tls13-exts
-tests/tls_hello_random_value
 tests/tlsext-decoding
 tests/tlsfeature-crt
 tests/tlsfeature-ext

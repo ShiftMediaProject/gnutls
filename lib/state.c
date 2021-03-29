@@ -311,8 +311,8 @@ static bool _gnutls_has_cert_credentials(gnutls_session_t session,
  * and in some cases a matching certificate exists. A check for
  * the latter can be toggled via the parameter @check_credentials.
  */
-int
-_gnutls_session_cert_type_supported(gnutls_session_t session,
+bool
+_gnutls_session_is_cert_type_supported(gnutls_session_t session,
 				    gnutls_certificate_type_t cert_type,
 				    bool check_credentials,
 				    gnutls_ctype_target_t target)
@@ -419,7 +419,7 @@ static void handshake_internal_state_clear1(gnutls_session_t session)
 	session->internals.last_handshake_in = -1;
 	session->internals.last_handshake_out = -1;
 
-	session->internals.resumable = RESUME_TRUE;
+	session->internals.resumable = true;
 
 	session->internals.handshake_suspicious_loops = 0;
 	session->internals.dtls.hsk_read_seq = 0;
@@ -588,16 +588,12 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 #endif
 	handshake_internal_state_clear1(*session);
 
-#ifdef HAVE_WRITEV
 #ifdef MSG_NOSIGNAL
 	if (flags & GNUTLS_NO_SIGNAL)
 		gnutls_transport_set_vec_push_function(*session, system_writev_nosignal);
 	else
 #endif
 		gnutls_transport_set_vec_push_function(*session, system_writev);
-#else
-	gnutls_transport_set_push_function(*session, system_write);
-#endif
 	(*session)->internals.pull_timeout_func = gnutls_system_recv_timeout;
 	(*session)->internals.pull_func = system_read;
 	(*session)->internals.errno_func = system_errno;
@@ -638,13 +634,6 @@ int gnutls_init(gnutls_session_t * session, unsigned int flags)
 	gnutls_session_set_keylog_function(*session, _gnutls_nss_keylog_func);
 
 	return 0;
-}
-
-/* returns RESUME_FALSE or RESUME_TRUE.
- */
-int _gnutls_session_is_resumable(gnutls_session_t session)
-{
-	return session->internals.resumable;
 }
 
 
@@ -988,9 +977,9 @@ int gnutls_session_is_resumed(gnutls_session_t session)
 {
 	if (session->security_parameters.entity == GNUTLS_CLIENT) {
 		const version_entry_st *ver = get_version(session);
-		if (ver && ver->tls13_sem &&
-		    session->internals.resumed != RESUME_FALSE)
-			return 1;
+		if (ver && ver->tls13_sem) {
+			return session->internals.resumed;
+		}
 
 		if (session->security_parameters.session_id_size > 0 &&
 		    session->security_parameters.session_id_size ==
@@ -1004,7 +993,7 @@ int gnutls_session_is_resumed(gnutls_session_t session)
 			      session_id_size) == 0)
 			return 1;
 	} else {
-		if (session->internals.resumed != RESUME_FALSE)
+		if (session->internals.resumed)
 			return 1;
 	}
 

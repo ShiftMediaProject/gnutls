@@ -57,7 +57,7 @@
 
 #ifdef _WIN32
 static ssize_t
-tfo_send(gnutls_transport_ptr_t ptr, const void *buf, size_t len)
+tfo_writev(gnutls_transport_ptr_t ptr, const giovec_t * iovec, int iovec_cnt)
 {
 	tfo_st *p = ptr;
 	int fd = p->fd;
@@ -65,7 +65,8 @@ tfo_send(gnutls_transport_ptr_t ptr, const void *buf, size_t len)
 	if (unlikely(p->connect_addrlen != 0)) {
 		int ret;
 
-		ret = connect(fd, (struct sockaddr*)&p->connect_addr, p->connect_addrlen);
+		ret = connect(fd, (struct sockaddr*)&p->connect_addr,
+				p->connect_addrlen);
 		if (ret == -1 && (errno == EINPROGRESS)) {
 			gnutls_assert();
 			errno = EAGAIN;
@@ -79,7 +80,7 @@ tfo_send(gnutls_transport_ptr_t ptr, const void *buf, size_t len)
 		return ret;
 	}
 
-	return send(fd, buf, len, 0);
+	return system_writev(GNUTLS_INT_TO_POINTER(fd), iovec, iovec_cnt);
 }
 #else /* sendmsg */
 static ssize_t
@@ -219,7 +220,7 @@ gnutls_transport_set_fastopen(gnutls_session_t session,
 {
 	if (connect_addrlen > (socklen_t)sizeof(session->internals.tfo.connect_addr)) {
 		gnutls_assert();
-		abort();
+		return;
 	}
 
 	if (session->security_parameters.entity == GNUTLS_SERVER) {
@@ -241,11 +242,6 @@ gnutls_transport_set_fastopen(gnutls_session_t session,
 		session->internals.tfo.flags |= MSG_NOSIGNAL;
 #endif
 
-#ifdef _WIN32
-	gnutls_transport_set_vec_push_function(session, NULL);
-	gnutls_transport_set_push_function(session, tfo_send);
-#else
 	gnutls_transport_set_vec_push_function(session, tfo_writev);
-#endif
 }
 

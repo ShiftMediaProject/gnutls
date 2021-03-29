@@ -77,7 +77,7 @@ _gnutls_hello_set_default_version(gnutls_session_t session,
 	}
 
 
-int _gnutls_session_cert_type_supported(gnutls_session_t session,
+bool _gnutls_session_is_cert_type_supported(gnutls_session_t session,
 				    gnutls_certificate_type_t cert_type,
 				    bool check_credentials,
 				    gnutls_ctype_target_t target);
@@ -99,11 +99,7 @@ static inline int _gnutls_dh_get_min_prime_bits(gnutls_session_t session)
 
 void _gnutls_handshake_internal_state_clear(gnutls_session_t);
 
-int _gnutls_session_is_resumable(gnutls_session_t session);
-
 int _gnutls_session_is_psk(gnutls_session_t session);
-
-int _gnutls_openpgp_send_fingerprint(gnutls_session_t session);
 
 void reset_binders(gnutls_session_t session);
 
