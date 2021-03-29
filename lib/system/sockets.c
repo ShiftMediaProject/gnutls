@@ -84,7 +84,11 @@ ssize_t
 system_writev(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
 	      int iovec_cnt)
 {
+#if defined(_MSC_VER)
+	WSABUF* bufs = (WSABUF*)_alloca(iovec_cnt * sizeof(WSABUF));
+#else
 	WSABUF bufs[iovec_cnt];
+#endif
 	DWORD bytes_sent;
 	int to_send_cnt = 0;
 	size_t to_send_bytes = 0;

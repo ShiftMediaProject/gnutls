@@ -2305,6 +2305,15 @@ _GL_UNUSED_LABEL should be used with a trailing ;*/
 # define _GL_ATTRIBUTE_FALLTHROUGH /* empty */
 #endif
 
+/* The deprecated attribute was added in gcc 3.1.*/
+#  if __GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 1)
+#   define _GL_ATTRIBUTE_DEPRECATED /* empty */
+#  else
+#   define _GL_ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
+#  endif
+
+#define _GL_CMP(n1, n2) (((n1) > (n2)) - ((n1) < (n2)))
+
 #ifndef WORD_BIT
 /* Assume 'int' is 32 bits wide.*/
 # define WORD_BIT 32
