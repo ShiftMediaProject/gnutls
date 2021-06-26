@@ -861,7 +861,8 @@ gnutls_x509_crt_get_issuer_dn_oid(gnutls_x509_crt_t cert,
  * described in RFC4514. The output string will be ASCII or UTF-8
  * encoded, depending on the certificate data.
  *
- * If @buf is null then only the size will be filled.
+ * The @buf returned will be null terminated and the @buf_size will account
+ * for the trailing null. If @buf is null then only the size will be filled.
  *
  * This function does not output a fully RFC4514 compliant string, if
  * that is required see gnutls_x509_crt_get_dn3().
@@ -1671,7 +1672,7 @@ gnutls_x509_crt_get_spki(gnutls_x509_crt_t cert, gnutls_x509_spki_t spki, unsign
  *
  */
 int
-_gnutls_parse_general_name2(ASN1_TYPE src, const char *src_name,
+_gnutls_parse_general_name2(asn1_node src, const char *src_name,
 			   int seq, gnutls_datum_t *dname,
 			   unsigned int *ret_type, int othername_oid)
 {
@@ -1792,7 +1793,7 @@ _gnutls_parse_general_name2(ASN1_TYPE src, const char *src_name,
  * Type is also returned as a parameter in case of an error.
  */
 int
-_gnutls_parse_general_name(ASN1_TYPE src, const char *src_name,
+_gnutls_parse_general_name(asn1_node src, const char *src_name,
 			   int seq, void *name, size_t * name_size,
 			   unsigned int *ret_type, int othername_oid)
 {
@@ -3700,7 +3701,7 @@ gnutls_x509_crt_list_import2(gnutls_x509_crt_t ** certs,
 	unsigned int init = 1024;
 	int ret;
 
-	*certs = gnutls_malloc(sizeof(gnutls_x509_crt_t) * init);
+	*certs = _gnutls_reallocarray(NULL, init, sizeof(gnutls_x509_crt_t));
 	if (*certs == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_MEMORY_ERROR;
@@ -3710,9 +3711,8 @@ gnutls_x509_crt_list_import2(gnutls_x509_crt_t ** certs,
 	    gnutls_x509_crt_list_import(*certs, &init, data, format,
 					flags | GNUTLS_X509_CRT_LIST_IMPORT_FAIL_IF_EXCEED);
 	if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		*certs =
-		    gnutls_realloc_fast(*certs,
-					sizeof(gnutls_x509_crt_t) * init);
+		*certs = _gnutls_reallocarray_fast(*certs, init,
+						   sizeof(gnutls_x509_crt_t));
 		if (*certs == NULL) {
 			gnutls_assert();
 			return GNUTLS_E_MEMORY_ERROR;
@@ -3999,7 +3999,7 @@ gnutls_x509_crt_get_issuer_unique_id(gnutls_x509_crt_t crt, char *buf,
 }
 
 static int
-legacy_parse_aia(ASN1_TYPE src,
+legacy_parse_aia(asn1_node src,
 		  unsigned int seq, int what, gnutls_datum_t * data)
 {
 	int len;
@@ -4170,7 +4170,7 @@ gnutls_x509_crt_get_authority_info_access(gnutls_x509_crt_t crt,
 {
 	int ret;
 	gnutls_datum_t aia;
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
 
 	if (crt == NULL) {
 		gnutls_assert();
@@ -4375,7 +4375,7 @@ gnutls_x509_crt_list_import_url(gnutls_x509_crt_t **certs,
 		gnutls_free(issuer.data);
 	}
 
-	*certs = gnutls_malloc(total*sizeof(gnutls_x509_crt_t));
+	*certs = _gnutls_reallocarray(NULL, total, sizeof(gnutls_x509_crt_t));
 	if (*certs == NULL) {
 		ret = GNUTLS_E_MEMORY_ERROR;
 		goto cleanup;

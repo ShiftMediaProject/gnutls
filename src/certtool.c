@@ -197,7 +197,7 @@ generate_private_key_int(common_info_st * cinfo)
 
 	if (provable && (!GNUTLS_PK_IS_RSA(key_type) && key_type != GNUTLS_PK_DSA)) {
 		fprintf(stderr,
-			"The --provable parameter cannot be used with ECDSA keys.\n");
+			"The --provable parameter can only be used with RSA and DSA keys.\n");
 		app_exit(1);
 	}
 
@@ -363,13 +363,13 @@ generate_certificate(gnutls_privkey_t * ret_key,
 		} else {
 			get_dn_crt_set(crt);
 
+			get_country_crt_set(crt);
+			get_state_crt_set(crt);
+			get_locality_crt_set(crt);
+			get_organization_crt_set(crt);
+			get_unit_crt_set(crt);
 			get_cn_crt_set(crt);
 			get_uid_crt_set(crt);
-			get_unit_crt_set(crt);
-			get_organization_crt_set(crt);
-			get_locality_crt_set(crt);
-			get_state_crt_set(crt);
-			get_country_crt_set(crt);
 			get_dc_set(TYPE_CRT, crt);
 
 			get_oid_crt_set(crt);
@@ -781,10 +781,8 @@ generate_certificate(gnutls_privkey_t * ret_key,
 	/* always set CRL distribution points on CAs, but also on certificates
 	 * generated with --generate-self-signed. The latter is to retain
 	 * compatibility with previous versions of certtool. */
-	if (ca_status || (!proxy && ca_crt == NULL)) {
+	if (ca_status || !proxy) {
 		get_crl_dist_point_set(crt);
-	} else if (!proxy && ca_crt != NULL) {
-		gnutls_x509_crt_cpy_crl_dist_points(crt, ca_crt);
 	}
 
 	*ret_key = key;
@@ -1425,7 +1423,7 @@ static void cmd_parser(int argc, char **argv)
 	}
 
 	if (HAVE_OPT(VERIFY_PROFILE)) {
-		if (strcasecmp(OPT_ARG(VERIFY_PROFILE), "none")) {
+		if (strcasecmp(OPT_ARG(VERIFY_PROFILE), "none") == 0) {
 			cinfo.verification_profile = (gnutls_sec_param_t)GNUTLS_PROFILE_UNKNOWN;
 		} else {
 			cinfo.verification_profile = (gnutls_sec_param_t)gnutls_certificate_verification_profile_get_id(OPT_ARG(VERIFY_PROFILE));
@@ -1925,15 +1923,15 @@ void generate_request(common_info_st * cinfo)
 	 */
 	get_dn_crq_set(crq);
 
-	get_cn_crq_set(crq);
-	get_unit_crq_set(crq);
-	get_organization_crq_set(crq);
-	get_locality_crq_set(crq);
-	get_state_crq_set(crq);
 	get_country_crq_set(crq);
+	get_state_crq_set(crq);
+	get_locality_crq_set(crq);
+	get_organization_crq_set(crq);
+	get_unit_crq_set(crq);
+	get_cn_crq_set(crq);
 
-	get_dc_set(TYPE_CRQ, crq);
 	get_uid_crq_set(crq);
+	get_dc_set(TYPE_CRQ, crq);
 	get_oid_crq_set(crq);
 
 	get_dns_name_set(TYPE_CRQ, crq);

@@ -40,9 +40,9 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #     in CONTRIBUTION.md for more info.
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
-  AC_SUBST(LT_CURRENT, 59)
-  AC_SUBST(LT_REVISION, 1)
-  AC_SUBST(LT_AGE, 29)
+  AC_SUBST(LT_CURRENT, 60)
+  AC_SUBST(LT_REVISION, 0)
+  AC_SUBST(LT_AGE, 30)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
@@ -343,6 +343,21 @@ LIBTASN1_MINIMUM=4.9
   if test "$enable_cryptodev" = "yes"; then
     AC_DEFINE([ENABLE_CRYPTODEV], 1, [Enable cryptodev support])
   fi
+
+  # For AF_ALG
+  AC_MSG_CHECKING([whether to add AF_ALG support])
+  AC_ARG_ENABLE(afalg,
+    AS_HELP_STRING([--enable-afalg], [enable AF_ALG support]),
+  enable_afalg=$enableval,enable_afalg=no)
+  AC_MSG_RESULT($enable_afalg)
+
+  if test "$enable_afalg" = "yes"; then
+    PKG_CHECK_MODULES(LIBKCAPI, [libkcapi >= 1.3.0], [], [enable_afalg=no])
+  fi
+  if test "$enable_afalg" = "yes"; then
+    AC_DEFINE([ENABLE_AFALG], 1, [Enable AF_ALG support])
+  fi
+  AM_CONDITIONAL(ENABLE_AFALG, test "$enable_afalg" != "no")
 
   AC_MSG_CHECKING([whether to disable OCSP support])
   AC_ARG_ENABLE(ocsp,

@@ -362,7 +362,7 @@ library.
 
 The GnuTLS library is initialized on load; prior to 3.3.0 was initialized by calling @funcref{gnutls_global_init}@footnote{
 The original behavior of requiring explicit initialization can obtained by setting the
-GNUTLS_NO_EXPLICIT_INIT environment variable to 1, or by using the macro GNUTLS_SKIP_GLOBAL_INIT
+GNUTLS_NO_IMPLICIT_INIT environment variable to 1, or by using the macro GNUTLS_SKIP_GLOBAL_INIT
 in a global section of your program --the latter works in systems with
 support for weak symbols only.}. @funcref{gnutls_global_init} in
 versions after 3.3.0 is thread-safe (see @ref{Thread safety}).
@@ -1609,6 +1609,10 @@ will enable the use of the fallback signaling cipher suite value in the
 client hello.  Note that this should be set only by applications that
 try to reconnect with a downgraded protocol version. See RFC7507 for
 details.
+
+@item %DISABLE_TLS13_COMPAT_MODE @tab
+will disable TLS 1.3 middlebox compatibility mode (RFC8446, Appendix
+D.4) for non-compliant middleboxes.
 
 @item %VERIFY_ALLOW_BROKEN @tab
 will allow signatures with known to be broken algorithms (such as MD5 or

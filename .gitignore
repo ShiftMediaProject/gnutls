@@ -3,6 +3,13 @@
 /ABOUT-NLS
 AUTHORS
 ABOUT-NLS
+# GNU global
+GPATH
+GSYMS
+GRTAGS
+GTAGS
+# ctags, etags
+TAGS
 aclocal.m4
 aminclude_static.am
 autom4te.cache/
@@ -790,6 +797,7 @@ tests/system-override-hash
 tests/system-override-sig
 tests/system-prio-file
 tests/time
+tests/tls-channel-binding
 tests/tls-client-with-seccomp
 tests/tls-crt_type-neg
 tests/tls-etm
@@ -843,8 +851,10 @@ tests/tls12-rollback-detection
 tests/tls12-server-kx-neg
 tests/tls13-cert-key-exchange
 tests/tls13-cipher-neg
+tests/tls13-compat-mode
 tests/tls13-early-data
 tests/tls13-early-data-neg
+tests/tls13-early-data-neg2
 tests/tls13-early-start
 tests/tls13-rehandshake-cert
 tests/tls13-resume-psk
@@ -912,7 +922,7 @@ tests/x509sign-verify-gost
 tests/x509sign-verify-rsa
 tests/x509sign-verify2
 tests/x509signself
-*.tmp*
+*.tmp
 tmp-*
 *.trs
 win32

@@ -33,6 +33,7 @@
 #include <locks.h>
 #include <system.h>
 #include <accelerated/cryptodev.h>
+#include <accelerated/afalg.h>
 #include <accelerated/accelerated.h>
 #include <fips.h>
 #include <atfork.h>
@@ -88,13 +89,13 @@ inline static int _gnutls_global_init_skip(void)
 #endif
 
 /* created by asn1c */
-extern const ASN1_ARRAY_TYPE gnutls_asn1_tab[];
-extern const ASN1_ARRAY_TYPE pkix_asn1_tab[];
+extern const asn1_static_node gnutls_asn1_tab[];
+extern const asn1_static_node pkix_asn1_tab[];
 void *_gnutls_file_mutex;
 void *_gnutls_pkcs11_mutex;
 
-ASN1_TYPE _gnutls_pkix1_asn = ASN1_TYPE_EMPTY;
-ASN1_TYPE _gnutls_gnutls_asn = ASN1_TYPE_EMPTY;
+asn1_node _gnutls_pkix1_asn = NULL;
+asn1_node _gnutls_gnutls_asn = NULL;
 
 gnutls_log_func _gnutls_log_func = NULL;
 gnutls_audit_log_func _gnutls_audit_log_func = NULL;
@@ -219,7 +220,7 @@ static int _gnutls_init_ret = 0;
  *
  * Since GnuTLS 3.3.0 this function is no longer necessary to be explicitly
  * called. To disable the implicit call (in a library constructor) of this
- * function set the environment variable %GNUTLS_NO_EXPLICIT_INIT to 1.
+ * function set the environment variable %GNUTLS_NO_IMPLICIT_INIT to 1.
  *
  * This function performs any required precalculations, detects
  * the supported CPU capabilities and initializes the underlying
@@ -257,16 +258,6 @@ static int _gnutls_global_init(unsigned constructor)
 
 	_gnutls_init++;
 	if (_gnutls_init > 1) {
-		if (_gnutls_init == 2 && _gnutls_init_ret == 0) {
-			/* some applications may close the urandom fd 
-			 * before calling gnutls_global_init(). in that
-			 * case reopen it */
-			ret = _gnutls_rnd_check();
-			if (ret < 0) {
-				gnutls_assert();
-				goto out;
-			}
-		}
 		ret = _gnutls_init_ret;
 		goto out;
 	}
@@ -310,7 +301,7 @@ static int _gnutls_global_init(unsigned constructor)
 		goto out;
 	}
 
-	_gnutls_pkix1_asn = ASN1_TYPE_EMPTY;
+	_gnutls_pkix1_asn = NULL;
 	res = asn1_array2tree(pkix_asn1_tab, &_gnutls_pkix1_asn, NULL);
 	if (res != ASN1_SUCCESS) {
 		gnutls_assert();
@@ -389,6 +380,7 @@ static int _gnutls_global_init(unsigned constructor)
 
 	_gnutls_register_accel_crypto();
 	_gnutls_cryptodev_init();
+	_gnutls_afalg_init();
 
 #ifdef ENABLE_FIPS140
 	/* These self tests are performed on the overridden algorithms
@@ -517,14 +509,22 @@ const char *gnutls_check_version(const char *req_version)
 CONSTRUCTOR_ATTRIBUTE(lib_init);
 static void lib_init(void)
 {
-int ret;
-const char *e;
+	int ret;
+	const char *e;
 
 	if (_gnutls_global_init_skip() != 0)
 		return;
 
+	e = secure_getenv("GNUTLS_NO_IMPLICIT_INIT");
+	if (e != NULL) {
+		ret = atoi(e);
+		if (ret == 1)
+			return;
+	}
+
 	e = secure_getenv("GNUTLS_NO_EXPLICIT_INIT");
 	if (e != NULL) {
+		_gnutls_debug_log("GNUTLS_NO_EXPLICIT_INIT is deprecated; use GNUTLS_NO_IMPLICIT_INIT\n");
 		ret = atoi(e);
 		if (ret == 1)
 			return;
@@ -540,14 +540,23 @@ const char *e;
 DESTRUCTOR_ATTRIBUTE(lib_deinit);
 static void lib_deinit(void)
 {
+	int ret;
 	const char *e;
 
 	if (_gnutls_global_init_skip() != 0)
 		return;
 
+	e = secure_getenv("GNUTLS_NO_IMPLICIT_INIT");
+	if (e != NULL) {
+		ret = atoi(e);
+		if (ret == 1)
+			return;
+	}
+
 	e = secure_getenv("GNUTLS_NO_EXPLICIT_INIT");
 	if (e != NULL) {
-		int ret = atoi(e);
+		_gnutls_debug_log("GNUTLS_NO_EXPLICIT_INIT is deprecated; use GNUTLS_NO_IMPLICIT_INIT\n");
+		ret = atoi(e);
 		if (ret == 1)
 			return;
 	}

@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.7.1], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.7.2], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -120,7 +120,7 @@ case "$host" in
   *mingw32* | *mingw64*)
     have_win=yes
     AC_DEFINE([_UNICODE], [1], [Defined to 1 for Unicode (wide chars) APIs])
-    GNUTLS_LIBS_PRIVATE="${GNUTLS_LIBS_PRIVATE} -lcrypt32"
+    GNUTLS_LIBS_PRIVATE="${GNUTLS_LIBS_PRIVATE} -ladvapi32 -lcrypt32"
     AC_PREPROC_IFELSE([AC_LANG_PROGRAM(
       [[#include <windows.h>
        #if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600
@@ -457,6 +457,9 @@ fi
 
 AM_CONDITIONAL(HAVE_LIBUNISTRING, test "$ac_have_unistring" = "yes")
 
+# specify our own suppressions file; this needs to be set before gl_INIT
+DEFAULT_VALGRINDFLAGS='-q --error-exitcode=1 --leak-check=full --track-origins=yes --gen-suppressions=all --suppressions=\$(srcdir)/suppressions.valgrind'
+
 dnl Note that g*l_INIT are run after we check for library capabilities,
 dnl to prevent issues from caching lib dependencies. See discussion
 dnl in https://bugs.gentoo.org/show_bug.cgi?id=494940 and
@@ -554,6 +557,8 @@ if test "$gl_gcc_warnings" = yes; then
   gl_WARN_ADD([-Wabi=11])
   gl_WARN_ADD([-fdiagnostics-show-option])
 fi
+
+gl_VALGRIND_TESTS_DEFAULT_NO
 
 if test "$gl_cv_opt_valgrind_tests" != no; then
   gl_WARN_ADD([-fno-builtin-strcmp])
@@ -1208,6 +1213,7 @@ AC_MSG_NOTICE([summary of build options:
 AC_MSG_NOTICE([External hardware support:
 
   /dev/crypto:          $enable_cryptodev
+  AF_ALG support:       $enable_afalg
   Hardware accel:       $hw_accel
   Padlock accel:        $use_padlock
   Random gen. variant:  $rnd_variant

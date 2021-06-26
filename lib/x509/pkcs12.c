@@ -37,17 +37,18 @@
 #include "x509_int.h"
 #include "pkcs7_int.h"
 #include <random.h>
+#include "intprops.h"
 
 
 /* Decodes the PKCS #12 auth_safe, and returns the allocated raw data,
- * which holds them. Returns an ASN1_TYPE of authenticatedSafe.
+ * which holds them. Returns an asn1_node of authenticatedSafe.
  */
 static int
-_decode_pkcs12_auth_safe(ASN1_TYPE pkcs12, ASN1_TYPE * authen_safe,
+_decode_pkcs12_auth_safe(asn1_node pkcs12, asn1_node * authen_safe,
 			 gnutls_datum_t * raw)
 {
 	char oid[MAX_OID_SIZE];
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
 	gnutls_datum_t auth_safe = { NULL, 0 };
 	int len, result;
 	char error_str[ASN1_MAX_ERROR_DESCRIPTION_SIZE];
@@ -366,7 +367,7 @@ _pkcs12_decode_safe_contents(const gnutls_datum_t * content,
 			     gnutls_pkcs12_bag_t bag)
 {
 	char oid[MAX_OID_SIZE], root[MAX_NAME_SIZE];
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
 	int len, result;
 	int bag_type;
 	gnutls_datum_t attr_val;
@@ -548,7 +549,7 @@ _pkcs12_decode_safe_contents(const gnutls_datum_t * content,
 
 
 static int
-_parse_safe_contents(ASN1_TYPE sc, const char *sc_name,
+_parse_safe_contents(asn1_node sc, const char *sc_name,
 		     gnutls_pkcs12_bag_t bag)
 {
 	gnutls_datum_t content = { NULL, 0 };
@@ -599,7 +600,7 @@ int
 gnutls_pkcs12_get_bag(gnutls_pkcs12_t pkcs12,
 		      int indx, gnutls_pkcs12_bag_t bag)
 {
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
 	int result, len;
 	char root2[MAX_NAME_SIZE];
 	char oid[MAX_OID_SIZE];
@@ -667,11 +668,11 @@ gnutls_pkcs12_get_bag(gnutls_pkcs12_t pkcs12,
 
 /* Creates an empty PFX structure for the PKCS12 structure.
  */
-static int create_empty_pfx(ASN1_TYPE pkcs12)
+static int create_empty_pfx(asn1_node pkcs12)
 {
 	uint8_t three = 3;
 	int result;
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
 
 	/* Use version 3
 	 */
@@ -733,8 +734,8 @@ static int create_empty_pfx(ASN1_TYPE pkcs12)
  **/
 int gnutls_pkcs12_set_bag(gnutls_pkcs12_t pkcs12, gnutls_pkcs12_bag_t bag)
 {
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
-	ASN1_TYPE safe_cont = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
+	asn1_node safe_cont = NULL;
 	int result;
 	int enc = 0, dum = 1;
 	char null;
@@ -1212,7 +1213,7 @@ pkcs12_try_gost:
 
 static int
 write_attributes(gnutls_pkcs12_bag_t bag, int elem,
-		 ASN1_TYPE c2, const char *where)
+		 asn1_node c2, const char *where)
 {
 	int result;
 	char root[128];
@@ -1315,10 +1316,10 @@ write_attributes(gnutls_pkcs12_bag_t bag, int elem,
  * the given datum. Enc is set to non-zero if the data are encrypted;
  */
 int
-_pkcs12_encode_safe_contents(gnutls_pkcs12_bag_t bag, ASN1_TYPE * contents,
+_pkcs12_encode_safe_contents(gnutls_pkcs12_bag_t bag, asn1_node * contents,
 			     int *enc)
 {
-	ASN1_TYPE c2 = ASN1_TYPE_EMPTY;
+	asn1_node c2 = NULL;
 	int result;
 	unsigned i;
 	const char *oid;
@@ -1455,10 +1456,13 @@ static int make_chain(gnutls_x509_crt_t ** chain, unsigned int *chain_len,
 			    != 0)
 				goto skip;
 
-			*chain =
-			    gnutls_realloc_fast(*chain,
-						sizeof((*chain)[0]) *
-						++(*chain_len));
+			if (unlikely(INT_ADD_OVERFLOW(*chain_len, 1))) {
+				return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
+			}
+
+			*chain = _gnutls_reallocarray_fast(*chain,
+							   ++(*chain_len),
+							   sizeof((*chain)[0]));
 			if (*chain == NULL) {
 				gnutls_assert();
 				return GNUTLS_E_MEMORY_ERROR;
@@ -1778,12 +1782,15 @@ gnutls_pkcs12_simple_parse(gnutls_pkcs12_t p12,
 				}
 
 				if (memcmp(cert_id, key_id, cert_id_size) != 0) {	/* they don't match - skip the certificate */
+					if (unlikely(INT_ADD_OVERFLOW(_extra_certs_len, 1))) {
+						ret = gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
+						goto done;
+					}
+
 					_extra_certs =
-						gnutls_realloc_fast
-						(_extra_certs,
-						 sizeof(_extra_certs
-							[0]) *
-						 ++_extra_certs_len);
+						_gnutls_reallocarray_fast(_extra_certs,
+									  ++_extra_certs_len,
+									  sizeof(_extra_certs[0]));
 					if (!_extra_certs) {
 						gnutls_assert();
 						ret =

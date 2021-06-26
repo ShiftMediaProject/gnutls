@@ -842,13 +842,13 @@ int _gnutls_x509_crl_cpy(gnutls_x509_crl_t dest, gnutls_x509_crl_t src)
 }
 
 static int
-_get_authority_key_id(gnutls_x509_crl_t cert, ASN1_TYPE * c2,
+_get_authority_key_id(gnutls_x509_crl_t cert, asn1_node * c2,
 		      unsigned int *critical)
 {
 	int ret;
 	gnutls_datum_t id;
 
-	*c2 = ASN1_TYPE_EMPTY;
+	*c2 = NULL;
 
 	if (cert == NULL) {
 		gnutls_assert();
@@ -920,7 +920,7 @@ gnutls_x509_crl_get_authority_key_gn_serial(gnutls_x509_crl_t crl,
 					    unsigned int *critical)
 {
 	int ret, result, len;
-	ASN1_TYPE c2;
+	asn1_node c2;
 
 	ret = _get_authority_key_id(crl, &c2, critical);
 	if (ret < 0)
@@ -985,7 +985,7 @@ gnutls_x509_crl_get_authority_key_id(gnutls_x509_crl_t crl, void *id,
 				     unsigned int *critical)
 {
 	int result, len, ret;
-	ASN1_TYPE c2;
+	asn1_node c2;
 
 	ret = _get_authority_key_id(crl, &c2, critical);
 	if (ret < 0)
@@ -1262,7 +1262,7 @@ gnutls_x509_crl_list_import2(gnutls_x509_crl_t ** crls,
 	unsigned int init = 1024;
 	int ret;
 
-	*crls = gnutls_malloc(sizeof(gnutls_x509_crl_t) * init);
+	*crls = _gnutls_reallocarray(NULL, init, sizeof(gnutls_x509_crl_t));
 	if (*crls == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_MEMORY_ERROR;
@@ -1272,9 +1272,8 @@ gnutls_x509_crl_list_import2(gnutls_x509_crl_t ** crls,
 	    gnutls_x509_crl_list_import(*crls, &init, data, format,
 					flags | GNUTLS_X509_CRT_LIST_IMPORT_FAIL_IF_EXCEED);
 	if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER) {
-		*crls =
-		    gnutls_realloc_fast(*crls,
-					sizeof(gnutls_x509_crl_t) * init);
+		*crls = _gnutls_reallocarray_fast(*crls, init,
+						  sizeof(gnutls_x509_crl_t));
 		if (*crls == NULL) {
 			gnutls_assert();
 			return GNUTLS_E_MEMORY_ERROR;

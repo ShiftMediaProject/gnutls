@@ -110,6 +110,7 @@ static int generate_create_conf(const char *tpasswd_conf)
 			g = gnutls_srp_8192_group_generator;
 		} else {
 			fprintf(stderr, "Unknown index: %d\n", index);
+			fclose(fp);
 			return -1;
 		}
 
@@ -310,13 +311,13 @@ verify_passwd(const char *conffile, const char *tpasswd,
 	}
 	while (p != NULL && atoi(p) != iindex);
 
+	fclose(fp);
+
 	if (p == NULL) {
 		fprintf(stderr, "Cannot find entry in %s\n", conffile);
 		return -1;
 	}
 	line[sizeof(line) - 1] = 0;
-
-	fclose(fp);
 
 	if (read_conf_values(&g, &n, line) < 0) {
 		fprintf(stderr, "Cannot parse conf file '%s'\n", conffile);
@@ -585,6 +586,7 @@ crypt_int(const char *username, const char *passwd, int salt_size,
 			fprintf(stderr, "Cannot open '%s' for read\n",
 				tmpname);
 			(void)remove(tmpname);
+			fclose(fp);
 			return -1;
 		}
 

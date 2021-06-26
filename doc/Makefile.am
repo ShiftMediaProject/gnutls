@@ -28,6 +28,7 @@ IMAGES = \
 	gnutls-handshake-state.png	\
 	gnutls-layers.png gnutls-modauth.png \
 	gnutls-client-server-use-case.png			\
+	gnutls-crypto-layers.png				\
 	gnutls-handshake-sequence.png gnutls-internals.png	\
 	gnutls-logo.png gnutls-x509.png	\
 	pkcs11-vision.png
@@ -991,6 +992,10 @@ FUNCS += functions/gnutls_dtls_set_mtu
 FUNCS += functions/gnutls_dtls_set_mtu.short
 FUNCS += functions/gnutls_dtls_set_timeouts
 FUNCS += functions/gnutls_dtls_set_timeouts.short
+FUNCS += functions/gnutls_early_cipher_get
+FUNCS += functions/gnutls_early_cipher_get.short
+FUNCS += functions/gnutls_early_prf_hash_get
+FUNCS += functions/gnutls_early_prf_hash_get.short
 FUNCS += functions/gnutls_ecc_curve_get
 FUNCS += functions/gnutls_ecc_curve_get.short
 FUNCS += functions/gnutls_ecc_curve_get_id
