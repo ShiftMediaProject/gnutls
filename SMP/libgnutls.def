@@ -189,6 +189,8 @@ gnutls_dtls_prestate_set
 gnutls_dtls_set_data_mtu
 gnutls_dtls_set_mtu
 gnutls_dtls_set_timeouts
+gnutls_early_cipher_get
+gnutls_early_prf_hash_get
 gnutls_ecc_curve_get
 gnutls_ecc_curve_get_id
 gnutls_ecc_curve_get_name

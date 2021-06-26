@@ -89,10 +89,10 @@ index 166dd61ca..2c391feba 100644
  	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
  			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
 diff --git a/lib/global.c b/lib/global.c
-index 9a65d114c..46d2b1a4f 100644
+index 373141883..1b0158d4b 100644
 --- a/lib/global.c
 +++ b/lib/global.c
-@@ -46,11 +46,32 @@
+@@ -47,11 +47,32 @@
  #ifdef __sun
  # pragma fini(lib_deinit)
  # pragma init(lib_init)
@@ -129,7 +129,7 @@ index 9a65d114c..46d2b1a4f 100644
  #endif
  
  #ifndef _WIN32
-@@ -493,7 +514,8 @@ const char *gnutls_check_version(const char *req_version)
+@@ -485,7 +506,8 @@ const char *gnutls_check_version(const char *req_version)
  	return NULL;
  }
  
@@ -137,9 +137,9 @@ index 9a65d114c..46d2b1a4f 100644
 +CONSTRUCTOR_ATTRIBUTE(lib_init);
 +static void lib_init(void)
  {
- int ret;
- const char *e;
-@@ -515,7 +537,8 @@ const char *e;
+ 	int ret;
+ 	const char *e;
+@@ -515,7 +537,8 @@ static void _CONSTRUCTOR lib_init(void)
  	}
  }
  
@@ -147,10 +147,10 @@ index 9a65d114c..46d2b1a4f 100644
 +DESTRUCTOR_ATTRIBUTE(lib_deinit);
 +static void lib_deinit(void)
  {
+ 	int ret;
  	const char *e;
- 
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index b3f7185e9..86c74164a 100644
+index d69b29b44..d5e34bf27 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -37,7 +37,12 @@

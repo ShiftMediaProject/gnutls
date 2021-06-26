@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClInclude Include="..\lib\abstract_int.h" />
     <ClInclude Include="..\lib\accelerated\accelerated.h" />
+    <ClInclude Include="..\lib\accelerated\afalg.h" />
     <ClInclude Include="..\lib\accelerated\cryptodev.h" />
     <ClInclude Include="..\lib\accelerated\x86\aes-gcm-aead.h" />
     <ClInclude Include="..\lib\accelerated\x86\aes-padlock.h" />
@@ -246,6 +247,7 @@
     <ClCompile Include="..\gnulib\lib\unistr\u8-to-u32.c" />
     <ClCompile Include="..\gnulib\lib\unistr\u8-uctomb-aux.c" />
     <ClCompile Include="..\lib\accelerated\accelerated.c" />
+    <ClCompile Include="..\lib\accelerated\afalg.c" />
     <ClCompile Include="..\lib\accelerated\cryptodev-gcm.c" />
     <ClCompile Include="..\lib\accelerated\cryptodev.c" />
     <ClCompile Include="..\lib\accelerated\x86\aes-cbc-x86-aesni.c" />
