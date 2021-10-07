@@ -31,9 +31,9 @@ YASM is required to compile all assembly files.
 2) Once downloaded simply follow the install instructions included in the download.
 
 
-*** Building with Gnulib submodule ***
+*** Building with Gnulib+libtasn1 submodules ***
 
-In order to build libgnutls you must first ensure that the gnulib submodule is correctly initialised.
+In order to build libgnutls you must first ensure that the gnulib submodule and the libtasn1 submodule are both correctly initialised.
 
 1) If not already installed then download and install git for windows.
 
