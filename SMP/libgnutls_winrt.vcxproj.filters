@@ -106,6 +106,12 @@
     <Filter Include="Source Files\libtasn1">
       <UniqueIdentifier>{32be60b7-8c65-486e-9df5-7e529443cf07}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\lib\nettle\gost">
+      <UniqueIdentifier>{4fada990-3138-4089-a6c7-ae722a0e7fe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\nettle\gost">
+      <UniqueIdentifier>{14dbb6a8-3d06-47f8-8413-ec8181f8ab8f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -575,6 +581,27 @@
     </ClInclude>
     <ClInclude Include="..\lib\nettle\int\block8.h">
       <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\accelerated\afalg.h">
+      <Filter>Header Files\lib\accelerated</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\gost\magma.h">
+      <Filter>Header Files\lib\nettle\gost</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\gost\kuztable.h">
+      <Filter>Header Files\lib\nettle\gost</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\gost\kuznyechik.h">
+      <Filter>Header Files\lib\nettle\gost</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\gost\hmac-gost.h">
+      <Filter>Header Files\lib\nettle\gost</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\gost\cmac.h">
+      <Filter>Header Files\lib\nettle\gost</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\nettle\gost\acpkm.h">
+      <Filter>Header Files\lib\nettle\gost</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1510,6 +1537,27 @@
     </ClCompile>
     <ClCompile Include="..\devel\libtasn1\lib\version.c">
       <Filter>Source Files\libtasn1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\accelerated\afalg.c">
+      <Filter>Source Files\lib\accelerated</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\gost\acpkm.c">
+      <Filter>Source Files\lib\nettle\gost</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\gost\cmac-kuznyechik.c">
+      <Filter>Source Files\lib\nettle\gost</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\gost\cmac-magma.c">
+      <Filter>Source Files\lib\nettle\gost</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\gost\hmac-streebog.c">
+      <Filter>Source Files\lib\nettle\gost</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\gost\kuznyechik.c">
+      <Filter>Source Files\lib\nettle\gost</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\gost\magma.c">
+      <Filter>Source Files\lib\nettle\gost</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
