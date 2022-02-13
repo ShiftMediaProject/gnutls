@@ -3644,7 +3644,7 @@ static const struct sct_sign_algorithm_st algos[] = {
 
 static gnutls_sign_algorithm_t get_sigalg(uint8_t hash_algo, uint8_t sig_algo)
 {
-	const struct sct_sign_algorithm_st *algo;
+	const struct sct_sign_algorithm_st *algo = NULL;
 	size_t i, num_algos = sizeof(algos) / sizeof(algos[0]);
 
 	if (hash_algo == 0 || sig_algo == 0)
