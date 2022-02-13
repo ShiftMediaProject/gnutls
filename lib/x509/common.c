@@ -549,7 +549,9 @@ _gnutls_x509_export_int_named(asn1_node asn1_data, const char *name,
 
 	*output_data_size = (size_t) out.size;
 	if (output_data) {
-		memcpy(output_data, out.data, (size_t) out.size);
+		if (out.size > 0) {
+			memcpy(output_data, out.data, (size_t) out.size);
+		}
 		if (format == GNUTLS_X509_FMT_PEM)
 			output_data[out.size] = 0;
 	}
@@ -630,7 +632,8 @@ _gnutls_x509_decode_string(unsigned int etype,
 	if (td.data == NULL)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
-	memcpy(td.data, str, str_size);
+        if (str_size > 0)
+                memcpy(td.data, str, str_size);
 	td.data[str_size] = 0;
 
 	if (allow_ber)

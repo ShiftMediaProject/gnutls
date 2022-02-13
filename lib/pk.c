@@ -1031,7 +1031,7 @@ int _gnutls_params_get_ecc_raw(const gnutls_pk_params_st* params,
 
 	e = _gnutls_ecc_curve_get_params(params->curve);
 
-	if (_curve_is_eddsa(e)) {
+	if (_curve_is_eddsa(e) || _curve_is_modern_ecdh(e)) {
 		if (x) {
 			ret = _gnutls_set_datum(x, params->raw_pub.data, params->raw_pub.size);
 			if (ret < 0) {
@@ -1200,6 +1200,18 @@ pk_prepare_hash(gnutls_pk_algorithm_t pk,
 	case GNUTLS_PK_RSA:
 		if (unlikely(hash == NULL))
 			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+		/* Only SHA-2 is allowed in FIPS 140-3 */
+		switch (hash->id) {
+		case GNUTLS_MAC_SHA256:
+		case GNUTLS_MAC_SHA384:
+		case GNUTLS_MAC_SHA512:
+		case GNUTLS_MAC_SHA224:
+			break;
+		default:
+			_gnutls_switch_fips_state(GNUTLS_FIPS140_OP_NOT_APPROVED);
+		}
+
 		/* Encode the digest as a DigestInfo
 		 */
 		if ((ret =
@@ -1216,6 +1228,8 @@ pk_prepare_hash(gnutls_pk_algorithm_t pk,
 	case GNUTLS_PK_ECDSA:
 	case GNUTLS_PK_EDDSA_ED25519:
 	case GNUTLS_PK_EDDSA_ED448:
+	case GNUTLS_PK_ECDH_X25519:
+	case GNUTLS_PK_ECDH_X448:
 	case GNUTLS_PK_GOST_01:
 	case GNUTLS_PK_GOST_12_256:
 	case GNUTLS_PK_GOST_12_512:

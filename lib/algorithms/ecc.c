@@ -81,6 +81,7 @@ gnutls_ecc_curve_entry_st ecc_curves[] = {
 	},
 	{
 	 .name = "X25519",
+         .oid = ECDH_X25519_OID,
 	 .id = GNUTLS_ECC_CURVE_X25519,
 	 .group = GNUTLS_GROUP_X25519,
 	 .pk = GNUTLS_PK_ECDH_X25519,
@@ -98,6 +99,7 @@ gnutls_ecc_curve_entry_st ecc_curves[] = {
 	},
 	{
 	 .name = "X448",
+         .oid = ECDH_X448_OID,
 	 .id = GNUTLS_ECC_CURVE_X448,
 	 .pk = GNUTLS_PK_ECDH_X448,
 	 .size = 56,
@@ -351,13 +353,58 @@ gnutls_ecc_curve_t gnutls_ecc_curve_get_id(const char *name)
 	return ret;
 }
 
-int _gnutls_ecc_curve_mark_disabled(const char *name)
+/* This is only called by cfg_apply in priority.c, in blocklisting mode. */
+int _gnutls_ecc_curve_mark_disabled(gnutls_ecc_curve_t curve)
 {
 	gnutls_ecc_curve_entry_st *p;
 
 	for(p = ecc_curves; p->name != NULL; p++) {
-		if (c_strcasecmp(p->name, name) == 0) {
-			p->supported = 0;
+		if (p->id == curve) {
+			p->supported = false;
+			return 0;
+		}
+	}
+
+	return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+}
+
+/* This is only called by cfg_apply in priority.c, in allowlisting mode. */
+void _gnutls_ecc_curve_mark_disabled_all(void)
+{
+	gnutls_ecc_curve_entry_st *p;
+
+	for(p = ecc_curves; p->name != NULL; p++) {
+		p->supported = false;
+		p->supported_revertible = true;
+	}
+}
+
+/**
+ * gnutls_ecc_curve_set_enabled:
+ * @curve: is an ECC curve
+ * @enabled: whether to enable the curve
+ *
+ * Modify the previous system wide setting that marked @curve as
+ * enabled or disabled.  This only has effect when the curve is
+ * enabled through the allowlisting mode in the configuration file, or
+ * when the setting is modified with a prior call to this function.
+ *
+ * Returns: 0 on success or negative error code otherwise.
+ *
+ * Since: 3.7.3
+ */
+int
+gnutls_ecc_curve_set_enabled(gnutls_ecc_curve_t curve,
+			     unsigned int enabled)
+{
+	gnutls_ecc_curve_entry_st *p;
+
+	for(p = ecc_curves; p->name != NULL; p++) {
+		if (p->id == curve) {
+			if (!p->supported_revertible) {
+				return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+			}
+			p->supported = enabled;
 			return 0;
 		}
 	}

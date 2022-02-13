@@ -736,11 +736,9 @@ gnutls_x509_privkey_import2(gnutls_x509_privkey_t key,
 		if (ret >= 0)
 			return ret;
 
-		if (ret < 0) {
-			gnutls_assert();
-			saved_ret = ret;
-			/* fall through to PKCS #8 decoding */
-		}
+		gnutls_assert();
+		saved_ret = ret;
+		/* fall through to PKCS #8 decoding */
 	}
 
 	if ((password != NULL || (flags & GNUTLS_PKCS_NULL_PASSWORD))
@@ -780,6 +778,16 @@ gnutls_x509_privkey_import2(gnutls_x509_privkey_t key,
 				    gnutls_x509_privkey_import_openssl(key,
 								       data,
 								       password);
+
+				if (ret == GNUTLS_E_DECRYPTION_FAILED && password == NULL) {
+					/* use the callback if any */
+					memset(pin, 0, GNUTLS_PKCS11_MAX_PIN_LEN);
+					ret = _gnutls_retrieve_pin(&key->pin, "key:", "", 0, pin, sizeof(pin));
+					if (ret == 0) {
+						ret = gnutls_x509_privkey_import_openssl(key, data, pin);
+					}
+				}
+
 				if (ret < 0) {
 					gnutls_assert();
 					goto cleanup;

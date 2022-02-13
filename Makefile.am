@@ -28,7 +28,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--with-guile-extension-dir='$$(libdir)/guile/$$(GUILE_EFFECTIVE_VERSION)/extensions' \
 	AUTOGEN=false
 
-SUBDIRS = gl lib extra
+SUBDIRS = gl lib extra python
 
 if ENABLE_DANE
 SUBDIRS += libdane
@@ -57,7 +57,7 @@ if ENABLE_DOC
 SUBDIRS += doc
 endif
 
-ACLOCAL_AMFLAGS = -I m4 -I src/libopts/m4 -I src/gl/m4 -I lib/unistring/m4 --install
+ACLOCAL_AMFLAGS = -I m4 -I src/gl/m4 -I lib/unistring/m4 --install
 
 EXTRA_DIST = cfg.mk maint.mk CONTRIBUTING.md README.md LICENSE AUTHORS NEWS \
 	ChangeLog THANKS INSTALL.md RELEASES.md .mailmap
@@ -79,18 +79,18 @@ pic-check:
 	false; \
 	fi
 
-ABIDW_COMMON = --no-show-locs --no-corpus-path
+ABIDW_COMMON = --drop-private-types --no-show-locs --no-corpus-path
 ABIGNORE_FILE = "$(top_srcdir)/devel/libgnutls.abignore"
 SYMBOLS_LAST_FILE = "$(top_srcdir)/devel/symbols.last"
-LIBGNUTLS_ABI_LAST_FILE = "$(top_srcdir)/devel/libgnutls-latest-$$(uname -m).abi"
-LIBDANE_ABI_LAST_FILE = "$(top_srcdir)/devel/libdane-latest-$$(uname -m).abi"
+LIBGNUTLS_ABI_LAST_FILE = "$(top_srcdir)/devel/abi-dump/libgnutls-latest-$$(uname -m).abi"
+LIBDANE_ABI_LAST_FILE = "$(top_srcdir)/devel/abi-dump/libdane-latest-$$(uname -m).abi"
 
 abi-dump-versioned: lib/libgnutls.la libdane/libgnutls-dane.la
 	@echo "**************************************************************************"
 	@echo "Generating versioned ABI files of current gnutls and gnutls-dane libraries"
 	@echo "**************************************************************************"
-	@abidw lib/.libs/libgnutls.so $(ABIDW_COMMON) --suppressions $(ABIGNORE_FILE) --out-file "$(srcdir)/devel/libgnutls-$(VERSION)-$$(uname -m).abi"
-	@abidw libdane/.libs/libgnutls-dane.so $(ABIDW_COMMON) --out-file "$(srcdir)/devel/libdane-$(VERSION)-$$(uname -m).abi"
+	@abidw lib/.libs/libgnutls.so $(ABIDW_COMMON) --suppressions $(ABIGNORE_FILE) --out-file "$(srcdir)/devel/abi-dump/libgnutls-$(VERSION)-$$(uname -m).abi"
+	@abidw libdane/.libs/libgnutls-dane.so $(ABIDW_COMMON) --out-file "$(srcdir)/devel/abi-dump/libdane-$(VERSION)-$$(uname -m).abi"
 
 abi-dump-latest: lib/libgnutls.la libdane/libgnutls-dane.la
 	@echo "****************************************************************"
@@ -123,7 +123,7 @@ abi-check-latest: lib/libgnutls.la libdane/libgnutls-dane.la
 
 ABICHECK_COMMON = --no-added-syms
 abi-check: lib/libgnutls.la libdane/libgnutls-dane.la
-	@for file in $$(echo $(srcdir)/devel/libgnutls-*-$$(uname -m).abi);do \
+	@for file in $$(echo $(srcdir)/devel/abi-dump/libgnutls-*-$$(uname -m).abi);do \
 		echo "Comparing libgnutls with $$file"; \
 		abidiff $${file} lib/.libs/libgnutls.so $(ABICHECK_COMMON) --suppressions $(ABIGNORE_FILE) --hd2 "$(srcdir)/lib/includes/gnutls/" --hd2 $(builddir)/lib/includes/gnutls/; \
 		if test $$? != 0;then \
@@ -133,7 +133,7 @@ abi-check: lib/libgnutls.la libdane/libgnutls-dane.la
 			exit 1; \
 		fi; \
 	done
-	@for file in $$(echo $(srcdir)/devel/libdane-*-$$(uname -m).abi);do \
+	@for file in $$(echo $(srcdir)/devel/abi-dump/libdane-*-$$(uname -m).abi);do \
 		echo "Comparing libgnutls-dane with $$file"; \
 		abidiff $${file} libdane/.libs/libgnutls-dane.so $(ABICHECK_COMMON) --hd2 "$(srcdir)/libdane/includes/gnutls/" --hd2 $(builddir)/lib/includes/gnutls/; \
 		if test $$? != 0;then \
@@ -180,14 +180,7 @@ distclean-local: code-coverage-dist-clean
 local-code-coverage-output: code-coverage-capture
 	cat GnuTLS-$(VERSION)-coverage/index.html|grep headerCovTableEntry|grep '%'|head -1|sed 's/^.*>\([0-9]\+\.[0-9]\+\s*%\)<.*$$/ coverage lines: \1/' || true
 
-libopts-check:
-	@echo "*****************************************************************"
-	@echo "Checking whether included libopts matches the system's. If the"
-	@echo "check fails upgrade the included libopts."
-	@echo "*****************************************************************"
-	test "`autoopts-config libsrc|awk -F '-' '{print $$NF}'|sed 's/.tar.gz//'`" = "`cat $(srcdir)/src/libopts/autoopts/options.h |grep OPTIONS_VERSION_STRING|cut -d '"' -f 2|sed 's/:/./g'`"
-
-files-update: libopts-check abi-dump-latest
+files-update:
 	$(MAKE) -C doc/ compare-makefile || mv doc/tmp-compare-makefile $(srcdir)/doc/Makefile.am
 	$(MAKE) -C doc/manpages compare-makefile || mv doc/manpages/tmp-compare-makefile $(srcdir)/doc/manpages/Makefile.am
 	$(MAKE) -C . symbol-check || mv symbols.last.tmp $(SYMBOLS_LAST_FILE)
@@ -195,7 +188,7 @@ files-update: libopts-check abi-dump-latest
 	@echo "updated auto-generated files; please use git diff to verify the correctness of the changes"
 	@echo "******************************************************************************************"
 
-dist-hook: libopts-check
+dist-hook:
 	$(PKG_CONFIG) --atleast-version=2.2.0 guile-2.2
 	if test -d "$(top_srcdir)/devel";then \
 		$(MAKE) -C $(top_srcdir) symbol-check && \
@@ -208,4 +201,4 @@ dist-hook: libopts-check
 	mv ChangeLog $(distdir)
 	touch -c $(distdir)/doc/*.html $(distdir)/doc/*.pdf $(distdir)/doc/*.info
 
-.PHONY: abi-check abi-dump-versioned abi-dump-latest pic-check symbol-check local-code-coverage-output files-update libopts-check AUTHORS
+.PHONY: abi-check abi-dump-versioned abi-dump-latest pic-check symbol-check local-code-coverage-output files-update AUTHORS

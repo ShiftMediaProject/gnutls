@@ -43,61 +43,107 @@ endif
 EXTRA_DIST += $(TOOLS_MANS) $(SRP_MANS) $(DANE_MANS)
 MAINTAINERCLEANFILES += $(TOOLS_MANS) $(SRP_MANS) $(DANE_MANS)
 
-# Note that our .def files depend on autogen
-# supporting the @subheading texi keyword. This
-# is not currently the case so we do remove it
-# before processing. Once the new version of autogen
-# is out, replace the sed and tmp files with a simple
-# autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl $<
-certtool.1: ../../src/certtool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+$(man_MANS): $(top_srcdir)/doc/scripts/gen-cmd-man.py
 
-ocsptool.1: ../../src/ocsptool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+GEN_CMD_MAN_OPTIONS = \
+	--license=gpl3+ \
+	--version='$(VERSION)' \
+	--authors='Nikos Mavrogiannopoulos, Simon Josefsson and others; see /usr/share/doc/gnutls/AUTHORS for a complete list.' \
+	--copyright-year=2020-2021 \
+	--copyright-holder='Free Software Foundation, and others all rights reserved.' \
+	--bug-email=bugs@gnutls.org
 
-danetool.1: ../../src/danetool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+certtool.1: $(top_srcdir)/doc/certtool-see-also.texi $(top_srcdir)/doc/certtool-examples.texi $(top_srcdir)/doc/certtool-files.texi
+certtool.1: $(top_srcdir)/src/certtool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/certtool-see-also.texi \
+		--examples $(top_srcdir)/doc/certtool-examples.texi \
+		--files $(top_srcdir)/doc/certtool-files.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-gnutls-cli.1: ../../src/cli-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+ocsptool.1: $(top_srcdir)/doc/ocsptool-see-also.texi $(top_srcdir)/doc/ocsptool-examples.texi $(top_srcdir)/doc/ocsptool-description.texi
+ocsptool.1: $(top_srcdir)/src/ocsptool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/ocsptool-see-also.texi \
+		--examples $(top_srcdir)/doc/ocsptool-examples.texi \
+		--description $(top_srcdir)/doc/ocsptool-description.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-gnutls-serv.1: ../../src/serv-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+danetool.1: $(top_srcdir)/doc/danetool-see-also.texi $(top_srcdir)/doc/danetool-examples.texi
+danetool.1: $(top_srcdir)/src/danetool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/danetool-see-also.texi \
+		--examples $(top_srcdir)/doc/danetool-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-gnutls-cli-debug.1: ../../src/cli-debug-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+gnutls-cli.1: $(top_srcdir)/doc/gnutls-cli-see-also.texi $(top_srcdir)/doc/gnutls-cli-examples.texi
+gnutls-cli.1: $(top_srcdir)/src/gnutls-cli-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/gnutls-cli-see-also.texi \
+		--examples $(top_srcdir)/doc/gnutls-cli-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-srptool.1: ../../src/srptool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+gnutls-serv.1: $(top_srcdir)/doc/gnutls-serv-see-also.texi $(top_srcdir)/doc/gnutls-serv-examples.texi
+gnutls-serv.1: $(top_srcdir)/src/gnutls-serv-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/gnutls-serv-see-also.texi \
+		--examples $(top_srcdir)/doc/gnutls-serv-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-p11tool.1: ../../src/p11tool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+gnutls-cli-debug.1: $(top_srcdir)/doc/gnutls-cli-debug-see-also.texi $(top_srcdir)/doc/gnutls-cli-debug-examples.texi
+gnutls-cli-debug.1: $(top_srcdir)/src/gnutls-cli-debug-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/gnutls-cli-debug-see-also.texi \
+		--examples $(top_srcdir)/doc/gnutls-cli-debug-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-tpmtool.1: ../../src/tpmtool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+srptool.1: $(top_srcdir)/doc/srptool-see-also.texi $(top_srcdir)/doc/srptool-examples.texi
+srptool.1: $(top_srcdir)/src/srptool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/srptool-see-also.texi \
+		--examples $(top_srcdir)/doc/srptool-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
-psktool.1: ../../src/psktool-args.def
-	-sed 's/@subheading \(.*\)/@*\n@var{\1}\n@*/' $< > "$<".tmp && \
-	autogen -L ../../src -DMAN_SECTION=1 -Tagman-cmd.tpl "$<".tmp && \
-	rm -f "$<".tmp
+p11tool.1: $(top_srcdir)/doc/p11tool-see-also.texi $(top_srcdir)/doc/p11tool-examples.texi
+p11tool.1: $(top_srcdir)/src/p11tool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/p11tool-see-also.texi \
+		--examples $(top_srcdir)/doc/p11tool-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
+
+tpmtool.1: $(top_srcdir)/doc/tpmtool-see-also.texi $(top_srcdir)/doc/tpmtool-examples.texi
+tpmtool.1: $(top_srcdir)/src/tpmtool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/tpmtool-see-also.texi \
+		--examples $(top_srcdir)/doc/tpmtool-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
+
+psktool.1: $(top_srcdir)/doc/psktool-see-also.texi $(top_srcdir)/doc/psktool-examples.texi
+psktool.1: $(top_srcdir)/src/psktool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(top_srcdir)/doc/scripts/gen-cmd-man.py \
+		--see-also $(top_srcdir)/doc/psktool-see-also.texi \
+		--examples $(top_srcdir)/doc/psktool-examples.texi \
+		$(GEN_CMD_MAN_OPTIONS) \
+		$< $@
 
 APIMANS =
 APIMANS += dane_cert_type_name.3
@@ -289,6 +335,7 @@ APIMANS += gnutls_digest_get_id.3
 APIMANS += gnutls_digest_get_name.3
 APIMANS += gnutls_digest_get_oid.3
 APIMANS += gnutls_digest_list.3
+APIMANS += gnutls_digest_set_secure.3
 APIMANS += gnutls_dtls_cookie_send.3
 APIMANS += gnutls_dtls_cookie_verify.3
 APIMANS += gnutls_dtls_get_data_mtu.3
@@ -307,6 +354,7 @@ APIMANS += gnutls_ecc_curve_get_oid.3
 APIMANS += gnutls_ecc_curve_get_pk.3
 APIMANS += gnutls_ecc_curve_get_size.3
 APIMANS += gnutls_ecc_curve_list.3
+APIMANS += gnutls_ecc_curve_set_enabled.3
 APIMANS += gnutls_encode_ber_digest_info.3
 APIMANS += gnutls_encode_gost_rs_value.3
 APIMANS += gnutls_encode_rs_value.3
@@ -321,8 +369,14 @@ APIMANS += gnutls_ext_raw_parse.3
 APIMANS += gnutls_ext_register.3
 APIMANS += gnutls_ext_set_data.3
 APIMANS += gnutls_fingerprint.3
+APIMANS += gnutls_fips140_context_deinit.3
+APIMANS += gnutls_fips140_context_init.3
+APIMANS += gnutls_fips140_get_operation_state.3
 APIMANS += gnutls_fips140_mode_enabled.3
+APIMANS += gnutls_fips140_pop_context.3
+APIMANS += gnutls_fips140_push_context.3
 APIMANS += gnutls_fips140_set_mode.3
+APIMANS += gnutls_get_library_config.3
 APIMANS += gnutls_get_system_config_file.3
 APIMANS += gnutls_global_deinit.3
 APIMANS += gnutls_global_init.3
@@ -667,6 +721,7 @@ APIMANS += gnutls_protocol_get_id.3
 APIMANS += gnutls_protocol_get_name.3
 APIMANS += gnutls_protocol_get_version.3
 APIMANS += gnutls_protocol_list.3
+APIMANS += gnutls_protocol_set_enabled.3
 APIMANS += gnutls_psk_allocate_client_credentials.3
 APIMANS += gnutls_psk_allocate_server_credentials.3
 APIMANS += gnutls_psk_client_get_hint.3
@@ -814,6 +869,8 @@ APIMANS += gnutls_sign_get_pk_algorithm.3
 APIMANS += gnutls_sign_is_secure.3
 APIMANS += gnutls_sign_is_secure2.3
 APIMANS += gnutls_sign_list.3
+APIMANS += gnutls_sign_set_secure.3
+APIMANS += gnutls_sign_set_secure_for_certs.3
 APIMANS += gnutls_sign_supports_pk_algorithm.3
 APIMANS += gnutls_srp_allocate_client_credentials.3
 APIMANS += gnutls_srp_allocate_server_credentials.3
@@ -870,6 +927,7 @@ APIMANS += gnutls_transport_get_int.3
 APIMANS += gnutls_transport_get_int2.3
 APIMANS += gnutls_transport_get_ptr.3
 APIMANS += gnutls_transport_get_ptr2.3
+APIMANS += gnutls_transport_is_ktls_enabled.3
 APIMANS += gnutls_transport_set_errno.3
 APIMANS += gnutls_transport_set_errno_function.3
 APIMANS += gnutls_transport_set_fastopen.3
@@ -1126,6 +1184,8 @@ APIMANS += gnutls_x509_crt_sign.3
 APIMANS += gnutls_x509_crt_sign2.3
 APIMANS += gnutls_x509_crt_verify.3
 APIMANS += gnutls_x509_crt_verify_data2.3
+APIMANS += gnutls_x509_ct_sct_get.3
+APIMANS += gnutls_x509_ct_sct_get_version.3
 APIMANS += gnutls_x509_dn_deinit.3
 APIMANS += gnutls_x509_dn_export.3
 APIMANS += gnutls_x509_dn_export2.3
@@ -1137,6 +1197,10 @@ APIMANS += gnutls_x509_dn_init.3
 APIMANS += gnutls_x509_dn_oid_known.3
 APIMANS += gnutls_x509_dn_oid_name.3
 APIMANS += gnutls_x509_dn_set_str.3
+APIMANS += gnutls_x509_ext_ct_export_scts.3
+APIMANS += gnutls_x509_ext_ct_import_scts.3
+APIMANS += gnutls_x509_ext_ct_scts_deinit.3
+APIMANS += gnutls_x509_ext_ct_scts_init.3
 APIMANS += gnutls_x509_ext_deinit.3
 APIMANS += gnutls_x509_ext_export_aia.3
 APIMANS += gnutls_x509_ext_export_authority_key_id.3

@@ -475,7 +475,7 @@ _pkcs12_decode_safe_contents(const gnutls_datum_t * content,
 			for (j = 0; j < attributes; j++) {
 
 				snprintf(root, sizeof(root),
-					 "?%u.bagAttributes.?%u", i + 1,
+					 "?%u.bagAttributes.?%d", i + 1,
 					 j + 1);
 
 				result =
@@ -621,7 +621,7 @@ gnutls_pkcs12_get_bag(gnutls_pkcs12_t pkcs12,
 	/* Step 2. Parse the AuthenticatedSafe
 	 */
 
-	snprintf(root2, sizeof(root2), "?%u.contentType", indx + 1);
+	snprintf(root2, sizeof(root2), "?%d.contentType", indx + 1);
 
 	len = sizeof(oid) - 1;
 	result = asn1_read_value(c2, root2, oid, &len);
@@ -640,7 +640,7 @@ gnutls_pkcs12_get_bag(gnutls_pkcs12_t pkcs12,
 	/* Not encrypted Bag
 	 */
 
-	snprintf(root2, sizeof(root2), "?%u.content", indx + 1);
+	snprintf(root2, sizeof(root2), "?%d.content", indx + 1);
 
 	if (strcmp(oid, DATA_OID) == 0) {
 		result = _parse_safe_contents(c2, root2, bag);
@@ -900,7 +900,7 @@ int gnutls_pkcs12_generate_mac2(gnutls_pkcs12_t pkcs12, gnutls_mac_algorithm_t m
 {
 	uint8_t salt[8], key[MAX_HASH_SIZE];
 	int result;
-	const int iter = 10*1024;
+	const int iter = PKCS12_ITER_COUNT;
 	mac_hd_st td1;
 	gnutls_datum_t tmp = { NULL, 0 };
 	unsigned mac_size, key_len;
@@ -1044,7 +1044,7 @@ int gnutls_pkcs12_generate_mac2(gnutls_pkcs12_t pkcs12, gnutls_mac_algorithm_t m
  **/
 int gnutls_pkcs12_generate_mac(gnutls_pkcs12_t pkcs12, const char *pass)
 {
-	return gnutls_pkcs12_generate_mac2(pkcs12, GNUTLS_MAC_SHA1, pass);
+	return gnutls_pkcs12_generate_mac2(pkcs12, GNUTLS_MAC_SHA256, pass);
 }
 
 /**

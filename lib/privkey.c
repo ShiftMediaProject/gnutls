@@ -35,6 +35,7 @@
 #include <fips.h>
 #include <system-keys.h>
 #include "urls.h"
+#include "tpm2.h"
 #include "pkcs11_int.h"
 #include <abstract_int.h>
 
@@ -206,6 +207,8 @@ privkey_to_pubkey(gnutls_pk_algorithm_t pk,
 		break;
 	case GNUTLS_PK_EDDSA_ED25519:
 	case GNUTLS_PK_EDDSA_ED448:
+	case GNUTLS_PK_ECDH_X25519:
+	case GNUTLS_PK_ECDH_X448:
 		ret = _gnutls_set_datum(&pub->raw_pub, priv->raw_pub.data, priv->raw_pub.size);
 		if (ret < 0)
 			return gnutls_assert_val(ret);
@@ -263,6 +266,14 @@ _gnutls_privkey_get_mpis(gnutls_privkey_t key, gnutls_pk_params_st * params)
 		}
 #endif
 	default:
+		if (key->key.ext.pk_params_func) {
+			ret = key->key.ext.pk_params_func(key,
+							  key->key.ext.userdata,
+							  params);
+			if (ret < 0)
+				return gnutls_assert_val(ret);
+			return ret;
+		}
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
@@ -373,6 +384,10 @@ _gnutls_privkey_update_spki_params(gnutls_privkey_t key,
 			ret = _gnutls_find_rsa_pss_salt_size(bits, me, salt_size);
 			if (ret < 0)
 				return gnutls_assert_val(ret);
+			if (flags & GNUTLS_PRIVKEY_FLAG_RSA_PSS_FIXED_SALT_LENGTH &&
+			    (size_t)ret != _gnutls_hash_get_algo_len(me)) {
+				return gnutls_assert_val(GNUTLS_E_CONSTRAINT_ERROR);
+			}
 			params->salt_size = ret;
 		}
 		params->rsa_pss_dig = dig;
@@ -1652,7 +1667,7 @@ gnutls_privkey_decrypt_data2(gnutls_privkey_t key,
  * #gnutls_privkey_t type. 
  *
  * The supported formats are basic unencrypted key, PKCS8, PKCS12, 
- * and the openssl format.
+ * TSS2, and the openssl format.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
  *   negative error value.
@@ -1666,6 +1681,17 @@ int gnutls_privkey_import_x509_raw(gnutls_privkey_t pkey,
 {
 	gnutls_x509_privkey_t xpriv;
 	int ret;
+
+#ifdef HAVE_TSS2
+	if (format == GNUTLS_X509_FMT_PEM &&
+	    memmem(data->data, data->size, "--BEGIN TSS2", 12) != NULL) {
+		ret = _gnutls_load_tpm2_key(pkey, data);
+		if (ret < 0)
+			return gnutls_assert_val(ret);
+
+		return 0;
+	}
+#endif
 
 	ret = gnutls_x509_privkey_init(&xpriv);
 	if (ret < 0)

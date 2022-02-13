@@ -243,7 +243,8 @@ typedef struct {
 typedef enum {
 	GNUTLS_PK_FLAG_NONE = 0,
 	GNUTLS_PK_FLAG_PROVABLE = 1,
-	GNUTLS_PK_FLAG_REPRODUCIBLE = 2
+	GNUTLS_PK_FLAG_REPRODUCIBLE = 2,
+	GNUTLS_PK_FLAG_RSA_PSS_FIXED_SALT_LENGTH = 4
 } gnutls_pk_flag_t;
 
 #define FIX_SIGN_PARAMS(params, flags, dig) do {		\
@@ -463,5 +464,16 @@ int _gnutls_gost_key_unwrap(gnutls_gost_paramset_t gost_params,
 			    const gnutls_datum_t *enc,
 			    const gnutls_datum_t *imit,
 			    gnutls_datum_t *cek);
+
+int
+_gnutls_rsa_pkcs1_sign_pad(size_t key_bits,
+			   const gnutls_datum_t *data,
+			   unsigned char *buffer, size_t buffer_size);
+
+int
+_gnutls_rsa_pss_sign_pad(gnutls_x509_spki_st *params,
+			 size_t key_bits,
+			 const gnutls_datum_t *data,
+			 unsigned char *buffer, size_t buffer_size);
 
 #endif /* GNUTLS_LIB_CRYPTO_BACKEND_H */

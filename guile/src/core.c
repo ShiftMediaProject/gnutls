@@ -50,6 +50,9 @@
    ? alloca (size)						\
    : scm_gc_malloc_pointerless ((size), "gnutls-alloc"))
 
+/* Maximum size, in bytes, of the hash data returned by a digest algorithm. */
+#define MAX_HASH_SIZE 64
+
 /* SMOB and enums type definitions.  */
 #include "enum-map.i.c"
 #include "smob-types.i.c"
@@ -985,7 +988,10 @@ write_to_session_record_port (SCM port, const void *data, size_t size)
       c_result = gnutls_record_send (c_session, (char *) data + c_sent,
                                      size - c_sent);
       if (EXPECT_FALSE (c_result < 0))
-        scm_gnutls_error (c_result, FUNC_NAME);
+	{
+	  if (c_result != GNUTLS_E_AGAIN && c_result != GNUTLS_E_INTERRUPTED)
+	    scm_gnutls_error (c_result, FUNC_NAME);
+	}
       else
         c_sent += c_result;
     }
@@ -1069,7 +1075,8 @@ read_from_session_record_port (SCM port, SCM dst, size_t start, size_t count)
 #undef FUNC_NAME
 
 /* Return the file descriptor that backs PORT.  This function is called upon a
-   blocking read--i.e., 'read_from_session_record_port' returned -1.  */
+   blocking read--i.e., 'read_from_session_record_port' or
+   'write_to_session_record_port' returned -1.  */
 static int
 session_record_port_fd (SCM port)
 {
@@ -1097,7 +1104,16 @@ write_to_session_record_port (SCM port, SCM src, size_t start, size_t count)
   c_session = scm_to_gnutls_session (session, 1, FUNC_NAME);
   data = (char *) SCM_BYTEVECTOR_CONTENTS (src) + start;
 
-  result = gnutls_record_send (c_session, data, count);
+  do
+    result = gnutls_record_send (c_session, data, count);
+  while (result == GNUTLS_E_INTERRUPTED
+	 || (result == GNUTLS_E_AGAIN
+	     && !SCM_GNUTLS_SESSION_TRANSPORT_IS_FD (c_session)));
+
+  if (result == GNUTLS_E_AGAIN
+      && SCM_GNUTLS_SESSION_TRANSPORT_IS_FD (c_session))
+    /* Tell Guile that reading would block.  */
+    return (size_t) -1;
 
   if (EXPECT_FALSE (result < 0))
     scm_gnutls_error (result, FUNC_NAME);
@@ -2873,6 +2889,40 @@ SCM_DEFINE (scm_gnutls_x509_certificate_subject_alternative_name,
                     (scm_from_gnutls_x509_subject_alternative_name (err),
                      scm_take_locale_string (c_name)));
     }
+
+  return result;
+}
+
+#undef FUNC_NAME
+
+SCM_DEFINE (scm_gnutls_x509_certificate_fingerprint,
+            "x509-certificate-fingerprint",
+            2, 0, 0,
+            (SCM cert, SCM algo),
+            "Return the fingerprint (a u8vector) of the certificate "
+            "@var{cert}, computed using the digest algorithm @var{algo}.")
+#define FUNC_NAME s_scm_gnutls_x509_certificate_fingerprint
+{
+  int err;
+  SCM result;
+  gnutls_x509_crt_t c_cert;
+  gnutls_digest_algorithm_t c_algo;
+  uint8_t c_fpr[MAX_HASH_SIZE];
+  size_t c_fpr_len = MAX_HASH_SIZE;
+  scm_t_array_handle c_handle;
+
+  c_cert = scm_to_gnutls_x509_certificate (cert, 1, FUNC_NAME);
+  c_algo = scm_to_gnutls_digest (algo, 1, FUNC_NAME);
+
+  err = gnutls_x509_crt_get_fingerprint (c_cert, c_algo, &c_fpr, &c_fpr_len);
+  if (EXPECT_FALSE (err))
+    scm_gnutls_error (err, FUNC_NAME);
+
+  result = scm_make_u8vector (scm_from_uint(c_fpr_len), SCM_INUM0);
+  scm_array_get_handle (result, &c_handle);
+  memcpy (scm_array_handle_u8_writable_elements (&c_handle), &c_fpr,
+          c_fpr_len);
+  scm_array_handle_release (&c_handle);
 
   return result;
 }

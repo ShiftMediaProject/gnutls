@@ -62,6 +62,10 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
 	ocsp-tests/response1.pem ocsp-tests/response2.pem \
 	ocsp-tests/certs/server_good.key ocsp-tests/certs/server_bad.key ocsp-tests/certs/server_good.template \
 	ocsp-tests/certs/server_bad.template ocsp-tests/certs/ocsp-staple-unrelated.der ocsp-tests/suppressions.valgrind \
+	ocsp-tests/signer-verify/response-ca.der \
+	ocsp-tests/signer-verify/response-delegated.der \
+	ocsp-tests/signer-verify/response-non-delegated.der \
+	ocsp-tests/signer-verify/trust.pem \
 	data/listings-DTLS1.0 data/listings-SSL3.0 data/listings-TLS1.0 data/listings-TLS1.1 \
 	data/listings-legacy1 data/listings-legacy2 data/listings-legacy3 data/listings-legacy4 \
 	data/listings-old-SSL3.0-TLS1.1 data/listings-SSL3.0-TLS1.1 \
@@ -108,7 +112,7 @@ noinst_LTLIBRARIES = libutils.la
 libutils_la_SOURCES = utils.h utils.c seccomp.c utils-adv.c
 libutils_la_LIBADD = ../lib/libgnutls.la
 
-indirect_tests = system-override-hash system-override-sig
+indirect_tests = system-override-hash system-override-sig system-override-sig-tls
 
 ctests = tls13/supported_versions tls13/tls12-no-tls13-exts \
 	tls13/post-handshake-with-cert tls13/post-handshake-without-cert \
@@ -157,7 +161,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 nul-in-x509-names x509_altname pkcs12_encode mini-x509	gnutls_session_set_id \
 	 rng-fork mini-eagain-dtls resume-dtls empty_retrieve_function \
 	 tls13-rehandshake-cert gnutls_ext_raw_parse handshake-large-cert \
-	 x509cert x509cert-tl infoaccess mini-dtls-hello-verify sign-verify-ed25519-rfc8080 \
+	 x509cert x509cert-tl x509cert-ct infoaccess mini-dtls-hello-verify sign-verify-ed25519-rfc8080 \
 	 trustdb-tofu dtls-rehandshake-anon mini-alpn mini-dtls-large \
 	 mini-termination mini-x509-cas mini-x509-2 pkcs12_simple tls-pthread \
 	 mini-emsgsize-dtls chainverify-unsorted mini-overhead tls12-ffdhe \
@@ -433,6 +437,10 @@ ctests += x509self x509dn anonself pskself pskself2 dhepskself	\
 	resume-with-record-size-limit
 endif
 
+if ENABLE_KTLS
+ctests += gnutls_ktls
+endif
+
 gc_CPPFLAGS = $(AM_CPPFLAGS) \
 	-I$(top_srcdir)/gl	\
 	-I$(top_builddir)/gl
@@ -482,6 +490,10 @@ endif
 
 dist_check_SCRIPTS = rfc2253-escape-test.sh rsa-md5-collision/rsa-md5-collision.sh systemkey.sh
 
+if ENABLE_TPM2
+dist_check_SCRIPTS += tpm2.sh
+endif
+
 if !WINDOWS
 
 #
@@ -503,13 +515,23 @@ dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh start
 	psktool.sh ocsp-tests/ocsp-load-chain.sh gnutls-cli-save-data.sh gnutls-cli-debug.sh \
 	sni-resume.sh ocsp-tests/ocsptool.sh cert-reencoding.sh pkcs7-cat.sh long-crl.sh \
 	serv-udp.sh logfile-option.sh gnutls-cli-resume.sh profile-tests.sh \
-	server-weak-keys.sh
+	server-weak-keys.sh ocsp-tests/ocsp-signer-verify.sh cfg-test.sh
 
 if !DISABLE_SYSTEM_CONFIG
 dist_check_SCRIPTS += system-override-sig.sh system-override-hash.sh \
 	system-override-versions.sh system-override-invalid.sh \
 	system-override-curves.sh system-override-profiles.sh system-override-tls.sh \
-	system-override-kx.sh system-override-default-priority-string.sh
+	system-override-kx.sh system-override-default-priority-string.sh \
+	system-override-sig-tls.sh system-override-hash-filters-prf.sh
+
+dist_check_SCRIPTS += system-override-sig-allowlist.sh \
+	system-override-hash-allowlist.sh \
+	system-override-versions-allowlist.sh \
+	system-override-curves-allowlist.sh \
+	system-override-special-allowlist.sh \
+	protocol-set-allowlist.sh
+indirect_tests += system-override-curves-allowlist
+indirect_tests += protocol-set-allowlist
 endif
 
 dist_check_SCRIPTS += gnutls-cli-self-signed.sh gnutls-cli-invalid-crl.sh gnutls-cli-rawpk.sh
@@ -571,7 +593,7 @@ TESTS_ENVIRONMENT +=						\
 	CC="$(CC)"						\
 	CFLAGS="$(CFLAGS)"					\
 	LC_ALL="C"						\
-	LSAN_OPTIONS=suppressions=gnutls-asan.supp		\
+	LSAN_OPTIONS=suppressions=$(srcdir)/gnutls-asan.supp	\
 	CAFILE=$(srcdir)/cert-tests/data/ca-certs.pem		\
 	P11MOCKLIB1=$(abs_builddir)/.libs/libpkcs11mock1.so	\
 	P11MOCKLIB2=$(abs_builddir)/.libs/libpkcs11mock2.so	\
@@ -589,6 +611,7 @@ TESTS_ENVIRONMENT +=						\
 	GNUTLS_TEST_SUITE_RUN=1					\
 	builddir="$(builddir)"					\
 	top_builddir="$(top_builddir)"				\
+	abs_top_builddir="$(abs_top_builddir)"			\
 	libdir="$(libdir)"					\
 	srcdir="$(srcdir)"
 
@@ -605,7 +628,38 @@ TESTS_ENVIRONMENT += ENABLE_GOST=0
 endif
 
 TEST_EXTENSIONS = .sh
-LOG_COMPILER = $(VALGRIND)
+SH_LOG_COMPILER = $(SHELL)
+
+AM_VALGRINDFLAGS = --suppressions=$(srcdir)/suppressions.valgrind
+LOG_COMPILER = $(LOG_VALGRIND)
 
 distclean-local:
 	rm -rf softhsm-*.db softhsm-*.config *.tmp tmp-* x509-crt-list-import-url.config.db port.lock.d
+
+EXTRA_DIST +=						\
+	fixtures/templates/arb-extensions.tmpl.exp		\
+	fixtures/templates/crit-extensions.tmpl.exp		\
+	fixtures/templates/inhibit-anypolicy.tmpl.exp		\
+	fixtures/templates/simple-policy.tmpl.exp		\
+	fixtures/templates/template-crq.tmpl.exp		\
+	fixtures/templates/template-dates-after2038.tmpl.exp	\
+	fixtures/templates/template-date.tmpl.exp		\
+	fixtures/templates/template-dn-err.tmpl.exp		\
+	fixtures/templates/template-dn.tmpl.exp			\
+	fixtures/templates/template-generalized.tmpl.exp	\
+	fixtures/templates/template-krb5name.tmpl.exp		\
+	fixtures/templates/template-long-dns.tmpl.exp		\
+	fixtures/templates/template-long-serial.tmpl.exp	\
+	fixtures/templates/template-nc.tmpl.exp			\
+	fixtures/templates/template-no-ca-explicit.tmpl.exp	\
+	fixtures/templates/template-no-ca-honor.tmpl.exp	\
+	fixtures/templates/template-no-ca.tmpl.exp		\
+	fixtures/templates/template-othername.tmpl.exp		\
+	fixtures/templates/template-othername-xmpp.tmpl.exp	\
+	fixtures/templates/template-overflow2.tmpl.exp		\
+	fixtures/templates/template-overflow.tmpl.exp		\
+	fixtures/templates/template-test.tmpl.exp		\
+	fixtures/templates/template-tlsfeature-crq.tmpl.exp	\
+	fixtures/templates/template-tlsfeature.tmpl.exp		\
+	fixtures/templates/template-unique.tmpl.exp		\
+	fixtures/templates/template-utf8.tmpl.exp

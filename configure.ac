@@ -23,9 +23,9 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.7.2], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.7.3], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 src/libopts/m4 lib/unistring/m4])
+AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE([1.12.2 foreign subdir-objects no-dist-gzip dist-xz -Wall -Wno-override])
@@ -62,6 +62,9 @@ fi
 AX_CODE_COVERAGE
 
 AM_MAINTAINER_MODE([enable])
+
+AM_MISSING_PROG([GPERF], [gperf])
+AM_MISSING_PROG([ASN1PARSER], [asn1Parser])
 
 AC_ARG_ENABLE(bash-tests,
   AS_HELP_STRING([--disable-bash-tests], [skip some tests that badly need bash]),
@@ -250,6 +253,7 @@ AS_IF([test "$ac_cv_search___atomic_load_4" = "none required" || test "$ac_cv_se
 dnl We use its presence to detect C11 threads
 AC_CHECK_HEADERS([threads.h])
 
+AC_CHECK_HEADERS([sanitizer/asan_interface.h])
 AC_CHECK_HEADERS([valgrind/memcheck.h])
 
 AC_ARG_ENABLE(padlock,
@@ -458,7 +462,9 @@ fi
 AM_CONDITIONAL(HAVE_LIBUNISTRING, test "$ac_have_unistring" = "yes")
 
 # specify our own suppressions file; this needs to be set before gl_INIT
-DEFAULT_VALGRINDFLAGS='-q --error-exitcode=1 --leak-check=full --track-origins=yes --gen-suppressions=all --suppressions=\$(srcdir)/suppressions.valgrind'
+DEFAULT_VALGRINDFLAGS='-q --error-exitcode=1 --leak-check=full --track-origins=yes --gen-suppressions=all'
+
+gl_VALGRIND_TESTS_DEFAULT_NO
 
 dnl Note that g*l_INIT are run after we check for library capabilities,
 dnl to prevent issues from caching lib dependencies. See discussion
@@ -483,7 +489,7 @@ fi
 AM_CONDITIONAL(WANT_TEST_SUITE, test "$full_test_suite" = "yes")
 
 # parts of the extended test suite use Python
-AM_PATH_PYTHON(,, [:])
+AM_PATH_PYTHON([3.6],, [:])
 
 AC_ARG_ENABLE(oldgnutls-interop,
   AS_HELP_STRING([--enable-oldgnutls-interop], [enable interoperability testing with old gnutls version]),
@@ -558,8 +564,6 @@ if test "$gl_gcc_warnings" = yes; then
   gl_WARN_ADD([-fdiagnostics-show-option])
 fi
 
-gl_VALGRIND_TESTS_DEFAULT_NO
-
 if test "$gl_cv_opt_valgrind_tests" != no; then
   gl_WARN_ADD([-fno-builtin-strcmp])
 fi
@@ -590,6 +594,24 @@ if [ test "$enable_fips" = "yes" ];then
             fips_key="orboDeJITITejsirpADONivirpUkvarP")
 
     AC_DEFINE_UNQUOTED([FIPS_KEY], ["$fips_key"], [The FIPS140-2 integrity key])
+
+    AC_ARG_WITH(fips140-module-name, AS_HELP_STRING([--with-fips140-module-name],
+                                 [specify the FIPS140 module name]),
+            fips_module_name="$withval",
+            fips_module_name=none)
+
+    if test "x$fips_module_name" != xnone; then
+       AC_DEFINE_UNQUOTED([FIPS_MODULE_NAME], ["$fips_module_name"], [The FIPS140 module name])
+    fi
+
+    AC_ARG_WITH(fips140-module-version, AS_HELP_STRING([--with-fips140-module-version],
+                                 [specify the FIPS140 module version]),
+            fips_module_version="$withval",
+            fips_module_version=none)
+
+    if test "x$fips_module_version" != xnone; then
+       AC_DEFINE_UNQUOTED([FIPS_MODULE_VERSION], ["$fips_module_version"], [The FIPS140 module version])
+    fi
   else
     enable_fips=no
     AC_MSG_WARN([[
@@ -599,6 +621,16 @@ if [ test "$enable_fips" = "yes" ];then
 *** ]])
   fi
 fi
+
+AC_ARG_WITH([pkcs12-iter-count],
+	[AS_HELP_STRING([--with-pkcs12-iter-count],
+	  [specify iteration count for PKCS\#12 key derivation @<:@default=600000@:>@])],
+	[pkcs12_iter_count="$withval"],
+        [pkcs12_iter_count=600000])
+
+AC_DEFINE_UNQUOTED([PKCS12_ITER_COUNT], [$pkcs12_iter_count],
+	[The iteration count for PKCS\#12 key derivation])
+AC_SUBST([PKCS12_ITER_COUNT], [$pkcs12_iter_count])
 
 PKG_CHECK_MODULES(CMOCKA, [cmocka >= 1.0.1], [with_cmocka=yes], [with_cmocka=no])
 AM_CONDITIONAL(HAVE_CMOCKA, test "$with_cmocka" != "no")
@@ -850,11 +882,33 @@ AM_CONDITIONAL(P11KIT_0_23_11_API, $PKG_CONFIG --atleast-version=0.23.11 p11-kit
 
 AM_CONDITIONAL(ENABLE_PKCS11, test "$with_p11_kit" != "no")
 
+AC_ARG_WITH(tpm2,
+	AS_HELP_STRING([--without-tpm2],
+		[Disable TPM2 support.]),
+	[with_tpm2=$withval], [with_tpm2=auto])
+if test "$with_tpm2" != "no"; then
+	PKG_CHECK_MODULES(TSS2, [tss2-esys tss2-mu tss2-tctildr],
+		[have_tpm2=yes], [have_tpm2=no])
+	if test "$have_tpm2" = "yes"; then
+		tss2lib="tss2-esys tss2-mu tss2-tctildr"
+		AC_DEFINE([HAVE_TSS2], 1, [Have TSS2])
+	elif test "$with_tpm2" = "yes"; then
+		AC_MSG_ERROR([[
+***
+*** TPM2 support was requested but the required libraries were not found.
+*** To disable TPM2 support use --without-tpm2, otherwise you may get tpm2-tss from
+*** https://github.com/tpm2-software/tpm2-tss
+*** ]])
+	fi
+fi
+
+AM_CONDITIONAL(ENABLE_TPM2, test "$have_tpm2" = "yes")
+
 AC_ARG_WITH(tpm,
 	AS_HELP_STRING([--without-tpm],
 		[Disable TPM (trousers) support.]),
 		[with_tpm=$withval], [with_tpm=yes])
-if test "$with_tpm" != "no"; then
+if test "$with_tpm" != "no" && test "$with_tpm2" = "no"; then
     LIBS="$oldlibs -ltspi"
     AC_MSG_CHECKING([for tss library])
     AC_LINK_IFELSE([AC_LANG_PROGRAM([
@@ -874,9 +928,12 @@ if test "$with_tpm" != "no"; then
 *** ]])
 		  with_tpm=no])
     LIBS="$oldlibs"
+else
+    with_tpm=no
 fi
 
 AM_CONDITIONAL(ENABLE_TROUSERS, test "$with_tpm" != "no")
+
 
 for l in /usr/lib64 /usr/lib /lib64 /lib /usr/lib/x86_64-linux-gnu/; do
     if test -f "${l}/libtspi.so.1";then
@@ -899,33 +956,6 @@ fi
 
 AC_DEFINE_UNQUOTED([TROUSERS_LIB], ["$ac_trousers_lib"], [the location of the trousers library])
 AC_SUBST(TROUSERS_LIB)
-
-AM_MISSING_PROG([AUTOGEN], [autogen])
-
-included_libopts=no
-if test "$enable_tools" != "no" || test "$enable_doc" != "no"; then
-	AC_CHECK_PROGS([autogen], [autogen])
-
-	if test -z "$autogen"; then
-		AC_MSG_WARN([[
-***
-*** autogen not found. Will not link against system libopts.
-*** ]])
-		dnl simulate specifying option on the command line
-		included_libopts=yes
-	fi
-	LIBOPTS_CHECK([src/libopts])
-	if test "$NEED_LIBOPTS_DIR" = "true";then
-		dnl replace libopts-generated files with distributed backups, if present
-		included_libopts=yes
-	fi
-else
-	# Need to ensure the relevant conditionals get set
-	gl_STDNORETURN_H
-	AM_CONDITIONAL([INSTALL_LIBOPTS],[false])
-fi
-
-AM_CONDITIONAL(NEED_LIBOPTS, test "$included_libopts" = "yes")
 
 # For minitasn1.
 AC_CHECK_SIZEOF(unsigned long int, 4)
@@ -1130,6 +1160,70 @@ AM_CONDITIONAL(NEEDS_LIBRT, test "$gnutls_needs_librt" = "yes")
 
 AC_DEFINE([GNUTLS_INTERNAL_BUILD], 1, [We allow temporarily usage of deprecated functions - until they are removed.])
 
+hw_features=
+if test "$enable_cryptodev" = yes; then
+	hw_features="$hw_features cryptodev"
+fi
+if test "$enable_afalg" = yes; then
+	hw_features="$hw_features afalg"
+fi
+if test "$use_padlock" = yes; then
+	hw_features="$hw_features padlock"
+fi
+if test "$with_p11_kit" = yes; then
+	hw_features="$hw_features pkcs11"
+fi
+if test "$with_tpm" = yes; then
+	hw_features="$hw_features tpm"
+fi
+if test "$have_tpm2" = yes; then
+	hw_features="$hw_features tpm2"
+fi
+if test "$enable_ktls" = yes; then
+	hw_features="$hw_features ktls"
+fi
+hw_features=`eval 'expr "$hw_features" : " \(.*\)"'`
+AC_DEFINE_UNQUOTED([HW_FEATURES], ["$hw_features"],
+	[The enabled hardware features])
+
+tls_features=
+if test "$ac_enable_ssl3" = yes; then
+	tls_features="$tls_features ssl3"
+fi
+if test "$ac_enable_ssl2" = yes; then
+	tls_features="$tls_features ssl2-compat"
+fi
+if test "$ac_enable_srtp" = yes; then
+	tls_features="$tls_features srtp"
+fi
+if test "$ac_enable_alpn" = yes; then
+	tls_features="$tls_features alpn"
+fi
+if test "$ac_enable_ocsp" = yes; then
+	tls_features="$tls_features ocsp"
+fi
+if test "$ac_enable_srp" = yes; then
+	tls_features="$tls_features srp"
+fi
+if test "$ac_enable_psk" = yes; then
+	tls_features="$tls_features psk"
+fi
+if test "$ac_enable_dhe" = yes; then
+	tls_features="$tls_features dhe"
+fi
+if test "$ac_enable_ecdhe" = yes; then
+	tls_features="$tls_features ecdhe"
+fi
+if test "$ac_enable_anon" = yes; then
+	tls_features="$tls_features auth-anon"
+fi
+if test "$ac_enable_heartbeat" = yes; then
+	tls_features="$tls_features heartbeat"
+fi
+tls_features=`eval 'expr "$tls_features" : " \(.*\)"'`
+AC_DEFINE_UNQUOTED([TLS_FEATURES], ["$tls_features"],
+	[The enabled TLS features])
+
 AC_DEFINE([fread_file], [_gnutls_fread_file], [static lib rename])
 AC_DEFINE([read_file], [_gnutls_read_file], [static lib rename])
 
@@ -1179,7 +1273,6 @@ AC_CONFIG_FILES([
   lib/unistring/Makefile
   po/Makefile.in
   src/Makefile
-  src/args-std.def
   src/gl/Makefile
   src/gl/tests/Makefile
   tests/Makefile
@@ -1188,6 +1281,7 @@ AC_CONFIG_FILES([
   tests/slow/Makefile
   tests/suite/Makefile
   fuzz/Makefile
+  python/Makefile
 ])
 
 AC_OUTPUT
@@ -1203,7 +1297,6 @@ AC_MSG_NOTICE([summary of build options:
   Valgrind:             $opt_valgrind_tests ${VALGRIND}
   CFlags:               ${CFLAGS}
   Library types:        Shared=${enable_shared}, Static=${enable_static}
-  Local libopts:        ${included_libopts}
   Local libtasn1:       ${included_libtasn1}
   Local unistring:      ${included_unistring}
   Use nettle-mini:      ${mini_nettle}
@@ -1219,10 +1312,19 @@ AC_MSG_NOTICE([External hardware support:
   Random gen. variant:  $rnd_variant
   PKCS#11 support:      $with_p11_kit
   TPM support:          $with_tpm
+  TPM2 support:         $have_tpm2
+  KTLS support:         $enable_ktls
 ])
-if test -n "$ac_trousers_lib";then
+
+if test -n "$ac_trousers_lib" && test "$with_tpm" != "no";then
 AC_MSG_NOTICE([
   TPM library:          $ac_trousers_lib
+])
+fi
+
+if test "$with_tpm2" != "no";then
+AC_MSG_NOTICE([
+  TPM2 library:         $tss2lib
 ])
 fi
 

@@ -40,9 +40,9 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #     in CONTRIBUTION.md for more info.
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
-  AC_SUBST(LT_CURRENT, 60)
+  AC_SUBST(LT_CURRENT, 61)
   AC_SUBST(LT_REVISION, 0)
-  AC_SUBST(LT_AGE, 30)
+  AC_SUBST(LT_AGE, 31)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
@@ -359,6 +359,24 @@ LIBTASN1_MINIMUM=4.9
   fi
   AM_CONDITIONAL(ENABLE_AFALG, test "$enable_afalg" != "no")
 
+  # For KTLS
+  AC_MSG_CHECKING([whether to add KTLS support])
+  AC_ARG_ENABLE(ktls,
+    AS_HELP_STRING([--enable-ktls], [enable KTLS support]),
+  enable_ktls=$enableval,enable_ktls=no)
+  AC_MSG_RESULT($enable_ktls)
+
+  if test "$enable_ktls" = "yes"; then
+    AC_CHECK_HEADERS([linux/tls.h], [
+      AC_DEFINE([HAVE_KTLS],[1],[KTLS headers found at compile time])
+    ], [
+      AC_MSG_ERROR([<linux/tls.h> not found])
+    ])
+    AC_DEFINE([ENABLE_KTLS], 1, [Enable KTLS support])
+  fi
+  AM_CONDITIONAL(ENABLE_KTLS, test "$enable_ktls" != "no")
+
+  # For OCSP
   AC_MSG_CHECKING([whether to disable OCSP support])
   AC_ARG_ENABLE(ocsp,
     AS_HELP_STRING([--disable-ocsp],

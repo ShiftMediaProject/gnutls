@@ -608,17 +608,20 @@ static int wrap_nettle_hash_exists(gnutls_digest_algorithm_t algo)
 	case GNUTLS_DIG_SHA256:
 	case GNUTLS_DIG_SHA384:
 	case GNUTLS_DIG_SHA512:
-		return 1;
+
+#ifdef NETTLE_SHA3_FIPS202
 	case GNUTLS_DIG_SHA3_224:
 	case GNUTLS_DIG_SHA3_256:
 	case GNUTLS_DIG_SHA3_384:
 	case GNUTLS_DIG_SHA3_512:
-#ifdef NETTLE_SHA3_FIPS202
-		return 1;
-#else
-		return 0;
 #endif
+
+	case GNUTLS_DIG_SHAKE_128:
+	case GNUTLS_DIG_SHAKE_256:
+
 	case GNUTLS_DIG_MD2:
+	case GNUTLS_DIG_RMD160:
+
 #if ENABLE_GOST
 	case GNUTLS_DIG_GOSTR_94:
 	case GNUTLS_DIG_STREEBOG_256:
@@ -785,7 +788,9 @@ static int wrap_nettle_hash_fast(gnutls_digest_algorithm_t algo,
 	if (ret < 0)
 		return gnutls_assert_val(ret);
 
-	ctx.update(&ctx, text_size, text);
+	if (text_size > 0) {
+		ctx.update(&ctx, text_size, text);
+	}
 	ctx.digest(&ctx, ctx.length, digest);
 
 	return 0;

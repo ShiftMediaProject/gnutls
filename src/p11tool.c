@@ -44,7 +44,7 @@
 /* Gnulib portability files. */
 #include <read-file.h>
 
-#include "p11tool-args.h"
+#include "p11tool-options.h"
 #include "p11tool.h"
 #include "certtool-common.h"
 
@@ -96,6 +96,10 @@ unsigned opt_to_flags(common_info_st *cinfo, unsigned *key_usage)
 		else if (cinfo->pubkey || cinfo->cert)
 			flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_NOT_PRIVATE;
 		/* else set the defaults of the token */
+	}
+
+	if (ENABLED_OPT(MARK_ALWAYS_AUTHENTICATE)) {
+		flags |= GNUTLS_PKCS11_OBJ_FLAG_MARK_ALWAYS_AUTH;
 	}
 
 	if (HAVE_OPT(MARK_DISTRUSTED)) {
@@ -230,12 +234,12 @@ static void cmd_parser(int argc, char **argv)
 		cinfo.only_urls = 1;
 	}
 
-	if (ENABLED_OPT(INDER) || ENABLED_OPT(INRAW))
+	if (ENABLED_OPT(INDER))
 		cinfo.incert_format = GNUTLS_X509_FMT_DER;
 	else
 		cinfo.incert_format = GNUTLS_X509_FMT_PEM;
 
-	if (HAVE_OPT(OUTDER) || HAVE_OPT(OUTRAW))
+	if (HAVE_OPT(OUTDER))
 		cinfo.outcert_format = GNUTLS_X509_FMT_DER;
 	else
 		cinfo.outcert_format = GNUTLS_X509_FMT_PEM;

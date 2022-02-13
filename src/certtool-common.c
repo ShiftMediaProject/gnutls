@@ -40,7 +40,7 @@
 #include <fcntl.h>
 #include <common.h>
 #include "certtool-common.h"
-#include "certtool-args.h"
+#include "certtool-options.h"
 #include "certtool-cfg.h"
 #include "common.h"
 #include <minmax.h>
@@ -1149,11 +1149,7 @@ void dh_info(FILE * infile, FILE * outfile, common_info_st * ci)
 int cipher_to_flags(const char *cipher)
 {
 	if (cipher == NULL) {
-#ifdef ENABLE_FIPS140
 		return GNUTLS_PKCS_USE_PBES2_AES_128;
-#else /* compatibility mode - most implementations don't support PBES2 with AES */
-		return GNUTLS_PKCS_USE_PKCS12_3DES;
-#endif
 	} else if (strcasecmp(cipher, "3des") == 0) {
 		return GNUTLS_PKCS_USE_PBES2_3DES;
 	} else if (strcasecmp(cipher, "3des-pkcs12") == 0) {
@@ -1289,7 +1285,9 @@ static void privkey_info_int(FILE *outfile, common_info_st * cinfo,
 		}
 	} else if (key_type == GNUTLS_PK_ECDSA ||
 		   key_type == GNUTLS_PK_EDDSA_ED25519 ||
-		   key_type == GNUTLS_PK_EDDSA_ED448) {
+		   key_type == GNUTLS_PK_EDDSA_ED448 ||
+		   key_type == GNUTLS_PK_ECDH_X25519 ||
+		   key_type == GNUTLS_PK_ECDH_X448) {
 		gnutls_datum_t y, x, k;
 		gnutls_ecc_curve_t curve;
 
@@ -1645,6 +1643,10 @@ gnutls_pk_algorithm_t figure_key_type(const char *key_type)
 		return GNUTLS_PK_EDDSA_ED25519;
 	else if (strcasecmp(key_type, "ed448") == 0)
 		return GNUTLS_PK_EDDSA_ED448;
+	else if (strcasecmp(key_type, "x25519") == 0)
+		return GNUTLS_PK_ECDH_X25519;
+	else if (strcasecmp(key_type, "x448") == 0)
+		return GNUTLS_PK_ECDH_X448;
 	else if (strcasecmp(key_type, "dsa") == 0)
 		return GNUTLS_PK_DSA;
 	else if (strcasecmp(key_type, "ecdsa") == 0 || strcasecmp(key_type, "ecc") == 0)

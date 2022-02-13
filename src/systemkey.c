@@ -44,7 +44,7 @@
 #include <read-file.h>
 
 #include "certtool-common.h"
-#include "systemkey-args.h"
+#include "systemkey-tool-options.h"
 
 static void cmd_parser(int argc, char **argv);
 static void systemkey_delete(const char *url, FILE * outfile);
@@ -151,7 +151,7 @@ static void systemkey_list(FILE * out)
 		}
 	} while(ret >= 0);
 
-	if (ret < 0 && ret != GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+	if (ret != GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
 		if (ret == GNUTLS_E_UNIMPLEMENTED_FEATURE) {
 			fprintf(stderr, "Native key store is not supported, or not present on this system\n");
 		} else {

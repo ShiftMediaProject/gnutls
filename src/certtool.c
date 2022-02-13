@@ -50,7 +50,7 @@
 
 #include <certtool-cfg.h>
 #include <common.h>
-#include "certtool-args.h"
+#include "certtool-options.h"
 #include "certtool-common.h"
 
 #define MAX_HASH_SIZE 64
@@ -566,6 +566,10 @@ generate_certificate(gnutls_privkey_t * ret_key,
 				if (result)
 					usage |=
 					    GNUTLS_KEY_KEY_ENCIPHERMENT;
+			} else if (pk == GNUTLS_PK_ECDH_X25519 ||
+                                   pk == GNUTLS_PK_ECDH_X448) {
+                                /* X25519 and X448 are only for key agreement. */
+                                usage |= GNUTLS_KEY_KEY_AGREEMENT;
 			} else {
 				usage |= GNUTLS_KEY_DIGITAL_SIGNATURE;
 			}
@@ -1261,12 +1265,12 @@ static void cmd_parser(int argc, char **argv)
 
 	fix_lbuffer(0);
 
-	if (HAVE_OPT(INDER) || HAVE_OPT(INRAW))
+	if (HAVE_OPT(INDER))
 		incert_format = GNUTLS_X509_FMT_DER;
 	else
 		incert_format = GNUTLS_X509_FMT_PEM;
 
-	if (HAVE_OPT(OUTDER) || HAVE_OPT(OUTRAW))
+	if (HAVE_OPT(OUTDER))
 		outcert_format = GNUTLS_X509_FMT_DER;
 	else
 		outcert_format = GNUTLS_X509_FMT_PEM;
@@ -2956,7 +2960,7 @@ void generate_pkcs12(common_info_st * cinfo)
 	if (cinfo->hash != GNUTLS_DIG_UNKNOWN)
 		mac = (gnutls_mac_algorithm_t)cinfo->hash;
 	else
-		mac = GNUTLS_MAC_SHA1;
+		mac = GNUTLS_MAC_SHA256;
 
 	if (HAVE_OPT(P12_NAME)) {
 		name = OPT_ARG(P12_NAME);

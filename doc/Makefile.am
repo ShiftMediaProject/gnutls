@@ -40,108 +40,121 @@ endif
 
 -include $(top_srcdir)/doc/doc.mk
 
-invoke-gnutls-cli.texi: $(top_srcdir)/src/cli-args.def
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	mv -f $@.tmp $@
+INVOKE_GNUTLS_CLI_TEXI_DEPS = gnutls-cli-see-also.texi gnutls-cli-examples.texi
+EXTRA_DIST += $(INVOKE_GNUTLS_CLI_TEXI_DEPS)
+invoke-gnutls-cli.texi: $(INVOKE_GNUTLS_CLI_TEXI_DEPS)
+invoke-gnutls-cli.texi: $(top_srcdir)/src/gnutls-cli-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/gnutls-cli-see-also.texi \
+		--examples $(srcdir)/gnutls-cli-examples.texi \
+		$< $@
 
-invoke-gnutls-cli-debug.texi: $(top_srcdir)/src/cli-debug-args.def invoke-gnutls-cli.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	mv -f $@.tmp $@
+INVOKE_GNUTLS_CLI_DEBUG_TEXI_DEPS = gnutls-cli-debug-see-also.texi gnutls-cli-debug-examples.texi
+EXTRA_DIST += $(INVOKE_GNUTLS_CLI_DEBUG_TEXI_DEPS)
+invoke-gnutls-cli-debug.texi: $(INVOKE_GNUTLS_CLI_DEBUG_TEXI_DEPS)
+invoke-gnutls-cli-debug.texi: $(top_srcdir)/src/gnutls-cli-debug-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/gnutls-cli-debug-see-also.texi \
+		--examples $(srcdir)/gnutls-cli-debug-examples.texi \
+		$< $@
 
-invoke-gnutls-serv.texi: $(top_srcdir)/src/serv-args.def invoke-gnutls-cli-debug.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	mv -f $@.tmp $@
+INVOKE_GNUTLS_SERV_TEXI_DEPS = gnutls-serv-see-also.texi gnutls-serv-examples.texi
+EXTRA_DIST += $(INVOKE_GNUTLS_SERV_TEXI_DEPS)
+invoke-gnutls-serv.texi: $(INVOKE_GNUTLS_SERV_TEXI_DEPS)
+invoke-gnutls-serv.texi: $(top_srcdir)/src/gnutls-serv-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/gnutls-serv-see-also.texi \
+		--examples $(srcdir)/gnutls-serv-examples.texi \
+		$< $@
 
-invoke-certtool.texi: $(top_srcdir)/src/certtool-args.def invoke-gnutls-serv.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsubheading/g' \
-	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_CERTTOOL_TEXI_DEPS = certtool-see-also.texi certtool-examples.texi certtool-files.texi
+EXTRA_DIST += $(INVOKE_CERTTOOL_TEXI_DEPS)
+invoke-certtool.texi: $(INVOKE_CERTTOOL_TEXI_DEPS)
+invoke-certtool.texi: $(top_srcdir)/src/certtool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/certtool-see-also.texi \
+		--examples $(srcdir)/certtool-examples.texi \
+		--files $(srcdir)/certtool-files.texi \
+		--level 1 \
+		--section-node \
+		$< $@
 
-invoke-ocsptool.texi: $(top_srcdir)/src/ocsptool-args.def invoke-certtool.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsubheading/g' \
-	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_OCSPTOOL_TEXI_DEPS = ocsptool-see-also.texi ocsptool-examples.texi ocsptool-description.texi
+EXTRA_DIST += $(INVOKE_OCSPTOOL_TEXI_DEPS)
+invoke-ocsptool.texi: $(INVOKE_OCSPTOOL_TEXI_DEPS)
+invoke-ocsptool.texi: $(top_srcdir)/src/ocsptool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/ocsptool-see-also.texi \
+		--examples $(srcdir)/ocsptool-examples.texi \
+		--description $(srcdir)/ocsptool-description.texi \
+		--level 1 \
+		--section-node \
+		$< $@
 
-invoke-danetool.texi: $(top_srcdir)/src/danetool-args.def invoke-ocsptool.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsubheading/g' \
-	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_DANETOOL_TEXI_DEPS = danetool-see-also.texi danetool-examples.texi
+EXTRA_DIST += $(INVOKE_DANETOOL_TEXI_DEPS)
+invoke-danetool.texi: $(INVOKE_DANETOOL_TEXI_DEPS)
+invoke-danetool.texi: $(top_srcdir)/src/danetool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/danetool-see-also.texi \
+		--examples $(srcdir)/danetool-examples.texi \
+		--level 1 \
+		--section-node \
+		$< $@
 
-invoke-srptool.texi: $(top_srcdir)/src/srptool-args.def invoke-danetool.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsubheading/g' \
-	    -e 's/@section/@subsubsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_SRPTOOL_TEXI_DEPS = srptool-see-also.texi srptool-examples.texi
+EXTRA_DIST += $(INVOKE_SRPTOOL_TEXI_DEPS)
+invoke-srptool.texi: $(INVOKE_SRPTOOL_TEXI_DEPS)
+invoke-srptool.texi: $(top_srcdir)/src/srptool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/srptool-see-also.texi \
+		--examples $(srcdir)/srptool-examples.texi \
+		--level 2 \
+		--section-node \
+		$< $@
 
-invoke-psktool.texi: $(top_srcdir)/src/psktool-args.def invoke-srptool.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) -e 's/@subheading/@subsubheading/g' \
-	    -e 's/@section/@subsubsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_PSKTOOL_TEXI_DEPS = psktool-see-also.texi psktool-examples.texi
+EXTRA_DIST += $(INVOKE_PSKTOOL_TEXI_DEPS)
+invoke-psktool.texi: $(INVOKE_PSKTOOL_TEXI_DEPS)
+invoke-psktool.texi: $(top_srcdir)/src/psktool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/psktool-see-also.texi \
+		--examples $(srcdir)/psktool-examples.texi \
+		--level 2 \
+		--section-node \
+		$< $@
 
-invoke-p11tool.texi: $(top_srcdir)/src/p11tool-args.def invoke-psktool.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) \
-	    -e 's/@subsection/@subsubheading/g' \
-	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_P11TOOL_TEXI_DEPS = p11tool-see-also.texi p11tool-examples.texi
+EXTRA_DIST += $(INVOKE_P11TOOL_TEXI_DEPS)
+invoke-p11tool.texi: $(INVOKE_P11TOOL_TEXI_DEPS)
+invoke-p11tool.texi: $(top_srcdir)/src/p11tool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/p11tool-see-also.texi \
+		--examples $(srcdir)/p11tool-examples.texi \
+		--level 1 \
+		--section-node \
+		$< $@
 
-invoke-tpmtool.texi: $(top_srcdir)/src/tpmtool-args.def invoke-p11tool.texi
-	PATH="$(top_builddir)/src/$(PATH_SEPARATOR)$${PATH}$(PATH_SEPARATOR)" $(AUTOGEN) -L$(top_builddir)/src -Tagtexi-cmd.tpl $<; \
-	if [ ! -e $@ ]; then \
-		cp $(srcdir)/$@ .; \
-	fi; \
-	$(srcdir)/scripts/cleanup-autogen.pl < $@ > $@.tmp && \
-	rm -f $@ && \
-	$(SED) \
-	    -e 's/@subsection/@subsubheading/g' \
-	    -e 's/@section/@subsection/g' $@.tmp > $@ && \
-	rm -f $@.tmp
+INVOKE_TPMTOOL_TEXI_DEPS = tpmtool-see-also.texi tpmtool-examples.texi
+EXTRA_DIST += $(INVOKE_TPMTOOL_TEXI_DEPS)
+invoke-tpmtool.texi: $(INVOKE_TPMTOOL_TEXI_DEPS)
+invoke-tpmtool.texi: $(top_srcdir)/src/tpmtool-options.json
+	$(AM_V_GEN) PYTHONPATH='$(top_srcdir)/python' \
+		$(PYTHON) $(srcdir)/scripts/gen-cmd-texi.py \
+		--see-also $(srcdir)/tpmtool-see-also.texi \
+		--examples $(srcdir)/tpmtool-examples.texi \
+		--level 1 \
+		--section-node \
+		$< $@
 
 
 info_TEXINFOS = gnutls.texi gnutls-guile.texi
@@ -158,6 +171,8 @@ AUTOGENED_DOC = invoke-gnutls-cli.texi invoke-gnutls-cli-debug.texi \
 	invoke-gnutls-serv.texi invoke-certtool.texi invoke-srptool.texi \
 	invoke-ocsptool.texi invoke-psktool.texi invoke-p11tool.texi \
 	invoke-tpmtool.texi invoke-danetool.texi
+
+$(AUTOGENED_DOC): $(srcdir)/scripts/gen-cmd-texi.py
 
 gnutls_TEXINFOS += stamp_functions
 
@@ -550,6 +565,7 @@ ENUMS += enums/gnutls_digest_algorithm_t
 ENUMS += enums/gnutls_ecc_curve_t
 ENUMS += enums/gnutls_ext_flags_t
 ENUMS += enums/gnutls_ext_parse_type_t
+ENUMS += enums/gnutls_fips140_operation_state_t
 ENUMS += enums/gnutls_fips_mode_t
 ENUMS += enums/gnutls_gost_paramset_t
 ENUMS += enums/gnutls_group_t
@@ -974,6 +990,8 @@ FUNCS += functions/gnutls_digest_get_oid
 FUNCS += functions/gnutls_digest_get_oid.short
 FUNCS += functions/gnutls_digest_list
 FUNCS += functions/gnutls_digest_list.short
+FUNCS += functions/gnutls_digest_set_secure
+FUNCS += functions/gnutls_digest_set_secure.short
 FUNCS += functions/gnutls_dtls_cookie_send
 FUNCS += functions/gnutls_dtls_cookie_send.short
 FUNCS += functions/gnutls_dtls_cookie_verify
@@ -1010,6 +1028,8 @@ FUNCS += functions/gnutls_ecc_curve_get_size
 FUNCS += functions/gnutls_ecc_curve_get_size.short
 FUNCS += functions/gnutls_ecc_curve_list
 FUNCS += functions/gnutls_ecc_curve_list.short
+FUNCS += functions/gnutls_ecc_curve_set_enabled
+FUNCS += functions/gnutls_ecc_curve_set_enabled.short
 FUNCS += functions/gnutls_encode_ber_digest_info
 FUNCS += functions/gnutls_encode_ber_digest_info.short
 FUNCS += functions/gnutls_encode_gost_rs_value
@@ -1038,10 +1058,22 @@ FUNCS += functions/gnutls_ext_set_data
 FUNCS += functions/gnutls_ext_set_data.short
 FUNCS += functions/gnutls_fingerprint
 FUNCS += functions/gnutls_fingerprint.short
+FUNCS += functions/gnutls_fips140_context_deinit
+FUNCS += functions/gnutls_fips140_context_deinit.short
+FUNCS += functions/gnutls_fips140_context_init
+FUNCS += functions/gnutls_fips140_context_init.short
+FUNCS += functions/gnutls_fips140_get_operation_state
+FUNCS += functions/gnutls_fips140_get_operation_state.short
 FUNCS += functions/gnutls_fips140_mode_enabled
 FUNCS += functions/gnutls_fips140_mode_enabled.short
+FUNCS += functions/gnutls_fips140_pop_context
+FUNCS += functions/gnutls_fips140_pop_context.short
+FUNCS += functions/gnutls_fips140_push_context
+FUNCS += functions/gnutls_fips140_push_context.short
 FUNCS += functions/gnutls_fips140_set_mode
 FUNCS += functions/gnutls_fips140_set_mode.short
+FUNCS += functions/gnutls_get_library_config
+FUNCS += functions/gnutls_get_library_config.short
 FUNCS += functions/gnutls_get_system_config_file
 FUNCS += functions/gnutls_get_system_config_file.short
 FUNCS += functions/gnutls_global_deinit
@@ -1730,6 +1762,8 @@ FUNCS += functions/gnutls_protocol_get_version
 FUNCS += functions/gnutls_protocol_get_version.short
 FUNCS += functions/gnutls_protocol_list
 FUNCS += functions/gnutls_protocol_list.short
+FUNCS += functions/gnutls_protocol_set_enabled
+FUNCS += functions/gnutls_protocol_set_enabled.short
 FUNCS += functions/gnutls_psk_allocate_client_credentials
 FUNCS += functions/gnutls_psk_allocate_client_credentials.short
 FUNCS += functions/gnutls_psk_allocate_server_credentials
@@ -2024,6 +2058,10 @@ FUNCS += functions/gnutls_sign_is_secure2
 FUNCS += functions/gnutls_sign_is_secure2.short
 FUNCS += functions/gnutls_sign_list
 FUNCS += functions/gnutls_sign_list.short
+FUNCS += functions/gnutls_sign_set_secure
+FUNCS += functions/gnutls_sign_set_secure.short
+FUNCS += functions/gnutls_sign_set_secure_for_certs
+FUNCS += functions/gnutls_sign_set_secure_for_certs.short
 FUNCS += functions/gnutls_sign_supports_pk_algorithm
 FUNCS += functions/gnutls_sign_supports_pk_algorithm.short
 FUNCS += functions/gnutls_srp_allocate_client_credentials
@@ -2136,6 +2174,8 @@ FUNCS += functions/gnutls_transport_get_ptr
 FUNCS += functions/gnutls_transport_get_ptr.short
 FUNCS += functions/gnutls_transport_get_ptr2
 FUNCS += functions/gnutls_transport_get_ptr2.short
+FUNCS += functions/gnutls_transport_is_ktls_enabled
+FUNCS += functions/gnutls_transport_is_ktls_enabled.short
 FUNCS += functions/gnutls_transport_set_errno
 FUNCS += functions/gnutls_transport_set_errno.short
 FUNCS += functions/gnutls_transport_set_errno_function
@@ -2648,6 +2688,10 @@ FUNCS += functions/gnutls_x509_crt_verify
 FUNCS += functions/gnutls_x509_crt_verify.short
 FUNCS += functions/gnutls_x509_crt_verify_data2
 FUNCS += functions/gnutls_x509_crt_verify_data2.short
+FUNCS += functions/gnutls_x509_ct_sct_get
+FUNCS += functions/gnutls_x509_ct_sct_get.short
+FUNCS += functions/gnutls_x509_ct_sct_get_version
+FUNCS += functions/gnutls_x509_ct_sct_get_version.short
 FUNCS += functions/gnutls_x509_dn_deinit
 FUNCS += functions/gnutls_x509_dn_deinit.short
 FUNCS += functions/gnutls_x509_dn_export
@@ -2670,6 +2714,14 @@ FUNCS += functions/gnutls_x509_dn_oid_name
 FUNCS += functions/gnutls_x509_dn_oid_name.short
 FUNCS += functions/gnutls_x509_dn_set_str
 FUNCS += functions/gnutls_x509_dn_set_str.short
+FUNCS += functions/gnutls_x509_ext_ct_export_scts
+FUNCS += functions/gnutls_x509_ext_ct_export_scts.short
+FUNCS += functions/gnutls_x509_ext_ct_import_scts
+FUNCS += functions/gnutls_x509_ext_ct_import_scts.short
+FUNCS += functions/gnutls_x509_ext_ct_scts_deinit
+FUNCS += functions/gnutls_x509_ext_ct_scts_deinit.short
+FUNCS += functions/gnutls_x509_ext_ct_scts_init
+FUNCS += functions/gnutls_x509_ext_ct_scts_init.short
 FUNCS += functions/gnutls_x509_ext_deinit
 FUNCS += functions/gnutls_x509_ext_deinit.short
 FUNCS += functions/gnutls_x509_ext_export_aia

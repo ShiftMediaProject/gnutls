@@ -13,6 +13,7 @@ GNUTLS_3_6_8@GNUTLS_3_6_8
 GNUTLS_3_6_9@GNUTLS_3_6_9
 GNUTLS_3_7_0@GNUTLS_3_7_0
 GNUTLS_3_7_2@GNUTLS_3_7_2
+GNUTLS_3_7_3@GNUTLS_3_7_3
 _gnutls_global_init_skip@GNUTLS_3_4
 gnutls_aead_cipher_decrypt@GNUTLS_3_4
 gnutls_aead_cipher_decryptv2@GNUTLS_3_6_10
@@ -195,6 +196,7 @@ gnutls_digest_get_id@GNUTLS_3_4
 gnutls_digest_get_name@GNUTLS_3_4
 gnutls_digest_get_oid@GNUTLS_3_4
 gnutls_digest_list@GNUTLS_3_4
+gnutls_digest_set_secure@GNUTLS_3_7_3
 gnutls_dtls_cookie_send@GNUTLS_3_4
 gnutls_dtls_cookie_verify@GNUTLS_3_4
 gnutls_dtls_get_data_mtu@GNUTLS_3_4
@@ -213,6 +215,7 @@ gnutls_ecc_curve_get_oid@GNUTLS_3_4
 gnutls_ecc_curve_get_pk@GNUTLS_3_4
 gnutls_ecc_curve_get_size@GNUTLS_3_4
 gnutls_ecc_curve_list@GNUTLS_3_4
+gnutls_ecc_curve_set_enabled@GNUTLS_3_7_3
 gnutls_encode_ber_digest_info@GNUTLS_3_4
 gnutls_encode_gost_rs_value@GNUTLS_3_6_3
 gnutls_encode_rs_value@GNUTLS_3_6_0
@@ -247,9 +250,15 @@ gnutls_ffdhe_8192_group_prime@GNUTLS_3_4
 gnutls_ffdhe_8192_group_q@GNUTLS_3_6_8
 gnutls_ffdhe_8192_key_bits@GNUTLS_3_4
 gnutls_fingerprint@GNUTLS_3_4
+gnutls_fips140_context_deinit@GNUTLS_3_7_3
+gnutls_fips140_context_init@GNUTLS_3_7_3
+gnutls_fips140_get_operation_state@GNUTLS_3_7_3
 gnutls_fips140_mode_enabled@GNUTLS_3_4
+gnutls_fips140_pop_context@GNUTLS_3_7_3
+gnutls_fips140_push_context@GNUTLS_3_7_3
 gnutls_fips140_set_mode@GNUTLS_3_6_3
 gnutls_free@GNUTLS_3_4
+gnutls_get_library_config@GNUTLS_3_7_3
 gnutls_get_system_config_file@GNUTLS_3_6_9
 gnutls_global_deinit@GNUTLS_3_4
 gnutls_global_init@GNUTLS_3_4
@@ -657,6 +666,7 @@ gnutls_protocol_get_id@GNUTLS_3_4
 gnutls_protocol_get_name@GNUTLS_3_4
 gnutls_protocol_get_version@GNUTLS_3_4
 gnutls_protocol_list@GNUTLS_3_4
+gnutls_protocol_set_enabled@GNUTLS_3_7_3
 gnutls_psk_allocate_client_credentials@GNUTLS_3_4
 gnutls_psk_allocate_server_credentials@GNUTLS_3_4
 gnutls_psk_client_get_hint@GNUTLS_3_4
@@ -806,6 +816,8 @@ gnutls_sign_get_pk_algorithm@GNUTLS_3_4
 gnutls_sign_is_secure2@GNUTLS_3_6_0
 gnutls_sign_is_secure@GNUTLS_3_4
 gnutls_sign_list@GNUTLS_3_4
+gnutls_sign_set_secure@GNUTLS_3_7_3
+gnutls_sign_set_secure_for_certs@GNUTLS_3_7_3
 gnutls_sign_supports_pk_algorithm@GNUTLS_3_6_0
 gnutls_srp_1024_group_generator@GNUTLS_3_4
 gnutls_srp_1024_group_prime@GNUTLS_3_4
@@ -875,6 +887,7 @@ gnutls_transport_get_int2@GNUTLS_3_4
 gnutls_transport_get_int@GNUTLS_3_4
 gnutls_transport_get_ptr2@GNUTLS_3_4
 gnutls_transport_get_ptr@GNUTLS_3_4
+gnutls_transport_is_ktls_enabled@GNUTLS_3_7_3
 gnutls_transport_set_errno@GNUTLS_3_4
 gnutls_transport_set_errno_function@GNUTLS_3_4
 gnutls_transport_set_fastopen@GNUTLS_3_4
@@ -1130,6 +1143,8 @@ gnutls_x509_crt_sign2@GNUTLS_3_4
 gnutls_x509_crt_sign@GNUTLS_3_4
 gnutls_x509_crt_verify@GNUTLS_3_4
 gnutls_x509_crt_verify_data2@GNUTLS_3_4
+gnutls_x509_ct_sct_get@GNUTLS_3_7_0
+gnutls_x509_ct_sct_get_version@GNUTLS_3_7_0
 gnutls_x509_dn_deinit@GNUTLS_3_4
 gnutls_x509_dn_export2@GNUTLS_3_4
 gnutls_x509_dn_export@GNUTLS_3_4
@@ -1141,6 +1156,10 @@ gnutls_x509_dn_init@GNUTLS_3_4
 gnutls_x509_dn_oid_known@GNUTLS_3_4
 gnutls_x509_dn_oid_name@GNUTLS_3_4
 gnutls_x509_dn_set_str@GNUTLS_3_4
+gnutls_x509_ext_ct_export_scts@GNUTLS_3_7_0
+gnutls_x509_ext_ct_import_scts@GNUTLS_3_7_0
+gnutls_x509_ext_ct_scts_deinit@GNUTLS_3_7_0
+gnutls_x509_ext_ct_scts_init@GNUTLS_3_7_0
 gnutls_x509_ext_deinit@GNUTLS_3_4
 gnutls_x509_ext_export_aia@GNUTLS_3_4
 gnutls_x509_ext_export_authority_key_id@GNUTLS_3_4

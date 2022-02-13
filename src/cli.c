@@ -71,7 +71,7 @@
 #include <common.h>
 #include <socket.h>
 
-#include <cli-args.h>
+#include "gnutls-cli-options.h"
 #include <ocsptool-common.h>
 
 #define MAX_BUF 4096
@@ -1638,6 +1638,15 @@ static void cmd_parser(int argc, char **argv)
 		}
 		fprintf(stderr, "library is NOT in FIPS140-2 mode\n");
 		exit(1);
+	}
+
+	if (HAVE_OPT(LIST_CONFIG)) {
+		const gnutls_library_config_st *p;
+
+		for (p = gnutls_get_library_config(); p->name; p++) {
+			log_msg(stdout, "%s: %s\n", p->name, p->value);
+		}
+		exit(0);
 	}
 
 	if (HAVE_OPT(BENCHMARK_CIPHERS)) {

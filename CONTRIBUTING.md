@@ -157,8 +157,25 @@ As such, some questions to answer before adding a new API:
    13.0 is made available? Would it harm the addition of a new protocol?
 
 
-The make rule 'abi-check' verifies that the ABI remained compatible since
-the last tagged release. It relies on the git tree and abi-compliance-checker.
+The make rule 'abi-check' verifies that the ABI remained compatible
+since the last tagged release, which is maintained in a separate
+[abi-dump](https://gitlab.com/gnutls/abi-dump) repository. This
+repository shall be updated upon each release if any changes are
+introduced in the ABI.
+
+To add new API during development cycle, follow the steps below:
+
+0. If there is no section in [lib/libgnutls.map](lib/libgnutls.map),
+   corresponding to the next release, add it, deriving from the
+   previous interface
+1. Add new symbols in that section
+2. Run `make abi-check-latest`; this will report differences as
+   errors.  Edit the last section of
+   [devel/libgnutls.abignore](devel/libgnutls.abignore) to suppress
+   them.
+
+When a new version is released and the abi-dump repository is updated,
+the section will be cleared.
 
 The above do not apply to the C++ library; this library's ABI should not
 be considered stable.
@@ -402,6 +419,12 @@ files (.def) are auto-generated. Normally when introducing new functions,
 or adding new command line options to tools you need to run 'make
 files-update', review the output (when feasible) and commit it separately,
 e.g., with a message: "auto-generated files update".
+
+ The 'files-update' rule also regenerates the ABI dump files (.abi), used by
+the 'abi-check' rule to ensure library ABI compatibility. To make it easier
+to track actual changes to be made in those files, a git external diff
+driver is provided as `devel/git-abidiff-gnutls`. See the comment in the
+file for the instruction.
 
 
 # Guile bindings:

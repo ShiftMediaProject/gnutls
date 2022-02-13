@@ -1342,6 +1342,12 @@ GNUTLS_3_7_0
 	gnutls_x509_trust_list_get_ptr;
 	gnutls_x509_trust_list_set_ptr;
 	gnutls_session_set_verify_output_function;
+	gnutls_x509_ext_ct_scts_init;
+	gnutls_x509_ext_ct_scts_deinit;
+	gnutls_x509_ext_ct_import_scts;
+	gnutls_x509_ext_ct_export_scts;
+	gnutls_x509_ct_sct_get_version;
+	gnutls_x509_ct_sct_get;
  local:
 	*;
 } GNUTLS_3_6_14;
@@ -1354,6 +1360,25 @@ GNUTLS_3_7_2
  local:
 	*;
 } GNUTLS_3_7_0;
+
+GNUTLS_3_7_3
+{
+ global:
+	gnutls_ecc_curve_set_enabled;
+	gnutls_sign_set_secure;
+	gnutls_sign_set_secure_for_certs;
+	gnutls_digest_set_secure;
+	gnutls_protocol_set_enabled;
+	gnutls_transport_is_ktls_enabled;
+	gnutls_fips140_context_init;
+	gnutls_fips140_context_deinit;
+	gnutls_fips140_get_operation_state;
+	gnutls_fips140_push_context;
+	gnutls_fips140_pop_context;
+	gnutls_get_library_config;
+ local:
+	*;
+} GNUTLS_3_7_2;
 
 GNUTLS_FIPS140_3_4 {
   global:
