@@ -13,7 +13,7 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutlsd";NETTLE_LIBRARY_SONAME="libnettled";HOGWEED_LIBRARY_SONAME="libhogweedd";GMP_LIBRARY_SONAME="libgmpd";ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -66,7 +66,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutlsd";NETTLE_LIBRARY_SONAME="libnettled";HOGWEED_LIBRARY_SONAME="libhogweedd";GMP_LIBRARY_SONAME="libgmpd";ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -119,7 +119,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutlsd";NETTLE_LIBRARY_SONAME="nettled";HOGWEED_LIBRARY_SONAME="hogweedd";GMP_LIBRARY_SONAME="gmpd";ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -173,7 +173,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutlsd";NETTLE_LIBRARY_SONAME="nettled";HOGWEED_LIBRARY_SONAME="hogweedd";GMP_LIBRARY_SONAME="gmpd";ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -227,7 +227,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -280,7 +280,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -333,7 +333,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutls";NETTLE_LIBRARY_SONAME="nettle";HOGWEED_LIBRARY_SONAME="hogweed";GMP_LIBRARY_SONAME="gmp";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -387,7 +387,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -441,7 +441,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutls";NETTLE_LIBRARY_SONAME="nettle";HOGWEED_LIBRARY_SONAME="hogweed";GMP_LIBRARY_SONAME="gmp";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -495,7 +495,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>

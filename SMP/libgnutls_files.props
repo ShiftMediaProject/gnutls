@@ -182,6 +182,9 @@
     <ClCompile Include="..\gnulib\lib\hash.c" />
     <ClCompile Include="..\gnulib\lib\read-file.c" />
     <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
+    <ClCompile Include="..\gnulib\lib\windows-mutex.c" />
+    <ClCompile Include="..\gnulib\lib\windows-rwlock.c" />
+    <ClCompile Include="..\gnulib\lib\windows-once.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_and_not.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_Cc.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_Cf.c" />
@@ -429,6 +432,7 @@
     <ClCompile Include="..\lib\nettle\int\mpn-base256.c" />
     <ClCompile Include="..\lib\nettle\int\provable-prime.c" />
     <ClCompile Include="..\lib\nettle\int\rsa-keygen-fips186.c" />
+    <ClCompile Include="..\lib\nettle\int\rsa-pad.c" />
     <ClCompile Include="..\lib\nettle\int\tls1-prf.c" />
     <ClCompile Include="..\lib\nettle\gost\hmac-streebog.c" />
     <ClCompile Include="..\lib\nettle\gost\magma.c" />
@@ -485,6 +489,7 @@
     <ClCompile Include="..\lib\system\certs.c" />
     <ClCompile Include="..\lib\system\fastopen.c" />
     <ClCompile Include="..\lib\system\keys-win.c" />
+    <ClCompile Include="..\lib\system\ktls.c" />
     <ClCompile Include="..\lib\system\sockets.c" />
     <ClCompile Include="..\lib\system\threads.c" />
     <ClCompile Include="..\lib\system_override.c" />

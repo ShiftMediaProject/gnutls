@@ -61,6 +61,9 @@
 /* enable anonymous authentication */
 #define ENABLE_ANON 1
 
+/* Enable afalg support */
+/* #undef ENABLE_AFALG */
+
 /* Enable cryptodev support */
 /* #undef ENABLE_CRYPTODEV */
 
@@ -81,6 +84,9 @@
 
 /* enable heartbeat support */
 #define ENABLE_HEARTBEAT 1
+
+/* enable ktls support */
+/* #undef ENABLE_KTLS */
 
 /* nls support in libopts */
 /* #undef ENABLE_NLS */
@@ -112,8 +118,15 @@
 /* enable SSL3.0 support */
 #define ENABLE_SSL3 1
 
+/* enable TPM2 support */
+/* #undef ENABLE_TPM2 */
+
 /* The FIPS140-2 integrity key */
 /* #undef FIPS_KEY */
+
+#define HW_FEATURES "padlock"
+
+#define TLS_FEATURES "ssl3 ssl2-compat srtp alpn ocsp srp psk dhe ecdhe anon heartbeat"
 
 /* Define to nothing if C supports flexible array members, and to 1 if it does
  not. That way, with a declaration like 'struct s { int n; double
@@ -1713,6 +1726,9 @@ don't. */
  /* Define to 1 if you have the `tsearch' function. */
 #define HAVE_TSEARCH 1
 
+ /* Enable TSS2 */
+ /* #undef HAVE_TSS2 */
+
 /* Define to 1 if you don't have `tm_zone' but do have the external array
  `tzname'. */
 #define HAVE_TZNAME 1
@@ -1875,6 +1891,9 @@ don't. */
 
 /* Name of package */
 #define PACKAGE "gnutls"
+
+/* The iteration count for PKCS\#12 key derivation */
+#define PKCS12_ITER_COUNT 600000
 
 /* Define if <inttypes.h> exists and defines unusable PRI* macros. */
 /* #undef PRI_MACROS_BROKEN */

@@ -1559,6 +1559,21 @@
     <ClCompile Include="..\lib\nettle\gost\magma.c">
       <Filter>Source Files\lib\nettle\gost</Filter>
     </ClCompile>
+    <ClCompile Include="..\lib\nettle\int\rsa-pad.c">
+      <Filter>Source Files\lib\nettle\int</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\system\ktls.c">
+      <Filter>Source Files\lib\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\windows-rwlock.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\windows-mutex.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\windows-once.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">

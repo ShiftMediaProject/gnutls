@@ -180,6 +180,7 @@ gnutls_digest_get_id
 gnutls_digest_get_name
 gnutls_digest_get_oid
 gnutls_digest_list
+gnutls_digest_set_secure
 gnutls_dtls_cookie_send
 gnutls_dtls_cookie_verify
 gnutls_dtls_get_data_mtu
@@ -198,6 +199,7 @@ gnutls_ecc_curve_get_oid
 gnutls_ecc_curve_get_pk
 gnutls_ecc_curve_get_size
 gnutls_ecc_curve_list
+gnutls_ecc_curve_set_enabled
 gnutls_encode_ber_digest_info
 gnutls_encode_gost_rs_value
 gnutls_encode_rs_value
@@ -232,9 +234,15 @@ gnutls_ffdhe_8192_group_prime
 gnutls_ffdhe_8192_group_q
 gnutls_ffdhe_8192_key_bits
 gnutls_fingerprint
+gnutls_fips140_context_deinit
+gnutls_fips140_context_init
+gnutls_fips140_get_operation_state
 gnutls_fips140_mode_enabled
+gnutls_fips140_pop_context
+gnutls_fips140_push_context
 gnutls_fips140_set_mode
 gnutls_free
+gnutls_get_library_config
 gnutls_get_system_config_file
 gnutls_global_deinit
 gnutls_global_init
@@ -585,6 +593,7 @@ gnutls_protocol_get_id
 gnutls_protocol_get_name
 gnutls_protocol_get_version
 gnutls_protocol_list
+gnutls_protocol_set_enabled
 gnutls_psk_allocate_client_credentials
 gnutls_psk_allocate_server_credentials
 gnutls_psk_client_get_hint
@@ -733,6 +742,8 @@ gnutls_sign_get_pk_algorithm
 gnutls_sign_is_secure2
 gnutls_sign_is_secure
 gnutls_sign_list
+gnutls_sign_set_secure
+gnutls_sign_set_secure_for_certs
 gnutls_sign_supports_pk_algorithm
 gnutls_srp_1024_group_generator
 gnutls_srp_1024_group_prime
@@ -802,6 +813,7 @@ gnutls_transport_get_int2
 gnutls_transport_get_int
 gnutls_transport_get_ptr2
 gnutls_transport_get_ptr
+gnutls_transport_is_ktls_enabled
 gnutls_transport_set_errno
 gnutls_transport_set_errno_function
 gnutls_transport_set_fastopen
@@ -1055,6 +1067,8 @@ gnutls_x509_crt_sign2
 gnutls_x509_crt_sign
 gnutls_x509_crt_verify
 gnutls_x509_crt_verify_data2
+gnutls_x509_ct_sct_get
+gnutls_x509_ct_sct_get_version
 gnutls_x509_dn_deinit
 gnutls_x509_dn_export2
 gnutls_x509_dn_export
@@ -1066,6 +1080,10 @@ gnutls_x509_dn_init
 gnutls_x509_dn_oid_known
 gnutls_x509_dn_oid_name
 gnutls_x509_dn_set_str
+gnutls_x509_ext_ct_export_scts
+gnutls_x509_ext_ct_import_scts
+gnutls_x509_ext_ct_scts_deinit
+gnutls_x509_ext_ct_scts_init
 gnutls_x509_ext_deinit
 gnutls_x509_ext_export_aia
 gnutls_x509_ext_export_authority_key_id

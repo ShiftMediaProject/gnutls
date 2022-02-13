@@ -1,5 +1,5 @@
 diff --git a/lib/accelerated/x86/x86-common.c b/lib/accelerated/x86/x86-common.c
-index 80d37f49d..56688ae3e 100644
+index 7ddaa594e..b2bbf7f2f 100644
 --- a/lib/accelerated/x86/x86-common.c
 +++ b/lib/accelerated/x86/x86-common.c
 @@ -40,6 +40,35 @@
@@ -89,7 +89,7 @@ index 166dd61ca..2c391feba 100644
  	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
  			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
 diff --git a/lib/global.c b/lib/global.c
-index 373141883..1b0158d4b 100644
+index 65c0b8170..28b385bc3 100644
 --- a/lib/global.c
 +++ b/lib/global.c
 @@ -47,11 +47,32 @@
@@ -129,7 +129,7 @@ index 373141883..1b0158d4b 100644
  #endif
  
  #ifndef _WIN32
-@@ -485,7 +506,8 @@ const char *gnutls_check_version(const char *req_version)
+@@ -476,7 +497,8 @@ const char *gnutls_check_version(const char *req_version)
  	return NULL;
  }
  
@@ -139,7 +139,7 @@ index 373141883..1b0158d4b 100644
  {
  	int ret;
  	const char *e;
-@@ -515,7 +537,8 @@ static void _CONSTRUCTOR lib_init(void)
+@@ -506,7 +528,8 @@ static void _CONSTRUCTOR lib_init(void)
  	}
  }
  
@@ -150,7 +150,7 @@ index 373141883..1b0158d4b 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index d69b29b44..d5e34bf27 100644
+index 6359a0edb..27fa3ed57 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -37,7 +37,12 @@
@@ -180,22 +180,6 @@ index a904e3794..ef740c184 100644
  #include <errno.h>
  #include <sys/stat.h>
  #include <sys/types.h>
-diff --git a/lib/system/sockets.c b/lib/system/sockets.c
-index 5990d2dfa..469b3a2be 100644
---- a/lib/system/sockets.c
-+++ b/lib/system/sockets.c
-@@ -84,7 +84,11 @@ ssize_t
- system_writev(gnutls_transport_ptr_t ptr, const giovec_t * iovec,
- 	      int iovec_cnt)
- {
-+#if defined(_MSC_VER)
-+	WSABUF* bufs = (WSABUF*)_alloca(iovec_cnt * sizeof(WSABUF));
-+#else
- 	WSABUF bufs[iovec_cnt];
-+#endif
- 	DWORD bytes_sent;
- 	int to_send_cnt = 0;
- 	size_t to_send_bytes = 0;
 diff --git a/lib/x509/hostname-verify.c b/lib/x509/hostname-verify.c
 index 6ef8ba030..378b29c90 100644
 --- a/lib/x509/hostname-verify.c
