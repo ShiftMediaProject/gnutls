@@ -4,7 +4,8 @@ SETLOCAL EnableDelayedExpansion
 SET UPSTREAMURL=https://github.com/ShiftMediaProject
 SET DEPENDENCIES=( ^
 nettle, ^
-gmp ^
+gmp, ^
+zlib ^
 )
 
 REM Get passed in list of dependencies to skip

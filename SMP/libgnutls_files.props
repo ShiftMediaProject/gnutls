@@ -27,6 +27,7 @@
     <ClInclude Include="..\lib\buffers.h" />
     <ClInclude Include="..\lib\cipher.h" />
     <ClInclude Include="..\lib\cipher_int.h" />
+    <ClInclude Include="..\lib\compress.h" />
     <ClInclude Include="..\lib\constate.h" />
     <ClInclude Include="..\lib\crypto-api.h" />
     <ClInclude Include="..\lib\crypto-backend.h" />
@@ -44,6 +45,7 @@
     <ClInclude Include="..\lib\ext\alpn.h" />
     <ClInclude Include="..\lib\ext\cert_types.h" />
     <ClInclude Include="..\lib\ext\client_cert_type.h" />
+    <ClInclude Include="..\lib\ext\compress_certificate.h" />
     <ClInclude Include="..\lib\ext\cookie.h" />
     <ClInclude Include="..\lib\ext\dumbfw.h" />
     <ClInclude Include="..\lib\ext\early_data.h" />
@@ -360,6 +362,7 @@
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\ext\client_cert_type.c" />
+    <ClCompile Include="..\lib\ext\compress_certificate.c" />
     <ClCompile Include="..\lib\ext\cookie.c" />
     <ClCompile Include="..\lib\ext\dumbfw.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>

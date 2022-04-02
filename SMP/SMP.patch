@@ -61,7 +61,7 @@ index 35b9e3b97..e19211146 100644
  {
  	if (dat->data != NULL) {
 diff --git a/lib/debug.c b/lib/debug.c
-index 166dd61ca..2c391feba 100644
+index 991f7a7be..6d468674a 100644
 --- a/lib/debug.c
 +++ b/lib/debug.c
 @@ -31,7 +31,11 @@
@@ -89,7 +89,7 @@ index 166dd61ca..2c391feba 100644
  	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int) a_size,
  			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
 diff --git a/lib/global.c b/lib/global.c
-index 65c0b8170..28b385bc3 100644
+index faa7f0afb..6f6c74713 100644
 --- a/lib/global.c
 +++ b/lib/global.c
 @@ -47,11 +47,32 @@
@@ -150,7 +150,7 @@ index 65c0b8170..28b385bc3 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index 6359a0edb..27fa3ed57 100644
+index b3c502fc7..275afc609 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -37,7 +37,12 @@
@@ -209,3 +209,16 @@ index c4cb00831..a3be0d2b0 100644
  
  /*-
   * _gnutls_mask_to_prefix:
+diff --git a/lib/x509/x509_ext.c b/lib/x509/x509_ext.c
+index 8bcf183a2..b743b384e 100644
+--- a/lib/x509/x509_ext.c
++++ b/lib/x509/x509_ext.c
+@@ -3644,7 +3644,7 @@ static const struct sct_sign_algorithm_st algos[] = {
+ 
+ static gnutls_sign_algorithm_t get_sigalg(uint8_t hash_algo, uint8_t sig_algo)
+ {
+-	const struct sct_sign_algorithm_st *algo;
++	const struct sct_sign_algorithm_st *algo = NULL;
+ 	size_t i, num_algos = sizeof(algos) / sizeof(algos[0]);
+ 
+ 	if (hash_algo == 0 || sig_algo == 0)

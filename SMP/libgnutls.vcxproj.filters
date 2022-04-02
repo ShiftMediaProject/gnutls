@@ -603,6 +603,12 @@
     <ClInclude Include="..\lib\nettle\gost\magma.h">
       <Filter>Header Files\lib\nettle\gost</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\compress.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\ext\compress_certificate.h">
+      <Filter>Header Files\lib\ext</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -1574,6 +1580,7 @@
     <ClCompile Include="..\lib\system\ktls.c">
       <Filter>Source Files\lib\system</Filter>
     </ClCompile>
+    <ClCompile Include="..\lib\ext\compress_certificate.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">
