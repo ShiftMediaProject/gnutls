@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include "ext/session_ticket.h"
+#include <sys/sendfile.h>
 
 /**
  * gnutls_transport_is_ktls_enabled:
@@ -261,18 +262,44 @@ int _gnutls_ktls_set_keys(gnutls_session_t session)
 	return 0;
 }
 
+ssize_t _gnutls_ktls_send_file(gnutls_session_t session, int fd,
+		off_t *offset, size_t count)
+{
+	ssize_t ret;
+	int sockin, sockout;
+
+	assert(session != NULL);
+
+	gnutls_transport_get_int2(session, &sockin, &sockout);
+
+	ret = sendfile(sockout, fd, offset, count);
+	if (ret == -1){
+		switch(errno) {
+			case EINTR:
+				return GNUTLS_E_INTERRUPTED;
+			case EAGAIN:
+				return GNUTLS_E_AGAIN;
+			default:
+				return GNUTLS_E_PUSH_ERROR;
+		}
+	}
+
+	return ret;
+}
+
 int _gnutls_ktls_send_control_msg(gnutls_session_t session,
 		unsigned char record_type, const void *data, size_t data_size)
 {
 	const char *buf = data;
 	ssize_t ret;
 	int sockin, sockout;
+	size_t data_to_send = data_size;
 
 	assert (session != NULL);
 
 	gnutls_transport_get_int2(session, &sockin, &sockout);
 
-	while (data_size > 0) {
+	while (data_to_send > 0) {
 		char cmsg[CMSG_SPACE(sizeof (unsigned char))];
 		struct msghdr msg = { 0 };
 		struct iovec msg_iov;   /* Vector of data to send/receive into. */
@@ -291,7 +318,7 @@ int _gnutls_ktls_send_control_msg(gnutls_session_t session,
 		msg.msg_controllen = hdr->cmsg_len;
 
 		msg_iov.iov_base = (void *)buf;
-		msg_iov.iov_len = data_size;
+		msg_iov.iov_len = data_to_send;
 
 		msg.msg_iov = &msg_iov;
 		msg.msg_iovlen = 1;
@@ -310,10 +337,10 @@ int _gnutls_ktls_send_control_msg(gnutls_session_t session,
 		}
 
 		buf += ret;
-		data_size -= ret;
+		data_to_send -= ret;
 	}
 
-	return 0;
+	return data_size;
 }
 
 int _gnutls_ktls_recv_control_msg(gnutls_session_t session,
@@ -421,15 +448,19 @@ int _gnutls_ktls_recv_int(gnutls_session_t session, content_type_t type,
 
 #else //ENABLE_KTLS
 gnutls_transport_ktls_enable_flags_t
-gnutls_transport_is_ktls_enabled(gnutls_session_t session){
-	return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
+gnutls_transport_is_ktls_enabled(gnutls_session_t session) {
+	return 0;
 }
 
-void _gnutls_ktls_enable(gnutls_session_t session){
-	return;
+void _gnutls_ktls_enable(gnutls_session_t session) {
 }
 
 int _gnutls_ktls_set_keys(gnutls_session_t session) {
+	return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
+}
+
+ssize_t _gnutls_ktls_send_file(gnutls_session_t session, int fd,
+		off_t *offset, size_t count) {
 	return gnutls_assert_val(GNUTLS_E_UNIMPLEMENTED_FEATURE);
 }
 

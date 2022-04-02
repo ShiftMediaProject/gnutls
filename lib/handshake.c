@@ -1409,6 +1409,7 @@ _gnutls_send_handshake2(gnutls_session_t session, mbuffer_st * bufel,
 		case GNUTLS_HANDSHAKE_ENCRYPTED_EXTENSIONS: /* followed by finished or cert */
 		case GNUTLS_HANDSHAKE_CERTIFICATE_REQUEST:  /* followed by certificate */
 		case GNUTLS_HANDSHAKE_CERTIFICATE_PKT:	/* this one is followed by cert verify */
+		case GNUTLS_HANDSHAKE_COMPRESSED_CERTIFICATE_PKT:	/* as above */
 		case GNUTLS_HANDSHAKE_CERTIFICATE_VERIFY: /* followed by finished */
 			ret = 0; /* cache */
 			break;
@@ -1423,6 +1424,7 @@ _gnutls_send_handshake2(gnutls_session_t session, mbuffer_st * bufel,
 		case GNUTLS_HANDSHAKE_CERTIFICATE_PKT:	/* this one is followed by ServerHelloDone
 							 * or ClientKeyExchange always.
 							 */
+		case GNUTLS_HANDSHAKE_COMPRESSED_CERTIFICATE_PKT:	/* as above */
 		case GNUTLS_HANDSHAKE_CERTIFICATE_STATUS:
 		case GNUTLS_HANDSHAKE_SERVER_KEY_EXCHANGE:	/* as above */
 		case GNUTLS_HANDSHAKE_SERVER_HELLO:	/* as above */
@@ -1726,6 +1728,7 @@ _gnutls_recv_handshake(gnutls_session_t session,
 		}
 		break;
 	case GNUTLS_HANDSHAKE_CERTIFICATE_PKT:
+	case GNUTLS_HANDSHAKE_COMPRESSED_CERTIFICATE_PKT:
 	case GNUTLS_HANDSHAKE_CERTIFICATE_STATUS:
 	case GNUTLS_HANDSHAKE_FINISHED:
 	case GNUTLS_HANDSHAKE_ENCRYPTED_EXTENSIONS:
@@ -2910,9 +2913,11 @@ int gnutls_handshake(gnutls_session_t session)
 	}
 
 #ifdef ENABLE_KTLS
-	if (IS_KTLS_ENABLED(session, GNUTLS_KTLS_DUPLEX)) {
+	if (IS_KTLS_ENABLED(session, GNUTLS_KTLS_RECV) || IS_KTLS_ENABLED(session, GNUTLS_KTLS_SEND)) {
 		_gnutls_ktls_set_keys(session);
 	}
+#else
+	session->internals.ktls_enabled = 0;
 #endif
 
 	return 0;

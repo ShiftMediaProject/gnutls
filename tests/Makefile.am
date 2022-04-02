@@ -121,7 +121,8 @@ ctests = tls13/supported_versions tls13/tls12-no-tls13-exts \
 	tls12-rollback-detection tls11-rollback-detection \
 	tls12-check-rollback-val tls11-check-rollback-val \
 	tls13/post-handshake-with-psk tls13/post-handshake-with-cert-auto \
-	tls13/anti_replay
+	tls13/anti_replay tls13/compress-cert tls13/compress-cert-neg \
+	tls13/compress-cert-neg2
 
 ctests += tls13/hello_retry_request
 
@@ -229,7 +230,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 sign-verify-newapi sign-verify-deterministic iov aead-cipher-vec \
 	 tls13-without-timeout-func buffer status-request-revoked \
 	 set_x509_ocsp_multi_cli kdf-api keylog-func handshake-write \
-	 x509cert-dntypes id-on-xmppAddr tls13-compat-mode
+	 x509cert-dntypes id-on-xmppAddr tls13-compat-mode ciphersuite-name
 
 ctests += tls-channel-binding
 
@@ -441,6 +442,8 @@ if ENABLE_KTLS
 ctests += gnutls_ktls
 endif
 
+ctests += record-sendfile
+
 gc_CPPFLAGS = $(AM_CPPFLAGS) \
 	-I$(top_srcdir)/gl	\
 	-I$(top_builddir)/gl
@@ -515,7 +518,8 @@ dist_check_SCRIPTS += fastopen.sh pkgconfig.sh starttls.sh starttls-ftp.sh start
 	psktool.sh ocsp-tests/ocsp-load-chain.sh gnutls-cli-save-data.sh gnutls-cli-debug.sh \
 	sni-resume.sh ocsp-tests/ocsptool.sh cert-reencoding.sh pkcs7-cat.sh long-crl.sh \
 	serv-udp.sh logfile-option.sh gnutls-cli-resume.sh profile-tests.sh \
-	server-weak-keys.sh ocsp-tests/ocsp-signer-verify.sh cfg-test.sh
+	server-weak-keys.sh ocsp-tests/ocsp-signer-verify.sh cfg-test.sh \
+	sanity-lib.sh
 
 if !DISABLE_SYSTEM_CONFIG
 dist_check_SCRIPTS += system-override-sig.sh system-override-hash.sh \

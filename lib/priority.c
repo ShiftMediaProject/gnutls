@@ -43,7 +43,7 @@
 #include "profiles.h"
 #include "name_val_array.h"
 
-#define MAX_ELEMENTS 64
+#define MAX_ELEMENTS GNUTLS_MAX_ALGORITHM_NUM
 
 #define ENABLE_PROFILE(c, profile) do { \
 	c->additional_verify_flags &= 0x00ffffff; \
@@ -309,7 +309,9 @@ static const int _kx_priority_secure[] = {
 static const int* kx_priority_secure = _kx_priority_secure;
 
 static const int _kx_priority_gost[] = {
+#ifdef ENABLE_GOST
 	GNUTLS_KX_VKO_GOST_12,
+#endif
 	0,
 };
 static const int* kx_priority_gost = _kx_priority_gost;
@@ -507,9 +509,10 @@ static const int _sign_priority_secure192[] = {
 static const int* sign_priority_secure192 = _sign_priority_secure192;
 
 static const int _sign_priority_gost[] = {
+#ifdef ENABLE_GOST
 	GNUTLS_SIGN_GOST_256,
 	GNUTLS_SIGN_GOST_512,
-
+#endif
 	0
 };
 static const int* sign_priority_gost = _sign_priority_gost;
@@ -531,13 +534,17 @@ static const int *cipher_priority_normal = _cipher_priority_normal_default;
 static const int *mac_priority_normal = mac_priority_normal_default;
 
 static const int _cipher_priority_gost[] = {
+#ifdef ENABLE_GOST
 	GNUTLS_CIPHER_GOST28147_TC26Z_CNT,
+#endif
 	0
 };
 static const int *cipher_priority_gost = _cipher_priority_gost;
 
 static const int _mac_priority_gost[] = {
+#ifdef ENABLE_GOST
 	GNUTLS_MAC_GOST28147_TC26Z_IMIT,
+#endif
 	0
 };
 static const int *mac_priority_gost = _mac_priority_gost;
@@ -1237,9 +1244,9 @@ static int global_ini_handler(void *ctx, const char *section, const char *name, 
 	if (section != NULL && c_strcasecmp(section, GLOBAL_SECTION) == 0) {
 		if (c_strcasecmp(name, "override-mode") == 0) {
 			p = clear_spaces(value, str);
-			if (c_strcasecmp(value, "allowlist") == 0) {
+			if (c_strcasecmp(p, "allowlist") == 0) {
 				cfg->allowlisting = true;
-			} else if (c_strcasecmp(value, "blocklist") == 0) {
+			} else if (c_strcasecmp(p, "blocklist") == 0) {
 				cfg->allowlisting = false;
 			} else {
 				_gnutls_debug_log("cfg: unknown override mode %s\n",
@@ -1735,109 +1742,126 @@ static int cfg_ini_handler(void *_ctx, const char *section, const char *name, co
 	return 1;
 }
 
-static int
-update_system_wide_priority_string(void)
+static int /* not locking system_wide_config */
+construct_system_wide_priority_string(gnutls_buffer_st* buf)
 {
-	gnutls_buffer_st buf;
 	int ret;
 	size_t i;
 
-	_gnutls_buffer_init(&buf);
+	_gnutls_buffer_init(buf);
 
-	ret = _gnutls_buffer_append_str(&buf, "NONE");
+	ret = _gnutls_buffer_append_str(buf, "NONE");
 	if (ret < 0) {
-		_gnutls_buffer_clear(&buf);
+		_gnutls_buffer_clear(buf);
 		return ret;
 	}
 
 	for (i = 0; system_wide_config.kxs[i] != 0; i++) {
-		ret = _gnutls_buffer_append_str(&buf, ":+");
+		ret = _gnutls_buffer_append_str(buf, ":+");
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 
-		ret = _gnutls_buffer_append_str(&buf,
+		ret = _gnutls_buffer_append_str(buf,
 						gnutls_kx_get_name(system_wide_config.kxs[i]));
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 	}
 
 	for (i = 0; system_wide_config.groups[i] != 0; i++) {
-		ret = _gnutls_buffer_append_str(&buf, ":+GROUP-");
+		ret = _gnutls_buffer_append_str(buf, ":+GROUP-");
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 
-		ret = _gnutls_buffer_append_str(&buf,
+		ret = _gnutls_buffer_append_str(buf,
 						gnutls_group_get_name(system_wide_config.groups[i]));
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 	}
 
 	for (i = 0; system_wide_config.ciphers[i] != 0; i++) {
-		ret = _gnutls_buffer_append_str(&buf, ":+");
+		ret = _gnutls_buffer_append_str(buf, ":+");
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 
-		ret = _gnutls_buffer_append_str(&buf,
+		ret = _gnutls_buffer_append_str(buf,
 						gnutls_cipher_get_name(system_wide_config.ciphers[i]));
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 	}
 
 	for (i = 0; system_wide_config.macs[i] != 0; i++) {
-		ret = _gnutls_buffer_append_str(&buf, ":+");
+		ret = _gnutls_buffer_append_str(buf, ":+");
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 
-		ret = _gnutls_buffer_append_str(&buf,
+		ret = _gnutls_buffer_append_str(buf,
 						gnutls_mac_get_name(system_wide_config.macs[i]));
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 	}
 
 	for (i = 0; system_wide_config.sigs[i] != 0; i++) {
-		ret = _gnutls_buffer_append_str(&buf, ":+SIGN-");
+		ret = _gnutls_buffer_append_str(buf, ":+SIGN-");
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 
-		ret = _gnutls_buffer_append_str(&buf,
+		ret = _gnutls_buffer_append_str(buf,
 						gnutls_sign_get_name(system_wide_config.sigs[i]));
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 	}
 
 	for (i = 0; system_wide_config.versions[i] != 0; i++) {
-		ret = _gnutls_buffer_append_str(&buf, ":+VERS-");
+		ret = _gnutls_buffer_append_str(buf, ":+VERS-");
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
 
-		ret = _gnutls_buffer_append_str(&buf,
+		ret = _gnutls_buffer_append_str(buf,
 						gnutls_protocol_get_name(system_wide_config.versions[i]));
 		if (ret < 0) {
-			_gnutls_buffer_clear(&buf);
+			_gnutls_buffer_clear(buf);
 			return ret;
 		}
+	}
+	return 0;
+}
+
+static int /* not locking system_wide_config */
+update_system_wide_priority_string(void)
+{
+	/* doesn't do locking, _gnutls_update_system_priorities does */
+	gnutls_buffer_st buf;
+	int ret;
+
+	ret = construct_system_wide_priority_string(&buf);
+	if (ret < 0) {
+		_gnutls_debug_log("cfg: unable to construct "
+				  "system-wide priority string: %s",
+				  gnutls_strerror(ret));
+		_gnutls_buffer_clear(&buf);
+		return ret;
 	}
 
 	gnutls_free(system_wide_config.priority_string);
@@ -1847,11 +1871,12 @@ update_system_wide_priority_string(void)
 	return 0;
 }
 
-static int _gnutls_update_system_priorities(void)
+static int _gnutls_update_system_priorities(bool defer_system_wide)
 {
 	int ret, err = 0;
 	struct stat sb;
 	FILE *fp;
+	gnutls_buffer_st buf;
 	struct ini_ctx ctx;
 
 	ret = gnutls_rwlock_rdlock(&system_wide_config_rwlock);
@@ -1866,10 +1891,12 @@ static int _gnutls_update_system_priorities(void)
 	}
 
 	if (system_priority_file_loaded &&
-	    sb.st_mtime == system_priority_last_mod) {
+	    system_priority_last_mod == sb.st_mtime) {
 		_gnutls_debug_log("cfg: system priority %s has not changed\n",
 				  system_priority_file);
-		goto out;
+		if (system_wide_config.priority_string) {
+			goto out;  /* nothing to do */
+		}
 	}
 
 	(void)gnutls_rwlock_unlock(&system_wide_config_rwlock);
@@ -1879,54 +1906,71 @@ static int _gnutls_update_system_priorities(void)
 		return gnutls_assert_val(ret);
 	}
 
-	/* Another thread has successfully updated the system wide config (with
-	 * the same modification time as checked above), while upgrading to
-	 * write lock; no need to reload.
+	/* Another thread could have successfully re-read system-wide config,
+	 * skip re-reading if the mtime it has used is exactly the same.
 	 */
-	if (system_priority_file_loaded &&
-	    system_priority_last_mod == sb.st_mtime) {
-		goto out;
+	if (system_priority_file_loaded) {
+		system_priority_file_loaded =
+			(system_priority_last_mod == sb.st_mtime);
 	}
 
-	system_priority_file_loaded = 0;
-	_name_val_array_clear(&system_wide_config.priority_strings);
+	if (!system_priority_file_loaded) {
+		_name_val_array_clear(&system_wide_config.priority_strings);
 
-	gnutls_free(system_wide_config.priority_string);
-	system_wide_config.priority_string = NULL;
+		gnutls_free(system_wide_config.priority_string);
+		system_wide_config.priority_string = NULL;
 
-	fp = fopen(system_priority_file, "re");
-	if (fp == NULL) {
-		_gnutls_debug_log("cfg: unable to open: %s: %d\n",
-				  system_priority_file, errno);
-		goto out;
-	}
-	/* Parsing the configuration file needs to be done in 2 phases: first
-	 * parsing the [global] section and then the other sections, because the
-	 * [global] section modifies the parsing behavior.
-	 */
-	memset(&ctx, 0, sizeof(ctx));
-	err = ini_parse_file(fp, global_ini_handler, &ctx);
-	if (!err) {
-		if (fseek(fp, 0L, SEEK_SET) < 0) {
-			_gnutls_debug_log("cfg: unable to rewind: %s\n",
-					  system_priority_file);
-			if (fail_on_invalid_config)
-				exit(1);
+		fp = fopen(system_priority_file, "re");
+		if (fp == NULL) {
+			_gnutls_debug_log("cfg: unable to open: %s: %d\n",
+					  system_priority_file, errno);
+			goto out;
 		}
-		err = ini_parse_file(fp, cfg_ini_handler, &ctx);
-	}
-	fclose(fp);
-	if (err) {
+		/* Parsing the configuration file needs to be done in 2 phases:
+		 * first parsing the [global] section
+		 * and then the other sections,
+		 * because the [global] section modifies the parsing behavior.
+		 */
+		memset(&ctx, 0, sizeof(ctx));
+		err = ini_parse_file(fp, global_ini_handler, &ctx);
+		if (!err) {
+			if (fseek(fp, 0L, SEEK_SET) < 0) {
+				_gnutls_debug_log("cfg: unable to rewind: %s\n",
+						  system_priority_file);
+				if (fail_on_invalid_config)
+					exit(1);
+			}
+			err = ini_parse_file(fp, cfg_ini_handler, &ctx);
+		}
+		fclose(fp);
+		if (err) {
+			ini_ctx_deinit(&ctx);
+			_gnutls_debug_log("cfg: unable to parse: %s: %d\n",
+					  system_priority_file, err);
+			goto out;
+		}
+		cfg_apply(&system_wide_config, &ctx);
 		ini_ctx_deinit(&ctx);
-		_gnutls_debug_log("cfg: unable to parse: %s: %d\n",
-				  system_priority_file, err);
-		goto out;
+		_gnutls_debug_log("cfg: loaded system config %s mtime %lld\n",
+				  system_priority_file,
+				  (unsigned long long)sb.st_mtime);
+
 	}
-	cfg_apply(&system_wide_config, &ctx);
-	ini_ctx_deinit(&ctx);
 
 	if (system_wide_config.allowlisting) {
-		ret = update_system_wide_priority_string();
+		if (defer_system_wide) {
+			/* try constructing a priority string,
+			 * but don't apply it yet, at this point
+			 * we're only interested in whether we can */
+			ret = construct_system_wide_priority_string(&buf);
+			_gnutls_buffer_clear(&buf);
+			_gnutls_debug_log("cfg: deferred setting "
+					  "system-wide priority string\n");
+		} else {
+			ret = update_system_wide_priority_string();
+			_gnutls_debug_log("cfg: finalized "
+					  "system-wide priority string\n");
+		}
 		if (ret < 0) {
 			_gnutls_debug_log("cfg: unable to build priority string: %s\n",
 					  gnutls_strerror(ret));
@@ -1935,10 +1979,6 @@ static int _gnutls_update_system_priorities(void)
 			goto out;
 		}
 	}
-
-	_gnutls_debug_log("cfg: loaded system priority %s mtime %lld\n",
-			  system_priority_file,
-			  (unsigned long long)sb.st_mtime);
 
 	system_priority_file_loaded = 1;
 	system_priority_last_mod = sb.st_mtime;
@@ -1953,7 +1993,7 @@ static int _gnutls_update_system_priorities(void)
 	return ret;
 }
 
-void _gnutls_load_system_priorities(void)
+void _gnutls_prepare_to_load_system_priorities(void)
 {
 	const char *p;
 	int ret;
@@ -1966,7 +2006,7 @@ void _gnutls_load_system_priorities(void)
 	if (p != NULL && p[0] == '1' && p[1] == 0)
 		fail_on_invalid_config = 1;
 
-	ret = _gnutls_update_system_priorities();
+	ret = _gnutls_update_system_priorities(true /* defer_system_wide */);
 	if (ret < 0) {
 		_gnutls_debug_log("failed to update system priorities: %s\n",
 				  gnutls_strerror(ret));
@@ -2033,7 +2073,7 @@ char *_gnutls_resolve_priorities(const char* priorities)
 	/* Always try to refresh the cached data, to allow it to be
 	 * updated without restarting all applications.
 	 */
-	ret = _gnutls_update_system_priorities();
+	ret = _gnutls_update_system_priorities(false /* defer_system_wide */);
 	if (ret < 0) {
 		_gnutls_debug_log("failed to update system priorities: %s\n",
 				  gnutls_strerror(ret));
@@ -2465,7 +2505,7 @@ static int set_ciphersuite_list(gnutls_priority_t priority_cache)
 	}
 
  out:
-	gnutls_rwlock_unlock(&system_wide_config_rwlock);
+	(void)gnutls_rwlock_unlock(&system_wide_config_rwlock);
 	return ret;
 }
 

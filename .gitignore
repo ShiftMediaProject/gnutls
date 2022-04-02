@@ -272,12 +272,16 @@ Makefile.user
 *.out
 *.plist
 python/__pycache__/
+python/cligen
+python/cli-*gen.py
 src/benchmark
 src/benchmark-cipher
 src/benchmark-tls
 src/certtool
 src/certtool-options.c
 src/certtool-options.h
+src/cli-cfg.c
+src/cli-cfg.h
 src/dumpcfg
 src/gnutls-cli-options.c
 src/gnutls-cli-options.h
@@ -357,6 +361,7 @@ tests/chainverify
 tests/chainverify-unsorted
 tests/cipher-alignment
 tests/cipher-test
+tests/ciphersuite-name
 tests/client
 tests/client-fastopen
 tests/client-sign-md5-rep
@@ -919,6 +924,7 @@ tests/x509sign-verify-rsa
 tests/x509sign-verify2
 tests/x509signself
 tests/gnutls_ktls
+tests/record-sendfile
 *.tmp
 tmp-*
 *.trs

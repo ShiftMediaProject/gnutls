@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.7.3], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.7.4], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -150,6 +150,7 @@ case "$host" in
     AC_MSG_CHECKING([whether the linker supports -Wl,-no_weak_imports])
     AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
       [AC_MSG_RESULT(yes)], [AC_MSG_RESULT(no); LDFLAGS="$save_LDFLAGS"])
+    GNUTLS_LIBS_PRIVATE="${GNUTLS_LIBS_PRIVATE} -framework Security -framework CoreFoundation"
   ;;
   *solaris*)
     have_elf=yes
@@ -622,6 +623,13 @@ if [ test "$enable_fips" = "yes" ];then
   fi
 fi
 
+AC_ARG_ENABLE(strict-x509,
+  AS_HELP_STRING([--enable-strict-x509], [enable stricter sanity checks for x509 certificates]),
+    enable_strict_x509=$enableval, enable_strict_x509=no)
+if test "$enable_strict_x509" != "no"; then
+	AC_DEFINE([STRICT_X509], 1, [Enable stricter sanity checks for x509 certificates])
+fi
+
 AC_ARG_WITH([pkcs12-iter-count],
 	[AS_HELP_STRING([--with-pkcs12-iter-count],
 	  [specify iteration count for PKCS\#12 key derivation @<:@default=600000@:>@])],
@@ -882,6 +890,8 @@ AM_CONDITIONAL(P11KIT_0_23_11_API, $PKG_CONFIG --atleast-version=0.23.11 p11-kit
 
 AM_CONDITIONAL(ENABLE_PKCS11, test "$with_p11_kit" != "no")
 
+need_ltlibdl=no
+
 AC_ARG_WITH(tpm2,
 	AS_HELP_STRING([--without-tpm2],
 		[Disable TPM2 support.]),
@@ -892,6 +902,8 @@ if test "$with_tpm2" != "no"; then
 	if test "$have_tpm2" = "yes"; then
 		tss2lib="tss2-esys tss2-mu tss2-tctildr"
 		AC_DEFINE([HAVE_TSS2], 1, [Have TSS2])
+		with_tpm2=yes
+		need_ltlibdl=yes
 	elif test "$with_tpm2" = "yes"; then
 		AC_MSG_ERROR([[
 ***
@@ -908,7 +920,7 @@ AC_ARG_WITH(tpm,
 	AS_HELP_STRING([--without-tpm],
 		[Disable TPM (trousers) support.]),
 		[with_tpm=$withval], [with_tpm=yes])
-if test "$with_tpm" != "no" && test "$with_tpm2" = "no"; then
+if test "$with_tpm" != "no"; then
     LIBS="$oldlibs -ltspi"
     AC_MSG_CHECKING([for tss library])
     AC_LINK_IFELSE([AC_LANG_PROGRAM([
@@ -920,7 +932,8 @@ if test "$with_tpm" != "no" && test "$with_tpm2" = "no"; then
 		   AC_SUBST([TSS_LIBS], [-ltspi])
 		   AC_SUBST([TSS_CFLAGS], [])
 		   AC_DEFINE([HAVE_TROUSERS], 1, [Enable TPM])
-		   with_tpm=yes],
+		   with_tpm=yes,
+		   need_ltlibdl=yes],
 		  [AC_MSG_RESULT(no)
 		   AC_MSG_WARN([[
 *** 
@@ -957,10 +970,90 @@ fi
 AC_DEFINE_UNQUOTED([TROUSERS_LIB], ["$ac_trousers_lib"], [the location of the trousers library])
 AC_SUBST(TROUSERS_LIB)
 
+
+AM_CONDITIONAL(NEED_LTLIBDL, test "$need_ltlibdl" = yes)
+
 # For minitasn1.
 AC_CHECK_SIZEOF(unsigned long int, 4)
 AC_CHECK_SIZEOF(unsigned int, 4)
 AC_CHECK_SIZEOF(time_t, 4)
+
+AC_ARG_WITH(zlib, AS_HELP_STRING([--without-zlib],
+                                 [disable zlib compression support]),
+            ac_zlib=$withval, ac_zlib=yes)
+AC_MSG_CHECKING([whether to include zlib compression support])
+if test x$ac_zlib != xno; then
+    AC_MSG_RESULT(yes)
+    AC_LIB_HAVE_LINKFLAGS(z,, [#include <zlib.h>], [compress (0, 0, 0, 0);])
+    if test x$ac_cv_libz != xyes; then
+	AC_MSG_WARN(
+  *** 
+  *** ZLIB was not found. You will not be able to use ZLIB compression.)
+fi
+else
+    AC_MSG_RESULT(no)
+fi
+
+PKG_CHECK_EXISTS(zlib, ZLIB_HAS_PKGCONFIG=y, ZLIB_HAS_PKGCONFIG=n)
+
+if test x$ac_zlib != xno; then
+    if test "$ZLIB_HAS_PKGCONFIG" = "y" ; then
+	if test "x$GNUTLS_REQUIRES_PRIVATE" = x; then
+	    GNUTLS_REQUIRES_PRIVATE="Requires.private: zlib"
+	else
+	    GNUTLS_REQUIRES_PRIVATE="$GNUTLS_REQUIRES_PRIVATE, zlib"
+	fi
+	LIBZ_PC=""
+    else
+	LIBZ_PC=$LIBZ
+    fi
+fi
+AC_SUBST(LIBZ_PC)
+
+AC_ARG_WITH(libbrotli,
+	    AS_HELP_STRING([--without-brotli], [disable brotli compression support]),
+	    ac_brotli=$withval, ac_brotli=yes)
+AC_MSG_CHECKING([whether to include brotli compression support])
+if test x$ac_brotli != xno; then
+    AC_MSG_RESULT(yes)
+    PKG_CHECK_MODULES(LIBBROTLIENC, [libbrotlienc >= 1.0.0], [with_libbrotlienc=yes], [with_libbrotlienc=no])
+    PKG_CHECK_MODULES(LIBBROTLIDEC, [libbrotlidec >= 1.0.0], [with_libbrotlidec=yes], [with_libbrotlidec=no])
+    if test "${with_libbrotlienc}" = "yes" && test "${with_libbrotlidec}" = "yes"; then
+	AC_DEFINE([HAVE_LIBBROTLI], 1, [Define if BROTLI compression is enabled.])
+	if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
+	    GNUTLS_REQUIRES_PRIVATE="Requires.private: libbrotlienc, libbrotlidec"
+	else
+	    GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libbrotlienc, libbrotlidec"
+	fi
+    else
+	AC_MSG_WARN(*** LIBBROTLI was not found. You will not be able to use BROTLI compression.)
+    fi
+else
+    AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL(HAVE_LIBBROTLI, test "$with_libbrotlienc" != "no" && test "$with_libbrotlidec" != "no")
+
+AC_ARG_WITH(libzstd,
+	    AS_HELP_STRING([--without-zstd], [disable zstd compression support]),
+	    ac_zstd=$withval, ac_zstd=yes)
+AC_MSG_CHECKING([whether to include zstd compression support])
+if test x$ac_zstd != xno; then
+    AC_MSG_RESULT(yes)
+    PKG_CHECK_MODULES(LIBZSTD, [libzstd >= 1.3.0], [with_libzstd=yes], [with_libzstd=no])
+    if test "${with_libzstd}" = "yes" && test "${has_zstd_h}" = "yes"; then
+	AC_DEFINE([HAVE_LIBZSTD], 1, [Define if ZSTD compression is enabled.])
+	if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
+	    GNUTLS_REQUIRES_PRIVATE="Requires.private: libzstd"
+	else
+	    GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libzstd"
+	fi
+    else
+	AC_MSG_WARN(*** LIBZSTD was not found. You will not be able to use ZSTD compression.)
+    fi
+else
+    AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL(HAVE_LIBZSTD, test "$with_libzstd" != "no")
 
 # export for use in scripts
 AC_SUBST(ac_cv_sizeof_time_t)
@@ -1312,7 +1405,7 @@ AC_MSG_NOTICE([External hardware support:
   Random gen. variant:  $rnd_variant
   PKCS#11 support:      $with_p11_kit
   TPM support:          $with_tpm
-  TPM2 support:         $have_tpm2
+  TPM2 support:         $with_tpm2
   KTLS support:         $enable_ktls
 ])
 

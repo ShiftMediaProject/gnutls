@@ -86,8 +86,8 @@ check_if_port_listening() {
 # Find a port number not currently in use.
 GETPORT='
     rc=0
-    unset myrandom
     while test $rc = 0; do
+        unset myrandom
         if test -n "$RANDOM"; then myrandom=$(($RANDOM + $RANDOM)); fi
         if test -z "$myrandom"; then myrandom=$(date +%N | sed s/^0*//); fi
         if test -z "$myrandom"; then myrandom=0; fi
@@ -127,7 +127,7 @@ fail() {
 exit_if_non_x86()
 {
 	if (lscpu --version) >/dev/null 2>&1 && \
-	    ! lscpu 2>/dev/null | grep 'Architecture:[	]*x86' >/dev/null; then
+	    ! lscpu 2>/dev/null | grep 'Architecture:[	 ]*x86' >/dev/null; then
 		echo "non-x86 CPU detected"
 		exit
 	fi
@@ -136,7 +136,7 @@ exit_if_non_x86()
 exit_if_non_padlock()
 {
 	if (lscpu --version) >/dev/null 2>&1 && \
-	   ! lscpu 2>/dev/null | grep 'Flags:[	]*phe' >/dev/null; then
+	   ! lscpu 2>/dev/null | grep 'Flags:[	 ]*phe' >/dev/null; then
 		echo "non-Via padlock CPU detected"
 		exit
 	fi

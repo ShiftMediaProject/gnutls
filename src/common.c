@@ -291,6 +291,53 @@ int cert_verify(gnutls_session_t session, const char *hostname, const char *purp
 	return 1;
 }
 
+/* Parse input string and set certificate compression methods */
+int compress_cert_set_methods(gnutls_session_t session,
+			      const char **strings,
+			      size_t n_strings)
+{
+	int ret = 0;
+	gnutls_compression_method_t *methods;
+
+	if (n_strings == 0) {
+		return 0;
+	}
+
+/* GCC analyzer in 11.2 mishandles reallocarray/free */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-mismatching-deallocation"
+
+	methods = reallocarray(NULL, n_strings, sizeof(*methods));
+	if (!methods) {
+		fprintf(stderr, "Could not set certificate compression methods: %s\n",
+			gnutls_strerror(ret));
+		return GNUTLS_E_MEMORY_ERROR;
+	}
+
+	for (size_t i = 0; i < n_strings; ++i) {
+		methods[i] = gnutls_compression_get_id(strings[i]);
+		if (methods[i] == GNUTLS_COMP_UNKNOWN) {
+			fprintf(stderr, "Unknown compression method: %s\n",
+				strings[i]);
+			goto cleanup;
+		}
+	}
+
+	ret = gnutls_compress_certificate_set_methods(session, methods, n_strings);
+	if (ret < 0) {
+		fprintf(stderr, "Could not set certificate compression methods: %s\n",
+			gnutls_strerror(ret));
+		goto cleanup;
+	}
+
+cleanup:
+	free(methods);
+
+#pragma GCC diagnostic pop
+
+	return ret;
+}
+
 static void
 print_dh_info(gnutls_session_t session, const char *str, int print)
 {

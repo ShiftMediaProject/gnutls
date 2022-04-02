@@ -125,7 +125,7 @@ gnutls_ecc_curve_entry_st ecc_curves[] = {
 	 * exchange (CryptoPro-XchA = CryptoPro-A and CryptoPro-XchB =
 	 * CryptoPro-C).
 	 *
-	 * Then TC26 (Standard comittee working on cryptographic standards) has
+	 * Then TC26 (Standard committee working on cryptographic standards) has
 	 * defined one 256-bit curve (TC26-256-A) and three 512-bit curves
 	 * (TC26-512-A, -B, -C).
 	 *
@@ -388,6 +388,9 @@ void _gnutls_ecc_curve_mark_disabled_all(void)
  * enabled or disabled.  This only has effect when the curve is
  * enabled through the allowlisting mode in the configuration file, or
  * when the setting is modified with a prior call to this function.
+ *
+ * This function must be called prior to any session priority setting functions;
+ * otherwise the behavior is undefined.
  *
  * Returns: 0 on success or negative error code otherwise.
  *

@@ -517,6 +517,14 @@ gnutls_session_t initialize_session(int dtls)
 		}
 	}
 
+	if (HAVE_OPT(COMPRESS_CERT)) {
+		ret = compress_cert_set_methods(session,
+						OPTS_ARRAY(COMPRESS_CERT),
+						OPTS_COUNT(COMPRESS_CERT));
+		if (ret < 0)
+			exit(1);
+	}
+
 	if (HAVE_OPT(HEARTBEAT))
 		gnutls_heartbeat_enable(session,
 					GNUTLS_HB_PEER_ALLOWED_TO_SEND);
