@@ -105,6 +105,7 @@
 
 #define XMPP_OID "1.3.6.1.5.5.7.8.5"
 #define KRB5_PRINCIPAL_OID "1.3.6.1.5.2.2"
+#define MSUSER_PRINCIPAL_NAME_OID "1.3.6.1.4.1.311.20.2.3"
 #define PKIX1_RSA_PSS_MGF1_OID "1.2.840.113549.1.1.8"
 
 #define GOST28147_89_OID "1.2.643.2.2.21"
@@ -128,6 +129,8 @@ struct oid_to_string {
 };
 
 const struct oid_to_string *_gnutls_oid_get_entry(const struct oid_to_string *ots, const char *oid);
+
+const char *_gnutls_oid_get_asn_desc(const char *oid);
 
 int _gnutls_x509_set_time(asn1_node c2, const char *where, time_t tim,
 			  int force_general);

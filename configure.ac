@@ -23,7 +23,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.7.4], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.7.5], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -203,6 +203,20 @@ case $host_cpu in
   ;;
 esac
 
+# Check if the assembler supports -march=all
+if test "$hw_accel" = aarch64; then
+  AARCH64_CCASFLAGS="-Wa,-march=all"
+  AC_MSG_CHECKING([whether the compiler supports -Wa,-march=all])
+  : > conftest.s
+  if "$CCAS" "$AARCH64_CCASFLAGS" -c conftest.s >/dev/null 2>&1; then
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+    AARCH64_CCASFLAGS=
+  fi
+  AC_SUBST(AARCH64_CCASFLAGS)
+fi
+
 # check for gcc's __get_cpuid_count functionality
 AC_MSG_CHECKING([for __get_cpuid_count])
 AC_LINK_IFELSE(
@@ -340,15 +354,7 @@ fi
 dnl
 dnl check for gtk-doc
 dnl
-m4_ifdef([GTK_DOC_CHECK], [
 GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
-],[
-AM_CONDITIONAL([ENABLE_GTK_DOC], false)
-])
-# needed for some older versions of gtk-doc
-m4_ifdef([GTK_DOC_USE_LIBTOOL], [], [
-AM_CONDITIONAL([GTK_DOC_USE_LIBTOOL], false)
-])
 
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.19])
@@ -1010,7 +1016,7 @@ if test x$ac_zlib != xno; then
 fi
 AC_SUBST(LIBZ_PC)
 
-AC_ARG_WITH(libbrotli,
+AC_ARG_WITH(brotli,
 	    AS_HELP_STRING([--without-brotli], [disable brotli compression support]),
 	    ac_brotli=$withval, ac_brotli=yes)
 AC_MSG_CHECKING([whether to include brotli compression support])
@@ -1033,14 +1039,14 @@ else
 fi
 AM_CONDITIONAL(HAVE_LIBBROTLI, test "$with_libbrotlienc" != "no" && test "$with_libbrotlidec" != "no")
 
-AC_ARG_WITH(libzstd,
+AC_ARG_WITH(zstd,
 	    AS_HELP_STRING([--without-zstd], [disable zstd compression support]),
 	    ac_zstd=$withval, ac_zstd=yes)
 AC_MSG_CHECKING([whether to include zstd compression support])
 if test x$ac_zstd != xno; then
     AC_MSG_RESULT(yes)
     PKG_CHECK_MODULES(LIBZSTD, [libzstd >= 1.3.0], [with_libzstd=yes], [with_libzstd=no])
-    if test "${with_libzstd}" = "yes" && test "${has_zstd_h}" = "yes"; then
+    if test "${with_libzstd}" = "yes"; then
 	AC_DEFINE([HAVE_LIBZSTD], 1, [Define if ZSTD compression is enabled.])
 	if test "x$GNUTLS_REQUIRES_PRIVATE" = "x"; then
 	    GNUTLS_REQUIRES_PRIVATE="Requires.private: libzstd"
@@ -1374,7 +1380,6 @@ AC_CONFIG_FILES([
   tests/slow/Makefile
   tests/suite/Makefile
   fuzz/Makefile
-  python/Makefile
 ])
 
 AC_OUTPUT

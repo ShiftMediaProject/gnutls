@@ -259,6 +259,7 @@ lib/x509/Makefile
 lib/x509/Makefile.in
 lib/x509/supported_exts.h
 lib/x509/x509-api.texi
+lib/*_asn1_tab.c
 *.lo
 *.log
 m4/*
@@ -271,9 +272,6 @@ Makefile.user
 *.o
 *.out
 *.plist
-python/__pycache__/
-python/cligen
-python/cli-*gen.py
 src/benchmark
 src/benchmark-cipher
 src/benchmark-tls
@@ -863,6 +861,9 @@ tests/tls13-server-kx-neg
 tests/tls13-without-timeout-func
 tests/tls13/anti_replay
 tests/tls13/change_cipher_spec
+tests/tls13/compress-cert
+tests/tls13/compress-cert-neg
+tests/tls13/compress-cert-neg2
 tests/tls13/cookie
 tests/tls13/hello_retry_request
 tests/tls13/hello_retry_request_resume
@@ -884,6 +885,7 @@ tests/tls13/prf
 tests/tls13/prf-early
 tests/tls13/psk-dumbfw
 tests/tls13/psk-ext
+tests/tls13/psk-ke-modes
 tests/tls13/supported_versions
 tests/tls13/tls12-no-tls13-exts
 tests/tlsext-decoding
@@ -906,6 +908,7 @@ tests/x509-dn-decode
 tests/x509-dn-decode-compat
 tests/x509-extensions
 tests/x509-server-verify
+tests/x509-upnconstraint
 tests/x509-verify-with-crl
 tests/x509_altname
 tests/x509cert

@@ -683,8 +683,12 @@ gnutls_priority_set(gnutls_session_t session, gnutls_priority_t priority)
 	session->internals.priorities = priority;
 
 	if (priority->no_tickets != 0) {
-		/* when PFS is explicitly requested, disable session tickets */
 		session->internals.flags |= GNUTLS_NO_TICKETS;
+	}
+
+	if (priority->no_tickets_tls12 != 0) {
+		/* when PFS is explicitly requested, disable session tickets for TLS 1.2 */
+		session->internals.flags |= GNUTLS_NO_TICKETS_TLS12;
 	}
 
 	ADD_PROFILE_VFLAGS(session, priority->additional_verify_flags);
@@ -729,6 +733,7 @@ struct priority_groups_st {
 	unsigned profile;
 	int sec_param;
 	bool no_tickets;
+	bool no_tickets_tls12;
 };
 
 static const struct priority_groups_st pgroups[] =
@@ -750,7 +755,7 @@ static const struct priority_groups_st pgroups[] =
 	 .group_list = &supported_groups_normal,
 	 .profile = GNUTLS_PROFILE_LOW,
 	 .sec_param = GNUTLS_SEC_PARAM_WEAK,
-	 .no_tickets = 1
+	 .no_tickets_tls12 = 1
 	},
 	{.name = LEVEL_SECURE128,
 	 .alias = "SECURE",
@@ -862,6 +867,7 @@ int check_level(const char *level, gnutls_priority_t priority_cache,
 			}
 			SET_LEVEL(pgroups[i].sec_param); /* set DH params level */
 			priority_cache->no_tickets = pgroups[i].no_tickets;
+			priority_cache->no_tickets_tls12 = pgroups[i].no_tickets_tls12;
 			if (priority_cache->have_cbc == 0) {
 				for (j=0;(*pgroups[i].cipher_list)[j]!=0;j++) {
 					centry = cipher_to_entry((*pgroups[i].cipher_list)[j]);
@@ -911,6 +917,10 @@ static void enable_force_etm(gnutls_priority_t c)
 static void enable_no_tickets(gnutls_priority_t c)
 {
 	c->no_tickets = 1;
+}
+static void enable_no_tickets_tls12(gnutls_priority_t c)
+{
+	c->no_tickets_tls12 = 1;
 }
 static void disable_wildcards(gnutls_priority_t c)
 {
@@ -1017,6 +1027,7 @@ static void dummy_func(gnutls_priority_t c)
 
 struct cfg {
 	bool allowlisting;
+	bool ktls_disabled;
 
 	name_val_array_t priority_strings;
 	char *priority_string;
@@ -1129,6 +1140,7 @@ cfg_steal(struct cfg *dst, struct cfg *src)
 	src->default_priority_string = NULL;
 
 	dst->allowlisting = src->allowlisting;
+	dst->ktls_disabled = src->ktls_disabled;
 	memcpy(dst->ciphers, src->ciphers, sizeof(src->ciphers));
 	memcpy(dst->macs, src->macs, sizeof(src->macs));
 	memcpy(dst->groups, src->groups, sizeof(src->groups));
@@ -1250,6 +1262,16 @@ static int global_ini_handler(void *ctx, const char *section, const char *name, 
 				cfg->allowlisting = false;
 			} else {
 				_gnutls_debug_log("cfg: unknown override mode %s\n",
+					p);
+				if (fail_on_invalid_config)
+					return 0;
+			}
+		} else if (c_strcasecmp(name, "ktls") == 0) {
+			p = clear_spaces(value, str);
+			if (c_strcasecmp(p, "false") == 0) {
+				cfg->ktls_disabled = true;
+			} else {
+				_gnutls_debug_log("cfg: unknown ktls mode %s\n",
 					p);
 				if (fail_on_invalid_config)
 					return 0;
@@ -3466,4 +3488,8 @@ gnutls_priority_string_list(unsigned iter, unsigned int flags)
 		return wordlist[iter].name;
 	}
 	return NULL;
+}
+
+bool _gnutls_config_is_ktls_disabled(void){
+	return system_wide_config.ktls_disabled;
 }

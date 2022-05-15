@@ -584,6 +584,10 @@ struct gnutls_key_st {
 		/* Initial key supplied by the caller */
 		initial_stek[TICKET_MASTER_KEY_SIZE];
 
+	/* Whether the initial_stek is set through
+	 * gnutls_session_ticket_enable_server() */
+	bool stek_initialized;
+
 	/* this is used to hold the peers authentication data
 	 */
 	/* auth_info_t structures SHOULD NOT contain malloced
@@ -619,6 +623,7 @@ typedef struct record_parameters_st record_parameters_st;
 #define GNUTLS_CIPHER_FLAG_ONLY_AEAD	(1 << 0) /* When set, this cipher is only available through the new AEAD API */
 #define GNUTLS_CIPHER_FLAG_XOR_NONCE	(1 << 1) /* In this TLS AEAD cipher xor the implicit_iv with the nonce */
 #define GNUTLS_CIPHER_FLAG_NO_REKEY	(1 << 2) /* whether this tls1.3 cipher doesn't need to rekey after 2^24 messages */
+#define GNUTLS_CIPHER_FLAG_TAG_PREFIXED (1 << 3) /* When set, this cipher prefixes authentication tag */
 
 /* cipher and mac parameters */
 typedef struct cipher_entry_st {
@@ -954,6 +959,7 @@ struct gnutls_priority_st {
 	bool server_precedence;
 	bool allow_server_key_usage_violation; /* for test suite purposes only */
 	bool no_tickets;
+	bool no_tickets_tls12;
 	bool have_cbc;
 	bool have_psk;
 	bool force_etm;
@@ -1642,5 +1648,7 @@ get_certificate_type(gnutls_session_t session,
 #define CONSTCHECK_EQUAL(a, b) (1U - CONSTCHECK_NOT_EQUAL(a, b))
 
 extern unsigned int _gnutls_global_version;
+
+bool _gnutls_config_is_ktls_disabled(void);
 
 #endif /* GNUTLS_LIB_GNUTLS_INT_H */

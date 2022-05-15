@@ -24,6 +24,8 @@
 #include <gnutls/crypto.h>
 #include <unistd.h>
 #include "errors.h"
+#include "file.h"
+#include "inih/ini.h"
 #include <fips.h>
 #include <gnutls/self-test.h>
 #include <stdio.h>
@@ -105,7 +107,7 @@ unsigned _gnutls_fips_mode_enabled(void)
 	if (fd != NULL) {
 		f1p = fgetc(fd);
 		fclose(fd);
-		
+
 		if (f1p == '1') f1p = 1;
 		else f1p = 0;
 	}
@@ -149,15 +151,31 @@ void _gnutls_fips_mode_reset_zombie(void)
 #define HOGWEED_LIBRARY_NAME HOGWEED_LIBRARY_SONAME
 #define GMP_LIBRARY_NAME GMP_LIBRARY_SONAME
 
-#define HMAC_SUFFIX ".hmac"
 #define HMAC_SIZE 32
 #define HMAC_ALGO GNUTLS_MAC_SHA256
+#define HMAC_FILE_NAME ".gnutls.hmac"
+#define HMAC_FORMAT_VERSION 1
+
+struct hmac_entry
+{
+	char path[GNUTLS_PATH_MAX];
+	uint8_t hmac[HMAC_SIZE];
+};
+
+typedef struct
+{
+	int version;
+	struct hmac_entry gnutls;
+	struct hmac_entry nettle;
+	struct hmac_entry hogweed;
+	struct hmac_entry gmp;
+} hmac_file;
 
 static int get_library_path(const char* lib, const char* symbol, char* path, size_t path_size)
 {
-Dl_info info;
-int ret;
-void *dl, *sym;
+	int ret;
+	void *dl, *sym;
+	Dl_info info;
 
 	dl = dlopen(lib, RTLD_LAZY);
 	if (dl == NULL)
@@ -168,14 +186,18 @@ void *dl, *sym;
 		ret = gnutls_assert_val(GNUTLS_E_FILE_ERROR);
 		goto cleanup;
 	}
-	
+
 	ret = dladdr(sym, &info);
 	if (ret == 0) {
 		ret = gnutls_assert_val(GNUTLS_E_FILE_ERROR);
 		goto cleanup;
 	}
-	
-	snprintf(path, path_size, "%s", info.dli_fname);
+
+	ret = snprintf(path, path_size, "%s", info.dli_fname);
+	if ((size_t)ret >= path_size) {
+		ret = gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
+		goto cleanup;
+	}
 
 	ret = 0;
 cleanup:
@@ -183,105 +205,214 @@ cleanup:
 	return ret;
 }
 
-static void get_hmac_file(char *mac_file, size_t mac_file_size, const char* orig)
-{
-char* p;
-
-	p = strrchr(orig, '/');
-	if (p==NULL) {
-		snprintf(mac_file, mac_file_size, ".%s"HMAC_SUFFIX, orig);
-		return;
-	}
-	snprintf(mac_file, mac_file_size, "%.*s/.%s"HMAC_SUFFIX, (int)(p-orig), orig, p+1);
-}
-
-static void get_hmac_file2(char *mac_file, size_t mac_file_size, const char* orig)
-{
-char* p;
-
-	p = strrchr(orig, '/');
-	if (p==NULL) {
-		snprintf(mac_file, mac_file_size, "fipscheck/%s"HMAC_SUFFIX, orig);
-		return;
-	}
-	snprintf(mac_file, mac_file_size, "%.*s/fipscheck/%s"HMAC_SUFFIX, (int)(p-orig), orig, p+1);
-}
-
-/* Run an HMAC using the key above on the library binary data. 
- * Returns true on success and false on error.
+/* Parses hmac data and copies hex value into dest.
+ * dest must point to at least HMAC_SIZE amount of memory
  */
-static unsigned check_binary_integrity(const char* libname, const char* symbol)
+static int get_hmac(uint8_t *dest, const char *value)
 {
 	int ret;
-	unsigned prev;
-	char mac_file[GNUTLS_PATH_MAX];
-	char file[GNUTLS_PATH_MAX];
-	uint8_t hmac[HMAC_SIZE];
-	uint8_t new_hmac[HMAC_SIZE];
 	size_t hmac_size;
 	gnutls_datum_t data;
 
-	ret = get_library_path(libname, symbol, file, sizeof(file));
-	if (ret < 0) {
-		_gnutls_debug_log("Could not get path for library %s\n", libname);
+	data.size = strlen(value);
+	data.data = (unsigned char *)value;
+
+	hmac_size = HMAC_SIZE;
+	ret = gnutls_hex_decode(&data, dest, &hmac_size);
+	if (ret < 0)
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+
+	if (hmac_size != HMAC_SIZE)
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+
+	return 0;
+}
+
+static int
+lib_handler(struct hmac_entry *entry,
+	    const char *section, const char *name, const char *value)
+{
+	if (!strcmp(name, "path")) {
+		snprintf(entry->path, GNUTLS_PATH_MAX, "%s", value);
+	} else if (!strcmp(name, "hmac")) {
+		if (get_hmac(entry->hmac, value) < 0)
+			return 0;
+	} else {
 		return 0;
 	}
+	return 1;
+}
 
-	_gnutls_debug_log("Loading: %s\n", file);
-	ret = gnutls_load_file(file, &data);
+static int handler(void *user, const char *section, const char *name, const char *value)
+{
+	hmac_file *p = (hmac_file *)user;
+
+	if (!strcmp(section, "global")) {
+		if (!strcmp(name, "format-version")) {
+			p->version = strtol(value, NULL, 10);
+		} else {
+			return 0;
+		}
+	} else if (!strcmp(section, GNUTLS_LIBRARY_NAME)) {
+		return lib_handler(&p->gnutls, section, name, value);
+	} else if (!strcmp(section, NETTLE_LIBRARY_NAME)) {
+		return lib_handler(&p->nettle, section, name, value);
+	} else if (!strcmp(section, HOGWEED_LIBRARY_NAME)) {
+		return lib_handler(&p->hogweed, section, name, value);
+	} else if (!strcmp(section, GMP_LIBRARY_NAME)) {
+		return lib_handler(&p->gmp, section, name, value);
+	} else {
+		return 0;
+	}
+	return 1;
+}
+
+static int get_hmac_path(char *mac_file, size_t mac_file_size)
+{
+	int ret;
+	char *p;
+	char file[GNUTLS_PATH_MAX];
+
+	ret = get_library_path(GNUTLS_LIBRARY_NAME, "gnutls_global_init",
+			       file, sizeof(file));
+	if (ret < 0)
+		return ret;
+
+	p = strrchr(file, '/');
+
+	if (p == NULL)
+		ret = snprintf(mac_file, mac_file_size, HMAC_FILE_NAME);
+	else
+		ret = snprintf(mac_file, mac_file_size,
+			       "%.*s/"HMAC_FILE_NAME, (int)(p - file), file);
+	if ((size_t)ret >= mac_file_size)
+		return gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
+
+	ret = _gnutls_file_exists(mac_file);
+	if (ret == 0)
+		return GNUTLS_E_SUCCESS;
+
+	if (p == NULL)
+		ret = snprintf(mac_file, mac_file_size, "fipscheck/"HMAC_FILE_NAME);
+	else
+		ret = snprintf(mac_file, mac_file_size,
+			       "%.*s/fipscheck/"HMAC_FILE_NAME, (int)(p - file), file);
+	if ((size_t)ret >= mac_file_size)
+		return gnutls_assert_val(GNUTLS_E_SHORT_MEMORY_BUFFER);
+
+	ret = _gnutls_file_exists(mac_file);
+	if (ret == 0)
+		return GNUTLS_E_SUCCESS;
+
+	return GNUTLS_E_FILE_ERROR;
+}
+
+static int load_hmac_file(hmac_file *p)
+{
+	int ret;
+	FILE *stream;
+	char hmac_path[GNUTLS_PATH_MAX];
+
+	ret = get_hmac_path(hmac_path, sizeof(hmac_path));
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	stream = fopen(hmac_path, "r");
+	if (stream == NULL)
+		return gnutls_assert_val(GNUTLS_E_FILE_ERROR);
+
+	gnutls_memset(p, 0, sizeof(*p));
+	ret = ini_parse_file(stream, handler, p);
+	fclose(stream);
+	if (ret < 0)
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+
+	if (p->version != HMAC_FORMAT_VERSION)
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+
+	return 0;
+}
+
+/* Run an HMAC using the key above on the library binary data.
+ * Returns 0 on success and negative value on error.
+ */
+static int check_lib_hmac(struct hmac_entry *entry,
+			  const char *lib, const char *sym)
+{
+	int ret;
+	unsigned prev;
+	char path[GNUTLS_PATH_MAX];
+	uint8_t hmac[HMAC_SIZE];
+	gnutls_datum_t data;
+
+	ret = get_library_path(lib, sym, path, sizeof(path));
 	if (ret < 0) {
-		_gnutls_debug_log("Could not load: %s\n", file);
-		return gnutls_assert_val(0);
+		_gnutls_debug_log("Could not get lib path for %s: %s\n",
+				  lib, gnutls_strerror(ret));
+		return gnutls_assert_val(ret);
+	}
+
+	if (strncmp(entry->path, path, GNUTLS_PATH_MAX)) {
+		_gnutls_debug_log("Library path for %s does not match with HMAC file\n", lib);
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+	}
+
+	_gnutls_debug_log("Loading: %s\n", path);
+	ret = gnutls_load_file(path, &data);
+	if (ret < 0) {
+		_gnutls_debug_log("Could not load %s: %s\n",
+				  path, gnutls_strerror(ret));
+		return gnutls_assert_val(ret);
 	}
 
 	prev = _gnutls_get_lib_state();
 	_gnutls_switch_lib_state(LIB_STATE_OPERATIONAL);
 	ret = gnutls_hmac_fast(HMAC_ALGO, FIPS_KEY, sizeof(FIPS_KEY)-1,
-		data.data, data.size, new_hmac);
+			       data.data, data.size, hmac);
 	_gnutls_switch_lib_state(prev);
-	
-	gnutls_free(data.data);
 
+	gnutls_free(data.data);
+	if (ret < 0) {
+		_gnutls_debug_log("Could not calculate HMAC for %s: %s\n",
+				  path, gnutls_strerror(ret));
+		return gnutls_assert_val(ret);
+	}
+
+	if (gnutls_memcmp(entry->hmac, hmac, HMAC_SIZE)) {
+		_gnutls_debug_log("Calculated MAC for %s does not match\n", path);
+		return gnutls_assert_val(GNUTLS_E_PARSING_ERROR);
+	}
+	_gnutls_debug_log("Successfully verified MAC for %s\n", path);
+
+	return 0;
+}
+
+static int check_binary_integrity(void)
+{
+	int ret;
+	hmac_file file;
+
+	ret = load_hmac_file(&file);
+	if (ret < 0) {
+		_gnutls_debug_log("Could not load hmac file: %s\n",
+				  gnutls_strerror(ret));
+		return ret;
+	}
+
+	ret = check_lib_hmac(&file.gnutls, GNUTLS_LIBRARY_NAME, "gnutls_global_init");
 	if (ret < 0)
-		return gnutls_assert_val(0);
+		return ret;
+	ret = check_lib_hmac(&file.nettle, NETTLE_LIBRARY_NAME, "nettle_aes_set_encrypt_key");
+	if (ret < 0)
+		return ret;
+	ret = check_lib_hmac(&file.hogweed, HOGWEED_LIBRARY_NAME, "nettle_mpz_sizeinbase_256_u");
+	if (ret < 0)
+		return ret;
+	ret = check_lib_hmac(&file.gmp, GMP_LIBRARY_NAME, "__gmpz_init");
+	if (ret < 0)
+		return ret;
 
-	/* now open the .hmac file and compare */
-	get_hmac_file(mac_file, sizeof(mac_file), file);
-
-	ret = gnutls_load_file(mac_file, &data);
-	if (ret < 0) {
-		get_hmac_file2(mac_file, sizeof(mac_file), file);
-		ret = gnutls_load_file(mac_file, &data);
-		if (ret < 0) {
-			_gnutls_debug_log("Could not open %s for MAC testing: %s\n", mac_file, gnutls_strerror(ret));
-			return gnutls_assert_val(0);
-		}
-	}
-
-	hmac_size = hex_data_size(data.size);
-
-	/* trim eventual newlines from the end of the data read from file */
-	while ((data.size > 0) && (data.data[data.size - 1] == '\n')) {
-		data.data[data.size - 1] = 0;
-		data.size--;
-	}
-
-	ret = gnutls_hex_decode(&data, hmac, &hmac_size);
-	gnutls_free(data.data);
-
-	if (ret < 0) {
-		_gnutls_debug_log("Could not convert hex data to binary for MAC testing for %s.\n", libname);
-		return gnutls_assert_val(0);
-	}
-
-	if (hmac_size != sizeof(hmac) ||
-			memcmp(hmac, new_hmac, sizeof(hmac)) != 0) {
-		_gnutls_debug_log("Calculated MAC for %s does not match\n", libname);
-		return gnutls_assert_val(0);
-	}
-	_gnutls_debug_log("Successfully verified MAC for %s (%s)\n", mac_file, libname);
-	
-	return 1;
+	return 0;
 }
 
 int _gnutls_fips_perform_self_checks1(void)
@@ -471,31 +602,13 @@ int _gnutls_fips_perform_self_checks2(void)
 	}
 
 	if (_skip_integrity_checks == 0) {
-		ret = check_binary_integrity(GNUTLS_LIBRARY_NAME, "gnutls_global_init");
-		if (ret == 0) {
-			gnutls_assert();
-			goto error;
-		}
-
-		ret = check_binary_integrity(NETTLE_LIBRARY_NAME, "nettle_aes_set_encrypt_key");
-		if (ret == 0) {
-			gnutls_assert();
-			goto error;
-		}
-
-		ret = check_binary_integrity(HOGWEED_LIBRARY_NAME, "nettle_mpz_sizeinbase_256_u");
-		if (ret == 0) {
-			gnutls_assert();
-			goto error;
-		}
-
-		ret = check_binary_integrity(GMP_LIBRARY_NAME, "__gmpz_init");
-		if (ret == 0) {
+		ret = check_binary_integrity();
+		if (ret < 0) {
 			gnutls_assert();
 			goto error;
 		}
 	}
-	
+
 	return 0;
 
 error:
