@@ -980,9 +980,6 @@
     <ClCompile Include="..\lib\global.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\gnutls_asn1_tab.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\handshake.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
@@ -1029,9 +1026,6 @@
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\x509_b64.c">
-      <Filter>Source Files\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\pkix_asn1_tab.c">
       <Filter>Source Files\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\prf.c">
@@ -1580,7 +1574,9 @@
     <ClCompile Include="..\gnulib\lib\windows-once.c">
       <Filter>Source Files\gnulib</Filter>
     </ClCompile>
-    <ClCompile Include="..\lib\ext\compress_certificate.c" />
+    <ClCompile Include="..\lib\ext\compress_certificate.c">
+      <Filter>Source Files\lib\ext</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">

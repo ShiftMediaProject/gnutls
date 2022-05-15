@@ -168,6 +168,8 @@
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="lib\gnutls_asn1_tab.c" />
+    <ClCompile Include="lib\pkix_asn1_tab.c" />
     <ClCompile Include="..\devel\libtasn1\lib\coding.c" />
     <ClCompile Include="..\devel\libtasn1\lib\decoding.c" />
     <ClCompile Include="..\devel\libtasn1\lib\element.c" />
@@ -410,7 +412,6 @@
     <ClCompile Include="..\lib\fingerprint.c" />
     <ClCompile Include="..\lib\fips.c" />
     <ClCompile Include="..\lib\global.c" />
-    <ClCompile Include="..\lib\gnutls_asn1_tab.c" />
     <ClCompile Include="..\lib\handshake-checks.c" />
     <ClCompile Include="..\lib\handshake-tls13.c" />
     <ClCompile Include="..\lib\handshake.c" />
@@ -463,7 +464,6 @@
     <ClCompile Include="..\lib\pcert.c" />
     <ClCompile Include="..\lib\pin.c" />
     <ClCompile Include="..\lib\pk.c" />
-    <ClCompile Include="..\lib\pkix_asn1_tab.c" />
     <ClCompile Include="..\lib\prf.c" />
     <ClCompile Include="..\lib\priority.c" />
     <ClCompile Include="..\lib\privkey.c" />

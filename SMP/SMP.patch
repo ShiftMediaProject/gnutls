@@ -160,6 +160,7 @@ index b3c502fc7..275afc609 100644
 +#ifdef _MSC_VER
 +#include <BaseTsd.h>
 +typedef SSIZE_T ssize_t;
++#include <sys/types.h>
 +#else
  #include <sys/types.h>
 +#endif
