@@ -150,19 +150,19 @@ index faa7f0afb..6f6c74713 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index b3c502fc7..275afc609 100644
+index f7fc5d114..174905988 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
-@@ -37,7 +37,12 @@
+@@ -37,7 +37,13 @@
  #define GNUTLS_GNUTLS_H
  
  /* Get ssize_t. */
 +#ifdef _MSC_VER
 +#include <BaseTsd.h>
 +typedef SSIZE_T ssize_t;
-+#include <sys/types.h>
-+#else
  #include <sys/types.h>
++#else
++#include <sys/types.h>
 +#endif
  
  /* Get size_t. */
@@ -211,7 +211,7 @@ index c4cb00831..a3be0d2b0 100644
  /*-
   * _gnutls_mask_to_prefix:
 diff --git a/lib/x509/x509_ext.c b/lib/x509/x509_ext.c
-index 8bcf183a2..b743b384e 100644
+index 0b4c6a013..da2e29963 100644
 --- a/lib/x509/x509_ext.c
 +++ b/lib/x509/x509_ext.c
 @@ -3644,7 +3644,7 @@ static const struct sct_sign_algorithm_st algos[] = {
