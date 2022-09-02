@@ -1,5 +1,5 @@
 ;;; GnuTLS --- Guile bindings for GnuTLS.
-;;; Copyright (C) 2007-2012, 2014, 2016, 2022 Free Software Foundation, Inc.
+;;; Copyright (C) 2022 Free Software Foundation, Inc.
 ;;;
 ;;; GnuTLS is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU Lesser General Public
@@ -15,12 +15,12 @@
 ;;; License along with GnuTLS; if not, write to the Free Software
 ;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-;;; Written by Ludovic Courtès <ludo@chbouib.org>.
+;;; Written by Ludovic CourtÃ¨s <ludo@chbouib.org>.
 
 
 ;;;
-;;; Test session establishment using anonymous authentication.  Exercise the
-;;; `session-record-port' API.
+;;; Test handling of premature session termination on the client side while
+;;; reading from a session record port.
 ;;;
 
 (use-modules (gnutls)
@@ -52,37 +52,12 @@
 
 (run-test
  (lambda ()
-   ;; Stress the GC.  In 0.0, this triggered an abort due to
-   ;; "scm_unprotect_object called during GC".
-   (let ((sessions (map (lambda (i)
-                          (make-session connection-end/server))
-                        (iota 123))))
-     (for-each session-record-port sessions)
-     (gc)(gc)(gc))
-
-   ;; Stress the GC.  The session associated with each port in PORTS should
-   ;; remain reachable.
-   (let ((ports (map session-record-port
-                     (map (lambda (i)
-                            (make-session connection-end/server))
-                          (iota 123)))))
-     (gc)(gc)(gc)
-     (for-each (lambda (p)
-                 (catch 'gnutls-error
-                   (lambda ()
-                     (read p))
-                   (lambda (key . args)
-                     #t)))
-               ports))
-
-   ;; Try using the record port for I/O.
    (let ((socket-pair (socketpair PF_UNIX SOCK_STREAM 0)))
      (with-child-process pid
-
        ;; server-side
        (let ((server (make-session connection-end/server)))
+         (close-port (car socket-pair))           ;close the client end
          (set-session-priorities! server priorities)
-
          (set-session-transport-fd! server (fileno (cdr socket-pair)))
          (let ((cred (make-anonymous-server-credentials))
                (dh-params (import-dh-params "dh-parameters.pem")))
@@ -92,43 +67,26 @@
          (set-session-dh-prime-bits! server 1024)
 
          (handshake server)
-         (let* ((buf (make-u8vector (u8vector-length %message)))
-                (amount
-                 (uniform-vector-read! buf (session-record-port server))))
-           (bye server close-request/rdwr)
 
-           ;; Make sure we got everything right.
-           (and (eq? (session-record-port server)
-                     (session-record-port server))
-                (zero? (cdr (waitpid pid)))
-                (= amount (u8vector-length %message))
-                (equal? buf %message)
-                (eof-object?
-                 (read-char (session-record-port server)))
-
-                ;; Close the port and make sure its 'close' procedure is
-                ;; called.
-                (let* ((closed? #f)
-                       (port  (session-record-port server))
-                       (close (lambda (p)
-                                (format #t "closing port ~s~%" p)
-                                (set! closed? (eq? p port)))))
-                  (set-session-record-port-close! port close)
-                  (close-port port)
-                  closed?))))
+         (alarm 60)                               ;time out after a while
+         (close-port (cdr socket-pair))           ;close prematurely
+         (zero? (cdr (waitpid pid))))
 
        ;; client-side (child process)
        (let ((client (make-session connection-end/client)))
+         (close-port (cdr socket-pair))           ;close the server end
          (set-session-priorities! client priorities)
-
-         (set-session-transport-port! client (car socket-pair))
+         (set-session-server-name! client
+                                   server-name-type/dns (gethostname))
+         (set-session-transport-fd! client (port->fdes (car socket-pair)))
          (set-session-credentials! client (make-anonymous-client-credentials))
          (set-session-dh-prime-bits! client 1024)
 
          (handshake client)
-         (uniform-vector-write %message (session-record-port client))
-         (bye client close-request/rdwr)
 
-         (primitive-exit))))))
-
-;;; arch-tag: e873226a-d0b6-4a93-87ec-a1b5ad2ae8a2
+         ;; Read from the session record port: instead of getting an
+         ;; 'error/premature-termination' exception, we expect to get EOF.
+         (let* ((port (session-record-port client))
+                (read (read port)))
+           (format #t "client received ~s~%" read)
+           (primitive-exit (if (eof-object? read) 0 1))))))))

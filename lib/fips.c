@@ -419,8 +419,6 @@ int _gnutls_fips_perform_self_checks1(void)
 {
 	int ret;
 
-	_gnutls_switch_lib_state(LIB_STATE_SELFTEST);
-
 	/* Tests the FIPS algorithms used by nettle internally.
 	 * In our case we test AES-CBC since nettle's AES is used by
 	 * the DRBG-AES.
@@ -429,193 +427,153 @@ int _gnutls_fips_perform_self_checks1(void)
 	/* ciphers - one test per cipher */
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_AES_128_CBC);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	return 0;
-
-error:
-	_gnutls_switch_lib_state(LIB_STATE_ERROR);
-	_gnutls_audit_log(NULL, "FIPS140-2 self testing part1 failed\n");
-
-	return GNUTLS_E_SELF_TEST_ERROR;
 }
 
 int _gnutls_fips_perform_self_checks2(void)
 {
 	int ret;
 
-	_gnutls_switch_lib_state(LIB_STATE_SELFTEST);
-
 	/* Tests the FIPS algorithms */
 
 	/* ciphers - one test per cipher */
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_3DES_CBC);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_AES_256_CBC);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_AES_256_GCM);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_AES_256_XTS);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_cipher_self_test(0, GNUTLS_CIPHER_AES_256_CFB8);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* Digest tests */
 	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_224);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_256);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_384);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_digest_self_test(0, GNUTLS_DIG_SHA3_512);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* MAC (includes message digest test) */
 	ret = gnutls_mac_self_test(0, GNUTLS_MAC_SHA1);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_mac_self_test(0, GNUTLS_MAC_SHA224);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_mac_self_test(0, GNUTLS_MAC_SHA256);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_mac_self_test(0, GNUTLS_MAC_SHA384);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_mac_self_test(0, GNUTLS_MAC_SHA512);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_mac_self_test(0, GNUTLS_MAC_AES_CMAC_256);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* PK */
 	ret = gnutls_pk_self_test(0, GNUTLS_PK_RSA);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_pk_self_test(0, GNUTLS_PK_DSA);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_pk_self_test(0, GNUTLS_PK_EC);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	ret = gnutls_pk_self_test(0, GNUTLS_PK_DH);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* HKDF */
 	ret = gnutls_hkdf_self_test(0, GNUTLS_MAC_SHA256);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* PBKDF2 */
 	ret = gnutls_pbkdf2_self_test(0, GNUTLS_MAC_SHA256);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* TLS-PRF */
 	ret = gnutls_tlsprf_self_test(0, GNUTLS_MAC_SHA256);
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	if (_gnutls_rnd_ops.self_test == NULL) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	/* this does not require rng initialization */
 	ret = _gnutls_rnd_ops.self_test();
 	if (ret < 0) {
-		gnutls_assert();
-		goto error;
+		return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 	}
 
 	if (_skip_integrity_checks == 0) {
 		ret = check_binary_integrity();
 		if (ret < 0) {
-			gnutls_assert();
-			goto error;
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
 	}
 
 	return 0;
-
-error:
-	_gnutls_switch_lib_state(LIB_STATE_ERROR);
-	_gnutls_audit_log(NULL, "FIPS140-2 self testing part 2 failed\n");
-
-	return GNUTLS_E_SELF_TEST_ERROR;
 }
 #endif
 
@@ -785,6 +743,9 @@ gnutls_fips140_get_operation_state(gnutls_fips140_context_t context)
  * The operation state of @context will be reset to
  * %GNUTLS_FIPS140_OP_INITIAL.
  *
+ * This function is no-op if FIPS140 is not compiled in nor enabled
+ * at run-time.
+ *
  * Returns: 0 upon success, a negative error code otherwise
  *
  * Since: 3.7.3
@@ -793,10 +754,12 @@ int
 gnutls_fips140_push_context(gnutls_fips140_context_t context)
 {
 #ifdef ENABLE_FIPS140
-	context->next = _tfips_context;
-	_tfips_context = context;
+	if (_gnutls_fips_mode_enabled() != GNUTLS_FIPS140_DISABLED) {
+		context->next = _tfips_context;
+		_tfips_context = context;
 
-	context->state = GNUTLS_FIPS140_OP_INITIAL;
+		context->state = GNUTLS_FIPS140_OP_INITIAL;
+	}
 	return 0;
 #else
 	return GNUTLS_E_INVALID_REQUEST;
@@ -813,6 +776,9 @@ gnutls_fips140_push_context(gnutls_fips140_context_t context)
  * gnutls_aead_cipher_deinit() is not yet called, it returns an error
  * %GNUTLS_E_INVALID_REQUEST.
  *
+ * This function is no-op if FIPS140 is not compiled in nor enabled
+ * at run-time.
+ *
  * Returns: 0 upon success, a negative error code otherwise
  *
  * Since: 3.7.3
@@ -821,16 +787,20 @@ int
 gnutls_fips140_pop_context(void)
 {
 #ifdef ENABLE_FIPS140
-	if (!_tfips_context) {
-		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
-	}
+	if (_gnutls_fips_mode_enabled() != GNUTLS_FIPS140_DISABLED) {
+		if (!_tfips_context) {
+			return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+		}
 
-	_tfips_context = _tfips_context->next;
+		_tfips_context = _tfips_context->next;
+	}
 	return 0;
 #else
 	return GNUTLS_E_INVALID_REQUEST;
 #endif
 }
+
+#ifdef ENABLE_FIPS140
 
 static inline const char *
 operation_state_to_string(gnutls_fips140_operation_state_t state)
@@ -851,46 +821,124 @@ operation_state_to_string(gnutls_fips140_operation_state_t state)
 	}
 }
 
-gnutls_fips140_operation_state_t
-_gnutls_transit_fips_state(gnutls_fips140_operation_state_t current,
-			   gnutls_fips140_operation_state_t next)
-{
-	switch (current) {
-	case GNUTLS_FIPS140_OP_INITIAL:
-		/* initial can be transitioned to any state */
-		_gnutls_debug_log("FIPS140-2 operation mode switched from initial to %s\n",
-				  operation_state_to_string(next));
-		return next;
-	case GNUTLS_FIPS140_OP_APPROVED:
-		/* approved can only be transitioned to not-approved */
-		if (next == GNUTLS_FIPS140_OP_NOT_APPROVED) {
-			_gnutls_debug_log("FIPS140-2 operation mode switched from approved to %s\n",
-					  operation_state_to_string(next));
-			return next;
-		}
-		FALLTHROUGH;
-	default:
-		/* other transitions are prohibited */
-		if (next != current) {
-			_gnutls_debug_log("FIPS140-2 operation mode cannot be switched from %s to %s\n",
-					  operation_state_to_string(current),
-					  operation_state_to_string(next));
-		}
-		return current;
-	}
-}
-
 void
 _gnutls_switch_fips_state(gnutls_fips140_operation_state_t state)
 {
-#ifdef ENABLE_FIPS140
+	gnutls_fips_mode_t mode = _gnutls_fips_mode_enabled();
+	if (mode == GNUTLS_FIPS140_DISABLED) {
+		return;
+	}
+
 	if (!_tfips_context) {
 		_gnutls_debug_log("FIPS140-2 context is not set\n");
 		return;
 	}
-	_tfips_context->state =
-		_gnutls_transit_fips_state(_tfips_context->state, state);
+
+	if (_tfips_context->state == state) {
+		return;
+	}
+
+	switch (_tfips_context->state) {
+	case GNUTLS_FIPS140_OP_INITIAL:
+		/* initial can be transitioned to any state */
+		if (mode != GNUTLS_FIPS140_LAX) {
+			_gnutls_audit_log(NULL, "FIPS140-2 operation mode switched from initial to %s\n",
+					  operation_state_to_string(state));
+		}
+		_tfips_context->state = state;
+		break;
+	case GNUTLS_FIPS140_OP_APPROVED:
+		/* approved can only be transitioned to not-approved */
+		if (likely(state == GNUTLS_FIPS140_OP_NOT_APPROVED)) {
+			if (mode != GNUTLS_FIPS140_LAX) {
+				_gnutls_audit_log(NULL, "FIPS140-2 operation mode switched from approved to %s\n",
+						  operation_state_to_string(state));
+			}
+			_tfips_context->state = state;
+			return;
+		}
+		FALLTHROUGH;
+	default:
+		/* other transitions are prohibited */
+		if (mode != GNUTLS_FIPS140_LAX) {
+			_gnutls_audit_log(NULL, "FIPS140-2 operation mode cannot be switched from %s to %s\n",
+					  operation_state_to_string(_tfips_context->state),
+					  operation_state_to_string(state));
+		}
+		break;
+	}
+}
+
 #else
+
+void
+_gnutls_switch_fips_state(gnutls_fips140_operation_state_t state)
+{
 	(void)state;
+}
+
+#endif
+
+/**
+ * gnutls_fips140_run_self_tests:
+ *
+ * Manually perform the second round of the FIPS140 self-tests,
+ * including:
+ *
+ * - Known answer tests (KAT) for the selected set of symmetric
+ *   cipher, MAC, public key, KDF, and DRBG
+ * - Library integrity checks
+ *
+ * Upon failure with FIPS140 mode enabled, it makes the library
+ * unusable.  This function is not thread-safe.
+ *
+ * Returns: 0 upon success, a negative error code otherwise
+ *
+ * Since: 3.7.7
+ */
+int
+gnutls_fips140_run_self_tests(void)
+{
+#ifdef ENABLE_FIPS140
+	int ret;
+	unsigned prev_lib_state;
+	gnutls_fips140_context_t fips_context = NULL;
+
+	/* Save the FIPS context, because self tests change it */
+	if (gnutls_fips140_mode_enabled() != GNUTLS_FIPS140_DISABLED) {
+		if (gnutls_fips140_context_init(&fips_context) < 0 ||
+		    gnutls_fips140_push_context(fips_context) < 0) {
+			gnutls_fips140_context_deinit(fips_context);
+			fips_context = NULL;
+		}
+	}
+
+	/* Temporarily switch to LIB_STATE_SELFTEST as some of the
+	 * algorithms are implemented using special constructs in
+	 * self-tests (such as deterministic variants) */
+	prev_lib_state = _gnutls_get_lib_state();
+	_gnutls_switch_lib_state(LIB_STATE_SELFTEST);
+
+	ret = _gnutls_fips_perform_self_checks2();
+	if (gnutls_fips140_mode_enabled() != GNUTLS_FIPS140_DISABLED &&
+	    ret < 0) {
+		_gnutls_switch_lib_state(LIB_STATE_ERROR);
+		_gnutls_audit_log(NULL, "FIPS140-2 self testing part 2 failed\n");
+	} else {
+		/* Restore the previous library state */
+		_gnutls_switch_lib_state(prev_lib_state);
+	}
+
+	/* Restore the previous FIPS context */
+	if (gnutls_fips140_mode_enabled() != GNUTLS_FIPS140_DISABLED && fips_context) {
+		if (gnutls_fips140_pop_context() < 0) {
+			_gnutls_switch_lib_state(LIB_STATE_ERROR);
+			_gnutls_audit_log(NULL, "FIPS140-2 context restoration failed\n");
+		}
+		gnutls_fips140_context_deinit(fips_context);
+	}
+	return ret;
+#else
+	return 0;
 #endif
 }

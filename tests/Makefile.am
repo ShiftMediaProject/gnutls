@@ -233,7 +233,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 tls13-without-timeout-func buffer status-request-revoked \
 	 set_x509_ocsp_multi_cli kdf-api keylog-func handshake-write \
 	 x509cert-dntypes id-on-xmppAddr tls13-compat-mode ciphersuite-name \
-	 x509-upnconstraint
+	 x509-upnconstraint cipher-padding pkcs7-verify-double-free
 
 ctests += tls-channel-binding
 
@@ -441,10 +441,6 @@ ctests += x509self x509dn anonself pskself pskself2 dhepskself	\
 	resume-with-record-size-limit
 endif
 
-if ENABLE_KTLS
-ctests += gnutls_ktls
-endif
-
 ctests += record-sendfile
 
 gc_CPPFLAGS = $(AM_CPPFLAGS) \
@@ -498,6 +494,11 @@ dist_check_SCRIPTS = rfc2253-escape-test.sh rsa-md5-collision/rsa-md5-collision.
 
 if ENABLE_TPM2
 dist_check_SCRIPTS += tpm2.sh
+endif
+
+if ENABLE_KTLS
+indirect_tests += gnutls_ktls
+dist_check_SCRIPTS += ktls.sh
 endif
 
 if !WINDOWS
@@ -594,12 +595,7 @@ noinst_PROGRAMS = datefudge-check
 endif
 
 check_PROGRAMS = $(cpptests) $(ctests) $(indirect_tests)
-TESTS = $(cpptests) $(ctests)
-
-# Temporary solution, avoid script execution on windows
-if !WINDOWS
-TESTS += $(dist_check_SCRIPTS)
-endif
+TESTS = $(cpptests) $(ctests) $(dist_check_SCRIPTS)
 
 TESTS_ENVIRONMENT +=						\
 	CC="$(CC)"						\

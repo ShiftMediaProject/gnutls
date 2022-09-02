@@ -358,7 +358,7 @@ tests/certuniqueid
 tests/chainverify
 tests/chainverify-unsorted
 tests/cipher-alignment
-tests/cipher-test
+tests/cipher-padding
 tests/ciphersuite-name
 tests/client
 tests/client-fastopen
@@ -614,6 +614,7 @@ tests/pkcs12_simple
 tests/pkcs7
 tests/pkcs7-cat-parse
 tests/pkcs7-gen
+tests/pkcs7-verify-double-free
 tests/pkcs8-decode/Makefile
 tests/pkcs8-decode/Makefile.in
 tests/pkcs8-key-decode

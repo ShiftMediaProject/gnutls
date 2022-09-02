@@ -842,53 +842,39 @@ static scm_t_port_type *session_record_port_type;
 
 /* Return the session associated with PORT.  */
 #define SCM_GNUTLS_SESSION_RECORD_PORT_SESSION(_port) \
-  (SCM_PACK (SCM_STREAM (_port)))
+  (SCM_CAR (SCM_PACK (SCM_STREAM (_port))))
+
+/* Return the 'close' procedure associated with PORT or #f if there is
+   none.  */
+#define SCM_GNUTLS_SESSION_RECORD_PORT_CLOSE_PROCEDURE(_port)	\
+  (SCM_CDR (SCM_PACK (SCM_STREAM (_port))))
+
+/* Set PROC as the 'close' procedure of PORT.  */
+#define SCM_GNUTLS_SET_SESSION_RECORD_PORT_CLOSE(_port, _proc)	\
+  (SCM_SETCDR (SCM_PACK (SCM_STREAM (_port)), (_proc)))
+
+#if !USING_GUILE_BEFORE_2_2
+
+/* Return true if PORT is a session record port.  */
+# define SCM_GNUTLS_SESSION_RECORD_PORT_P(_port)		\
+    (SCM_PORTP (_port)						\
+     && SCM_PORT_TYPE (_port) == session_record_port_type)
+
+#else /* USING_GUILE_BEFORE_2_2 */
+
+# define SCM_GNUTLS_SESSION_RECORD_PORT_P(_port)		\
+    (SCM_PORTP (_port)						\
+     && SCM_TYP16 (_port) == session_record_port_type)
+
+#endif
+
+/* Raise a wrong-type-arg exception if PORT is not a session record port.  */
+#define SCM_VALIDATE_SESSION_RECORD_PORT(pos, port)			\
+  SCM_MAKE_VALIDATE_MSG (pos, port, GNUTLS_SESSION_RECORD_PORT_P,	\
+			 "session record port")
 
 /* Size of a session port's input buffer.  */
 #define SCM_GNUTLS_SESSION_RECORD_PORT_BUFFER_SIZE 4096
-
-
-#if SCM_MAJOR_VERSION == 1 && SCM_MINOR_VERSION <= 8
-
-/* Mark the session associated with PORT.  */
-static SCM
-mark_session_record_port (SCM port)
-{
-  return (SCM_GNUTLS_SESSION_RECORD_PORT_SESSION (port));
-}
-
-static size_t
-free_session_record_port (SCM port)
-#define FUNC_NAME "free_session_record_port"
-{
-  SCM session;
-  scm_t_port *c_port;
-
-  session = SCM_GNUTLS_SESSION_RECORD_PORT_SESSION (port);
-
-  /* SESSION _can_ be invalid at this point: it can be freed in the same GC
-     cycle as PORT, just before PORT.  Thus, we need to check whether SESSION
-     still points to a session SMOB.  */
-  if (SCM_SMOB_PREDICATE (scm_tc16_gnutls_session, session))
-    {
-      /* SESSION is still valid.  Disassociate PORT from SESSION.  */
-      gnutls_session_t c_session;
-
-      c_session = scm_to_gnutls_session (session, 1, FUNC_NAME);
-      SCM_GNUTLS_SET_SESSION_RECORD_PORT (c_session, SCM_BOOL_F);
-    }
-
-  /* Free the input buffer of PORT.  */
-  c_port = SCM_PTAB_ENTRY (port);
-  scm_gc_free (c_port->read_buf, c_port->read_buf_size,
-               session_record_port_gc_hint);
-
-  return 0;
-}
-
-#undef FUNC_NAME
-
-#endif /* SCM_MAJOR_VERSION == 1 && SCM_MINOR_VERSION <= 8 */
 
 
 #if USING_GUILE_BEFORE_2_2
@@ -925,7 +911,7 @@ do_fill_port (void *data)
       c_port->read_end = c_port->read_buf + result;
       chr = (int) *c_port->read_buf;
     }
-  else if (result == 0)
+  else if (result == 0 || result == GNUTLS_E_PREMATURE_TERMINATION)
     chr = EOF;
   else
     scm_gnutls_error (result, "fill_session_record_port_input");
@@ -1020,7 +1006,7 @@ make_session_record_port (SCM session)
   SCM_SET_CELL_TYPE (port, session_record_port_type | mode_bits);
 
   /* Associate it with SESSION.  */
-  SCM_SETSTREAM (port, SCM_UNPACK (session));
+  SCM_SETSTREAM (port, SCM_UNPACK (scm_cons (session, SCM_BOOL_F)));
 
   c_port->read_pos = c_port->read_end = c_port->read_buf = c_port_buf;
   c_port->read_buf_size = SCM_GNUTLS_SESSION_RECORD_PORT_BUFFER_SIZE;
@@ -1066,8 +1052,11 @@ read_from_session_record_port (SCM port, SCM dst, size_t start, size_t count)
     /* Tell Guile that reading would block.  */
     return (size_t) -1;
 
-  if (EXPECT_FALSE (result < 0))
-    /* FIXME: Silently swallowed! */
+  if (result == GNUTLS_E_PREMATURE_TERMINATION)
+    /* Treat premature termination as EOF instead of throwing an exception
+       that users of the port may not be prepared to handle.  */
+    result = 0;
+  else if (EXPECT_FALSE (result < 0))
     scm_gnutls_error (result, FUNC_NAME);
 
   return result;
@@ -1128,18 +1117,51 @@ make_session_record_port (SCM session)
 {
   return scm_c_make_port (session_record_port_type,
 			  SCM_OPN | SCM_RDNG | SCM_WRTNG | SCM_BUF0,
-			  SCM_UNPACK (session));
+			  SCM_UNPACK (scm_cons (session, SCM_BOOL_F)));
 }
 
 #endif	/* !USING_GUILE_BEFORE_2_2 */
 
+/* Call PORT's close procedure, if any.  */
+static
+#if USING_GUILE_BEFORE_2_2
+int
+#else
+void
+#endif
+close_session_record_port (SCM port)
+{
+  SCM session = SCM_GNUTLS_SESSION_RECORD_PORT_SESSION (port);
+  SCM close = SCM_GNUTLS_SESSION_RECORD_PORT_CLOSE_PROCEDURE (port);
 
-SCM_DEFINE (scm_gnutls_session_record_port, "session-record-port", 1, 0, 0,
-            (SCM session),
+  if (!scm_is_false (close))
+    scm_call_1 (close, port);
+
+  /* When called during finalization (as opposed to a 'close-port' call),
+     SESSION might be finalized already.  Check whether this is the case.  */
+  if (scm_is_true (scm_gnutls_session_p (session)))
+    {
+      /* Detach SESSION from PORT.  */
+      gnutls_session_t c_session;
+      c_session = scm_to_gnutls_session (session, 1, __func__);
+      SCM_GNUTLS_SET_SESSION_RECORD_PORT (c_session, SCM_BOOL_F);
+    }
+
+#if USING_GUILE_BEFORE_2_2
+  return 0;
+#endif
+}
+
+SCM_DEFINE (scm_gnutls_session_record_port, "session-record-port", 1, 1, 0,
+            (SCM session, SCM close),
             "Return a read-write port that may be used to communicate over "
             "@var{session}.  All invocations of @code{session-port} on a "
             "given session return the same object (in the sense of "
-            "@code{eq?}).")
+            "@code{eq?}).\n\n"
+	    "If @var{close} is provided, it must be a one-argument "
+	    "procedure, and it will be called when the returned port is "
+	    "closed.  This is equivalent to setting it by calling "
+	    "@code{set-session-record-port-close!}.")
 #define FUNC_NAME s_scm_gnutls_session_record_port
 {
   SCM port;
@@ -1155,9 +1177,31 @@ SCM_DEFINE (scm_gnutls_session_record_port, "session-record-port", 1, 0, 0,
       SCM_GNUTLS_SET_SESSION_RECORD_PORT (c_session, port);
     }
 
+  if (!scm_is_eq (close, SCM_UNDEFINED))
+    SCM_GNUTLS_SET_SESSION_RECORD_PORT_CLOSE (port, close);
+
   return (port);
 }
 
+#undef FUNC_NAME
+
+SCM_DEFINE (scm_gnutls_set_session_record_port_close_x,
+	    "set-session-record-port-close!", 2, 0, 0,
+	    (SCM port, SCM close),
+	    "Set @var{close}, a one-argument procedure, as the procedure "
+	    "called when @var{port} is closed.  @var{close} will be passed "
+	    "@var{port}.  It may be called when @code{close-port} is "
+	    "called on @var{port}, or when @var{port} is garbage-collected.  "
+	    "It is a useful way to free resources associated with @var{port} "
+	    "such as the session's transport file descriptor or port.")
+#define FUNC_NAME s_scm_gnutls_set_session_record_port_close_x
+{
+  SCM_VALIDATE_SESSION_RECORD_PORT (1, port);
+  SCM_VALIDATE_PROC (2, close);
+
+  SCM_GNUTLS_SET_SESSION_RECORD_PORT_CLOSE (port, close);
+  return SCM_UNSPECIFIED;
+}
 #undef FUNC_NAME
 
 /* Create the session port type.  */
@@ -1173,17 +1217,17 @@ scm_init_gnutls_session_record_port_type (void)
 #endif
                         write_to_session_record_port);
 
+  scm_set_port_close (session_record_port_type,
+		      close_session_record_port);
+
+#if !USING_GUILE_BEFORE_2_2
+  /* Invoke the user-provided 'close' procedure on GC.  */
+  scm_set_port_needs_close_on_gc (session_record_port_type, 1);
+#endif
+
 #if !USING_GUILE_BEFORE_2_2
   scm_set_port_read_wait_fd (session_record_port_type,
 			     session_record_port_fd);
-#endif
-
-  /* Guile >= 1.9.3 doesn't need a custom mark procedure, and doesn't need a
-     finalizer (since memory associated with the port is automatically
-     reclaimed.)  */
-#if SCM_MAJOR_VERSION == 1 && SCM_MINOR_VERSION <= 8
-  scm_set_port_mark (session_record_port_type, mark_session_record_port);
-  scm_set_port_free (session_record_port_type, free_session_record_port);
 #endif
 }
 

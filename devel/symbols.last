@@ -16,6 +16,7 @@ GNUTLS_3_7_2@GNUTLS_3_7_2
 GNUTLS_3_7_3@GNUTLS_3_7_3
 GNUTLS_3_7_4@GNUTLS_3_7_4
 GNUTLS_3_7_5@GNUTLS_3_7_5
+GNUTLS_3_7_7@GNUTLS_3_7_7
 _gnutls_global_init_skip@GNUTLS_3_4
 gnutls_aead_cipher_decrypt@GNUTLS_3_4
 gnutls_aead_cipher_decryptv2@GNUTLS_3_6_10
@@ -134,9 +135,11 @@ gnutls_certificate_verify_peers@GNUTLS_3_4
 gnutls_check_version@GNUTLS_3_4
 gnutls_cipher_add_auth@GNUTLS_3_4
 gnutls_cipher_decrypt2@GNUTLS_3_4
+gnutls_cipher_decrypt3@GNUTLS_3_7_7
 gnutls_cipher_decrypt@GNUTLS_3_4
 gnutls_cipher_deinit@GNUTLS_3_4
 gnutls_cipher_encrypt2@GNUTLS_3_4
+gnutls_cipher_encrypt3@GNUTLS_3_7_7
 gnutls_cipher_encrypt@GNUTLS_3_4
 gnutls_cipher_get@GNUTLS_3_4
 gnutls_cipher_get_block_size@GNUTLS_3_4
@@ -262,6 +265,7 @@ gnutls_fips140_get_operation_state@GNUTLS_3_7_3
 gnutls_fips140_mode_enabled@GNUTLS_3_4
 gnutls_fips140_pop_context@GNUTLS_3_7_3
 gnutls_fips140_push_context@GNUTLS_3_7_3
+gnutls_fips140_run_self_tests@GNUTLS_3_7_7
 gnutls_fips140_set_mode@GNUTLS_3_6_3
 gnutls_free@GNUTLS_3_4
 gnutls_get_library_config@GNUTLS_3_7_3

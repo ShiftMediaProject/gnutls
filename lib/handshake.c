@@ -2813,12 +2813,6 @@ int gnutls_handshake(gnutls_session_t session)
 	const version_entry_st *vers = get_version(session);
 	int ret;
 
-	session->internals.ktls_enabled = 0;
-#ifdef ENABLE_KTLS
-	if (_gnutls_config_is_ktls_disabled() == false)
-		_gnutls_ktls_enable(session);
-#endif
-
 	if (unlikely(session->internals.initial_negotiation_completed)) {
 		if (vers->tls13_sem) {
 			if (session->security_parameters.entity == GNUTLS_CLIENT) {
@@ -2864,6 +2858,19 @@ int gnutls_handshake(gnutls_session_t session)
 			end->tv_nsec =
 				(start->tv_nsec + tmo_ms * 1000000LL) % 1000000000LL;
 		}
+
+#ifdef ENABLE_KTLS
+		if (_gnutls_config_is_ktls_enabled()) {
+			if (session->internals.pull_func ||
+			    session->internals.push_func) {
+				_gnutls_audit_log(session,
+						  "Not enabling KTLS with "
+						  "custom pull/push function\n");
+			} else {
+				_gnutls_ktls_enable(session);
+			}
+		}
+#endif
 	}
 
 	if (session->internals.recv_state == RECV_STATE_FALSE_START) {
