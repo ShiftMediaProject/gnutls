@@ -4,7 +4,7 @@ default	rel
 %define ZMMWORD
 section	.text code align=64
 
-EXTERN	_gnutls_x86_cpuid_s
+EXTERN	GNUTLS_x86_cpuid_s
 
 global	gcm_gmult_4bit
 
@@ -965,7 +965,7 @@ DB	102,65,15,56,0,194
 	jz	NEAR $L$odd_tail
 
 	movdqu	xmm6,XMMWORD[16+rdx]
-	mov	eax,DWORD[((_gnutls_x86_cpuid_s+4))]
+	mov	eax,DWORD[((GNUTLS_x86_cpuid_s+4))]
 	cmp	r9,0x30
 	jb	NEAR $L$skip4x
 

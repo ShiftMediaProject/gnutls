@@ -25,6 +25,7 @@ const asn1_static_node gnutls_asn1_tab[] = {
   { "algorithm", 1073741836, NULL },
   { "seed", 7, NULL },
   { "OtherPrimeInfos", 1612709899, NULL },
+  { "MAX", 1074266122, "1"},
   { NULL, 2, "OtherPrimeInfo"},
   { "OtherPrimeInfo", 1610612741, NULL },
   { "prime", 1073741827, NULL },

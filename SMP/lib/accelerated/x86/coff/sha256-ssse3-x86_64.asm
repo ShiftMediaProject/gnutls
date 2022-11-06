@@ -5,7 +5,7 @@ default	rel
 section	.text code align=64
 
 
-EXTERN	_gnutls_x86_cpuid_s
+EXTERN	GNUTLS_x86_cpuid_s
 global	sha256_block_data_order
 
 ALIGN	16
@@ -20,7 +20,7 @@ $L$SEH_begin_sha256_block_data_order:
 
 
 
-	lea	r11,[_gnutls_x86_cpuid_s]
+	lea	r11,[GNUTLS_x86_cpuid_s]
 	mov	r9d,DWORD[r11]
 	mov	r10d,DWORD[4+r11]
 	mov	r11d,DWORD[8+r11]

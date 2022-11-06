@@ -8,7 +8,7 @@ section	.text	code align=64
 %else
 section	.text	code
 %endif
-;extern	__gnutls_x86_cpuid_s
+;extern	_GNUTLS_x86_cpuid_s
 global	_aesni_encrypt
 align	16
 _aesni_encrypt:
@@ -2824,7 +2824,7 @@ __aesni_set_encrypt_key:
 L$112pic:
 	pop	ebx
 	lea	ebx,[(L$key_const-L$112pic)+ebx]
-	lea	ebp,[__gnutls_x86_cpuid_s]
+	lea	ebp,[_GNUTLS_x86_cpuid_s]
 	movups	xmm0,[eax]
 	xorps	xmm4,xmm4
 	mov	ebp,DWORD [4+ebp]
@@ -3201,4 +3201,4 @@ db	83,45,78,73,44,32,67,82,89,80,84,79,71,65,77,83
 db	32,98,121,32,60,97,112,112,114,111,64,111,112,101,110,115
 db	115,108,46,111,114,103,62,0
 segment	.bss
-common	__gnutls_x86_cpuid_s 16
+common	_GNUTLS_x86_cpuid_s 16

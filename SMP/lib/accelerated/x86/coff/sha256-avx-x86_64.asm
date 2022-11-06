@@ -5,7 +5,7 @@ default	rel
 section	.text code align=64
 
 
-EXTERN	_gnutls_x86_cpuid_s
+EXTERN	GNUTLS_x86_cpuid_s
 
 global	sha256_multi_block
 
@@ -21,7 +21,7 @@ $L$SEH_begin_sha256_multi_block:
 
 
 
-	mov	rcx,QWORD[((_gnutls_x86_cpuid_s+4))]
+	mov	rcx,QWORD[((GNUTLS_x86_cpuid_s+4))]
 	bt	rcx,61
 	jc	NEAR _shaext_shortcut
 	test	ecx,268435456

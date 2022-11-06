@@ -8,7 +8,7 @@ section	.text	code align=64
 %else
 section	.text	code
 %endif
-;extern	__gnutls_x86_cpuid_s
+;extern	_GNUTLS_x86_cpuid_s
 global	_sha256_block_data_order
 align	16
 _sha256_block_data_order:
@@ -3353,4 +3353,4 @@ L$009grand_loop:
 	pop	ebp
 	ret
 segment	.bss
-common	__gnutls_x86_cpuid_s 16
+common	_GNUTLS_x86_cpuid_s 16

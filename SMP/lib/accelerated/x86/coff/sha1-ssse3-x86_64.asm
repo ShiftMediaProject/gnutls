@@ -4,7 +4,7 @@ default	rel
 %define ZMMWORD
 section	.text code align=64
 
-EXTERN	_gnutls_x86_cpuid_s
+EXTERN	GNUTLS_x86_cpuid_s
 
 global	sha1_block_data_order
 
@@ -20,9 +20,9 @@ $L$SEH_begin_sha1_block_data_order:
 
 
 
-	mov	r9d,DWORD[((_gnutls_x86_cpuid_s+0))]
-	mov	r8d,DWORD[((_gnutls_x86_cpuid_s+4))]
-	mov	r10d,DWORD[((_gnutls_x86_cpuid_s+8))]
+	mov	r9d,DWORD[((GNUTLS_x86_cpuid_s+0))]
+	mov	r8d,DWORD[((GNUTLS_x86_cpuid_s+4))]
+	mov	r10d,DWORD[((GNUTLS_x86_cpuid_s+8))]
 	test	r8d,512
 	jz	NEAR $L$ialu
 	test	r10d,536870912

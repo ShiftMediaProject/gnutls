@@ -1577,6 +1577,12 @@
     <ClCompile Include="..\lib\ext\compress_certificate.c">
       <Filter>Source Files\lib\ext</Filter>
     </ClCompile>
+    <ClCompile Include="lib\gnutls_asn1_tab.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\pkix_asn1_tab.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">

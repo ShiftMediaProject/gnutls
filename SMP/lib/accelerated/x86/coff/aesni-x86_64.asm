@@ -4,7 +4,7 @@ default	rel
 %define ZMMWORD
 section	.text code align=64
 
-EXTERN	_gnutls_x86_cpuid_s
+EXTERN	GNUTLS_x86_cpuid_s
 global	aesni_encrypt
 
 ALIGN	16
@@ -1228,7 +1228,7 @@ DB	102,15,58,34,232,3
 	lea	r9,[7+r8]
 	mov	DWORD[((96+12))+rsp],r10d
 	bswap	r9d
-	mov	r10d,DWORD[((_gnutls_x86_cpuid_s+4))]
+	mov	r10d,DWORD[((GNUTLS_x86_cpuid_s+4))]
 	xor	r9d,ebp
 	and	r10d,71303168
 	mov	DWORD[((112+12))+rsp],r9d
@@ -3844,7 +3844,7 @@ $L$cbc_decrypt_body:
 	movdqa	xmm14,xmm5
 	movdqu	xmm7,XMMWORD[80+rdi]
 	movdqa	xmm15,xmm6
-	mov	r9d,DWORD[((_gnutls_x86_cpuid_s+4))]
+	mov	r9d,DWORD[((GNUTLS_x86_cpuid_s+4))]
 	cmp	rdx,0x70
 	jbe	NEAR $L$cbc_dec_six_or_seven
 
@@ -4393,7 +4393,7 @@ DB	0x48,0x83,0xEC,0x08
 	mov	r10d,268437504
 	movups	xmm0,XMMWORD[rcx]
 	xorps	xmm4,xmm4
-	and	r10d,DWORD[((_gnutls_x86_cpuid_s+4))]
+	and	r10d,DWORD[((GNUTLS_x86_cpuid_s+4))]
 	lea	rax,[16+r8]
 	cmp	edx,256
 	je	NEAR $L$14rounds
