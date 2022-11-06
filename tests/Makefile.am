@@ -122,7 +122,7 @@ ctests = tls13/supported_versions tls13/tls12-no-tls13-exts \
 	tls12-check-rollback-val tls11-check-rollback-val \
 	tls13/post-handshake-with-psk tls13/post-handshake-with-cert-auto \
 	tls13/anti_replay tls13/compress-cert tls13/compress-cert-neg \
-	tls13/compress-cert-neg2
+	tls13/compress-cert-neg2 tls13/compress-cert-cli
 
 ctests += tls13/hello_retry_request
 
@@ -233,7 +233,8 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 tls13-without-timeout-func buffer status-request-revoked \
 	 set_x509_ocsp_multi_cli kdf-api keylog-func handshake-write \
 	 x509cert-dntypes id-on-xmppAddr tls13-compat-mode ciphersuite-name \
-	 x509-upnconstraint cipher-padding pkcs7-verify-double-free
+	 x509-upnconstraint cipher-padding pkcs7-verify-double-free \
+	 fips-rsa-sizes
 
 ctests += tls-channel-binding
 
