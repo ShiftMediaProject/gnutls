@@ -494,7 +494,9 @@ int load_dir_certs(const char *dirname,
 			switch (d->d_type) {
 			case DT_REG:
 			case DT_LNK:
+#  if DT_LNK != DT_UNKNOWN
 			case DT_UNKNOWN:
+#  endif
 				break;
 			default:
 				continue;
