@@ -609,6 +609,9 @@
     <ClInclude Include="..\lib\ext\compress_certificate.h">
       <Filter>Header Files\lib\ext</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\pathbuf.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
@@ -1582,6 +1585,18 @@
     </ClCompile>
     <ClCompile Include="lib\pkix_asn1_tab.c">
       <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\pathbuf.c">
+      <Filter>Source Files\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\windows-tls.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\gl_linkedhash_list.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\stpcpy.c">
+      <Filter>Source Files\gnulib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

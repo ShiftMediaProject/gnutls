@@ -117,6 +117,7 @@
     <ClInclude Include="..\lib\nettle\gost\acpkm.h" />
     <ClInclude Include="..\lib\nettle\gost\cmac.h" />
     <ClInclude Include="..\lib\num.h" />
+    <ClInclude Include="..\lib\pathbuf.h" />
     <ClInclude Include="..\lib\pin.h" />
     <ClInclude Include="..\lib\pk.h" />
     <ClInclude Include="..\lib\profiles.h" />
@@ -182,12 +183,15 @@
     <ClCompile Include="..\devel\libtasn1\lib\version.c" />
     <ClCompile Include="..\gnulib\lib\c-strcasecmp.c" />
     <ClCompile Include="..\gnulib\lib\c-strncasecmp.c" />
+    <ClCompile Include="..\gnulib\lib\gl_linkedhash_list.c" />
     <ClCompile Include="..\gnulib\lib\hash-pjw-bare.c" />
     <ClCompile Include="..\gnulib\lib\hash.c" />
     <ClCompile Include="..\gnulib\lib\read-file.c" />
     <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
+    <ClCompile Include="..\gnulib\lib\stpcpy.c" />
     <ClCompile Include="..\gnulib\lib\windows-mutex.c" />
     <ClCompile Include="..\gnulib\lib\windows-rwlock.c" />
+    <ClCompile Include="..\gnulib\lib\windows-tls.c" />
     <ClCompile Include="..\gnulib\lib\windows-once.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_and_not.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_Cc.c" />
@@ -461,6 +465,7 @@
     <ClCompile Include="..\lib\nettle\sysrng-bcrypt.c" />
     <ClCompile Include="..\lib\ocsp-api.c" />
     <ClCompile Include="..\lib\openpgp_compat.c" />
+    <ClCompile Include="..\lib\pathbuf.c" />
     <ClCompile Include="..\lib\pcert.c" />
     <ClCompile Include="..\lib\pin.c" />
     <ClCompile Include="..\lib\pk.c" />
