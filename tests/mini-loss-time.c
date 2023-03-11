@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -30,24 +29,24 @@
 
 #if defined(_WIN32)
 
-int main()
+int main(void)
 {
 	exit(77);
 }
 
 #else
 
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <gnutls/gnutls.h>
-#include <gnutls/dtls.h>
-#include <signal.h>
+# include <sys/types.h>
+# include <netinet/in.h>
+# include <sys/socket.h>
+# include <sys/wait.h>
+# include <arpa/inet.h>
+# include <unistd.h>
+# include <gnutls/gnutls.h>
+# include <gnutls/dtls.h>
+# include <signal.h>
 
-#include "utils.h"
+# include "utils.h"
 
 /* This program tests whether a DTLS handshake would timeout
  * in the expected time.
@@ -94,10 +93,9 @@ static void client_log_func(int level, const char *str)
 static int counter;
 static int packet_to_lose;
 
-static ssize_t
-push(gnutls_transport_ptr_t tr, const void *data, size_t len)
+static ssize_t push(gnutls_transport_ptr_t tr, const void *data, size_t len)
 {
-	int fd = (long int) tr;
+	int fd = (long int)tr;
 
 	counter++;
 
@@ -154,7 +152,8 @@ static void client(int fd, unsigned timeout)
 	do {
 		ret = gnutls_handshake(session);
 	}
-	while (ret < 0 && (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED));
+	while (ret < 0
+	       && (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED));
 
 	gnutls_deinit(session);
 	gnutls_anon_free_client_credentials(anoncred);
@@ -166,12 +165,12 @@ static void client(int fd, unsigned timeout)
 				success("client: received timeout\n");
 			return;
 		}
-		fail("client: Handshake failed with unexpected reason: %s\n", gnutls_strerror(ret));
+		fail("client: Handshake failed with unexpected reason: %s\n",
+		     gnutls_strerror(ret));
 	} else {
 		fail("client: Handshake was completed (unexpected)\n");
 	}
 }
-
 
 /* These are global */
 pid_t child;
@@ -214,7 +213,8 @@ static void server(int fd, int packet, unsigned timeout)
 	do {
 		ret = gnutls_handshake(session);
 	}
-	while (ret < 0 && (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED));
+	while (ret < 0
+	       && (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED));
 
 	gnutls_deinit(session);
 	gnutls_anon_free_server_credentials(anoncred);
@@ -226,7 +226,8 @@ static void server(int fd, int packet, unsigned timeout)
 				success("server received timeout\n");
 			return;
 		}
-		fail("server: Handshake failed with unexpected reason: %s\n", gnutls_strerror(ret));
+		fail("server: Handshake failed with unexpected reason: %s\n",
+		     gnutls_strerror(ret));
 	} else {
 		fail("server: Handshake was completed (unexpected)\n");
 	}
@@ -290,12 +291,12 @@ static void ch_handler(int sig)
 void doit(void)
 {
 	time_t tstart, tstop;
-	int tries = 5; /* we try multiple times because in very busy systems the suite may fail to finish on time */
+	int tries = 5;		/* we try multiple times because in very busy systems the suite may fail to finish on time */
 
 	signal(SIGCHLD, ch_handler);
 	signal(SIGPIPE, SIG_IGN);
 
-	for (;tries>=0;tries--) {
+	for (; tries >= 0; tries--) {
 		tstart = time(0);
 		start(2, 0);
 
@@ -305,13 +306,16 @@ void doit(void)
 
 		if (!(tstop < 40 && tstop > 25)) {
 			if (tries == 0)
-				fail("Client wait time difference: %u\n", (unsigned) tstop);
+				fail("Client wait time difference: %u\n",
+				     (unsigned)tstop);
 			else if (debug)
-				success("Client wait time difference: %u\n", (unsigned) tstop);
-		} else break;
+				success("Client wait time difference: %u\n",
+					(unsigned)tstop);
+		} else
+			break;
 	}
 
-	for (;tries>=0;tries--) {
+	for (; tries >= 0; tries--) {
 		tstart = time(0);
 		start(2, 1);
 
@@ -321,10 +325,13 @@ void doit(void)
 
 		if (!(tstop < 40 && tstop > 25)) {
 			if (tries == 0)
-				fail("Server wait time difference: %u\n", (unsigned) tstop);
+				fail("Server wait time difference: %u\n",
+				     (unsigned)tstop);
 			else if (debug)
-				success("Server wait time difference: %u\n", (unsigned) tstop);
-		} else break;
+				success("Server wait time difference: %u\n",
+					(unsigned)tstop);
+		} else
+			break;
 	}
 }
 

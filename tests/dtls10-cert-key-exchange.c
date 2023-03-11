@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 /* This program tests the various certificate key exchange methods supported
@@ -40,26 +39,70 @@ void doit(void)
 {
 	global_init();
 
-	dtls_try("DTLS 1.0 with anon-ecdh", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ANON-ECDH", GNUTLS_KX_ANON_ECDH, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN);
-	dtls_try("DTLS 1.0 with anon-dh", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ANON-DH", GNUTLS_KX_ANON_DH, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN);
-	dtls_try("DTLS 1.0 with dhe-rsa no cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+DHE-RSA", GNUTLS_KX_DHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_UNKNOWN);
-	dtls_try("DTLS 1.0 with ecdhe x25519 rsa no cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA:-CURVE-ALL:+CURVE-X25519", GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_UNKNOWN);
-	dtls_try("DTLS 1.0 with ecdhe rsa no cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA", GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_UNKNOWN);
-	dtls_try_with_key("DTLS 1.0 with ecdhe ecdsa no cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-ECDSA", GNUTLS_KX_ECDHE_ECDSA, GNUTLS_SIGN_ECDSA_SHA256, GNUTLS_SIGN_UNKNOWN,
-		&server_ca3_localhost_ecc_cert, &server_ca3_ecc_key, NULL, NULL, 0);
+	dtls_try("DTLS 1.0 with anon-ecdh",
+		 "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ANON-ECDH",
+		 GNUTLS_KX_ANON_ECDH, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN);
+	dtls_try("DTLS 1.0 with anon-dh",
+		 "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ANON-DH",
+		 GNUTLS_KX_ANON_DH, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN);
+	dtls_try("DTLS 1.0 with dhe-rsa no cert",
+		 "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+DHE-RSA",
+		 GNUTLS_KX_DHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		 GNUTLS_SIGN_UNKNOWN);
+	dtls_try("DTLS 1.0 with ecdhe x25519 rsa no cert",
+		 "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA:-CURVE-ALL:+CURVE-X25519",
+		 GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		 GNUTLS_SIGN_UNKNOWN);
+	dtls_try("DTLS 1.0 with ecdhe rsa no cert",
+		 "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA",
+		 GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		 GNUTLS_SIGN_UNKNOWN);
+	dtls_try_with_key("DTLS 1.0 with ecdhe ecdsa no cert",
+			  "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-ECDSA",
+			  GNUTLS_KX_ECDHE_ECDSA, GNUTLS_SIGN_ECDSA_SHA256,
+			  GNUTLS_SIGN_UNKNOWN, &server_ca3_localhost_ecc_cert,
+			  &server_ca3_ecc_key, NULL, NULL, 0);
 
-	dtls_try("DTLS 1.0 with rsa no cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+RSA", GNUTLS_KX_RSA, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN);
-	dtls_try_cli("DTLS 1.0 with dhe-rsa cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+DHE-RSA", GNUTLS_KX_DHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_RSA_SHA256, USE_CERT);
-	dtls_try_cli("DTLS 1.0 with ecdhe-rsa cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA", GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_RSA_SHA256, USE_CERT);
-	dtls_try_cli("DTLS 1.0 with rsa cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+RSA", GNUTLS_KX_RSA, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_RSA_SHA256, USE_CERT);
-	dtls_try_with_key("DTLS 1.0 with ecdhe ecdsa cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-ECDSA", GNUTLS_KX_ECDHE_ECDSA, GNUTLS_SIGN_ECDSA_SHA256, GNUTLS_SIGN_RSA_SHA256,
-		&server_ca3_localhost_ecc_cert, &server_ca3_ecc_key, &cli_ca3_cert, &cli_ca3_key, USE_CERT);
+	dtls_try("DTLS 1.0 with rsa no cert",
+		 "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+RSA", GNUTLS_KX_RSA,
+		 GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN);
+	dtls_try_cli("DTLS 1.0 with dhe-rsa cert",
+		     "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+DHE-RSA",
+		     GNUTLS_KX_DHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		     GNUTLS_SIGN_RSA_SHA256, USE_CERT);
+	dtls_try_cli("DTLS 1.0 with ecdhe-rsa cert",
+		     "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA",
+		     GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		     GNUTLS_SIGN_RSA_SHA256, USE_CERT);
+	dtls_try_cli("DTLS 1.0 with rsa cert",
+		     "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+RSA",
+		     GNUTLS_KX_RSA, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_RSA_SHA256,
+		     USE_CERT);
+	dtls_try_with_key("DTLS 1.0 with ecdhe ecdsa cert",
+			  "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-ECDSA",
+			  GNUTLS_KX_ECDHE_ECDSA, GNUTLS_SIGN_ECDSA_SHA256,
+			  GNUTLS_SIGN_RSA_SHA256,
+			  &server_ca3_localhost_ecc_cert, &server_ca3_ecc_key,
+			  &cli_ca3_cert, &cli_ca3_key, USE_CERT);
 
-	dtls_try_cli("DTLS 1.0 with dhe-rsa ask cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+DHE-RSA", GNUTLS_KX_DHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_UNKNOWN, ASK_CERT);
-	dtls_try_cli("DTLS 1.0 with ecdhe-rsa ask cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA", GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_UNKNOWN, ASK_CERT);
-	dtls_try_cli("DTLS 1.0 with rsa ask cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+RSA", GNUTLS_KX_RSA, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN, ASK_CERT);
-	dtls_try_with_key("DTLS 1.0 with ecdhe ecdsa cert", "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-ECDSA", GNUTLS_KX_ECDHE_ECDSA, GNUTLS_SIGN_ECDSA_SHA256, GNUTLS_SIGN_UNKNOWN,
-		&server_ca3_localhost_ecc_cert, &server_ca3_ecc_key, &cli_ca3_cert, &cli_ca3_key, ASK_CERT);
+	dtls_try_cli("DTLS 1.0 with dhe-rsa ask cert",
+		     "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+DHE-RSA",
+		     GNUTLS_KX_DHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		     GNUTLS_SIGN_UNKNOWN, ASK_CERT);
+	dtls_try_cli("DTLS 1.0 with ecdhe-rsa ask cert",
+		     "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-RSA",
+		     GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+		     GNUTLS_SIGN_UNKNOWN, ASK_CERT);
+	dtls_try_cli("DTLS 1.0 with rsa ask cert",
+		     "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+RSA",
+		     GNUTLS_KX_RSA, GNUTLS_SIGN_UNKNOWN, GNUTLS_SIGN_UNKNOWN,
+		     ASK_CERT);
+	dtls_try_with_key("DTLS 1.0 with ecdhe ecdsa cert",
+			  "NORMAL:-VERS-ALL:+VERS-DTLS1.0:-KX-ALL:+ECDHE-ECDSA",
+			  GNUTLS_KX_ECDHE_ECDSA, GNUTLS_SIGN_ECDSA_SHA256,
+			  GNUTLS_SIGN_UNKNOWN, &server_ca3_localhost_ecc_cert,
+			  &server_ca3_ecc_key, &cli_ca3_cert, &cli_ca3_key,
+			  ASK_CERT);
 
 	gnutls_global_deinit();
 }

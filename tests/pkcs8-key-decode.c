@@ -16,8 +16,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <gnutls/gnutls.h>
@@ -28,7 +27,7 @@
 
 #include "utils.h"
 
-# define PRIVATE_KEY					      \
+#define PRIVATE_KEY					      \
     "-----BEGIN PRIVATE KEY-----\n"				\
     "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBALVcr\n"     \
     "BL40Tm6yq88FBhJNw1aaoCjmtg0l4dWQZ/e9Fimx4ARxFpT+ji4FE\n"     \
@@ -50,28 +49,28 @@
 
 static int test_load(void)
 {
-  gnutls_x509_privkey_t key;
-  const gnutls_datum_t data = {
-    (unsigned char *)PRIVATE_KEY,
-    strlen(PRIVATE_KEY)
-  };
-  int err;
+	gnutls_x509_privkey_t key;
+	const gnutls_datum_t data = {
+		(unsigned char *)PRIVATE_KEY,
+		strlen(PRIVATE_KEY)
+	};
+	int err;
 
-  if ((err = gnutls_x509_privkey_init(&key)) < 0) {
-    fail("Failed to init key %s\n", gnutls_strerror(err));
-    exit(1);
-  }
+	if ((err = gnutls_x509_privkey_init(&key)) < 0) {
+		fail("Failed to init key %s\n", gnutls_strerror(err));
+		exit(1);
+	}
 
-  if ((err = gnutls_x509_privkey_import(key, &data,
-					GNUTLS_X509_FMT_PEM)) < 0) {
-    fail("Failed to import key %s\n", gnutls_strerror(err));
-    exit(1);
-  }
+	if ((err = gnutls_x509_privkey_import(key, &data,
+					      GNUTLS_X509_FMT_PEM)) < 0) {
+		fail("Failed to import key %s\n", gnutls_strerror(err));
+		exit(1);
+	}
 
-  success("Loaded key\n%s", PRIVATE_KEY);
+	success("Loaded key\n%s", PRIVATE_KEY);
 
-  gnutls_x509_privkey_deinit(key);
-  return 0;
+	gnutls_x509_privkey_deinit(key);
+	return 0;
 }
 
 void doit(void)

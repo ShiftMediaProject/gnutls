@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -29,25 +28,25 @@
 
 #if defined(_WIN32)
 
-int main()
+int main(void)
 {
 	exit(77);
 }
 
 #else
 
-#include <string.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <gnutls/gnutls.h>
-#include <gnutls/dtls.h>
-#include <signal.h>
+# include <string.h>
+# include <sys/types.h>
+# include <netinet/in.h>
+# include <sys/socket.h>
+# include <sys/wait.h>
+# include <arpa/inet.h>
+# include <unistd.h>
+# include <gnutls/gnutls.h>
+# include <gnutls/dtls.h>
+# include <signal.h>
 
-#include "utils.h"
+# include "utils.h"
 
 static void terminate(void);
 
@@ -106,12 +105,11 @@ const gnutls_datum_t server_key = { server_key_pem,
 	sizeof(server_key_pem)
 };
 
-
 /* A very basic TLS client, with anonymous authentication.
  */
 
-#define MAX_BUF 1024
-#define MTU 1500
+# define MAX_BUF 1024
+# define MTU 1500
 
 static void client(int fd, const char *prio, unsigned overhead)
 {
@@ -173,7 +171,7 @@ static void client(int fd, const char *prio, unsigned overhead)
 	gnutls_dtls_set_mtu(session, MTU);
 	ret = gnutls_dtls_get_data_mtu(session);
 
-	if (MTU - ret != (int) overhead) {
+	if (MTU - ret != (int)overhead) {
 		fail("overhead for %s is %d, expected %u\n", prio,
 		     MTU - ret, overhead);
 		exit(1);
@@ -188,7 +186,6 @@ static void client(int fd, const char *prio, unsigned overhead)
 
 	gnutls_global_deinit();
 }
-
 
 /* These are global */
 gnutls_anon_server_credentials_t anoncred;
@@ -237,8 +234,7 @@ static void server(int fd, const char *prio)
 
 	gnutls_certificate_allocate_credentials(&x509_cred);
 	gnutls_certificate_set_x509_key_mem(x509_cred, &server_cert,
-					    &server_key,
-					    GNUTLS_X509_FMT_PEM);
+					    &server_key, GNUTLS_X509_FMT_PEM);
 
 	gnutls_anon_allocate_server_credentials(&anoncred);
 

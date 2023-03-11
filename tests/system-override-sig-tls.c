@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <assert.h>
@@ -90,7 +89,7 @@ ext_callback(void *ctx, unsigned tls_id,
 static int
 handshake_callback(gnutls_session_t session, unsigned int htype,
 		   unsigned post, unsigned int incoming,
-		   const gnutls_datum_t *msg)
+		   const gnutls_datum_t * msg)
 {
 	assert(post);
 
@@ -139,8 +138,7 @@ void doit(void)
 					    GNUTLS_X509_FMT_PEM);
 
 	gnutls_init(&server, GNUTLS_SERVER);
-	gnutls_credentials_set(server, GNUTLS_CRD_CERTIFICATE,
-				serverx509cred);
+	gnutls_credentials_set(server, GNUTLS_CRD_CERTIFICATE, serverx509cred);
 
 	gnutls_priority_set_direct(server, PRIO, NULL);
 
@@ -155,7 +153,9 @@ void doit(void)
 	if (ret < 0)
 		exit(1);
 
-	ret = gnutls_certificate_set_x509_trust_mem(clientx509cred, &ca2_cert, GNUTLS_X509_FMT_PEM);
+	ret =
+	    gnutls_certificate_set_x509_trust_mem(clientx509cred, &ca2_cert,
+						  GNUTLS_X509_FMT_PEM);
 	if (ret < 0)
 		exit(1);
 
@@ -164,7 +164,7 @@ void doit(void)
 		exit(1);
 
 	ret = gnutls_credentials_set(client, GNUTLS_CRD_CERTIFICATE,
-				clientx509cred);
+				     clientx509cred);
 	if (ret < 0)
 		exit(1);
 

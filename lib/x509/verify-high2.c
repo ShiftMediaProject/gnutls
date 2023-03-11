@@ -97,7 +97,9 @@ gnutls_x509_trust_list_add_trust_mem(gnutls_x509_trust_list_t list,
 
 		ret =
 		    gnutls_x509_trust_list_add_cas(list, x509_ca_list,
-						   x509_ncas, tl_flags|GNUTLS_TL_NO_DUPLICATES);
+						   x509_ncas,
+						   tl_flags |
+						   GNUTLS_TL_NO_DUPLICATES);
 		gnutls_free(x509_ca_list);
 
 		if (ret < 0)
@@ -109,14 +111,15 @@ gnutls_x509_trust_list_add_trust_mem(gnutls_x509_trust_list_t list,
 	if (crls != NULL && crls->data != NULL) {
 		ret =
 		    gnutls_x509_crl_list_import2(&x509_crl_list,
-						 &x509_ncrls, crls, type,
-						 0);
+						 &x509_ncrls, crls, type, 0);
 		if (ret < 0)
 			return gnutls_assert_val(ret);
 
 		ret =
 		    gnutls_x509_trust_list_add_crls(list, x509_crl_list,
-						    x509_ncrls, tl_flags|GNUTLS_TL_NO_DUPLICATES,
+						    x509_ncrls,
+						    tl_flags |
+						    GNUTLS_TL_NO_DUPLICATES,
 						    tl_vflags);
 		gnutls_free(x509_crl_list);
 
@@ -136,7 +139,7 @@ gnutls_x509_trust_list_add_trust_mem(gnutls_x509_trust_list_t list,
  * @type: The format of the certificates
  *
  * This function will remove the provided certificate authorities
- * from the trusted list, and add them into a black list when needed. 
+ * from the trusted list, and add them into a block list when needed. 
  *
  * See also gnutls_x509_trust_list_remove_cas().
  *
@@ -193,7 +196,8 @@ int remove_pkcs11_url(gnutls_x509_trust_list_t list, const char *ca_file)
  * trusted PKCS#11 token.
  */
 static
-int add_trust_list_pkcs11_object_url(gnutls_x509_trust_list_t list, const char *url, unsigned flags)
+int add_trust_list_pkcs11_object_url(gnutls_x509_trust_list_t list,
+				     const char *url, unsigned flags)
 {
 	gnutls_x509_crt_t *xcrt_list = NULL;
 	gnutls_pkcs11_obj_t *pcrt_list = NULL;
@@ -206,7 +210,8 @@ int add_trust_list_pkcs11_object_url(gnutls_x509_trust_list_t list, const char *
 	ret =
 	    gnutls_pkcs11_obj_list_import_url2(&pcrt_list, &pcrt_list_size,
 					       url,
-					       GNUTLS_PKCS11_OBJ_FLAG_CRT|GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED,
+					       GNUTLS_PKCS11_OBJ_FLAG_CRT |
+					       GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED,
 					       0);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
@@ -255,7 +260,8 @@ int remove_pkcs11_object_url(gnutls_x509_trust_list_t list, const char *url)
 	ret =
 	    gnutls_pkcs11_obj_list_import_url2(&pcrt_list, &pcrt_list_size,
 					       url,
-					       GNUTLS_PKCS11_OBJ_FLAG_CRT|GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED,
+					       GNUTLS_PKCS11_OBJ_FLAG_CRT |
+					       GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED,
 					       0);
 	if (ret < 0)
 		return gnutls_assert_val(ret);
@@ -295,7 +301,6 @@ int remove_pkcs11_object_url(gnutls_x509_trust_list_t list, const char *url)
 	return ret;
 }
 #endif
-
 
 /**
  * gnutls_x509_trust_list_add_trust_file:
@@ -339,18 +344,31 @@ gnutls_x509_trust_list_add_trust_file(gnutls_x509_trust_list_t list,
 			 * otherwise import the individual certificates.
 			 */
 			if (is_pkcs11_url_object(ca_file) != 0) {
-				return add_trust_list_pkcs11_object_url(list, ca_file, tl_flags);
-			} else { /* trusted token */
+				return add_trust_list_pkcs11_object_url(list,
+									ca_file,
+									tl_flags);
+			} else {	/* trusted token */
 				if (list->pkcs11_token != NULL)
-					return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+					return
+					    gnutls_assert_val
+					    (GNUTLS_E_INVALID_REQUEST);
 				list->pkcs11_token = gnutls_strdup(ca_file);
 
 				/* enumerate the certificates */
-				ret = gnutls_pkcs11_obj_list_import_url(NULL, &pcrt_list_size,
-					ca_file, 
-					(GNUTLS_PKCS11_OBJ_FLAG_PRESENT_IN_TRUSTED_MODULE|GNUTLS_PKCS11_OBJ_FLAG_CRT|GNUTLS_PKCS11_OBJ_FLAG_MARK_CA|GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED),
-					0);
-				if (ret < 0 && ret != GNUTLS_E_SHORT_MEMORY_BUFFER)
+				ret =
+				    gnutls_pkcs11_obj_list_import_url(NULL,
+								      &pcrt_list_size,
+								      ca_file,
+								      (GNUTLS_PKCS11_OBJ_FLAG_PRESENT_IN_TRUSTED_MODULE
+								       |
+								       GNUTLS_PKCS11_OBJ_FLAG_CRT
+								       |
+								       GNUTLS_PKCS11_OBJ_FLAG_MARK_CA
+								       |
+								       GNUTLS_PKCS11_OBJ_FLAG_MARK_TRUSTED),
+								      0);
+				if (ret < 0
+				    && ret != GNUTLS_E_SHORT_MEMORY_BUFFER)
 					return gnutls_assert_val(ret);
 
 				return pcrt_list_size;
@@ -358,7 +376,7 @@ gnutls_x509_trust_list_add_trust_file(gnutls_x509_trust_list_t list,
 		} else
 #endif
 		{
-			cas.data = (void *) read_file(ca_file, RF_BINARY, &size);
+			cas.data = (void *)read_file(ca_file, RF_BINARY, &size);
 			if (cas.data == NULL) {
 				gnutls_assert();
 				return GNUTLS_E_FILE_ERROR;
@@ -368,7 +386,7 @@ gnutls_x509_trust_list_add_trust_file(gnutls_x509_trust_list_t list,
 	}
 
 	if (crl_file) {
-		crls.data = (void *) read_file(crl_file, RF_BINARY, &size);
+		crls.data = (void *)read_file(crl_file, RF_BINARY, &size);
 		if (crls.data == NULL) {
 			gnutls_assert();
 			return GNUTLS_E_FILE_ERROR;
@@ -387,13 +405,13 @@ gnutls_x509_trust_list_add_trust_file(gnutls_x509_trust_list_t list,
 
 static
 int load_dir_certs(const char *dirname,
-			  gnutls_x509_trust_list_t list,
-			  unsigned int tl_flags, unsigned int tl_vflags,
-			  unsigned type, unsigned crl)
+		   gnutls_x509_trust_list_t list,
+		   unsigned int tl_flags, unsigned int tl_vflags,
+		   unsigned type, unsigned crl)
 {
 	int ret;
 	int r = 0;
-	char path[GNUTLS_PATH_MAX];
+	struct gnutls_pathbuf_st pathbuf;
 
 #if !defined(_WIN32) || !defined(_UNICODE)
 	DIR *dirp;
@@ -401,73 +419,118 @@ int load_dir_certs(const char *dirname,
 
 	dirp = opendir(dirname);
 	if (dirp != NULL) {
-		while ((d = readdir(dirp)) != NULL) {
-#ifdef _DIRENT_HAVE_D_TYPE
-				if (d->d_type == DT_REG || d->d_type == DT_LNK || d->d_type == DT_UNKNOWN)
-#endif
-			{
-				snprintf(path, sizeof(path), "%s/%s",
-					 dirname, d->d_name);
+		size_t base_len;
 
-				if (crl != 0) {
-					ret =
-					    gnutls_x509_trust_list_add_trust_file
-					    (list, NULL, path, type, tl_flags,
-					     tl_vflags);
-				} else {
-					ret =
-					    gnutls_x509_trust_list_add_trust_file
-					    (list, path, NULL, type, tl_flags,
-					     tl_vflags);
-				}
-				if (ret >= 0)
-					r += ret;
-			}
+		ret = _gnutls_pathbuf_init(&pathbuf, dirname);
+		if (ret < 0) {
+			return r;
 		}
+
+		base_len = pathbuf.len;
+		while ((d = readdir(dirp)) != NULL) {
+# ifdef _DIRENT_HAVE_D_TYPE
+			switch (d->d_type) {
+			case DT_REG:
+			case DT_LNK:
+			case DT_UNKNOWN:
+				break;
+			default:
+				continue;
+			}
+# endif
+			ret = _gnutls_pathbuf_append(&pathbuf, d->d_name);
+			if (ret < 0) {
+				continue;
+			}
+			if (crl != 0) {
+				ret = gnutls_x509_trust_list_add_trust_file
+				    (list, NULL, pathbuf.ptr, type, tl_flags,
+				     tl_vflags);
+			} else {
+				ret = gnutls_x509_trust_list_add_trust_file
+				    (list, pathbuf.ptr, NULL, type, tl_flags,
+				     tl_vflags);
+			}
+			if (ret >= 0) {
+				r += ret;
+			}
+			(void)_gnutls_pathbuf_truncate(&pathbuf, base_len);
+		}
+		_gnutls_pathbuf_deinit(&pathbuf);
 		closedir(dirp);
 	}
-#else /* _WIN32 */
+#else				/* _WIN32 */
 
 	_TDIR *dirp;
 	struct _tdirent *d;
-	gnutls_datum_t utf16 = {NULL, 0};
+	gnutls_datum_t utf16 = { NULL, 0 };
 
-#ifdef WORDS_BIGENDIAN
-	r = _gnutls_utf8_to_ucs2(dirname, strlen(dirname), &utf16, 1);
-#else
-	r = _gnutls_utf8_to_ucs2(dirname, strlen(dirname), &utf16, 0);
-#endif
-	if (r < 0)
-		return gnutls_assert_val(r);
-	dirp = _topendir((_TCHAR*)utf16.data);
+# undef UCS2_ENDIAN
+# ifdef WORDS_BIGENDIAN
+#  define UCS2_ENDIAN 1
+# else
+#  define UCS2_ENDIAN 0
+# endif
+
+	ret =
+	    _gnutls_utf8_to_ucs2(dirname, strlen(dirname), &utf16, UCS2_ENDIAN);
+	if (ret < 0) {
+		return gnutls_assert_val(ret);
+	}
+	dirp = _topendir((_TCHAR *) utf16.data);
 	gnutls_free(utf16.data);
 	if (dirp != NULL) {
-		while ((d = _treaddir(dirp)) != NULL) {
-#ifdef _DIRENT_HAVE_D_TYPE
-			if (d->d_type == DT_REG || d->d_type == DT_LNK || d->d_type == DT_UNKNOWN)
-#endif
-			{
-				snprintf(path, sizeof(path), "%s/%ls",
-					dirname, d->d_name);
+		size_t base_len;
 
-				if (crl != 0) {
-					ret =
-					    gnutls_x509_trust_list_add_trust_file
-					    (list, NULL, path, type, tl_flags,
-					     tl_vflags);
-				} else {
-					ret =
-					    gnutls_x509_trust_list_add_trust_file
-					    (list, path, NULL, type, tl_flags,
-					     tl_vflags);
-				}
-				if (ret >= 0)
-					r += ret;
-			}
+		ret = _gnutls_pathbuf_init(&pathbuf, dirname);
+		if (ret < 0) {
+			return r;
 		}
+
+		base_len = pathbuf.len;
+		while ((d = _treaddir(dirp)) != NULL) {
+			gnutls_datum_t utf8 = { NULL, 0 };
+# ifdef _DIRENT_HAVE_D_TYPE
+			switch (d->d_type) {
+			case DT_REG:
+			case DT_LNK:
+			case DT_UNKNOWN:
+				break;
+			default:
+				continue;
+			}
+# endif
+			ret = _gnutls_ucs2_to_utf8(d->d_name,
+						   d->d_namlen *
+						   sizeof(d->d_name[0]), &utf8,
+						   UCS2_ENDIAN);
+			if (ret < 0) {
+				continue;
+			}
+			ret = _gnutls_pathbuf_append(&pathbuf, utf8.data);
+			gnutls_free(utf8.data);
+			if (ret < 0) {
+				continue;
+			}
+
+			if (crl != 0) {
+				ret = gnutls_x509_trust_list_add_trust_file
+				    (list, NULL, pathbuf.ptr, type, tl_flags,
+				     tl_vflags);
+			} else {
+				ret = gnutls_x509_trust_list_add_trust_file
+				    (list, pathbuf.ptr, NULL, type, tl_flags,
+				     tl_vflags);
+			}
+			if (ret >= 0)
+				r += ret;
+			(void)_gnutls_pathbuf_truncate(&pathbuf, base_len);
+		}
+		_gnutls_pathbuf_deinit(&pathbuf);
 		_tclosedir(dirp);
 	}
-#endif /* _WIN32 */
+# undef UCS2_ENDIAN
+#endif				/* _WIN32 */
 	return r;
 }
 
@@ -490,11 +553,11 @@ int load_dir_certs(const char *dirname,
  **/
 int
 gnutls_x509_trust_list_add_trust_dir(gnutls_x509_trust_list_t list,
-				      const char *ca_dir,
-				      const char *crl_dir,
-				      gnutls_x509_crt_fmt_t type,
-				      unsigned int tl_flags,
-				      unsigned int tl_vflags)
+				     const char *ca_dir,
+				     const char *crl_dir,
+				     gnutls_x509_crt_fmt_t type,
+				     unsigned int tl_flags,
+				     unsigned int tl_vflags)
 {
 	int ret = 0;
 
@@ -524,7 +587,7 @@ gnutls_x509_trust_list_add_trust_dir(gnutls_x509_trust_list_t list,
  * @type: The format of the certificates
  *
  * This function will remove the given certificate authorities
- * from the trusted list, and add them into a black list when needed. 
+ * from the trusted list, and add them into a block list when needed. 
  * PKCS 11 URLs are also accepted, instead
  * of files, by this function.
  *
@@ -547,13 +610,13 @@ gnutls_x509_trust_list_remove_trust_file(gnutls_x509_trust_list_t list,
 	if (c_strncasecmp(ca_file, PKCS11_URL, PKCS11_URL_SIZE) == 0) {
 		if (is_pkcs11_url_object(ca_file) != 0) {
 			return remove_pkcs11_object_url(list, ca_file);
-		} else { /* token */
+		} else {	/* token */
 			return remove_pkcs11_url(list, ca_file);
 		}
 	} else
 #endif
 	{
-		cas.data = (void *) read_file(ca_file, RF_BINARY, &size);
+		cas.data = (void *)read_file(ca_file, RF_BINARY, &size);
 		if (cas.data == NULL) {
 			gnutls_assert();
 			return GNUTLS_E_FILE_ERROR;

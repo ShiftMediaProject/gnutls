@@ -16,14 +16,13 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* Parts copied from GnuTLS example programs. */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -53,8 +52,8 @@ void doit(void)
 		gnutls_global_set_log_level(6);
 
 	if (gnutls_fips140_mode_enabled()) {
-		rsa_size1 = 2048; /* minimum allowed */
-		rsa_size2 = 2048; /* minimum allowed */
+		rsa_size1 = 2048;	/* minimum allowed */
+		rsa_size2 = 2048;	/* minimum allowed */
 	} else {
 		rsa_size1 = 512;
 		rsa_size2 = 1024;

@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdlib.h>
@@ -41,8 +40,8 @@ typedef struct {
 
 files_st files[] = {
 	{"client.p12", "foobar"},
-	{"cert-ca.p12", "1234"}, /* 2 certs, one is a CA */
-	{"pkcs12_2certs.p12", ""}, /* 2 certs, on is unrelated */
+	{"cert-ca.p12", "1234"},	/* 2 certs, one is a CA */
+	{"pkcs12_2certs.p12", ""},	/* 2 certs, on is unrelated */
 	{NULL, NULL}
 };
 
@@ -86,8 +85,8 @@ void doit(void)
 		    gnutls_certificate_set_x509_simple_pkcs12_file(x509cred,
 								   file,
 								   GNUTLS_X509_FMT_DER,
-								   files[i].
-								   pass);
+								   files
+								   [i].pass);
 		if (ret < 0)
 			fail("x509_pkcs12 failed %d: %s\n", ret,
 			     gnutls_strerror(ret));

@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -59,7 +58,7 @@ void doit(void)
 {
 	int rc;
 	gnutls_certificate_credentials_t cred;
-	gnutls_datum_t ca = { (unsigned char *) castr, sizeof(castr) };
+	gnutls_datum_t ca = { (unsigned char *)castr, sizeof(castr) };
 
 	global_init();
 
@@ -72,7 +71,7 @@ void doit(void)
 	if (rc != 2)
 		fail("import ca failed: %d\n", rc);
 
-	ca.data = (unsigned char *) "";
+	ca.data = (unsigned char *)"";
 	ca.size = 0;
 
 	rc = gnutls_certificate_set_x509_trust_mem(cred, &ca,

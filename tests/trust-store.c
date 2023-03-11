@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -41,7 +40,6 @@ static void tls_log_func(int level, const char *str)
 	fprintf(stderr, "<%d>| %s", level, str);
 }
 
-
 void doit(void)
 {
 	gnutls_certificate_credentials_t x509_cred;
@@ -59,7 +57,8 @@ void doit(void)
 	if (ret == GNUTLS_E_UNIMPLEMENTED_FEATURE) {
 		exit(77);
 	} else if (ret < 0) {
-		fail("error loading system trust store: %s\n", gnutls_strerror(ret));
+		fail("error loading system trust store: %s\n",
+		     gnutls_strerror(ret));
 	} else if (ret == 0) {
 		fail("no certificates were found in system trust store!\n");
 	}

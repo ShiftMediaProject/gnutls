@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -41,18 +40,18 @@ int main(int argc, char **argv)
 
 #else
 
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#if !defined(_WIN32)
-#include <sys/wait.h>
-#endif
-#include <unistd.h>
-#include <assert.h>
-#include <gnutls/gnutls.h>
+# include <string.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# if !defined(_WIN32)
+#  include <sys/wait.h>
+# endif
+# include <unistd.h>
+# include <assert.h>
+# include <gnutls/gnutls.h>
 
-#include "utils.h"
-#include "cert-common.h"
+# include "utils.h"
+# include "cert-common.h"
 
 pid_t child;
 
@@ -62,8 +61,7 @@ static void tls_log_func(int level, const char *str)
 		str);
 }
 
-static unsigned char tls_alert[] = 
-	"\x15\x03\x03\x00\x02\x00\x0A";
+static unsigned char tls_alert[] = "\x15\x03\x03\x00\x02\x00\x0A";
 
 static void client(int sd)
 {
@@ -72,8 +70,8 @@ static void client(int sd)
 
 	/* send a list of warning alerts */
 
-	for (i=0;i<128;i++) {
-		ret = send(sd, tls_alert, sizeof(tls_alert)-1, 0);
+	for (i = 0; i < 128; i++) {
+		ret = send(sd, tls_alert, sizeof(tls_alert) - 1, 0);
 		if (ret < 0)
 			fail("error sending hello\n");
 	}
@@ -100,7 +98,8 @@ static void server(int sd)
 	gnutls_certificate_set_x509_trust_mem(x509_cred, &ca3_cert,
 					      GNUTLS_X509_FMT_PEM);
 
-	gnutls_certificate_set_x509_key_mem(x509_cred, &server_ca3_localhost_cert,
+	gnutls_certificate_set_x509_key_mem(x509_cred,
+					    &server_ca3_localhost_cert,
 					    &server_ca3_key,
 					    GNUTLS_X509_FMT_PEM);
 
@@ -112,7 +111,8 @@ static void server(int sd)
 	/* avoid calling all the priority functions, since the defaults
 	 * are adequate.
 	 */
-	assert(gnutls_priority_set_direct(session, "NORMAL:-VERS-ALL:+VERS-TLS1.2", NULL)>=0);
+	assert(gnutls_priority_set_direct
+	       (session, "NORMAL:-VERS-ALL:+VERS-TLS1.2", NULL) >= 0);
 
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, x509_cred);
 
@@ -123,7 +123,8 @@ static void server(int sd)
 		loops++;
 		if (loops > 64)
 			fail("Too many loops in the handshake!\n");
-	} while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_WARNING_ALERT_RECEIVED);
+	} while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN
+		 || ret == GNUTLS_E_WARNING_ALERT_RECEIVED);
 
 	if (ret != GNUTLS_E_UNEXPECTED_PACKET) {
 		fail("server: Handshake didn't fail with expected code (failed with %d)\n", ret);
@@ -139,7 +140,6 @@ static void server(int sd)
 	if (debug)
 		success("server: finished\n");
 }
-
 
 void doit(void)
 {

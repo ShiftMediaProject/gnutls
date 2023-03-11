@@ -16,15 +16,13 @@
  * License for more details.
  * 
  * You should have received a copy of the GNU Lesser General Public License
- * along with the nettle library; see the file COPYING.LIB.  If not, write to
- * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02111-1301, USA.
+ * along with the nettle library.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef GNUTLS_LIB_NETTLE_INT_RSA_FIPS_H
-#define GNUTLS_LIB_NETTLE_INT_RSA_FIPS_H
+# define GNUTLS_LIB_NETTLE_INT_RSA_FIPS_H
 
-#include <nettle/rsa.h>
+# include <nettle/rsa.h>
 
 int
 _rsa_generate_fips186_4_keypair(struct rsa_public_key *pub,
@@ -41,9 +39,8 @@ rsa_generate_fips186_4_keypair(struct rsa_public_key *pub,
 			       void *random_ctx, nettle_random_func * random,
 			       void *progress_ctx,
 			       nettle_progress_func * progress,
-			       unsigned *rseed_size,
-			       void *rseed,
+			       unsigned *rseed_size, void *rseed,
 			       /* Desired size of modulo, in bits */
 			       unsigned n_size);
 
-#endif /* GNUTLS_LIB_NETTLE_INT_RSA_FIPS_H */
+#endif				/* GNUTLS_LIB_NETTLE_INT_RSA_FIPS_H */

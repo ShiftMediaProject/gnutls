@@ -83,7 +83,7 @@ COBJECTS = range.c record.c compress.c debug.c cipher.c gthreads.h handshake-tls
 	cert-session.c handshake-checks.c dtls-sw.c dh-primes.c openpgp_compat.c \
 	crypto-selftests.c crypto-selftests-pk.c secrets.c extv.c extv.h \
 	hello_ext_lib.c hello_ext_lib.h ocsp-api.c stek.c cert-cred-rawpk.c \
-	iov.c iov.h system/ktls.c system/ktls.h
+	iov.c iov.h system/ktls.c system/ktls.h pathbuf.c pathbuf.h
 
 if ENABLE_GOST
 COBJECTS += vko.c
@@ -202,14 +202,14 @@ noinst_PROGRAMS = fipshmac
 fipshmac_SOURCES = fipshmac.c
 fipshmac_LDADD = libgnutls.la ../gl/libgnu.la
 
-hmac_files = .libs/.gnutls.hmac
+hmac_file = .libs/.$(gnutls_so).hmac
 
-all-local: $(hmac_files)
+all-local: $(hmac_file)
 
-.libs/.gnutls.hmac: libgnutls.la fipshmac
+$(hmac_file): libgnutls.la fipshmac
 	$(AM_V_GEN) $(builddir)/fipshmac > $@-t && mv $@-t $@
 
-CLEANFILES = $(hmac_files)
+CLEANFILES = $(hmac_file)
 endif
 
 if NEED_LTLIBDL

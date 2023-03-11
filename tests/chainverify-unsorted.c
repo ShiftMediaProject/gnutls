@@ -16,14 +16,13 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* Parts copied from GnuTLS example programs. */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -44,7 +43,6 @@ static void tls_log_func(int level, const char *str)
 	fprintf(stderr, "<%d>| %s", level, str);
 }
 
-
 const char ca_str[] =
     "-----BEGIN CERTIFICATE-----\n"
     "MIICPDCCAaUCEHC65B0Q2Sk0tjjKewPMur8wDQYJKoZIhvcNAQECBQAwXzELMAkG\n"
@@ -60,8 +58,7 @@ const char ca_str[] =
     "lbwdj2wsqFHMc9ikwFPwTtYmwHYBV4GSXiHx0bH/59AhWM1pF+NEHJwZRDmJXNyc\n"
     "AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k\n"
     "-----END CERTIFICATE-----\n";
-const gnutls_datum_t ca = { (void *) ca_str, sizeof(ca_str) };
-
+const gnutls_datum_t ca = { (void *)ca_str, sizeof(ca_str) };
 
 /* Chain1 is sorted */
 static const char chain1[] = {
@@ -603,7 +600,8 @@ void doit(void)
 	gnutls_x509_crt_t *crts;
 	unsigned int crts_size, i;
 	gnutls_x509_trust_list_t tl;
-	unsigned int status, flags = GNUTLS_VERIFY_ALLOW_UNSORTED_CHAIN|GNUTLS_VERIFY_ALLOW_BROKEN;
+	unsigned int status, flags =
+	    GNUTLS_VERIFY_ALLOW_UNSORTED_CHAIN | GNUTLS_VERIFY_ALLOW_BROKEN;
 	unsigned int not_flags = GNUTLS_VERIFY_DO_NOT_ALLOW_UNSORTED_CHAIN;
 
 	/* this must be called once in the program
@@ -620,15 +618,14 @@ void doit(void)
 
 	ret =
 	    gnutls_x509_trust_list_add_trust_mem(tl, &ca, NULL,
-						 GNUTLS_X509_FMT_PEM, 0,
-						 0);
+						 GNUTLS_X509_FMT_PEM, 0, 0);
 	if (ret < 0) {
 		fail("gnutls_x509_trust_list_add_trust_mem\n");
 		exit(1);
 	}
 
 	/* Chain 1 */
-	data.data = (void *) chain1;
+	data.data = (void *)chain1;
 	data.size = sizeof(chain1);
 	ret =
 	    gnutls_x509_crt_list_import2(&crts, &crts_size, &data,
@@ -652,16 +649,17 @@ void doit(void)
 	gnutls_free(crts);
 
 	/* Chain 2 */
-	data.data = (void *) chain2;
+	data.data = (void *)chain2;
 	data.size = sizeof(chain2);
 
 	/* verify whether the GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED flag is
 	 * considered by gnutls_x509_crt_list_import2() */
 	ret =
-		gnutls_x509_crt_list_import2(&crts, &crts_size, &data,
-					 GNUTLS_X509_FMT_PEM, GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED);
+	    gnutls_x509_crt_list_import2(&crts, &crts_size, &data,
+					 GNUTLS_X509_FMT_PEM,
+					 GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED);
 	if (ret != GNUTLS_E_CERTIFICATE_LIST_UNSORTED) {
-		fail("gnutls_x509_crt_list_import2 with flag GNUTLS_E_CERTIFICATE_LIST_UNSORTED on unsorted chain didn't fail: %s\n",  gnutls_strerror(ret));
+		fail("gnutls_x509_crt_list_import2 with flag GNUTLS_E_CERTIFICATE_LIST_UNSORTED on unsorted chain didn't fail: %s\n", gnutls_strerror(ret));
 		exit(1);
 	}
 
@@ -687,7 +685,7 @@ void doit(void)
 	gnutls_free(crts);
 
 	/* Chain 3 */
-	data.data = (void *) chain3;
+	data.data = (void *)chain3;
 	data.size = sizeof(chain3);
 	ret =
 	    gnutls_x509_crt_list_import2(&crts, &crts_size, &data,
@@ -711,7 +709,7 @@ void doit(void)
 	gnutls_free(crts);
 
 	/* Chain 4 */
-	data.data = (void *) chain4;
+	data.data = (void *)chain4;
 	data.size = sizeof(chain4);
 	ret =
 	    gnutls_x509_crt_list_import2(&crts, &crts_size, &data,
@@ -735,7 +733,7 @@ void doit(void)
 	gnutls_free(crts);
 
 	/* Check if an unsorted list would fail if the unsorted flag is not given */
-	data.data = (void *) chain2;
+	data.data = (void *)chain2;
 	data.size = sizeof(chain2);
 	ret =
 	    gnutls_x509_crt_list_import2(&crts, &crts_size, &data,

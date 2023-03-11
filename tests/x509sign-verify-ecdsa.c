@@ -16,14 +16,13 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* Parts copied from GnuTLS example programs. */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -51,10 +50,14 @@ void doit(void)
 	if (debug)
 		gnutls_global_set_log_level(6);
 
-	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA1, GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP256R1));
-	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA256, GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP256R1));
-	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA256, GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP384R1));
-	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA256, GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP521R1));
+	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA1,
+		 GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP256R1));
+	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA256,
+		 GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP256R1));
+	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA256,
+		 GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP384R1));
+	test_sig(GNUTLS_PK_EC, GNUTLS_DIG_SHA256,
+		 GNUTLS_CURVE_TO_BITS(GNUTLS_ECC_CURVE_SECP521R1));
 
 	gnutls_global_deinit();
 }

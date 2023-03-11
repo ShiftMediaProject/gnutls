@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdlib.h>
@@ -44,9 +43,9 @@ void _check_unique_non_null(int line, int i, const char *val)
 	if (val == NULL)
 		fail("issue in line %d, item %d\n", line, i);
 
-	if (strcmp(val, previous_val)==0) {
+	if (strcmp(val, previous_val) == 0) {
 		fail("issue in line %d, item %d: %s\n", line, i, val);
-	} 
+	}
 
 	snprintf(previous_val, sizeof(previous_val), "%s", val);
 }
@@ -64,16 +63,16 @@ void doit(void)
 		exit(1);
 	}
 
-	for (i=0;i<4;i++)
+	for (i = 0; i < 4; i++)
 		check_unique_non_null(dane_cert_usage_name(i));
 
-	for (i=0;i<1;i++)
+	for (i = 0; i < 1; i++)
 		check_unique_non_null(dane_cert_type_name(i));
 
-	for (i=0;i<3;i++)
+	for (i = 0; i < 3; i++)
 		check_unique_non_null(dane_match_type_name(i));
 
-	for (i=-14;i<=0;i++) {
+	for (i = -14; i <= 0; i++) {
 		check_unique_non_null(dane_strerror(i));
 	}
 

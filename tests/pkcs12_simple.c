@@ -17,12 +17,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -85,8 +84,8 @@ void doit(void)
 
 	ret =
 	    gnutls_pkcs12_simple_parse(pkcs12, password, &pkey, &chain,
-					&chain_size, &extras, &extras_size,
-					NULL, 0);
+				       &chain_size, &extras, &extras_size,
+				       NULL, 0);
 	if (ret < 0)
 		fail("pkcs12_simple_parse failed %d: %s\n", ret,
 		     gnutls_strerror(ret));
@@ -110,8 +109,7 @@ void doit(void)
 		success("dn: %s\n", dn);
 
 		dn_size = sizeof(dn);
-		ret =
-		    gnutls_x509_crt_get_issuer_dn(chain[0], dn, &dn_size);
+		ret = gnutls_x509_crt_get_issuer_dn(chain[0], dn, &dn_size);
 		if (ret < 0)
 			fail("crt_get_dn failed %d: %s\n", ret,
 			     gnutls_strerror(ret));

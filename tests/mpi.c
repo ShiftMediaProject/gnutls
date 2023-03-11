@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -71,8 +70,7 @@ void doit(void)
 	if (ret < 0)
 		fail("mpi_set_ui failed\n");
 
-	if (_gnutls_mpi_cmp_ui(n4, 0) != 0
-	    && _gnutls_mpi_cmp_ui(n4, 1) != 0)
+	if (_gnutls_mpi_cmp_ui(n4, 0) != 0 && _gnutls_mpi_cmp_ui(n4, 1) != 0)
 		fail("mpi_cmp_ui failed\n");
 
 	_gnutls_mpi_release(&n1);

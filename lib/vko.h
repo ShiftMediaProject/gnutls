@@ -15,24 +15,22 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
 #ifndef GNUTLS_LIB_VKO_H
-#define GNUTLS_LIB_VKO_H
+# define GNUTLS_LIB_VKO_H
 
 int
-_gnutls_gost_keytrans_encrypt(gnutls_pk_params_st *pub,
-			      gnutls_pk_params_st *priv,
-			      gnutls_datum_t *cek,
-			      gnutls_datum_t *ukm,
-			      gnutls_datum_t *out);
+_gnutls_gost_keytrans_encrypt(gnutls_pk_params_st * pub,
+			      gnutls_pk_params_st * priv,
+			      gnutls_datum_t * cek,
+			      gnutls_datum_t * ukm, gnutls_datum_t * out);
 
 int
-_gnutls_gost_keytrans_decrypt(gnutls_pk_params_st *priv,
-			      gnutls_datum_t *cek,
-			      gnutls_datum_t *ukm,
-			      gnutls_datum_t *out);
+_gnutls_gost_keytrans_decrypt(gnutls_pk_params_st * priv,
+			      gnutls_datum_t * cek,
+			      gnutls_datum_t * ukm, gnutls_datum_t * out);
 
-#endif /* GNUTLS_LIB_VKO_H */
+#endif				/* GNUTLS_LIB_VKO_H */

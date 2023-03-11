@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -33,25 +32,25 @@
 
 #if defined(_WIN32)
 
-int main()
+int main(void)
 {
 	exit(77);
 }
 
 #else
 
-#include <string.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <signal.h>
-#include <assert.h>
-#include <gnutls/gnutls.h>
+# include <string.h>
+# include <sys/types.h>
+# include <netinet/in.h>
+# include <sys/socket.h>
+# include <sys/wait.h>
+# include <arpa/inet.h>
+# include <unistd.h>
+# include <signal.h>
+# include <assert.h>
+# include <gnutls/gnutls.h>
 
-#include "utils.h"
+# include "utils.h"
 
 static void terminate(void);
 static unsigned reduce = 0;
@@ -69,11 +68,11 @@ static void client_log_func(int level, const char *str)
 	fprintf(stderr, "client|<%d>| %s", level, str);
 }
 
-#define RECORD_PAYLOAD_POS 5
-#define HANDSHAKE_ID_POS (38)
+# define RECORD_PAYLOAD_POS 5
+# define HANDSHAKE_ID_POS (38)
 static ssize_t odd_push(gnutls_transport_ptr_t tr, const void *data, size_t len)
 {
-	uint8_t *d = (void*)data;
+	uint8_t *d = (void *)data;
 	int fd = (long)tr;
 	uint16_t csize, osize;
 	int pos;
@@ -82,34 +81,39 @@ static ssize_t odd_push(gnutls_transport_ptr_t tr, const void *data, size_t len)
 		uint8_t isize;
 
 		/* skip session ID (this can be non-empty in TLS 1.3) */
-		isize = d[RECORD_PAYLOAD_POS+HANDSHAKE_ID_POS];
+		isize = d[RECORD_PAYLOAD_POS + HANDSHAKE_ID_POS];
 		isize += 1;
 
 		/* skip ciphersuites */
-		csize = d[RECORD_PAYLOAD_POS+HANDSHAKE_ID_POS+isize+1] + (d[RECORD_PAYLOAD_POS+HANDSHAKE_ID_POS+isize] << 8);
+		csize =
+		    d[RECORD_PAYLOAD_POS + HANDSHAKE_ID_POS + isize + 1] +
+		    (d[RECORD_PAYLOAD_POS + HANDSHAKE_ID_POS + isize] << 8);
 		csize += 2;
 
 		/* skip compression methods */
-		osize = d[RECORD_PAYLOAD_POS+HANDSHAKE_ID_POS+isize+csize];
+		osize =
+		    d[RECORD_PAYLOAD_POS + HANDSHAKE_ID_POS + isize + csize];
 		osize += 1;
 
-		pos = RECORD_PAYLOAD_POS+HANDSHAKE_ID_POS+isize+csize+osize;
+		pos =
+		    RECORD_PAYLOAD_POS + HANDSHAKE_ID_POS + isize + csize +
+		    osize;
 
 		if (reduce) {
-			if (d[pos+1] != 0x00) {
-				d[pos+1] = d[pos+1] - 1;
+			if (d[pos + 1] != 0x00) {
+				d[pos + 1] = d[pos + 1] - 1;
 			} else {
 				d[pos] = d[pos] - 1;
-				d[pos+1] = 0xff;
+				d[pos + 1] = 0xff;
 			}
 		} else {
-			if (d[pos+1] != 0xff) {
-				d[pos+1] = d[pos+1] + 1;
+			if (d[pos + 1] != 0xff) {
+				d[pos + 1] = d[pos + 1] + 1;
 			} else {
 				d[pos] = d[pos] + 1;
-				d[pos+1] = 0x00;
+				d[pos + 1] = 0x00;
 			}
-		
+
 		}
 	}
 
@@ -167,7 +171,6 @@ static void client(int fd, const char *prio)
 	gnutls_global_deinit();
 }
 
-
 /* These are global */
 pid_t child;
 
@@ -198,8 +201,8 @@ static void server(int fd, const char *prio)
 	gnutls_certificate_allocate_credentials(&xcred);
 
 	ret = gnutls_certificate_set_x509_key_mem(xcred,
-					    &server_cert, &server_key,
-					    GNUTLS_X509_FMT_PEM);
+						  &server_cert, &server_key,
+						  GNUTLS_X509_FMT_PEM);
 	if (ret < 0)
 		exit(1);
 
@@ -223,8 +226,7 @@ static void server(int fd, const char *prio)
 	if (ret != GNUTLS_E_UNEXPECTED_EXTENSIONS_LENGTH) {
 		close(fd);
 		gnutls_deinit(session);
-		fail("server: Handshake did not fail with GNUTLS_E_UNEXPECTED_EXTENSIONS_LENGTH (%s)\n\n",
-		     gnutls_strerror(ret));
+		fail("server: Handshake did not fail with GNUTLS_E_UNEXPECTED_EXTENSIONS_LENGTH (%s)\n\n", gnutls_strerror(ret));
 		terminate();
 	}
 

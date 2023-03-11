@@ -16,8 +16,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this file; if not, write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 AM_CPPFLAGS = \
@@ -38,8 +37,7 @@ LDADD = libexamples.la				\
 	../../src/gl/libgnu_gpl.la		\
 	$(LIBSOCKET) $(INET_NTOP_LIB) $(INET_PTON_LIB)
 
-CXX_LDADD = ../../lib/libgnutlsxx.la \
-	$(LDADD)
+CXX_LDADD = $(LDADD)
 
 EXTRA_DIST = tlsproxy/LICENSE tlsproxy/README.md
 

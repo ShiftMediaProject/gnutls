@@ -16,8 +16,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <assert.h>
@@ -27,43 +26,21 @@
 #include <gnutls/abstract.h>
 #include <gnutls/x509.h>
 
-#define FIPS_PUSH_CONTEXT() do {				\
-	ret = gnutls_fips140_push_context(fips_context);	\
-	if (ret < 0) {						\
-		fail("gnutls_fips140_push_context failed\n");	\
-	}							\
-} while (0)
-
-#define FIPS_POP_CONTEXT(state) do {					\
-	ret = gnutls_fips140_pop_context();				\
-	if (ret < 0) {							\
-		fail("gnutls_fips140_context_pop failed\n");		\
-	}								\
-	fips_state = gnutls_fips140_get_operation_state(fips_context);	\
-	if (fips_state != GNUTLS_FIPS140_OP_ ## state) {		\
-		fail("operation state is not " # state " (%d)\n",	\
-		     fips_state);					\
-	}								\
-} while (0)
-
-
-void generate_successfully(gnutls_privkey_t* privkey, gnutls_pubkey_t* pubkey,
-                           unsigned int size);
-void generate_unsuccessfully(gnutls_privkey_t* privkey, gnutls_pubkey_t* pubkey,
-                             unsigned int size);
+void generate_successfully(gnutls_privkey_t * privkey, gnutls_pubkey_t * pubkey,
+			   unsigned int size);
+void generate_unsuccessfully(gnutls_privkey_t * privkey,
+			     gnutls_pubkey_t * pubkey, unsigned int size);
 void sign_verify_successfully(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey);
 void sign_verify_unsuccessfully(gnutls_privkey_t privkey,
-                                gnutls_pubkey_t pubkey);
+				gnutls_pubkey_t pubkey);
 void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey);
 
-
-void generate_successfully(gnutls_privkey_t* privkey, gnutls_pubkey_t* pubkey,
-                           unsigned int size)
+void generate_successfully(gnutls_privkey_t * privkey, gnutls_pubkey_t * pubkey,
+			   unsigned int size)
 {
 	int ret;
 	gnutls_x509_privkey_t xprivkey;
 	gnutls_fips140_context_t fips_context;
-	gnutls_fips140_operation_state_t fips_state;
 	assert(gnutls_fips140_context_init(&fips_context) == 0);
 
 	fprintf(stderr, "%d-bit\n", size);
@@ -95,14 +72,12 @@ void generate_successfully(gnutls_privkey_t* privkey, gnutls_pubkey_t* pubkey,
 	gnutls_fips140_context_deinit(fips_context);
 }
 
-
-void generate_unsuccessfully(gnutls_privkey_t* privkey, gnutls_pubkey_t* pubkey,
-                             unsigned int size)
+void generate_unsuccessfully(gnutls_privkey_t * privkey,
+			     gnutls_pubkey_t * pubkey, unsigned int size)
 {
 	int ret;
 	gnutls_x509_privkey_t xprivkey;
 	gnutls_fips140_context_t fips_context;
-	gnutls_fips140_operation_state_t fips_state;
 	assert(gnutls_fips140_context_init(&fips_context) == 0);
 
 	fprintf(stderr, "%d-bit\n", size);
@@ -152,15 +127,14 @@ void generate_unsuccessfully(gnutls_privkey_t* privkey, gnutls_pubkey_t* pubkey,
 	gnutls_fips140_context_deinit(fips_context);
 }
 
-
-void sign_verify_successfully(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) {
+void sign_verify_successfully(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey)
+{
 	int ret;
 	gnutls_fips140_context_t fips_context;
-	gnutls_fips140_operation_state_t fips_state;
 
 	gnutls_datum_t signature;
 	gnutls_datum_t plaintext = {
-		.data = (unsigned char* const) "Hello world!",
+		.data = (unsigned char *const)"Hello world!",
 		.size = 12
 	};
 	assert(gnutls_fips140_context_init(&fips_context) == 0);
@@ -168,7 +142,7 @@ void sign_verify_successfully(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) 
 	/* RSA sign: approved */
 	FIPS_PUSH_CONTEXT();
 	ret = gnutls_privkey_sign_data(privkey, GNUTLS_DIG_SHA256, 0,
-	                               &plaintext, &signature);
+				       &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_privkey_sign_data failed\n");
 	FIPS_POP_CONTEXT(APPROVED);
@@ -176,7 +150,7 @@ void sign_verify_successfully(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) 
 	/* RSA verify: approved */
 	FIPS_PUSH_CONTEXT();
 	ret = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_RSA_SHA256, 0,
-	                                 &plaintext, &signature);
+					 &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_pubkey_verify_data2 failed\n");
 	FIPS_POP_CONTEXT(APPROVED);
@@ -185,16 +159,15 @@ void sign_verify_successfully(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) 
 	gnutls_fips140_context_deinit(fips_context);
 }
 
-
 void sign_verify_unsuccessfully(gnutls_privkey_t privkey,
-                                gnutls_pubkey_t pubkey) {
+				gnutls_pubkey_t pubkey)
+{
 	int ret;
 	gnutls_fips140_context_t fips_context;
-	gnutls_fips140_operation_state_t fips_state;
 
 	gnutls_datum_t signature;
 	gnutls_datum_t plaintext = {
-		.data = (unsigned char* const) "Hello world!",
+		.data = (unsigned char *const)"Hello world!",
 		.size = 12
 	};
 	assert(gnutls_fips140_context_init(&fips_context) == 0);
@@ -202,7 +175,7 @@ void sign_verify_unsuccessfully(gnutls_privkey_t privkey,
 	/* small key RSA sign: not approved */
 	FIPS_PUSH_CONTEXT();
 	ret = gnutls_privkey_sign_data(privkey, GNUTLS_DIG_SHA256, 0,
-	                               &plaintext, &signature);
+				       &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_privkey_sign_data failed\n");
 	FIPS_POP_CONTEXT(NOT_APPROVED);
@@ -210,7 +183,7 @@ void sign_verify_unsuccessfully(gnutls_privkey_t privkey,
 	/* small key RSA verify: not approved */
 	FIPS_PUSH_CONTEXT();
 	ret = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_RSA_SHA256, 0,
-	                                 &plaintext, &signature);
+					 &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_pubkey_verify_data2 failed\n");
 	FIPS_POP_CONTEXT(NOT_APPROVED);
@@ -221,15 +194,14 @@ void sign_verify_unsuccessfully(gnutls_privkey_t privkey,
 	gnutls_fips140_context_deinit(fips_context);
 }
 
-
-void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) {
+void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey)
+{
 	int ret;
 	gnutls_fips140_context_t fips_context;
-	gnutls_fips140_operation_state_t fips_state;
 
 	gnutls_datum_t signature;
 	gnutls_datum_t plaintext = {
-		.data = (unsigned char* const) "Hello world!",
+		.data = (unsigned char *const)"Hello world!",
 		.size = 12
 	};
 	assert(gnutls_fips140_context_init(&fips_context) == 0);
@@ -237,7 +209,7 @@ void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) {
 	/* 1024, 1280, 1536, 1792 key RSA sign: not approved */
 	FIPS_PUSH_CONTEXT();
 	ret = gnutls_privkey_sign_data(privkey, GNUTLS_DIG_SHA256, 0,
-	                               &plaintext, &signature);
+				       &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_privkey_sign_data failed\n");
 	FIPS_POP_CONTEXT(NOT_APPROVED);
@@ -247,7 +219,7 @@ void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) {
 	assert(gnutls_fips140_mode_enabled() == GNUTLS_FIPS140_LAX);
 
 	ret = gnutls_privkey_sign_data(privkey, GNUTLS_DIG_SHA256, 0,
-	                               &plaintext, &signature);
+				       &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_privkey_sign_data failed\n");
 
@@ -257,7 +229,7 @@ void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) {
 	/* 1024, 1280, 1536, 1792 key RSA verify: approved (exception) */
 	FIPS_PUSH_CONTEXT();
 	ret = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_RSA_SHA256, 0,
-	                                 &plaintext, &signature);
+					 &plaintext, &signature);
 	if (ret < 0)
 		fail("gnutls_pubkey_verify_data2 failed\n");
 	FIPS_POP_CONTEXT(APPROVED);
@@ -268,7 +240,6 @@ void nosign_verify(gnutls_privkey_t privkey, gnutls_pubkey_t pubkey) {
 	gnutls_fips140_context_deinit(fips_context);
 }
 
-
 void doit(void)
 {
 	gnutls_fips140_context_t fips_context;
@@ -277,7 +248,7 @@ void doit(void)
 
 	if (gnutls_fips140_mode_enabled() == 0) {
 		success("We are not in FIPS140 mode\n");
-		exit(77);  /* SKIP */
+		exit(77);	/* SKIP */
 	}
 
 	assert(gnutls_fips140_context_init(&fips_context) == 0);

@@ -17,8 +17,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with GnuTLS; if not, write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
 
 : ${srcdir=.}
 : ${top_builddir=..}
@@ -60,7 +59,7 @@ set -e
 cat >$TMPFILE <<__EOF__
 #include <gnutls/gnutls.h>
 
-int main()
+int main(void)
 {
 gnutls_global_init();
 }

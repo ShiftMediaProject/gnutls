@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -40,9 +39,9 @@
  * some problematic cases. */
 
 #ifdef ALL_CAPS_URI
-#define PURI "PKCS11:"
+# define PURI "PKCS11:"
 #else
-#define PURI "pkcs11:"
+# define PURI "pkcs11:"
 #endif
 
 #ifdef _WIN32
@@ -82,13 +81,15 @@ void doit(void)
 		exit(1);
 	}
 
-	ret = gnutls_pkcs11_obj_list_import_url4(&obj_list, &obj_list_size, PURI, GNUTLS_PKCS11_OBJ_FLAG_PRIVKEY);
+	ret =
+	    gnutls_pkcs11_obj_list_import_url4(&obj_list, &obj_list_size, PURI,
+					       GNUTLS_PKCS11_OBJ_FLAG_PRIVKEY);
 	if (ret < 0) {
 		fail("%d: %s\n", ret, gnutls_strerror(ret));
 		exit(1);
 	}
 
-	for (i=0;i<obj_list_size;i++)
+	for (i = 0; i < obj_list_size; i++)
 		gnutls_pkcs11_obj_deinit(obj_list[i]);
 	gnutls_free(obj_list);
 	obj_list_size = 0;
@@ -112,13 +113,16 @@ void doit(void)
 
 		*pflags = MOCK_FLAG_BROKEN_GET_ATTRIBUTES;
 
-		ret = gnutls_pkcs11_obj_list_import_url4(&obj_list, &obj_list_size, PURI, GNUTLS_PKCS11_OBJ_FLAG_PRIVKEY);
+		ret =
+		    gnutls_pkcs11_obj_list_import_url4(&obj_list,
+						       &obj_list_size, PURI,
+						       GNUTLS_PKCS11_OBJ_FLAG_PRIVKEY);
 		if (ret < 0) {
 			fail("%d: %s\n", ret, gnutls_strerror(ret));
 			exit(1);
 		}
 
-		for (i=0;i<obj_list_size;i++)
+		for (i = 0; i < obj_list_size; i++)
 			gnutls_pkcs11_obj_deinit(obj_list[i]);
 		gnutls_free(obj_list);
 		obj_list_size = 0;

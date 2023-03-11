@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -29,26 +28,26 @@
 
 #if defined(_WIN32)
 
-int main()
+int main(void)
 {
 	exit(77);
 }
 
 #else
 
-#include <string.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <gnutls/gnutls.h>
-#include <gnutls/dtls.h>
-#include <signal.h>
+# include <string.h>
+# include <sys/types.h>
+# include <netinet/in.h>
+# include <sys/socket.h>
+# include <sys/wait.h>
+# include <arpa/inet.h>
+# include <unistd.h>
+# include <gnutls/gnutls.h>
+# include <gnutls/dtls.h>
+# include <signal.h>
 
-#include "utils.h"
-#include "cert-common.h"
+# include "utils.h"
+# include "cert-common.h"
 
 static void terminate(void);
 
@@ -66,8 +65,7 @@ static void client_log_func(int level, const char *str)
 	fprintf(stderr, "client|<%d>| %s", level, str);
 }
 
-
-#define MAX_BUF 1024
+# define MAX_BUF 1024
 
 static void client(int fd, unsigned test)
 {
@@ -95,7 +93,9 @@ static void client(int fd, unsigned test)
 	gnutls_handshake_set_timeout(session, get_timeout());
 
 	/* Use default priorities */
-	gnutls_priority_set_direct(session, "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+VERS-TLS1.2", NULL);
+	gnutls_priority_set_direct(session,
+				   "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+VERS-TLS1.2",
+				   NULL);
 
 	/* put the anonymous credentials to the current session
 	 */
@@ -140,7 +140,7 @@ static void client(int fd, unsigned test)
 			do {
 				ret =
 				    gnutls_record_recv(session, buffer,
-							MAX_BUF);
+						       MAX_BUF);
 			} while (ret == GNUTLS_E_AGAIN
 				 || ret == GNUTLS_E_INTERRUPTED);
 		} while (ret > 0);
@@ -150,7 +150,7 @@ static void client(int fd, unsigned test)
 			do {
 				ret =
 				    gnutls_record_recv(session, buffer,
-							MAX_BUF);
+						       MAX_BUF);
 			} while (ret == GNUTLS_E_AGAIN
 				 || ret == GNUTLS_E_INTERRUPTED);
 		} while (ret > 0);
@@ -237,7 +237,9 @@ static void server(int fd, unsigned test)
 	/* avoid calling all the priority functions, since the defaults
 	 * are adequate.
 	 */
-	gnutls_priority_set_direct(session, "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+VERS-TLS1.2", NULL);
+	gnutls_priority_set_direct(session,
+				   "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+VERS-TLS1.2",
+				   NULL);
 
 	gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred);
 	gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, x509_cred);
@@ -272,7 +274,7 @@ static void server(int fd, unsigned test)
 			do {
 				ret =
 				    gnutls_record_recv(session, buffer,
-							MAX_BUF);
+						       MAX_BUF);
 			} while (ret == GNUTLS_E_AGAIN
 				 || ret == GNUTLS_E_INTERRUPTED);
 		} while (ret > 0);
@@ -322,7 +324,7 @@ static void server(int fd, unsigned test)
 			do {
 				ret =
 				    gnutls_record_recv(session, buffer,
-							MAX_BUF);
+						       MAX_BUF);
 			} while (ret == GNUTLS_E_AGAIN
 				 || ret == GNUTLS_E_INTERRUPTED);
 		} while (ret > 0);

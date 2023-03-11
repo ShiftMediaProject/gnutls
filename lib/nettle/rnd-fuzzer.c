@@ -17,7 +17,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, see <https://www.gnu.org/licenses/>.
+ * License along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -44,9 +44,9 @@ struct r48_rand_data {
 							   formula.  */
 };
 
-#ifdef __clang__
+# ifdef __clang__
 __attribute__((no_sanitize("integer")))
-#endif
+# endif
 static int
 __r48_rand_iterate(unsigned short int xsubi[3], struct r48_rand_data *buffer)
 {
@@ -75,11 +75,11 @@ __r48_rand_iterate(unsigned short int xsubi[3], struct r48_rand_data *buffer)
 	return 0;
 }
 
-#ifdef __clang__
+# ifdef __clang__
 __attribute__((no_sanitize("integer")))
-#elif defined __GNUC__
+# elif defined __GNUC__
 __attribute__((no_sanitize("shift-base")))
-#endif
+# endif
 static int
 r48_r(unsigned short int xsubi[3], struct r48_rand_data *buffer,
       long int *result)
@@ -147,4 +147,4 @@ gnutls_crypto_rnd_st _gnutls_fuzz_rnd_ops = {
 	.self_test = NULL,
 };
 
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+#endif				/* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */

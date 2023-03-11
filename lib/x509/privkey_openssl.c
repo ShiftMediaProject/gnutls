@@ -45,11 +45,14 @@ openssl_hash_password(const char *_password, gnutls_datum_t * key,
 
 	if (_password != NULL) {
 		gnutls_datum_t pout;
-		ret = _gnutls_utf8_password_normalize(_password, strlen(_password), &pout, 1);
+		ret =
+		    _gnutls_utf8_password_normalize(_password,
+						    strlen(_password), &pout,
+						    1);
 		if (ret < 0)
 			return gnutls_assert_val(ret);
 
-		password = (char*)pout.data;
+		password = (char *)pout.data;
 	}
 
 	while (count < key->size) {
@@ -62,7 +65,7 @@ openssl_hash_password(const char *_password, gnutls_datum_t * key,
 		if (count) {
 			ret = _gnutls_hash(&hd, md5, sizeof(md5));
 			if (ret < 0) {
-			      hash_err:
+ hash_err:
 				_gnutls_hash_deinit(&hd, NULL);
 				gnutls_assert();
 				goto cleanup;
@@ -105,13 +108,13 @@ struct pem_cipher {
 };
 
 static const struct pem_cipher pem_ciphers[] = {
-	{"DES-CBC", GNUTLS_CIPHER_DES_CBC}, 
-	{"DES-EDE3-CBC", GNUTLS_CIPHER_3DES_CBC}, 
-	{"AES-128-CBC", GNUTLS_CIPHER_AES_128_CBC}, 
-	{"AES-192-CBC", GNUTLS_CIPHER_AES_192_CBC}, 
-	{"AES-256-CBC", GNUTLS_CIPHER_AES_256_CBC}, 
-	{"CAMELLIA-128-CBC", GNUTLS_CIPHER_CAMELLIA_128_CBC}, 
-	{"CAMELLIA-192-CBC", GNUTLS_CIPHER_CAMELLIA_192_CBC}, 
+	{"DES-CBC", GNUTLS_CIPHER_DES_CBC},
+	{"DES-EDE3-CBC", GNUTLS_CIPHER_3DES_CBC},
+	{"AES-128-CBC", GNUTLS_CIPHER_AES_128_CBC},
+	{"AES-192-CBC", GNUTLS_CIPHER_AES_192_CBC},
+	{"AES-256-CBC", GNUTLS_CIPHER_AES_256_CBC},
+	{"CAMELLIA-128-CBC", GNUTLS_CIPHER_CAMELLIA_128_CBC},
+	{"CAMELLIA-192-CBC", GNUTLS_CIPHER_CAMELLIA_192_CBC},
 	{"CAMELLIA-256-CBC", GNUTLS_CIPHER_CAMELLIA_256_CBC},
 };
 
@@ -142,25 +145,25 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 	gnutls_cipher_hd_t handle;
 	gnutls_cipher_algorithm_t cipher = GNUTLS_CIPHER_UNKNOWN;
 	gnutls_datum_t b64_data;
-	gnutls_datum_t salt, enc_key;
+	gnutls_datum_t salt, enc_key, hex_data;
 	unsigned char *key_data;
 	size_t key_data_size;
-	const char *pem_header = (void *) data->data;
-	const char *pem_header_start = (void *) data->data;
+	const char *pem_header = (void *)data->data;
+	const char *pem_header_start = (void *)data->data;
 	ssize_t pem_header_size;
 	int ret;
 	unsigned int i, iv_size, l;
+	size_t salt_size;
 
 	pem_header_size = data->size;
 
-	pem_header =
-	    memmem(pem_header, pem_header_size, "PRIVATE KEY---", 14);
+	pem_header = memmem(pem_header, pem_header_size, "PRIVATE KEY---", 14);
 	if (pem_header == NULL) {
 		gnutls_assert();
 		return GNUTLS_E_PARSING_ERROR;
 	}
 
-	pem_header_size -= (ptrdiff_t) (pem_header - pem_header_start);
+	pem_header_size -= (ptrdiff_t)(pem_header - pem_header_start);
 
 	pem_header = memmem(pem_header, pem_header_size, "DEK-Info: ", 10);
 	if (pem_header == NULL) {
@@ -169,7 +172,7 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 	}
 
 	pem_header_size =
-	    data->size - (ptrdiff_t) (pem_header - pem_header_start) - 10;
+	    data->size - (ptrdiff_t)(pem_header - pem_header_start) - 10;
 	pem_header += 10;
 
 	for (i = 0; i < sizeof(pem_ciphers) / sizeof(pem_ciphers[0]); i++) {
@@ -184,8 +187,7 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 
 	if (cipher == GNUTLS_CIPHER_UNKNOWN) {
 		_gnutls_debug_log
-		    ("Unsupported PEM encryption type: %.10s\n",
-		     pem_header);
+		    ("Unsupported PEM encryption type: %.10s\n", pem_header);
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
@@ -196,27 +198,21 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 	if (!salt.data)
 		return gnutls_assert_val(GNUTLS_E_MEMORY_ERROR);
 
-	for (i = 0; i < salt.size * 2; i++) {
-		unsigned char x;
-		const char *c = &pem_header[i];
+	hex_data.data = (unsigned char *)pem_header;
+	hex_data.size = salt.size * 2;
+	salt_size = salt.size;
 
-		if (*c >= '0' && *c <= '9')
-			x = (*c) - '0';
-		else if (*c >= 'A' && *c <= 'F')
-			x = (*c) - 'A' + 10;
-		else {
-			gnutls_assert();
+	ret = gnutls_hex_decode(&hex_data, salt.data, &salt_size);
+	if (ret < 0) {
+		gnutls_assert();
+		if (ret == GNUTLS_E_PARSING_ERROR) {
 			/* Invalid salt in encrypted PEM file */
 			ret = GNUTLS_E_INVALID_REQUEST;
-			goto out_salt;
 		}
-		if (i & 1)
-			salt.data[i / 2] |= x;
-		else
-			salt.data[i / 2] = x << 4;
+		goto out_salt;
 	}
 
-	pem_header += salt.size * 2;
+	pem_header += hex_data.size;
 	if (*pem_header != '\r' && *pem_header != '\n') {
 		gnutls_assert();
 		ret = GNUTLS_E_INVALID_REQUEST;
@@ -226,7 +222,7 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 		pem_header++;
 
 	ret =
-	    _gnutls_base64_decode((const void *) pem_header,
+	    _gnutls_base64_decode((const void *)pem_header,
 				  pem_header_size, &b64_data);
 	if (ret < 0) {
 		gnutls_assert();
@@ -270,8 +266,7 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 			goto out;
 		}
 
-		ret =
-		    gnutls_cipher_decrypt(handle, key_data, key_data_size);
+		ret = gnutls_cipher_decrypt(handle, key_data, key_data_size);
 		gnutls_cipher_deinit(handle);
 
 		if (ret < 0) {
@@ -306,7 +301,8 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 			keylen += ofs;
 
 			/* If there appears to be more or less padding than required, fail */
-			if (key_data_size - keylen > blocksize || key_data_size < keylen+1) {
+			if (key_data_size - keylen > blocksize
+			    || key_data_size < keylen + 1) {
 				gnutls_assert();
 				goto fail;
 			}
@@ -314,8 +310,7 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 			/* If the padding bytes aren't all equal to the amount of padding, fail */
 			ofs = keylen;
 			while (ofs < key_data_size) {
-				if (key_data[ofs] !=
-				    key_data_size - keylen) {
+				if (key_data[ofs] != key_data_size - keylen) {
 					gnutls_assert();
 					goto fail;
 				}
@@ -330,18 +325,18 @@ gnutls_x509_privkey_import_openssl(gnutls_x509_privkey_t key,
 			if (ret == 0)
 				goto out;
 		}
-	      fail:
+ fail:
 		ret = GNUTLS_E_DECRYPTION_FAILED;
 		goto out;
 	}
-      out:
+ out:
 	zeroize_key(key_data, key_data_size);
 	gnutls_free(key_data);
-      out_enc_key:
+ out_enc_key:
 	_gnutls_free_key_datum(&enc_key);
-      out_b64:
+ out_b64:
 	gnutls_free(b64_data.data);
-      out_salt:
+ out_salt:
 	gnutls_free(salt.data);
 	return ret;
 }

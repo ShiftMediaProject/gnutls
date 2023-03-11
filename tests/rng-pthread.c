@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -77,7 +76,7 @@ static void *start_thread(void *arg)
 	pthread_exit(0);
 }
 
-#define MAX_THREADS 48
+# define MAX_THREADS 48
 
 static
 void do_thread_stuff(unsigned level)
@@ -86,11 +85,11 @@ void do_thread_stuff(unsigned level)
 	thread_data_st *data;
 	unsigned i, j;
 
-	data = calloc(1, sizeof(thread_data_st)*MAX_THREADS);
+	data = calloc(1, sizeof(thread_data_st) * MAX_THREADS);
 	if (data == NULL)
 		abort();
 
-	for (i=0;i<MAX_THREADS;i++) {
+	for (i = 0; i < MAX_THREADS; i++) {
 		data[i].level = level;
 		ret = pthread_create(&data[i].id, NULL, start_thread, &data[i]);
 		if (ret != 0) {
@@ -98,12 +97,14 @@ void do_thread_stuff(unsigned level)
 		}
 	}
 
-	for (i=0;i<MAX_THREADS;i++) {
+	for (i = 0; i < MAX_THREADS; i++) {
 		pthread_join(data[i].id, NULL);
-		for (j=0;j<MAX_THREADS;j++) {
-			if (i!=j) {
-				if (memcmp(data[i].buf, data[j].buf, sizeof(data[i].buf)) == 0) {
-					fail("identical data found in thread %d and %d\n", i,j);
+		for (j = 0; j < MAX_THREADS; j++) {
+			if (i != j) {
+				if (memcmp
+				    (data[i].buf, data[j].buf,
+				     sizeof(data[i].buf)) == 0) {
+					fail("identical data found in thread %d and %d\n", i, j);
 				}
 			}
 		}

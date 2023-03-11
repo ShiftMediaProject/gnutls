@@ -179,7 +179,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 crlverify mini-dtls-discard mini-record-failure openconnect-dtls12 \
 	 tls12-rehandshake-cert-2 custom-urls set_x509_key_mem set_x509_key_file \
 	 tls12-rehandshake-cert-auto tls12-rehandshake-set-prio \
-	 mini-chain-unsorted x509-verify-with-crl mini-dtls-mtu privkey-verify-broken \
+	 mini-chain-unsorted x509-verify-duplicate x509-verify-with-crl mini-dtls-mtu privkey-verify-broken \
 	 mini-dtls-record-asym key-import-export priority-set priority-set2 \
 	 pubkey-import-export sign-is-secure spki spki-abstract rsa-rsa-pss \
 	 mini-dtls-fork dtls-pthread mini-key-material x509cert-invalid \
@@ -220,7 +220,7 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 session-tickets-missing set_x509_key_file_legacy status-request-ext \
 	 gnutls_x509_crt_sign gnutls_x509_crq_sign dtls-repro-20170915 \
 	 rng-no-onload dtls1-2-mtu-check crl_apis cert_verify_inv_utf8 no-extensions \
-	 hostname-check-utf8 pkcs8-key-decode-encrypted priority-mix pkcs7 \
+	 no-status-request hostname-check-utf8 pkcs8-key-decode-encrypted priority-mix pkcs7 \
 	 send-data-before-handshake recv-data-before-handshake crt_inv_write \
 	 x509sign-verify-error rng-op-nonce rng-op-random rng-op-key x509-dn-decode-compat \
 	 ip-check mini-x509-ipaddr trust-store base64-raw random-art dhex509self \
@@ -233,8 +233,8 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 tls13-without-timeout-func buffer status-request-revoked \
 	 set_x509_ocsp_multi_cli kdf-api keylog-func handshake-write \
 	 x509cert-dntypes id-on-xmppAddr tls13-compat-mode ciphersuite-name \
-	 x509-upnconstraint cipher-padding pkcs7-verify-double-free \
-	 fips-rsa-sizes
+	 x509-upnconstraint xts-key-check cipher-padding pkcs7-verify-double-free \
+	 fips-rsa-sizes tls12-rehandshake-ticket pathbuf
 
 ctests += tls-channel-binding
 
@@ -480,6 +480,10 @@ buffer_CPPFLAGS = $(AM_CPPFLAGS) \
 	-I$(top_srcdir)/gl	\
 	-I$(top_builddir)/gl
 
+pathbuf_CPPFLAGS = $(AM_CPPFLAGS) \
+	-I$(top_srcdir)/gl	\
+	-I$(top_builddir)/gl
+
 if ENABLE_PKCS11
 if !WINDOWS
 ctests += tls13/post-handshake-with-cert-pkcs11 pkcs11/tls-neg-pkcs11-no-key \
@@ -500,6 +504,8 @@ endif
 if ENABLE_KTLS
 indirect_tests += gnutls_ktls
 dist_check_SCRIPTS += ktls.sh
+indirect_tests += ktls_keyupdate
+dist_check_SCRIPTS += ktls_keyupdate.sh
 endif
 
 if !WINDOWS
@@ -583,7 +589,7 @@ if HAVE_CMOCKA
 cpptests += sanity-cpp
 
 sanity_cpp_SOURCES = sanity-cpp.cpp
-sanity_cpp_LDADD = $(CMOCKA_LDADD) ../lib/libgnutlsxx.la
+sanity_cpp_LDADD = $(CMOCKA_LDADD)
 sanity_cpp_CXXFLAGS = $(AM_CPPFLAGS) \
 	-I$(top_srcdir)/gl	\
 	-I$(top_builddir)/gl

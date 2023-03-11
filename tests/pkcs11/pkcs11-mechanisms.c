@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -42,13 +41,12 @@
 
 #if defined(HAVE___REGISTER_ATFORK)
 
-#ifdef _WIN32
-# define P11LIB "libpkcs11mock1.dll"
-#else
-# include <dlfcn.h>
-# define P11LIB "libpkcs11mock1.so"
-#endif
-
+# ifdef _WIN32
+#  define P11LIB "libpkcs11mock1.dll"
+# else
+#  include <dlfcn.h>
+#  define P11LIB "libpkcs11mock1.so"
+# endif
 
 static void tls_log_func(int level, const char *str)
 {
@@ -88,12 +86,14 @@ void doit(void)
 		exit(1);
 	}
 
-	for (i=0;;i++) {
+	for (i = 0;; i++) {
 		ret = gnutls_pkcs11_token_get_mechanism("pkcs11:", i, &mech);
 		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
 			break;
 		success("mech: %lu\n", mech);
-		ret = gnutls_pkcs11_token_check_mechanism("pkcs11:", mech, NULL, 0, 0);
+		ret =
+		    gnutls_pkcs11_token_check_mechanism("pkcs11:", mech, NULL,
+							0, 0);
 		if (ret == 0) {
 			fail("mechanism %ld was reported are supported, but is not found!\n", mech);
 		}

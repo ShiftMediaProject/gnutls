@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -44,10 +43,15 @@ void doit(void)
 
 	/* check whether the values set by the calling script are the expected */
 	assert(gnutls_sign_is_secure(GNUTLS_SIGN_RSA_SHA256) != 0);
-	assert(gnutls_sign_is_secure2(GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS) == 0);
+	assert(gnutls_sign_is_secure2
+	       (GNUTLS_SIGN_RSA_SHA256,
+		GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS) == 0);
 	assert(gnutls_sign_is_secure(GNUTLS_SIGN_RSA_SHA1) == 0);
-	assert(gnutls_sign_is_secure2(GNUTLS_SIGN_RSA_SHA1, GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS) == 0);
+	assert(gnutls_sign_is_secure2
+	       (GNUTLS_SIGN_RSA_SHA1, GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS) == 0);
 	assert(gnutls_sign_is_secure(GNUTLS_SIGN_RSA_SHA512) == 0);
-	assert(gnutls_sign_is_secure2(GNUTLS_SIGN_RSA_SHA512, GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS) == 0);
+	assert(gnutls_sign_is_secure2
+	       (GNUTLS_SIGN_RSA_SHA512,
+		GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS) == 0);
 	assert(gnutls_sign_is_secure(GNUTLS_SIGN_RSA_MD5) == 0);
 }

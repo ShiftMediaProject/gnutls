@@ -16,14 +16,13 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* Parts copied from GnuTLS example programs. */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -51,7 +50,7 @@ const gnutls_datum_t hash_data = {
 };
 
 const gnutls_datum_t raw_data = {
-	(void *) "hello there",
+	(void *)"hello there",
 	11
 };
 
@@ -88,11 +87,11 @@ static char pem1_key[] =
     "-----END RSA PRIVATE KEY-----\n";
 
 const gnutls_datum_t cert_dat[] = {
-	{(void *) pem1_cert, sizeof(pem1_cert)}
+	{(void *)pem1_cert, sizeof(pem1_cert)}
 };
 
 const gnutls_datum_t key_dat[] = {
-	{(void *) pem1_key, sizeof(pem1_key)}
+	{(void *)pem1_key, sizeof(pem1_key)}
 };
 
 void doit(void)
@@ -109,7 +108,7 @@ void doit(void)
 
 	for (i = 0; i < sizeof(key_dat) / sizeof(key_dat[0]); i++) {
 		if (debug)
-			success("loop %d\n", (int) i);
+			success("loop %d\n", (int)i);
 
 		ret = gnutls_x509_privkey_init(&key);
 		if (ret < 0)
@@ -117,7 +116,7 @@ void doit(void)
 
 		ret =
 		    gnutls_x509_privkey_import(key, &key_dat[i],
-						GNUTLS_X509_FMT_PEM);
+					       GNUTLS_X509_FMT_PEM);
 		if (ret < 0)
 			fail("gnutls_x509_privkey_import\n");
 
@@ -147,13 +146,9 @@ void doit(void)
 		if (ret < 0)
 			fail("gnutls_x509_pubkey_import\n");
 
-
-		ret =
-		    gnutls_pubkey_encrypt_data(pubkey, 0, &hash_data,
-						&out);
+		ret = gnutls_pubkey_encrypt_data(pubkey, 0, &hash_data, &out);
 		if (ret < 0)
 			fail("gnutls_pubkey_encrypt_data\n");
-
 
 		ret = gnutls_privkey_decrypt_data(privkey, 0, &out, &out2);
 		if (ret < 0)
@@ -165,9 +160,11 @@ void doit(void)
 		if (memcmp(out2.data, hash_data.data, hash_data.size) != 0)
 			fail("Decrypted data don't match original (2)\n");
 
-                /* try again with fixed length API */
-                memset(out2.data, 'A', out2.size);
-		ret = gnutls_privkey_decrypt_data2(privkey, 0, &out, out2.data, out2.size);
+		/* try again with fixed length API */
+		memset(out2.data, 'A', out2.size);
+		ret =
+		    gnutls_privkey_decrypt_data2(privkey, 0, &out, out2.data,
+						 out2.size);
 		if (ret < 0)
 			fail("gnutls_privkey_decrypt_data\n");
 
@@ -177,8 +174,7 @@ void doit(void)
 		gnutls_free(out.data);
 		gnutls_free(out2.data);
 
-		ret =
-		    gnutls_pubkey_encrypt_data(pubkey, 0, &raw_data, &out);
+		ret = gnutls_pubkey_encrypt_data(pubkey, 0, &raw_data, &out);
 		if (ret < 0)
 			fail("gnutls_pubkey_encrypt_data\n");
 
@@ -192,9 +188,11 @@ void doit(void)
 		if (memcmp(out2.data, raw_data.data, raw_data.size) != 0)
 			fail("Decrypted data don't match original (4)\n");
 
-                /* try again with fixed length API */
-                memset(out2.data, 'A', out2.size);
-		ret = gnutls_privkey_decrypt_data2(privkey, 0, &out, out2.data, out2.size);
+		/* try again with fixed length API */
+		memset(out2.data, 'A', out2.size);
+		ret =
+		    gnutls_privkey_decrypt_data2(privkey, 0, &out, out2.data,
+						 out2.size);
 		if (ret < 0)
 			fail("gnutls_privkey_decrypt_data\n");
 

@@ -96,7 +96,6 @@ doc/gnutls.epub
 doc/gnutls-extra-api.texi
 doc/gnutls.fn
 doc/gnutls.fns
-doc/gnutls-guile.html
 doc/gnutls.html
 doc/gnutls.info*
 doc/gnutls.ky
@@ -177,13 +176,11 @@ doc/sbuf-api.texi
 doc/scripts/Makefile
 doc/scripts/Makefile.in
 doc/socket-api.texi
-doc/stamp-1
 doc/stamp_enums
 doc/stamp_functions
 doc/stamp_invoke
 doc/stamp-vti
 doc/tpm-api.texi
-doc/version-guile.texi
 doc/version.texi
 doc/x509-api.texi
 extra/includes/Makefile
@@ -202,18 +199,6 @@ GnuTLS-*-coverage/
 gnutls-*.tar.*
 gtk-doc.m4
 gtk-doc.make
-guile/Makefile
-guile/Makefile.in
-guile/modules/gnutls/extra.go
-guile/modules/gnutls.go
-guile/modules/gnutls.scm
-guile/modules/Makefile
-guile/modules/Makefile.in
-guile/src/guile-gnutls-v-2.la
-guile/src/Makefile
-guile/src/Makefile.in
-guile/tests/Makefile
-guile/tests/Makefile.in
 INSTALL
 ldd.sh
 lib/accelerated/aarch64/libaarch64.la
@@ -419,7 +404,7 @@ tests/fallback-scsv
 tests/finished
 tests/fips-mode-pthread
 tests/fips-override-test
-tests/fips-rsa-key-sizes
+tests/fips-rsa-sizes
 tests/fips-test
 tests/gc
 tests/global-init
@@ -429,6 +414,7 @@ tests/gnutls-strcodes
 tests/gnutls_ext_raw_parse
 tests/gnutls_ext_raw_parse_dtls
 tests/gnutls_hmac_fast
+tests/gnutls_ktls
 tests/gnutls_ocsp_resp_list_import2
 tests/gnutls_record_overhead
 tests/gnutls_session_set_id
@@ -467,6 +453,7 @@ tests/key-usage-rsa
 tests/keygen
 tests/keylog-env
 tests/keylog-func
+tests/ktls_keyupdate
 tests/libpkcs11mock1.la
 tests/libpkcs11mock2.la
 tests/libutils.la
@@ -543,6 +530,7 @@ tests/name-constraints-merge
 tests/netconf-psk
 tests/no-extensions
 tests/no-signal
+tests/no-status-request
 tests/nul-in-x509-names
 tests/null_retrieve_function
 tests/ocsp
@@ -559,6 +547,7 @@ tests/openpgp-keyring
 tests/openpgpself
 tests/openssl
 tests/parse_ca
+tests/pathbuf
 tests/pathlen/Makefile
 tests/pathlen/Makefile.in
 tests/pcert-list
@@ -639,6 +628,7 @@ tests/random-art
 tests/rawpk-api
 tests/record-pad
 tests/record-retvals
+tests/record-sendfile
 tests/record-sizes
 tests/record-sizes-range
 tests/record-timeouts
@@ -844,6 +834,7 @@ tests/tls12-rehandshake-cert-2
 tests/tls12-rehandshake-cert-3
 tests/tls12-rehandshake-cert-auto
 tests/tls12-rehandshake-set-prio
+tests/tls12-rehandshake-ticket
 tests/tls12-resume-anon
 tests/tls12-resume-psk
 tests/tls12-resume-x509
@@ -912,6 +903,7 @@ tests/x509-dn-decode-compat
 tests/x509-extensions
 tests/x509-server-verify
 tests/x509-upnconstraint
+tests/x509-verify-duplicate
 tests/x509-verify-with-crl
 tests/x509_altname
 tests/x509cert
@@ -929,8 +921,7 @@ tests/x509sign-verify-gost
 tests/x509sign-verify-rsa
 tests/x509sign-verify2
 tests/x509signself
-tests/gnutls_ktls
-tests/record-sendfile
+tests/xts-key-check
 *.tmp
 tmp-*
 *.trs

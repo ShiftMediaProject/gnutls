@@ -16,8 +16,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this file; if not, write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
 # given a header file in stdin it will print all functions
 
@@ -86,7 +85,7 @@ while ($line=<STDIN>) {
       next if ($line =~ m/\}/);
       $state = 4;
       next;
-    } elsif ($line =~ m/^\s*#define/) {
+    } elsif ($line =~ m/^\s*#\s*define/) {
       next if ($line !~ m/\\$/);
       $state = 5;
       next;

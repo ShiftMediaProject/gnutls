@@ -17,8 +17,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with GnuTLS; if not, write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
 
 : ${srcdir=.}
 : ${SERV=../src/gnutls-serv${EXEEXT}}
@@ -76,7 +75,7 @@ if ! test -s ${TMPFILE2};then
 	echo "Stdout should not be empty!"
 	exit 1
 fi
-if grep -q "Handshake was completed" ${TMPFILE2};then
+if grep "Handshake was completed" ${TMPFILE2} >/dev/null; then
 	echo "Find the expected output!"
 else
 	echo "Cannot find the expected output!"
@@ -104,7 +103,7 @@ if test -s ${TMPFILE2};then
 	exit 1
 fi
 
-if grep -q "Handshake was completed" ${TMPFILE1}; then
+if grep "Handshake was completed" ${TMPFILE1} >/dev/null; then
 	echo "Found the expected output!"
 else
 	echo "Cannot find the expected output!"
@@ -131,7 +130,7 @@ if ! test -s ${TMPFILE2};then
         echo "Stdout should not be empty!"
         exit 1
 fi
-if grep -q "Handshake was completed" ${TMPFILE2};then
+if grep "Handshake was completed" ${TMPFILE2} >/dev/null; then
         echo "Find the expected output!"
 else
         echo "Cannot find the expected output!"
@@ -158,7 +157,7 @@ if test -s ${TMPFILE2};then
        exit 1
 fi
 
-if grep -q "Handshake was completed" ${TMPFILE1}; then
+if grep "Handshake was completed" ${TMPFILE1} >/dev/null; then
        echo "Found the expected output!"
 else
        echo "Cannot find the expected output!"

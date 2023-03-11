@@ -16,14 +16,13 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* This program tests functionality of DH exchanges */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <gnutls/gnutls.h>
@@ -34,15 +33,16 @@
 
 #ifdef ENABLE_FIPS140
 int _gnutls_dh_generate_key(gnutls_dh_params_t dh_params,
-			    gnutls_datum_t *priv_key, gnutls_datum_t *pub_key);
+			    gnutls_datum_t * priv_key,
+			    gnutls_datum_t * pub_key);
 
 int _gnutls_dh_compute_key(gnutls_dh_params_t dh_params,
-			   const gnutls_datum_t *priv_key,
-			   const gnutls_datum_t *pub_key,
-			   const gnutls_datum_t *peer_key, gnutls_datum_t *Z);
+			   const gnutls_datum_t * priv_key,
+			   const gnutls_datum_t * pub_key,
+			   const gnutls_datum_t * peer_key, gnutls_datum_t * Z);
 
-static void params(gnutls_dh_params_t *dh_params, const gnutls_datum_t *p,
-		   const gnutls_datum_t *q, const gnutls_datum_t *g)
+static void params(gnutls_dh_params_t * dh_params, const gnutls_datum_t * p,
+		   const gnutls_datum_t * q, const gnutls_datum_t * g)
 {
 	int ret;
 
@@ -56,7 +56,7 @@ static void params(gnutls_dh_params_t *dh_params, const gnutls_datum_t *p,
 }
 
 static void genkey(const gnutls_dh_params_t dh_params,
-		   gnutls_datum_t *priv_key, gnutls_datum_t *pub_key)
+		   gnutls_datum_t * priv_key, gnutls_datum_t * pub_key)
 {
 	int ret;
 
@@ -66,9 +66,10 @@ static void genkey(const gnutls_dh_params_t dh_params,
 }
 
 static void compute_key(const char *name, const gnutls_dh_params_t dh_params,
-			const gnutls_datum_t *priv_key, const gnutls_datum_t *pub_key,
-			const gnutls_datum_t *peer_key, int expect_error,
-			gnutls_datum_t *result, bool expect_success)
+			const gnutls_datum_t * priv_key,
+			const gnutls_datum_t * pub_key,
+			const gnutls_datum_t * peer_key, int expect_error,
+			gnutls_datum_t * result, bool expect_success)
 {
 	gnutls_datum_t Z = { 0 };
 	bool success;
@@ -103,87 +104,63 @@ void doit(void)
 {
 	struct dh_test_data test_data[] = {
 		{
-			"[y == 0]",
-			gnutls_ffdhe_2048_group_prime,
-			gnutls_ffdhe_2048_group_q,
-			gnutls_ffdhe_2048_group_generator,
-			{ (void *)"\x00", 1 },
-			GNUTLS_E_MPI_SCAN_FAILED,
-			GNUTLS_FIPS140_OP_APPROVED,
-			/* does not reach _wrap_nettle_pk_derive */
-			GNUTLS_FIPS140_OP_INITIAL,
-		},
+		 "[y == 0]",
+		 gnutls_ffdhe_2048_group_prime,
+		 gnutls_ffdhe_2048_group_q,
+		 gnutls_ffdhe_2048_group_generator,
+		 {(void *)"\x00", 1},
+		 GNUTLS_E_MPI_SCAN_FAILED,
+		 GNUTLS_FIPS140_OP_APPROVED,
+		 /* does not reach _wrap_nettle_pk_derive */
+		 GNUTLS_FIPS140_OP_INITIAL,
+		 },
 		{
-			"[y < 2]",
-			gnutls_ffdhe_2048_group_prime,
-			gnutls_ffdhe_2048_group_q,
-			gnutls_ffdhe_2048_group_generator,
-			{ (void *)"\x01", 1 },
-			GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER,
-			GNUTLS_FIPS140_OP_APPROVED,
-			GNUTLS_FIPS140_OP_ERROR,
-		},
+		 "[y < 2]",
+		 gnutls_ffdhe_2048_group_prime,
+		 gnutls_ffdhe_2048_group_q,
+		 gnutls_ffdhe_2048_group_generator,
+		 {(void *)"\x01", 1},
+		 GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER,
+		 GNUTLS_FIPS140_OP_APPROVED,
+		 GNUTLS_FIPS140_OP_ERROR,
+		 },
 		{
-			"[y > p - 2]",
-			gnutls_ffdhe_2048_group_prime,
-			gnutls_ffdhe_2048_group_q,
-			gnutls_ffdhe_2048_group_generator,
-			gnutls_ffdhe_2048_group_prime,
-			GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER,
-			GNUTLS_FIPS140_OP_APPROVED,
-			GNUTLS_FIPS140_OP_ERROR,
-		},
+		 "[y > p - 2]",
+		 gnutls_ffdhe_2048_group_prime,
+		 gnutls_ffdhe_2048_group_q,
+		 gnutls_ffdhe_2048_group_generator,
+		 gnutls_ffdhe_2048_group_prime,
+		 GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER,
+		 GNUTLS_FIPS140_OP_APPROVED,
+		 GNUTLS_FIPS140_OP_ERROR,
+		 },
 		{
-			"[y ^ q mod p == 1]",
-			gnutls_ffdhe_2048_group_prime,
-			gnutls_ffdhe_2048_group_q,
-			gnutls_ffdhe_2048_group_generator,
-			gnutls_ffdhe_2048_group_q,
-			GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER,
-			GNUTLS_FIPS140_OP_APPROVED,
-			GNUTLS_FIPS140_OP_ERROR,
-		},
+		 "[y ^ q mod p == 1]",
+		 gnutls_ffdhe_2048_group_prime,
+		 gnutls_ffdhe_2048_group_q,
+		 gnutls_ffdhe_2048_group_generator,
+		 gnutls_ffdhe_2048_group_q,
+		 GNUTLS_E_RECEIVED_ILLEGAL_PARAMETER,
+		 GNUTLS_FIPS140_OP_APPROVED,
+		 GNUTLS_FIPS140_OP_ERROR,
+		 },
 		{
-			"Legal Input",
-			gnutls_ffdhe_2048_group_prime,
-			gnutls_ffdhe_2048_group_q,
-			gnutls_ffdhe_2048_group_generator,
-			{ (void *)"\x02", 1 },
-			0,
-			GNUTLS_FIPS140_OP_APPROVED,
-			GNUTLS_FIPS140_OP_APPROVED,
-		},
-		{ NULL }
+		 "Legal Input",
+		 gnutls_ffdhe_2048_group_prime,
+		 gnutls_ffdhe_2048_group_q,
+		 gnutls_ffdhe_2048_group_generator,
+		 {(void *)"\x02", 1},
+		 0,
+		 GNUTLS_FIPS140_OP_APPROVED,
+		 GNUTLS_FIPS140_OP_APPROVED,
+		 },
+		{NULL}
 	};
-
-#define FIPS_PUSH_CONTEXT() do {					\
-	if (gnutls_fips140_mode_enabled()) {				\
-		ret = gnutls_fips140_push_context(fips_context);	\
-		if (ret < 0) {						\
-			fail("gnutls_fips140_push_context failed\n");	\
-		}							\
-	}								\
-} while (0)
-
-#define FIPS_POP_CONTEXT(state) do {					\
-	if (gnutls_fips140_mode_enabled()) {				\
-		ret = gnutls_fips140_pop_context();			\
-		if (ret < 0) {						\
-			fail("gnutls_fips140_context_pop failed\n");	\
-		}							\
-		fips_state = gnutls_fips140_get_operation_state(fips_context); \
-		if (fips_state != state) {				\
-			fail("operation state is not %d (%d)\n",	\
-			     state, fips_state);			\
-		}							\
-	}								\
-} while (0)
 
 	for (int i = 0; test_data[i].name != NULL; i++) {
 		gnutls_datum_t priv_key, pub_key;
 		gnutls_dh_params_t dh_params;
 		gnutls_fips140_context_t fips_context;
-		gnutls_fips140_operation_state_t fips_state;
 		int ret;
 
 		if (gnutls_fips140_mode_enabled()) {
@@ -193,24 +170,25 @@ void doit(void)
 			}
 		}
 
-		FIPS_PUSH_CONTEXT();
+		fips_push_context(fips_context);
 		params(&dh_params, &test_data[i].prime, &test_data[i].q,
 		       &test_data[i].generator);
-		FIPS_POP_CONTEXT(GNUTLS_FIPS140_OP_INITIAL);
+		fips_pop_context(fips_context, GNUTLS_FIPS140_OP_INITIAL);
 
 		success("%s genkey\n", test_data[i].name);
 
-		FIPS_PUSH_CONTEXT();
+		fips_push_context(fips_context);
 		genkey(dh_params, &priv_key, &pub_key);
-		FIPS_POP_CONTEXT(test_data[i].fips_state_genkey);
+		fips_pop_context(fips_context, test_data[i].fips_state_genkey);
 
 		success("%s compute_key\n", test_data[i].name);
-		
-		FIPS_PUSH_CONTEXT();
+
+		fips_push_context(fips_context);
 		compute_key(test_data[i].name, dh_params, &priv_key,
 			    &pub_key, &test_data[i].peer_key,
 			    test_data[i].expected_error, NULL, 0);
-		FIPS_POP_CONTEXT(test_data[i].fips_state_compute_key);
+		fips_pop_context(fips_context,
+				 test_data[i].fips_state_compute_key);
 
 		gnutls_dh_params_deinit(dh_params);
 		gnutls_free(priv_key.data);

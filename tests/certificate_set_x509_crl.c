@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -81,21 +80,21 @@ int main(void)
 	rc = gnutls_x509_crl_init(&crl);
 	if (rc) {
 		printf("gnutls_x509_crl_init rc %d: %s\n", rc,
-			gnutls_strerror(rc));
+		       gnutls_strerror(rc));
 		return 1;
 	}
 
 	rc = gnutls_x509_crl_import(crl, &crldatum, GNUTLS_X509_FMT_PEM);
 	if (rc) {
 		printf("gnutls_x509_crl_import rc %d: %s\n", rc,
-			gnutls_strerror(rc));
+		       gnutls_strerror(rc));
 		return 1;
 	}
 
 	rc = gnutls_certificate_set_x509_crl(crt, &crl, 1);
 	if (rc < 0) {
 		printf("gnutls_certificate_set_x509_crl rc %d: %s\n",
-			rc, gnutls_strerror(rc));
+		       rc, gnutls_strerror(rc));
 		return 1;
 	}
 

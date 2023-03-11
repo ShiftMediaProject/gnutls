@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 /* This program tests the various certificate key exchange methods supported
@@ -40,8 +39,12 @@ void doit(void)
 {
 	global_init();
 
-	dtls_try_with_key_mtu("DTLS 1.2 with cli-cert", "NONE:+VERS-DTLS1.0:+MAC-ALL:+KX-ALL:+CIPHER-ALL:+SIGN-ALL:+COMP-ALL:+CURVE-ALL", GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256, GNUTLS_SIGN_RSA_SHA256,
-		&server_repro_cert, &server_repro_key, &client_repro_cert, &client_repro_key, USE_CERT, 1452);
+	dtls_try_with_key_mtu("DTLS 1.2 with cli-cert",
+			      "NONE:+VERS-DTLS1.0:+MAC-ALL:+KX-ALL:+CIPHER-ALL:+SIGN-ALL:+COMP-ALL:+CURVE-ALL",
+			      GNUTLS_KX_ECDHE_RSA, GNUTLS_SIGN_RSA_SHA256,
+			      GNUTLS_SIGN_RSA_SHA256, &server_repro_cert,
+			      &server_repro_key, &client_repro_cert,
+			      &client_repro_key, USE_CERT, 1452);
 
 	gnutls_global_deinit();
 }

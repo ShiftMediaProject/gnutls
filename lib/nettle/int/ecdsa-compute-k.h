@@ -16,22 +16,21 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  *
  */
 
 #ifndef GNUTLS_LIB_NETTLE_INT_ECDSA_COMPUTE_K_H
-#define GNUTLS_LIB_NETTLE_INT_ECDSA_COMPUTE_K_H
+# define GNUTLS_LIB_NETTLE_INT_ECDSA_COMPUTE_K_H
 
-#include <gnutls/gnutls.h>
-#include <nettle/bignum.h> /* includes gmp.h */
+# include <gnutls/gnutls.h>
+# include <nettle/bignum.h>	/* includes gmp.h */
 
 int
-_gnutls_ecdsa_compute_k (mpz_t k,
-			 gnutls_ecc_curve_t curve,
-			 const mpz_t x,
-			 gnutls_mac_algorithm_t mac,
-			 const uint8_t *digest,
-			 size_t length);
+_gnutls_ecdsa_compute_k(mpz_t k,
+			gnutls_ecc_curve_t curve,
+			const mpz_t x,
+			gnutls_mac_algorithm_t mac,
+			const uint8_t * digest, size_t length);
 
-#endif /* GNUTLS_LIB_NETTLE_INT_ECDSA_COMPUTE_K_H */
+#endif				/* GNUTLS_LIB_NETTLE_INT_ECDSA_COMPUTE_K_H */

@@ -16,8 +16,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef PKCS11_MOCK_EXT_H
@@ -25,9 +24,9 @@
 
 /* This flag instructs the module to return CKR_OK on sensitive
  * objects */
-#define MOCK_FLAG_BROKEN_GET_ATTRIBUTES 1
-#define MOCK_FLAG_ALWAYS_AUTH (1<<1)
+# define MOCK_FLAG_BROKEN_GET_ATTRIBUTES 1
+# define MOCK_FLAG_ALWAYS_AUTH (1<<1)
 /* simulate the safenet HSMs always auth behavior */
-#define MOCK_FLAG_SAFENET_ALWAYS_AUTH (1<<2)
+# define MOCK_FLAG_SAFENET_ALWAYS_AUTH (1<<2)
 
 #endif

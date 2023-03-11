@@ -40,9 +40,9 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #     in CONTRIBUTION.md for more info.
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
-  AC_SUBST(LT_CURRENT, 64)
-  AC_SUBST(LT_REVISION, 2)
-  AC_SUBST(LT_AGE, 34)
+  AC_SUBST(LT_CURRENT, 65)
+  AC_SUBST(LT_REVISION, 0)
+  AC_SUBST(LT_AGE, 35)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
@@ -232,11 +232,11 @@ LIBTASN1_MINIMUM=4.9
   fi
   AM_CONDITIONAL(ENABLE_ALPN, test "$ac_enable_alpn" != "no")
 
-  ac_enable_heartbeat=yes
+  ac_enable_heartbeat=no
   AC_MSG_CHECKING([whether to enable TLS heartbeat support])
   AC_ARG_ENABLE(heartbeat-support,
-    AS_HELP_STRING([--disable-heartbeat-support],
-                   [disable support for the heartbeat extension]),
+    AS_HELP_STRING([--enable-heartbeat-support],
+                   [enable support for the heartbeat extension]),
     ac_enable_heartbeat=$enableval)
   if test x$ac_enable_heartbeat != xno; then
    AC_MSG_RESULT(yes)
@@ -246,11 +246,11 @@ LIBTASN1_MINIMUM=4.9
   fi
   AM_CONDITIONAL(ENABLE_HEARTBEAT, test "$ac_enable_heartbeat" != "no")
 
-  ac_enable_srp=yes
-  AC_MSG_CHECKING([whether to disable SRP authentication support])
+  ac_enable_srp=no
+  AC_MSG_CHECKING([whether to enable SRP authentication support])
   AC_ARG_ENABLE(srp-authentication,
-    AS_HELP_STRING([--disable-srp-authentication],
-                   [disable the SRP authentication support]),
+    AS_HELP_STRING([--enable-srp-authentication],
+                   [enable the SRP authentication support]),
     ac_enable_srp=$enableval)
   if test x$ac_enable_srp != xno; then
    AC_MSG_RESULT(no)

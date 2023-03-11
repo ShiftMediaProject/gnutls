@@ -18,8 +18,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with GnuTLS; if not, write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
 
 : ${srcdir=.}
 : ${CERTTOOL=../src/certtool${EXEEXT}}
@@ -49,6 +48,15 @@ if [ -z "$(which base64 2>/dev/null)" ]; then
 	echo "Need the base64 tool to run this test."
 	exit 77
 fi
+
+: ${OPENSSL=openssl}
+
+case `"$OPENSSL" version` in
+    *OpenSSL\ 3*)
+	echo "This test is not yet compatible with OpenSSL 3."
+	exit 77
+	;;
+esac
 
 if [ -z "$(which tpm2tss-genkey 2>/dev/null)" ]; then
 	echo "Need tpm2tss-genkey from tpm2-tss-engine package to run this test."

@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -62,7 +61,7 @@ void doit(void)
 	gnutls_x509_crt_t crt, ocrt;
 	unsigned keyusage;
 	const char *lib;
-	gnutls_datum_t issuer = {NULL, 0};
+	gnutls_datum_t issuer = { NULL, 0 };
 
 	ret = global_init();
 	if (ret != 0) {
@@ -92,17 +91,21 @@ void doit(void)
 		exit(1);
 	}
 
-	assert(gnutls_x509_crt_init(&crt)>=0);
-	assert(gnutls_x509_crt_init(&ocrt)>=0);
+	assert(gnutls_x509_crt_init(&crt) >= 0);
+	assert(gnutls_x509_crt_init(&ocrt) >= 0);
 
 	/* check high level certificate functions */
-	ret = gnutls_x509_crt_import_url(crt, "pkcs11:type=cert;object=cert1", 0);
+	ret =
+	    gnutls_x509_crt_import_url(crt, "pkcs11:type=cert;object=cert1", 0);
 	if (ret < 0) {
 		fail("%d: %s\n", ret, gnutls_strerror(ret));
 		exit(1);
 	}
 
-	ret = gnutls_pkcs11_get_raw_issuer("pkcs11:", crt, &issuer, GNUTLS_X509_FMT_DER, GNUTLS_PKCS11_OBJ_FLAG_OVERWRITE_TRUSTMOD_EXT);
+	ret =
+	    gnutls_pkcs11_get_raw_issuer("pkcs11:", crt, &issuer,
+					 GNUTLS_X509_FMT_DER,
+					 GNUTLS_PKCS11_OBJ_FLAG_OVERWRITE_TRUSTMOD_EXT);
 	if (ret < 0) {
 		fail("%d: %s\n", ret, gnutls_strerror(ret));
 		exit(1);
@@ -110,7 +113,7 @@ void doit(void)
 
 	ret = gnutls_x509_crt_equals2(crt, &issuer);
 	if (ret != 0) {
-	    fail("exported certificates are equal!\n");
+		fail("exported certificates are equal!\n");
 	}
 
 	ret = gnutls_x509_crt_import(ocrt, &issuer, GNUTLS_X509_FMT_DER);
@@ -136,7 +139,9 @@ void doit(void)
 		exit(1);
 	}
 
-	if (keyusage != (GNUTLS_KEY_KEY_ENCIPHERMENT|GNUTLS_KEY_ENCIPHER_ONLY|GNUTLS_KEY_KEY_CERT_SIGN)) {
+	if (keyusage !=
+	    (GNUTLS_KEY_KEY_ENCIPHERMENT | GNUTLS_KEY_ENCIPHER_ONLY |
+	     GNUTLS_KEY_KEY_CERT_SIGN)) {
 		fail("Extension does not have the expected key usage!\n");
 	}
 

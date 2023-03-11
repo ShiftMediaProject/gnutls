@@ -16,12 +16,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with GnuTLS; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>
@@ -59,15 +58,14 @@ static const char *_pin = "1234";
 # include <dlfcn.h>
 # define P11LIB "libpkcs11mock1.so"
 
-
 static void tls_log_func(int level, const char *str)
 {
 	fprintf(stderr, "|<%d>| %s", level, str);
 }
 
 static
-int pin_func(void* userdata, int attempt, const char* url, const char *label,
-		unsigned flags, char *pin, size_t pin_max)
+int pin_func(void *userdata, int attempt, const char *url, const char *label,
+	     unsigned flags, char *pin, size_t pin_max)
 {
 	if (_pin == NULL)
 		return -1;
@@ -82,7 +80,7 @@ void doit(void)
 	int ret;
 	const char *lib;
 	gnutls_privkey_t key;
-	gnutls_datum_t sig = {NULL, 0}, data;
+	gnutls_datum_t sig = { NULL, 0 }, data;
 
 	lib = getenv("P11MOCKLIB1");
 	if (lib == NULL)
@@ -107,7 +105,8 @@ void doit(void)
 		*pflags = MOCK_FLAG_SAFENET_ALWAYS_AUTH;
 	}
 
-	data.data = (void*)"\x38\x17\x0c\x08\xcb\x45\x8f\xd4\x87\x9c\x34\xb6\xf6\x08\x29\x4c\x50\x31\x2b\xbb";
+	data.data = (void *)
+	    "\x38\x17\x0c\x08\xcb\x45\x8f\xd4\x87\x9c\x34\xb6\xf6\x08\x29\x4c\x50\x31\x2b\xbb";
 	data.size = 20;
 
 	ret = global_init();
@@ -133,11 +132,13 @@ void doit(void)
 	}
 
 	ret = gnutls_privkey_init(&key);
-	assert(ret>=0);
+	assert(ret >= 0);
 
 	gnutls_privkey_set_pin_function(key, pin_func, NULL);
 
-	ret = gnutls_privkey_import_url(key, "pkcs11:object=test", GNUTLS_PKCS11_OBJ_FLAG_LOGIN);
+	ret =
+	    gnutls_privkey_import_url(key, "pkcs11:object=test",
+				      GNUTLS_PKCS11_OBJ_FLAG_LOGIN);
 	if (ret < 0) {
 		fail("%d: %s\n", ret, gnutls_strerror(ret));
 		exit(1);
