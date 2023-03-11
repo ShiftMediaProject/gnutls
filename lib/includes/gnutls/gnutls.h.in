@@ -37,7 +37,13 @@
 # define GNUTLS_GNUTLS_H
 
 /* Get ssize_t. */
-# include <sys/types.h>
+# ifdef _MSC_VER
+#  include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#  include <sys/types.h>
+# else
+#  include <sys/types.h>
+# endif
 
 /* Get size_t. */
 # include <stddef.h>
