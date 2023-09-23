@@ -13,6 +13,7 @@ NO_TICKETS_TLS12, enable_no_tickets_tls12
 NO_ETM, enable_no_etm
 FORCE_ETM, enable_force_etm
 NO_SESSION_HASH, enable_no_ext_master_secret
+FORCE_SESSION_HASH, enable_force_ext_master_secret
 NO_STATUS_REQUEST, enable_no_status_request
 STATELESS_COMPRESSION, dummy_func
 VERIFY_ALLOW_BROKEN, enable_verify_allow_broken
@@ -42,3 +43,4 @@ NEW_PADDING, dummy_func
 DEBUG_ALLOW_KEY_USAGE_VIOLATIONS, enable_server_key_usage_violations
 ALLOW_SMALL_RECORDS, enable_allow_small_records
 DISABLE_TLS13_COMPAT_MODE, disable_tls13_compat_mode
+NO_SHUFFLE_EXTENSIONS, enable_no_shuffle_extensions

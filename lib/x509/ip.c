@@ -99,7 +99,6 @@ int _gnutls_mask_to_prefix(const unsigned char *mask, unsigned mask_size)
 const char *_gnutls_ip_to_string(const void *_ip, unsigned int ip_size,
 				 char *out, unsigned int out_size)
 {
-
 	if (ip_size != 4 && ip_size != 16) {
 		gnutls_assert();
 		return NULL;
@@ -225,7 +224,7 @@ int _gnutls_mask_ip(unsigned char *ip, const unsigned char *mask,
  *
  * Since: 3.5.4
  */
-int gnutls_x509_cidr_to_rfc5280(const char *cidr, gnutls_datum_t * cidr_rfc5280)
+int gnutls_x509_cidr_to_rfc5280(const char *cidr, gnutls_datum_t *cidr_rfc5280)
 {
 	unsigned iplength, prefix;
 	int ret;
@@ -237,8 +236,8 @@ int gnutls_x509_cidr_to_rfc5280(const char *cidr, gnutls_datum_t * cidr_rfc5280)
 	if (p != NULL) {
 		prefix = strtol(p + 1, &p_end, 10);
 		if (prefix == 0 && p_end == p + 1) {
-			_gnutls_debug_log
-			    ("Cannot parse prefix given in CIDR %s\n", cidr);
+			_gnutls_debug_log(
+				"Cannot parse prefix given in CIDR %s\n", cidr);
 			gnutls_assert();
 			return GNUTLS_E_MALFORMED_CIDR;
 		}
@@ -255,9 +254,9 @@ int gnutls_x509_cidr_to_rfc5280(const char *cidr, gnutls_datum_t * cidr_rfc5280)
 		return GNUTLS_E_MALFORMED_CIDR;
 	}
 
-	if (strchr(cidr, ':') != 0) {	/* IPv6 */
+	if (strchr(cidr, ':') != 0) { /* IPv6 */
 		iplength = 16;
-	} else {		/* IPv4 */
+	} else { /* IPv4 */
 		iplength = 4;
 	}
 	cidr_rfc5280->size = 2 * iplength;
@@ -275,9 +274,8 @@ int gnutls_x509_cidr_to_rfc5280(const char *cidr, gnutls_datum_t * cidr_rfc5280)
 		goto cleanup;
 	}
 
-	ret =
-	    inet_pton(iplength == 4 ? AF_INET : AF_INET6, cidr_tmp,
-		      cidr_rfc5280->data);
+	ret = inet_pton(iplength == 4 ? AF_INET : AF_INET6, cidr_tmp,
+			cidr_rfc5280->data);
 	if (ret == 0) {
 		_gnutls_debug_log("Cannot parse IP from CIDR %s\n", cidr_tmp);
 		ret = gnutls_assert_val(GNUTLS_E_MALFORMED_CIDR);
@@ -290,7 +288,7 @@ int gnutls_x509_cidr_to_rfc5280(const char *cidr, gnutls_datum_t * cidr_rfc5280)
 
 	ret = GNUTLS_E_SUCCESS;
 
- cleanup:
+cleanup:
 	gnutls_free(cidr_tmp);
 	return ret;
 }

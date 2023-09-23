@@ -77,7 +77,7 @@ EXTRA_DIST = suppressions.valgrind eagain-common.h cert-common.h test-chains.h \
 	testpkcs11-certs/client.key testpkcs11-certs/server.crt testpkcs11-certs/server-tmpl \
 	testpkcs11-certs/ca.key testpkcs11-certs/client.crt testpkcs11-certs/client-tmpl testpkcs11-certs/server.key \
 	crt_type-neg-common.c \
-	system-override-default-priority-string.bad.config system-override-default-priority-string.none.config system-override-default-priority-string.only-tls13.config \
+	system-override-default-priority-string.bad.config system-override-default-priority-string.none.config system-override-default-priority-string.only-tls13.config system-override-session-hash.sh \
 	client-secrets.h server-secrets.h
 
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
@@ -234,7 +234,8 @@ ctests += mini-record-2 simple gnutls_hmac_fast set_pkcs12_cred cert certuniquei
 	 set_x509_ocsp_multi_cli kdf-api keylog-func handshake-write \
 	 x509cert-dntypes id-on-xmppAddr tls13-compat-mode ciphersuite-name \
 	 x509-upnconstraint xts-key-check cipher-padding pkcs7-verify-double-free \
-	 fips-rsa-sizes tls12-rehandshake-ticket pathbuf
+	 fips-rsa-sizes tls12-rehandshake-ticket pathbuf tls-force-ems \
+	 psk-importer
 
 ctests += tls-channel-binding
 
@@ -341,6 +342,11 @@ noinst_LTLIBRARIES += libpkcs11mock2.la
 libpkcs11mock2_la_SOURCES = pkcs11/pkcs11-mock2.c
 libpkcs11mock2_la_LDFLAGS = -shared -rpath $(pkglibdir) -module -no-undefined -avoid-version
 libpkcs11mock2_la_LIBADD =  ../gl/libgnu.la
+
+noinst_LTLIBRARIES += libpkcs11mock3.la
+libpkcs11mock3_la_SOURCES = pkcs11/pkcs11-mock3.c
+libpkcs11mock3_la_LDFLAGS = -shared -rpath $(pkglibdir) -module -no-undefined -avoid-version
+libpkcs11mock3_la_LIBADD =  ../gl/libgnu.la
 
 pkcs11_cert_import_url_exts_SOURCES = pkcs11/pkcs11-cert-import-url-exts.c
 pkcs11_cert_import_url_exts_DEPENDENCIES = libpkcs11mock1.la libutils.la
@@ -487,11 +493,13 @@ pathbuf_CPPFLAGS = $(AM_CPPFLAGS) \
 if ENABLE_PKCS11
 if !WINDOWS
 ctests += tls13/post-handshake-with-cert-pkcs11 pkcs11/tls-neg-pkcs11-no-key \
-	global-init-override
+	global-init-override pkcs11/distrust-after
 tls13_post_handshake_with_cert_pkcs11_DEPENDENCIES = libpkcs11mock2.la libutils.la
 tls13_post_handshake_with_cert_pkcs11_LDADD = $(LDADD) $(LIBDL)
 pkcs11_tls_neg_pkcs11_no_key_DEPENDENCIES = libpkcs11mock2.la libutils.la
 pkcs11_tls_neg_pkcs11_no_key_LDADD = $(LDADD) $(LIBDL)
+pkcs11_distrust_after_DEPENDENCIES = libpkcs11mock3.la libutils.la
+pkcs11_distrust_after_LDADD = $(LDADD) $(LIBDL)
 endif
 endif
 
@@ -596,11 +604,6 @@ sanity_cpp_CXXFLAGS = $(AM_CPPFLAGS) \
 endif
 endif
 
-if !WINDOWS
-indirect_tests += datefudge-check
-noinst_PROGRAMS = datefudge-check
-endif
-
 check_PROGRAMS = $(cpptests) $(ctests) $(indirect_tests)
 TESTS = $(cpptests) $(ctests) $(dist_check_SCRIPTS)
 
@@ -612,6 +615,7 @@ TESTS_ENVIRONMENT +=						\
 	CAFILE=$(srcdir)/cert-tests/data/ca-certs.pem		\
 	P11MOCKLIB1=$(abs_builddir)/.libs/libpkcs11mock1.so	\
 	P11MOCKLIB2=$(abs_builddir)/.libs/libpkcs11mock2.so	\
+	P11MOCKLIB3=$(abs_builddir)/.libs/libpkcs11mock3.so	\
 	PKCS12_MANY_CERTS_FILE=$(srcdir)/cert-tests/data/pkcs12_5certs.p12	\
 	PKCS12FILE=$(srcdir)/cert-tests/data/client.p12		\
 	PKCS12PASSWORD=foobar					\
@@ -641,6 +645,11 @@ TESTS_ENVIRONMENT += ENABLE_GOST=1
 else
 TESTS_ENVIRONMENT += ENABLE_GOST=0
 endif
+
+TESTS_ENVIRONMENT +=					\
+	FAKETIME="$(FAKETIME)"				\
+	FAKETIME_F_OPT="$(FAKETIME_F_OPT)"		\
+	ac_cv_faketime_works="$(ac_cv_faketime_works)"
 
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)

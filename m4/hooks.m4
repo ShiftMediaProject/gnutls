@@ -40,9 +40,9 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #     in CONTRIBUTION.md for more info.
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
-  AC_SUBST(LT_CURRENT, 65)
+  AC_SUBST(LT_CURRENT, 66)
   AC_SUBST(LT_REVISION, 0)
-  AC_SUBST(LT_AGE, 35)
+  AC_SUBST(LT_AGE, 36)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
@@ -253,11 +253,11 @@ LIBTASN1_MINIMUM=4.9
                    [enable the SRP authentication support]),
     ac_enable_srp=$enableval)
   if test x$ac_enable_srp != xno; then
-   AC_MSG_RESULT(no)
+   AC_MSG_RESULT(yes)
    AC_DEFINE([ENABLE_SRP], 1, [enable SRP authentication])
   else
    ac_full=0
-   AC_MSG_RESULT(yes)
+   AC_MSG_RESULT(no)
   fi
   AM_CONDITIONAL(ENABLE_SRP, test "$ac_enable_srp" != "no")
 

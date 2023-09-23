@@ -49,7 +49,7 @@ CLIGEN_ARGS = \
 	--package '$(PACKAGE)' \
 	--version='$(VERSION)' \
 	--authors='Nikos Mavrogiannopoulos, Simon Josefsson and others; see /usr/share/doc/gnutls/AUTHORS for a complete list.' \
-	--copyright-year=2020-2021 \
+	--copyright-year=2020-2023 \
 	--copyright-holder='Free Software Foundation, and others all rights reserved.' \
 	--bug-email=bugs@gnutls.org
 
@@ -732,6 +732,7 @@ APIMANS += gnutls_protocol_set_enabled.3
 APIMANS += gnutls_psk_allocate_client_credentials.3
 APIMANS += gnutls_psk_allocate_server_credentials.3
 APIMANS += gnutls_psk_client_get_hint.3
+APIMANS += gnutls_psk_format_imported_identity.3
 APIMANS += gnutls_psk_free_client_credentials.3
 APIMANS += gnutls_psk_free_server_credentials.3
 APIMANS += gnutls_psk_server_get_username.3
@@ -740,10 +741,12 @@ APIMANS += gnutls_psk_set_client_credentials.3
 APIMANS += gnutls_psk_set_client_credentials2.3
 APIMANS += gnutls_psk_set_client_credentials_function.3
 APIMANS += gnutls_psk_set_client_credentials_function2.3
+APIMANS += gnutls_psk_set_client_credentials_function3.3
 APIMANS += gnutls_psk_set_params_function.3
 APIMANS += gnutls_psk_set_server_credentials_file.3
 APIMANS += gnutls_psk_set_server_credentials_function.3
 APIMANS += gnutls_psk_set_server_credentials_function2.3
+APIMANS += gnutls_psk_set_server_credentials_function3.3
 APIMANS += gnutls_psk_set_server_credentials_hint.3
 APIMANS += gnutls_psk_set_server_dh_params.3
 APIMANS += gnutls_psk_set_server_known_dh_params.3
@@ -1364,7 +1367,7 @@ stamp_mans: $(HEADER_FILES)
 			-pkg-site "https://www.gnutls.org" \
 			-include "gnutls/`basename $$header .in`" \
 			-seeinfo $(PACKAGE) -verbatimcopying \
-			-copyright "2001-$(YEAR) Free Software Foundation, Inc., and others" \
+			-copyright "2001-2023 Free Software Foundation, Inc., and others" \
 			-function $$i \
 			$(C_SOURCE_FILES) > $$i.3 && \
 		echo $(ECHO_N) "."; \

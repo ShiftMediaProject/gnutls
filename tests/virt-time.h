@@ -20,43 +20,34 @@
  */
 
 #ifndef GNUTLS_TESTS_VIRT_TIME_H
-# define GNUTLS_TESTS_VIRT_TIME_H
+#define GNUTLS_TESTS_VIRT_TIME_H
 
-# ifdef HAVE_CONFIG_H
-#  include <config.h>
-# endif
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-# include <time.h>
-# include <gnutls/gnutls.h>
-
-/* copied from ../lib/system.h so not to include that header from
- * every test program */
-typedef void (*gnutls_gettime_func)(struct timespec *);
-extern void _gnutls_global_set_gettime_function(gnutls_gettime_func
-						gettime_func);
+#include <time.h>
+#include <gnutls/gnutls.h>
 
 /* virtualize time in a test. This freezes the time in the test, except for
  * the advances due to calls to virt_sleep_sec(). This makes the test
  * independent of the test system load, and avoids any long delays. */
 static time_t _now;
-static struct timespec _now_ts;
 
-# define virt_sec_sleep(s) { \
+#define virt_sec_sleep(s)  \
+	{                  \
 		_now += s; \
-		_now_ts.tv_sec += s; \
 	}
 
-# define virt_time_init_at(d) { \
-		_now = (d); \
+#define virt_time_init_at(d)                             \
+	{                                                \
+		_now = (d);                              \
 		gnutls_global_set_time_function(mytime); \
-		_now_ts.tv_sec = _now; \
-		_now_ts.tv_nsec = 0; \
-		_gnutls_global_set_gettime_function(mygettime); \
 	}
 
-# define virt_time_init() virt_time_init_at(time(0))
+#define virt_time_init() virt_time_init_at(time(0))
 
-static time_t mytime(time_t * t)
+static time_t mytime(time_t *t)
 {
 	if (t)
 		*t = _now;
@@ -64,10 +55,4 @@ static time_t mytime(time_t * t)
 	return _now;
 }
 
-static void mygettime(struct timespec *t)
-{
-	if (t)
-		*t = _now_ts;
-}
-
-#endif				/* GNUTLS_TESTS_VIRT_TIME_H */
+#endif /* GNUTLS_TESTS_VIRT_TIME_H */

@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.8.0], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.8.1], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -63,6 +63,43 @@ AM_MAINTAINER_MODE([enable])
 
 AM_MISSING_PROG([GPERF], [gperf])
 AM_MISSING_PROG([ASN1PARSER], [asn1Parser])
+AM_MISSING_PROG([PERL], [perl])
+
+AC_CHECK_PROGS([FAKETIME], [faketime])
+AS_IF([test -n "$FAKETIME"], [FAKETIME_F_OPT="-f"; AC_SUBST([FAKETIME_F_OPT])], [
+  AC_CHECK_PROGS([DATEFUDGE], [datefudge])
+  AS_IF([test -n "$DATEFUDGE"], [
+    FAKETIME_F_OPT="-s"
+    AC_SUBST([FAKETIME], [$DATEFUDGE])
+    AC_SUBST([FAKETIME_F_OPT])
+  ])
+])
+
+AC_MSG_CHECKING([whether faketime program works])
+AC_RUN_IFELSE(
+  [AC_LANG_PROGRAM(
+    [[#include <stdio.h>
+      #include <stdlib.h>
+      #include <time.h>
+    ]],
+    [[time_t t = time(NULL);
+      struct tm *tmp = localtime(&t);
+      char outstr[200];
+      if (!tmp) return 0;
+      if (!strftime(outstr, sizeof(outstr), "%s", tmp)) return 0;
+      puts(outstr);
+      return 0;
+    ]])],
+  [AS_IF([test `TZ=UTC $FAKETIME $FAKETIME_F_OPT "2006-09-23 00:00:00" ./conftest$EXEEXT` = "1158969600"], [
+     ac_cv_faketime_works=yes
+   ], [
+     ac_cv_faketime_works=no
+   ])],
+  [ac_cv_faketime_works=no],
+  [ac_cv_faketime_works=cross-compiling])
+
+AC_MSG_RESULT([$ac_cv_faketime_works])
+AC_SUBST([ac_cv_faketime_works])
 
 AC_ARG_ENABLE(bash-tests,
   AS_HELP_STRING([--disable-bash-tests], [skip some tests that badly need bash]),

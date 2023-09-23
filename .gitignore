@@ -366,7 +366,6 @@ tests/cve-2009-1415
 tests/cve-2009-1416
 tests/dane
 tests/dane-strcodes
-tests/datefudge-check
 tests/dh-compute
 tests/dh-params
 tests/dhepskself
@@ -456,6 +455,7 @@ tests/keylog-func
 tests/ktls_keyupdate
 tests/libpkcs11mock1.la
 tests/libpkcs11mock2.la
+tests/libpkcs11mock3.la
 tests/libutils.la
 tests/long-session-id
 tests/mini
@@ -570,6 +570,7 @@ tests/pkcs11-privkey-fork-reinit
 tests/pkcs11-privkey-raw
 tests/pkcs11-privkey-safenet-always-auth
 tests/pkcs11-token-raw
+tests/pkcs11/distrust-after
 tests/pkcs11/gnutls_pcert_list_import_x509_file
 tests/pkcs11/gnutls_x509_crt_list_import_url
 tests/pkcs11/list-objects
@@ -621,6 +622,7 @@ tests/privkey-keygen
 tests/privkey-verify-broken
 tests/protocol-set-allowlist
 tests/psk-file
+tests/psk-importer
 tests/pskself
 tests/pskself2
 tests/pubkey-import-export
@@ -734,6 +736,7 @@ tests/slow/hash-large
 tests/slow/keygen
 tests/slow/mac-override
 tests/softhsm-*.db/
+tests/softhsm-distrust-after.config
 tests/softhsm-neg-no-key.config
 tests/softhsm-post-handshake-with-cert-pkcs11.config
 tests/spki
@@ -793,6 +796,7 @@ tests/tls-crt_type-neg
 tests/tls-etm
 tests/tls-ext-not-in-dtls
 tests/tls-ext-register
+tests/tls-force-ems
 tests/tls-force-etm
 tests/tls-max-record
 tests/tls-neg-ext-key

@@ -51,7 +51,9 @@ scripts_to_test = chain.sh \
 	testcompat-openssl-serv-no-tickets.sh \
 	testcompat-openssl-serv-no-safe-renegotiation.sh \
 	testcompat-openssl-serv-safe-renegotiation.sh \
-	testrandom.sh tls-fuzzer/tls-fuzzer-nocert.sh \
+	testrandom.sh \
+	test-ciphersuite-names.sh \
+	tls-fuzzer/tls-fuzzer-nocert.sh \
 	tls-fuzzer/tls-fuzzer-cert.sh tls-fuzzer/tls-fuzzer-alpn.sh \
 	tls-fuzzer/tls-fuzzer-nocert-tls13.sh tls-fuzzer/tls-fuzzer-psk.sh \
 	tls-fuzzer/tls-fuzzer-nolimit.sh tls-fuzzer/tls-fuzzer-nolimit-tls13.sh \
@@ -77,6 +79,11 @@ if ENABLE_SSL3
 scripts_to_test += tls-fuzzer/tls-fuzzer-nocert-ssl3.sh
 TESTS_ENVIRONMENT += ENABLE_SSL3=1
 endif
+
+TESTS_ENVIRONMENT +=					\
+	FAKETIME="$(FAKETIME)"				\
+	FAKETIME_F_OPT="$(FAKETIME_F_OPT)"		\
+	ac_cv_faketime_works="$(ac_cv_faketime_works)"
 
 if ENABLE_TLS13_INTEROP
 scripts_to_test += \

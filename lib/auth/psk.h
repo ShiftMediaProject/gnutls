@@ -21,33 +21,35 @@
  */
 
 #ifndef GNUTLS_LIB_AUTH_PSK_H
-# define GNUTLS_LIB_AUTH_PSK_H
+#define GNUTLS_LIB_AUTH_PSK_H
 
-# include <auth.h>
-# include <auth/dh_common.h>
+#include <auth.h>
+#include <auth/dh_common.h>
 
-# define _gnutls_copy_psk_username(info, datum) \
-	_gnutls_copy_psk_string(&(info)->username, &(info)->username_len, (datum))
+#define _gnutls_copy_psk_username(info, datum)                            \
+	_gnutls_copy_psk_string(&(info)->username, &(info)->username_len, \
+				(datum))
 
-# define _gnutls_copy_psk_hint(info, datum) \
+#define _gnutls_copy_psk_hint(info, datum) \
 	_gnutls_copy_psk_string(&(info)->hint, &(info)->hint_len, (datum))
 
 typedef struct gnutls_psk_client_credentials_st {
 	gnutls_datum_t username;
 	gnutls_datum_t key;
-	gnutls_psk_client_credentials_function2 *get_function;
-	gnutls_psk_client_credentials_function *get_function_legacy;
+	gnutls_psk_client_credentials_function3 *get_function;
+	gnutls_psk_client_credentials_function2 *get_function2;
+	gnutls_psk_client_credentials_function *get_function1;
 	/* TLS 1.3 - The HMAC algorithm to use to compute the binder values */
 	const mac_entry_st *binder_algo;
 } psk_client_credentials_st;
 
 typedef struct gnutls_psk_server_credentials_st {
 	char *password_file;
-	/* callback function, instead of reading the
-	 * password files.
+	/* callback functions, instead of reading the password files.
 	 */
-	gnutls_psk_server_credentials_function2 *pwd_callback;
-	gnutls_psk_server_credentials_function *pwd_callback_legacy;
+	gnutls_psk_server_credentials_function3 *pwd_callback;
+	gnutls_psk_server_credentials_function2 *pwd_callback2;
+	gnutls_psk_server_credentials_function *pwd_callback1;
 
 	/* For DHE_PSK */
 	gnutls_dh_params_t dh_params;
@@ -74,9 +76,8 @@ typedef struct psk_auth_info_st {
 
 typedef struct psk_auth_info_st psk_auth_info_st;
 
-inline static int
-_gnutls_copy_psk_string(char **dest, uint16_t * dest_len,
-			const gnutls_datum_t str)
+inline static int _gnutls_copy_psk_string(char **dest, uint16_t *dest_len,
+					  const gnutls_datum_t str)
 {
 	char *_tmp;
 
@@ -95,17 +96,15 @@ _gnutls_copy_psk_string(char **dest, uint16_t * dest_len,
 	return GNUTLS_E_SUCCESS;
 }
 
-# ifdef ENABLE_PSK
+#ifdef ENABLE_PSK
 
-int
-_gnutls_set_psk_session_key(gnutls_session_t session, gnutls_datum_t * key,
-			    gnutls_datum_t * psk2);
-int _gnutls_gen_psk_server_kx(gnutls_session_t session,
-			      gnutls_buffer_st * data);
+int _gnutls_set_psk_session_key(gnutls_session_t session, gnutls_datum_t *key,
+				gnutls_datum_t *psk2);
+int _gnutls_gen_psk_server_kx(gnutls_session_t session, gnutls_buffer_st *data);
 int _gnutls_gen_psk_client_kx(gnutls_session_t, gnutls_buffer_st *);
 
-# else
-#  define _gnutls_set_psk_session_key(x,y,z) GNUTLS_E_UNIMPLEMENTED_FEATURE
-# endif				/* ENABLE_PSK */
+#else
+#define _gnutls_set_psk_session_key(x, y, z) GNUTLS_E_UNIMPLEMENTED_FEATURE
+#endif /* ENABLE_PSK */
 
-#endif				/* GNUTLS_LIB_AUTH_PSK_H */
+#endif /* GNUTLS_LIB_AUTH_PSK_H */

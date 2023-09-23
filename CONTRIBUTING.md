@@ -44,7 +44,7 @@ For testing functionality of gnutls we use two test unit testing frameworks:
 
 Certificates for testing purposes are available at [cert-common.h](tests/cert-common.h).
 Note that we do not regenerate test certificates when they expire, but
-we rather fix the test's time using datefudge or gnutls_global_set_time_function().
+we rather fix the test's time using faketime/datefudge or gnutls_global_set_time_function().
 For example, see [x509cert-tl.c](tests/x509cert-tl.c).
 
 
@@ -66,8 +66,8 @@ case by case basis.
 
 # Indentation style:
 
- In general, use [the Linux kernel coding style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
-You may indent the source using GNU indent, e.g. "indent -linux *.c".
+  We use [the Linux kernel coding style](https://www.kernel.org/doc/html/latest/process/coding-style.html). You may indent the source using the
+[devel/indent-gnutls](devel/indent-gnutls) script.
 
 
 # Commenting style
@@ -219,7 +219,7 @@ as in the example below. The detailed form is documented on `doc/scripts/gdoc`.
  *
  * Note that since version 3.1.2 this function enables some common
  * TLS extensions such as session tickets and OCSP certificate status
- * request in client side by default. To prevent that use the %GNUTLS_NO_EXTENSIONS
+ * request in client side by default. To prevent that use the %GNUTLS_NO_DEFAULT_EXTENSIONS
  * flag.
  *
  * Returns: %GNUTLS_E_SUCCESS on success, or a negative error code.

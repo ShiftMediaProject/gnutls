@@ -84,19 +84,15 @@ if test $rc = 0; then
 	exit 1
 fi
 
-if check_for_datefudge; then
-	#this was causing a double free; verify that we receive the expected error code
-	datefudge -s 2020-01-01 \
-	${VALGRIND} "${CERTTOOL}" --verify-chain --infile "${srcdir}/data/cve-2019-3829.pem"
-	rc=$?
+#this was causing a double free; verify that we receive the expected error code
+${VALGRIND} "${CERTTOOL}"  --attime "2020-01-01" --verify-chain --infile "${srcdir}/data/cve-2019-3829.pem"
+rc=$?
 
-	# We're done.
-	if test $rc != 1; then
-		echo "Verification of invalid signature (6) failed"
-		exit 1
-	fi
-else
-	echo "Verification of invalid signature (6) skipped"
+# We're done.
+if test $rc != 1; then
+	echo "Verification of invalid signature (6) failed"
+	exit 1
 fi
+
 
 exit 0
