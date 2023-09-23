@@ -26,7 +26,9 @@
 #include "errors.h"
 
 #include <sys/socket.h>
+#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h> /* IPPROTO_TCP */
+#endif
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>

@@ -40,6 +40,35 @@
 #include <aes-padlock.h>
 #ifdef HAVE_CPUID_H
 #include <cpuid.h>
+#elif defined(_MSC_VER)
+#define HAVE_GET_CPUID_COUNT
+#include <intrin.h>
+static __inline int
+__get_cpuid(unsigned int __leaf,
+	unsigned int* __eax, unsigned int* __ebx,
+	unsigned int* __ecx, unsigned int* __edx)
+{
+	int regs[4];
+	__cpuid(regs, __leaf);
+	*__eax = (uint32_t)regs[0];
+	*__ebx = (uint32_t)regs[1];
+	*__ecx = (uint32_t)regs[2];
+	*__edx = (uint32_t)regs[3];
+	return 1;
+}
+static __inline int
+__get_cpuid_count(unsigned int __leaf, unsigned int __subleaf,
+	unsigned int* __eax, unsigned int* __ebx,
+	unsigned int* __ecx, unsigned int* __edx)
+{
+	int regs[4];
+	__cpuidex(regs, __leaf, __subleaf);
+	*__eax = (uint32_t)regs[0];
+	*__ebx = (uint32_t)regs[1];
+	*__ecx = (uint32_t)regs[2];
+	*__edx = (uint32_t)regs[3];
+	return 1;
+}
 #else
 #define __get_cpuid(...) 0
 #define __get_cpuid_count(...) 0

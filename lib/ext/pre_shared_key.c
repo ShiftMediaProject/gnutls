@@ -80,7 +80,7 @@ static const char *get_binder_label(enum binder_type type, size_t *size)
 	static const char ext_label[] = EXT_BINDER_LABEL;
 	static const char res_label[] = RES_BINDER_LABEL;
 	static const char imp_label[] = IMP_BINDER_LABEL;
-	const char *label;
+	const char *label = NULL;
 
 	switch (type) {
 	case BINDER_EXT:
