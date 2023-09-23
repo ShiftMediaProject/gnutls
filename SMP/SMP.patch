@@ -1,18 +1,18 @@
 diff --git a/gnulib b/gnulib
-index 6ec9bc736..3639c57a9 160000
+index 41d5dae3b..3639c57a9 160000
 --- a/gnulib
 +++ b/gnulib
 @@ -1 +1 @@
--Subproject commit 6ec9bc73686fd42d0a1a82c914d89176745cddbd
+-Subproject commit 41d5dae3b7d239f167f09e4398f3970845a0ddc0
 +Subproject commit 3639c57a970191e0bf7a9789bd1341786d0255a1
 diff --git a/lib/accelerated/x86/x86-common.c b/lib/accelerated/x86/x86-common.c
-index 24744c41c..8ac5ec11a 100644
+index a7047a7ba..b680fb425 100644
 --- a/lib/accelerated/x86/x86-common.c
 +++ b/lib/accelerated/x86/x86-common.c
 @@ -40,6 +40,35 @@
  #include <aes-padlock.h>
  #ifdef HAVE_CPUID_H
- # include <cpuid.h>
+ #include <cpuid.h>
 +#elif defined(_MSC_VER)
 +#define HAVE_GET_CPUID_COUNT
 +#include <intrin.h>
@@ -43,32 +43,10 @@ index 24744c41c..8ac5ec11a 100644
 +	return 1;
 +}
  #else
- # define __get_cpuid(...) 0
- # define __get_cpuid_count(...) 0
-diff --git a/lib/datum.h b/lib/datum.h
-index 87fb91b5f..ab5afd908 100644
---- a/lib/datum.h
-+++ b/lib/datum.h
-@@ -46,7 +46,7 @@ void _gnutls_free_datum(gnutls_datum_t * dat)
- 	}
- }
- 
--inline static ATTRIBUTE_NONNULL()
-+inline static ATTRIBUTE_NONNULL((1))
- void _gnutls_free_temp_key_datum(gnutls_datum_t * dat)
- {
- 	if (dat->data != NULL) {
-@@ -57,7 +57,7 @@ void _gnutls_free_temp_key_datum(gnutls_datum_t * dat)
- 	dat->size = 0;
- }
- 
--inline static ATTRIBUTE_NONNULL()
-+inline static ATTRIBUTE_NONNULL((1))
- void _gnutls_free_key_datum(gnutls_datum_t * dat)
- {
- 	if (dat->data != NULL) {
+ #define __get_cpuid(...) 0
+ #define __get_cpuid_count(...) 0
 diff --git a/lib/debug.c b/lib/debug.c
-index 532fa2a92..2b2259754 100644
+index cb1b0ca59..ca07941c6 100644
 --- a/lib/debug.c
 +++ b/lib/debug.c
 @@ -31,7 +31,11 @@
@@ -85,7 +63,7 @@ index 532fa2a92..2b2259754 100644
  	if (_gnutls_mpi_print(a, buf, &n))
 @@ -43,7 +47,11 @@ void _gnutls_dump_mpi(const char *prefix, bigint_t a)
  
- void _gnutls_dump_vector(const char *prefix, const uint8_t * a, size_t a_size)
+ void _gnutls_dump_vector(const char *prefix, const uint8_t *a, size_t a_size)
  {
 +#if defined(_MSC_VER)
 +	char* buf_hex = (char*)_alloca((2 * a_size + 1) * sizeof(char));
@@ -93,50 +71,26 @@ index 532fa2a92..2b2259754 100644
  	char buf_hex[2 * a_size + 1];
 +#endif
  
- 	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int)a_size,
- 			  prefix, _gnutls_bin2hex(a, a_size, buf_hex,
+ 	_gnutls_debug_log("Vector: length: %d\n\t%s%s\n", (int)a_size, prefix,
+ 			  _gnutls_bin2hex(a, a_size, buf_hex, sizeof(buf_hex),
+diff --git a/lib/ext/pre_shared_key.c b/lib/ext/pre_shared_key.c
+index f632f972b..19d2ec935 100644
+--- a/lib/ext/pre_shared_key.c
++++ b/lib/ext/pre_shared_key.c
+@@ -80,7 +80,7 @@ static const char *get_binder_label(enum binder_type type, size_t *size)
+ 	static const char ext_label[] = EXT_BINDER_LABEL;
+ 	static const char res_label[] = RES_BINDER_LABEL;
+ 	static const char imp_label[] = IMP_BINDER_LABEL;
+-	const char *label;
++	const char *label = NULL;
+ 
+ 	switch (type) {
+ 	case BINDER_EXT:
 diff --git a/lib/global.c b/lib/global.c
-index 0ae68099c..61bf3a652 100644
+index 0bc249685..007eacdb2 100644
 --- a/lib/global.c
 +++ b/lib/global.c
-@@ -47,11 +47,32 @@
- #ifdef __sun
- # pragma fini(lib_deinit)
- # pragma init(lib_init)
--# define _CONSTRUCTOR
--# define _DESTRUCTOR
-+# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void);
-+# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void);
-+#elif defined(_WIN32) && defined(_MSC_VER)
-+# define CONSTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
-+	static int _func ## _wrapper(void) { _func(); return 0; } \
-+	__pragma(section(".CRT$XCU",read)) \
-+	__declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _wrapper; \
-+	__pragma(comment(linker,"/include:" p #_func "_"))
-+#ifdef _WIN64
-+# define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"")
- #else
--# define _CONSTRUCTOR __attribute__((constructor))
--# define _DESTRUCTOR __attribute__((destructor))
-+# define CONSTRUCTOR_ATTRIBUTE(f) CONSTRUCTOR_ATTRIBUTE_(f,"_")
-+#endif
-+# define DESTRUCTOR_ATTRIBUTE_(_func,p) static void _func(void); \
-+	static int _func ## _constructor(void) { atexit (_func); return 0; } \
-+	__pragma(section(".CRT$XCU",read)) \
-+	__declspec(allocate(".CRT$XCU")) int (* _func##_)(void) = _func ## _constructor; \
-+	__pragma(comment(linker,"/include:" p #_func "_"))
-+#ifdef _WIN64
-+#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"")
-+#else
-+#define DESTRUCTOR_ATTRIBUTE(f) DESTRUCTOR_ATTRIBUTE_(f,"_")
-+#endif
-+#else
-+# define CONSTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((constructor))
-+# define DESTRUCTOR_ATTRIBUTE(_func) static void _func(void) __attribute__((destructor))
- #endif
- 
- #ifndef _WIN32
-@@ -484,7 +505,8 @@ const char *gnutls_check_version(const char *req_version)
+@@ -495,7 +495,8 @@ const char *gnutls_check_version(const char *req_version)
  	return NULL;
  }
  
@@ -146,7 +100,7 @@ index 0ae68099c..61bf3a652 100644
  {
  	int ret;
  	const char *e;
-@@ -516,7 +538,8 @@ static void _CONSTRUCTOR lib_init(void)
+@@ -527,7 +528,8 @@ static void _CONSTRUCTOR lib_init(void)
  	}
  }
  
@@ -157,41 +111,40 @@ index 0ae68099c..61bf3a652 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index c3ff442cb..743b88fbc 100644
+index ec132cb5c..c858c4c7b 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -37,7 +37,13 @@
- # define GNUTLS_GNUTLS_H
+ #define GNUTLS_GNUTLS_H
  
  /* Get ssize_t. */
--# include <sys/types.h>
+-#include <sys/types.h>
 +#ifdef _MSC_VER
-+#include <BaseTsd.h>
++#  include <BaseTsd.h>
 +typedef SSIZE_T ssize_t;
-+#include <sys/types.h>
++#  include <sys/types.h>
 +#else
-+#include <sys/types.h>
++#  include <sys/types.h>
 +#endif
  
  /* Get size_t. */
- # include <stddef.h>
+ #include <stddef.h>
 diff --git a/lib/system/fastopen.c b/lib/system/fastopen.c
-index e60abf4aa..739e8e5ad 100644
+index 436922314..66b0b5563 100644
 --- a/lib/system/fastopen.c
 +++ b/lib/system/fastopen.c
 @@ -26,7 +26,9 @@
  #include "errors.h"
  
  #include <sys/socket.h>
--#include <netinet/in.h>		/* IPPROTO_TCP */
 +#ifdef HAVE_NETINET_IN_H
-+# include <netinet/in.h>		/* IPPROTO_TCP */
+ #include <netinet/in.h> /* IPPROTO_TCP */
 +#endif
  #include <errno.h>
  #include <sys/stat.h>
  #include <sys/types.h>
 diff --git a/lib/x509/hostname-verify.c b/lib/x509/hostname-verify.c
-index c3c6a3e70..b52efd2d9 100644
+index 331161389..a62d1c10c 100644
 --- a/lib/x509/hostname-verify.c
 +++ b/lib/x509/hostname-verify.c
 @@ -26,8 +26,10 @@
@@ -206,7 +159,7 @@ index c3c6a3e70..b52efd2d9 100644
  /**
   * gnutls_x509_crt_check_hostname:
 diff --git a/lib/x509/ip.c b/lib/x509/ip.c
-index 06d0fe90c..bf3115624 100644
+index 536b75c10..8ff65b992 100644
 --- a/lib/x509/ip.c
 +++ b/lib/x509/ip.c
 @@ -24,7 +24,9 @@
@@ -220,10 +173,10 @@ index 06d0fe90c..bf3115624 100644
  /*-
   * _gnutls_mask_to_prefix:
 diff --git a/lib/x509/verify-high2.c b/lib/x509/verify-high2.c
-index 7391fa273..02558520d 100644
+index ada486045..d8c64ff54 100644
 --- a/lib/x509/verify-high2.c
 +++ b/lib/x509/verify-high2.c
-@@ -494,7 +494,9 @@ int load_dir_certs(const char *dirname,
+@@ -465,7 +465,9 @@ static int load_dir_certs(const char *dirname, gnutls_x509_trust_list_t list,
  			switch (d->d_type) {
  			case DT_REG:
  			case DT_LNK:
@@ -234,10 +187,10 @@ index 7391fa273..02558520d 100644
  			default:
  				continue;
 diff --git a/lib/x509/x509_ext.c b/lib/x509/x509_ext.c
-index d369a4744..cf8a0d9eb 100644
+index 49314869c..847218aa2 100644
 --- a/lib/x509/x509_ext.c
 +++ b/lib/x509/x509_ext.c
-@@ -3656,7 +3656,7 @@ static const struct sct_sign_algorithm_st algos[] = {
+@@ -3539,7 +3539,7 @@ static const struct sct_sign_algorithm_st algos[] = {
  
  static gnutls_sign_algorithm_t get_sigalg(uint8_t hash_algo, uint8_t sig_algo)
  {
