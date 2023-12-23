@@ -23,10 +23,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "errors.h"
-#include <datum.h>
-#include <pkcs11_int.h>
+#include "datum.h"
+#include "pkcs11_int.h"
 #include "pkcs11x.h"
-#include <x509/common.h>
+#include "x509/common.h"
 #include "pk.h"
 
 static const ck_bool_t tval = 1;
@@ -355,7 +355,8 @@ static int add_pubkey(gnutls_pubkey_t pubkey, struct ck_attribute *a,
 		(*a_val)++;
 		break;
 	}
-	case GNUTLS_PK_EDDSA_ED25519: {
+	case GNUTLS_PK_EDDSA_ED25519:
+	case GNUTLS_PK_EDDSA_ED448: {
 		gnutls_datum_t params, ecpoint;
 
 		ret = _gnutls_x509_write_ecc_params(pubkey->params.curve,
@@ -934,8 +935,9 @@ int gnutls_pkcs11_copy_x509_privkey2(const char *token_url,
 
 		break;
 	}
-#ifdef HAVE_CKM_EDDSA
-	case GNUTLS_PK_EDDSA_ED25519: {
+#ifdef HAVE_PKCS11_EDDSA
+	case GNUTLS_PK_EDDSA_ED25519:
+	case GNUTLS_PK_EDDSA_ED448: {
 		ret = _gnutls_x509_write_ecc_params(key->params.curve, &p);
 		if (ret < 0) {
 			gnutls_assert();
@@ -1001,7 +1003,8 @@ cleanup:
 		break;
 	}
 	case GNUTLS_PK_EC:
-	case GNUTLS_PK_EDDSA_ED25519: {
+	case GNUTLS_PK_EDDSA_ED25519:
+	case GNUTLS_PK_EDDSA_ED448: {
 		gnutls_free(p.data);
 		gnutls_free(x.data);
 		break;

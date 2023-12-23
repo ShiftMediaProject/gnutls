@@ -19,10 +19,12 @@
  * along with GnuTLS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* This program tests functionality of DH exchanges */
+/* This program tests functionality of DH exchanges, with legacy,
+ * FIPS-only API
+ */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <gnutls/gnutls.h>

@@ -21,9 +21,9 @@
  */
 
 #include "gnutls_int.h"
-#include <algorithms.h>
+#include "algorithms.h"
 #include "errors.h"
-#include <x509/common.h>
+#include "x509/common.h"
 #include "c-strcase.h"
 
 /* Note that all algorithms are in CBC or STREAM modes.
@@ -307,6 +307,24 @@ static const cipher_entry_st algorithms[] = {
 	  .cipher_iv = 16,
 	  .flags = GNUTLS_CIPHER_FLAG_ONLY_AEAD |
 		   GNUTLS_CIPHER_FLAG_TAG_PREFIXED,
+	  .tagsize = 16 },
+	{ .name = "AES-128-SIV-GCM",
+	  .id = GNUTLS_CIPHER_AES_128_SIV_GCM,
+	  .blocksize = 16,
+	  .keysize = 16,
+	  .type = CIPHER_AEAD,
+	  .explicit_iv = 12,
+	  .cipher_iv = 12,
+	  .flags = GNUTLS_CIPHER_FLAG_ONLY_AEAD,
+	  .tagsize = 16 },
+	{ .name = "AES-256-SIV-GCM",
+	  .id = GNUTLS_CIPHER_AES_256_SIV_GCM,
+	  .blocksize = 16,
+	  .keysize = 32,
+	  .type = CIPHER_AEAD,
+	  .explicit_iv = 12,
+	  .cipher_iv = 12,
+	  .flags = GNUTLS_CIPHER_FLAG_ONLY_AEAD,
 	  .tagsize = 16 },
 	{ .name = "GOST28147-TC26Z-CNT",
 	  .id = GNUTLS_CIPHER_GOST28147_TC26Z_CNT,

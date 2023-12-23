@@ -25,7 +25,7 @@
 #define GNUTLS_LIB_GNUTLS_INT_H
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <stddef.h>
@@ -82,7 +82,7 @@ typedef int ssize_t;
 #include <gnutls/dtls.h>
 #include <gnutls/abstract.h>
 #include <gnutls/socket.h>
-#include <system.h>
+#include "system.h"
 
 /* in case we compile with system headers taking priority, we
  * make sure that some new attributes are still available.
@@ -238,7 +238,7 @@ typedef enum record_send_state_t {
 #define DEFAULT_MAX_VERIFY_BITS (MAX_PK_PARAM_SIZE * 8)
 #define MAX_VERIFY_DEPTH 4096
 
-#include <mem.h>
+#include "mem.h"
 
 #define MEMSUB(x, y) ((ssize_t)((ptrdiff_t)x - (ptrdiff_t)y))
 
@@ -267,7 +267,7 @@ typedef enum record_send_state_t {
 
 #define GNUTLS_KX_INVALID (-1)
 
-#include <mpi.h>
+#include "mpi.h"
 
 typedef enum handshake_state_t {
 	STATE0 = 0,
@@ -821,8 +821,8 @@ typedef struct {
 
 /* STATE (cont) */
 
-#include <hash_int.h>
-#include <cipher_int.h>
+#include "hash_int.h"
+#include "cipher_int.h"
 
 typedef struct {
 	uint8_t id[2]; /* used to be (in TLS 1.2) hash algorithm , PK algorithm */
@@ -1088,7 +1088,6 @@ struct gnutls_priority_st {
 	bool _no_etm;
 	bool _no_ext_master_secret;
 	bool _allow_key_usage_violation;
-	bool _allow_wrong_pms;
 	bool _dumbfw;
 	unsigned int _dh_prime_bits; /* old (deprecated) variable */
 
@@ -1106,7 +1105,6 @@ struct gnutls_priority_st {
 	(x)->no_etm = 1;                    \
 	(x)->no_ext_master_secret = 1;      \
 	(x)->allow_key_usage_violation = 1; \
-	(x)->allow_wrong_pms = 1;           \
 	(x)->dumbfw = 1
 
 #define ENABLE_PRIO_COMPAT(x)                \
@@ -1115,7 +1113,6 @@ struct gnutls_priority_st {
 	(x)->_no_etm = 1;                    \
 	(x)->_no_ext_master_secret = 1;      \
 	(x)->_allow_key_usage_violation = 1; \
-	(x)->_allow_wrong_pms = 1;           \
 	(x)->_dumbfw = 1
 
 /* DH and RSA parameters types.
@@ -1242,7 +1239,6 @@ typedef struct {
 	bool no_etm;
 	bool no_ext_master_secret;
 	bool allow_key_usage_violation;
-	bool allow_wrong_pms;
 	bool dumbfw;
 
 	/* old (deprecated) variable. This is used for both srp_prime_bits
@@ -1304,7 +1300,7 @@ typedef struct {
 		*auth_struct; /* used in handshake packets and KX algorithms */
 
 	/* this is the highest version available
-	 * to the peer. (advertized version).
+	 * to the peer. (advertised version).
 	 * This is obtained by the Handshake Client Hello
 	 * message. (some implementations read the Record version)
 	 */
@@ -1470,7 +1466,7 @@ typedef struct {
 #define HSK_KEY_UPDATE_ASKED (1 << 7) /* flag is not used during handshake */
 #define HSK_FALSE_START_USED (1 << 8) /* TLS1.2 only */
 #define HSK_HAVE_FFDHE \
-	(1 << 9) /* whether the peer has advertized at least an FFDHE group */
+	(1 << 9) /* whether the peer has advertised at least an FFDHE group */
 #define HSK_USED_FFDHE \
 	(1 << 10) /* whether ffdhe was actually negotiated and used */
 #define HSK_PSK_KE_MODES_SENT (1 << 11)
@@ -1726,7 +1722,7 @@ inline static int _gnutls_timespec_cmp(struct timespec *a, struct timespec *b)
 	return 0;
 }
 
-#include <algorithms.h>
+#include "algorithms.h"
 inline static int _gnutls_set_current_version(gnutls_session_t s, unsigned v)
 {
 	s->security_parameters.pversion = version_to_entry(v);

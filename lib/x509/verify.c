@@ -29,16 +29,16 @@
 #include "gnutls_int.h"
 #include "errors.h"
 #include <libtasn1.h>
-#include <global.h>
-#include <num.h> /* MAX */
-#include <tls-sig.h>
-#include <str.h>
-#include <datum.h>
-#include <pkcs11_int.h>
-#include <x509_int.h>
-#include <common.h>
-#include <pk.h>
-#include <x509/verify-high.h>
+#include "global.h"
+#include "num.h" /* MAX */
+#include "tls-sig.h"
+#include "str.h"
+#include "datum.h"
+#include "pkcs11_int.h"
+#include "x509_int.h"
+#include "common.h"
+#include "pk.h"
+#include "x509/verify-high.h"
 #include "supported_exts.h"
 #include "profiles.h"
 
@@ -664,7 +664,7 @@ static unsigned verify_crt(gnutls_x509_trust_list_t tlist,
 
 	if (vparams->max_path == 0) {
 		MARK_INVALID(GNUTLS_CERT_SIGNER_CONSTRAINTS_FAILURE);
-		/* bail immediately, to avoid inconistency  */
+		/* bail immediately, to avoid inconsistency  */
 		goto cleanup;
 	}
 	vparams->max_path--;

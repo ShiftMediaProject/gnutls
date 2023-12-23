@@ -23,15 +23,15 @@
 
 #include "gnutls_int.h"
 #include "errors.h"
-#include <datum.h>
-#include <x509_b64.h> /* for PKCS3 PEM decoding */
-#include <global.h>
-#include <dh.h>
-#include <pk.h>
-#include <x509/common.h>
+#include "datum.h"
+#include "x509_b64.h" /* for PKCS3 PEM decoding */
+#include "global.h"
+#include "dh.h"
+#include "pk.h"
+#include "x509/common.h"
 #include <gnutls/crypto.h>
 #include "x509/x509_int.h"
-#include <mpi.h>
+#include "mpi.h"
 #include "debug.h"
 #include "state.h"
 
@@ -315,16 +315,14 @@ int gnutls_dh_params_import_raw2(gnutls_dh_params_t dh_params,
 				 unsigned key_bits)
 {
 	bigint_t tmp_prime, tmp_g;
-	size_t siz;
 
-	siz = prime->size;
-	if (_gnutls_mpi_init_scan_nz(&tmp_prime, prime->data, siz)) {
+	if (_gnutls_mpi_init_scan_nz(&tmp_prime, prime->data, prime->size)) {
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;
 	}
 
-	siz = generator->size;
-	if (_gnutls_mpi_init_scan_nz(&tmp_g, generator->data, siz)) {
+	if (_gnutls_mpi_init_scan_nz(&tmp_g, generator->data,
+				     generator->size)) {
 		_gnutls_mpi_release(&tmp_prime);
 		gnutls_assert();
 		return GNUTLS_E_MPI_SCAN_FAILED;

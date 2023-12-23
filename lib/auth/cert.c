@@ -28,21 +28,21 @@
 #include "gnutls_int.h"
 #include "auth.h"
 #include "errors.h"
-#include <auth/cert.h>
+#include "auth/cert.h"
 #include "dh.h"
 #include "num.h"
 #include "libtasn1.h"
 #include "datum.h"
 #include "ext/signature.h"
-#include <pk.h>
-#include <algorithms.h>
-#include <global.h>
-#include <record.h>
-#include <tls-sig.h>
-#include <state.h>
-#include <pk.h>
-#include <x509.h>
-#include <x509/verify-high.h>
+#include "pk.h"
+#include "algorithms.h"
+#include "global.h"
+#include "record.h"
+#include "tls-sig.h"
+#include "state.h"
+#include "pk.h"
+#include "x509.h"
+#include "x509/verify-high.h"
 #include <gnutls/abstract.h>
 #include "abstract_int.h"
 #include "debug.h"
@@ -491,7 +491,7 @@ static int call_get_cert_callback(gnutls_session_t session,
 }
 
 /* Finds the appropriate certificate depending on the cA Distinguished name
- * advertized by the server. If none matches then returns 0 and -1 as index.
+ * advertised by the server. If none matches then returns 0 and -1 as index.
  * In case of an error a negative error code, is returned.
  *
  * 20020128: added ability to select a certificate depending on the SIGN

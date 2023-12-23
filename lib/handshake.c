@@ -41,19 +41,19 @@
 #include "supplemental.h"
 #include "auth.h"
 #include "sslv2_compat.h"
-#include <auth/cert.h>
+#include "auth/cert.h"
 #include "constate.h"
-#include <record.h>
-#include <state.h>
-#include <ext/pre_shared_key.h>
-#include <ext/srp.h>
-#include <ext/session_ticket.h>
-#include <ext/status_request.h>
-#include <ext/safe_renegotiation.h>
-#include <auth/anon.h> /* for gnutls_anon_server_credentials_t */
-#include <auth/psk.h> /* for gnutls_psk_server_credentials_t */
-#include <random.h>
-#include <dtls.h>
+#include "record.h"
+#include "state.h"
+#include "ext/pre_shared_key.h"
+#include "ext/srp.h"
+#include "ext/session_ticket.h"
+#include "ext/status_request.h"
+#include "ext/safe_renegotiation.h"
+#include "auth/anon.h" /* for gnutls_anon_server_credentials_t */
+#include "auth/psk.h" /* for gnutls_psk_server_credentials_t */
+#include "random.h"
+#include "dtls.h"
 #include "secrets.h"
 #include "tls13/early_data.h"
 #include "tls13/session_ticket.h"
@@ -460,7 +460,7 @@ int _gnutls_negotiate_version(gnutls_session_t session, uint8_t major,
 	const version_entry_st *aversion = nversion_to_entry(major, minor);
 
 	/* if we do not support that version, unless that version is TLS 1.2;
-	 * TLS 1.2 is handled separately because it is always advertized under TLS 1.3 or later */
+	 * TLS 1.2 is handled separately because it is always advertised under TLS 1.3 or later */
 	if (aversion == NULL ||
 	    _gnutls_nversion_is_supported(session, major, minor) == 0) {
 		if (aversion && aversion->id == GNUTLS_TLS1_2) {
@@ -1627,8 +1627,10 @@ int _gnutls_recv_handshake(gnutls_session_t session,
 		{
 			/* Reference the full ClientHello in case an extension needs it */
 			ret = _gnutls_ext_set_full_client_hello(session, &hsk);
-			if (ret < 0)
-				return gnutls_assert_val(ret);
+			if (ret < 0) {
+				gnutls_assert();
+				goto cleanup;
+			}
 
 			ret = read_client_hello(session, hsk.data.data,
 						hsk.data.length);
@@ -2206,7 +2208,7 @@ static int send_client_hello(gnutls_session_t session, int again)
 		/* if we are replying to an HRR the version is already negotiated */
 		if (!(session->internals.hsk_flags & HSK_HRR_RECEIVED) ||
 		    !get_version(session)) {
-			/* Set the version we advertized as maximum
+			/* Set the version we advertised as maximum
 			 * (RSA uses it). */
 			set_adv_version(session, hver->major, hver->minor);
 			if (_gnutls_set_current_version(session, hver->id) <

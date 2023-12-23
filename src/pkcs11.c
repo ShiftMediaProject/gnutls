@@ -19,7 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <config.h>
+#include "config.h"
 
 #include <gnutls/gnutls.h>
 #include <gnutls/pkcs11.h>
@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
-#include <common.h>
+#include "common.h"
 
 #include <p11-kit/pkcs11.h>
 
@@ -1237,7 +1237,7 @@ void pkcs11_write(FILE *outfile, const char *url, const char *label,
 		    !(flags & GNUTLS_PKCS11_OBJ_FLAG_MARK_DISTRUSTED)) {
 			gnutls_datum_t hex;
 			/* attempting to discover public keys matching this one,
-			 * and if yes, re-use their ID. We don't do it for CAs (trusted/distrusted
+			 * and if yes, reuse their ID. We don't do it for CAs (trusted/distrusted
 			 * or explicitly marked as such. */
 
 			/* try without login */
@@ -1257,7 +1257,7 @@ void pkcs11_write(FILE *outfile, const char *url, const char *label,
 					app_exit(1);
 				}
 				fprintf(stderr,
-					"note: will re-use ID %s from corresponding public key\n",
+					"note: will reuse ID %s from corresponding public key\n",
 					hex.data);
 				gnutls_free(hex.data);
 
@@ -1274,7 +1274,7 @@ void pkcs11_write(FILE *outfile, const char *url, const char *label,
 						app_exit(1);
 					}
 					fprintf(stderr,
-						"note: will re-use ID %s from corresponding private key\n",
+						"note: will reuse ID %s from corresponding private key\n",
 						hex.data);
 					gnutls_free(hex.data);
 				}

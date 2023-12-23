@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.8.1], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.8.2], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -90,7 +90,7 @@ AC_RUN_IFELSE(
       puts(outstr);
       return 0;
     ]])],
-  [AS_IF([test `TZ=UTC $FAKETIME $FAKETIME_F_OPT "2006-09-23 00:00:00" ./conftest$EXEEXT` = "1158969600"], [
+  [AS_IF([test -n "$FAKETIME" && test `TZ=UTC $FAKETIME $FAKETIME_F_OPT "2006-09-23 00:00:00" ./conftest$EXEEXT` = "1158969600"], [
      ac_cv_faketime_works=yes
    ], [
      ac_cv_faketime_works=no
@@ -777,6 +777,13 @@ save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_cmac_kuznyechik_update)
 LIBS=$save_LIBS
+
+# Check for SIV-GCM
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_siv_gcm_encrypt_message)
+LIBS=$save_LIBS
+AM_CONDITIONAL([NEED_SIV_GCM], [test "$ac_cv_func_nettle_siv_gcm_encrypt_message" != yes])
 
 # Check sonames of the linked libraries needed for FIPS selftests.
 save_LIBS=$LIBS

@@ -25,19 +25,19 @@
 #include <stdio.h>
 #include <string.h>
 #include "errors.h"
-#include <datum.h>
-#include <pkcs11_int.h>
+#include "datum.h"
+#include "pkcs11_int.h"
 #include <gnutls/abstract.h>
-#include <pk.h>
-#include <x509_int.h>
-#include <tls-sig.h>
-#include <algorithms.h>
-#include <fips.h>
-#include <system-keys.h>
+#include "pk.h"
+#include "x509_int.h"
+#include "tls-sig.h"
+#include "algorithms.h"
+#include "fips.h"
+#include "system-keys.h"
 #include "urls.h"
 #include "tpm2.h"
 #include "pkcs11_int.h"
-#include <abstract_int.h>
+#include "abstract_int.h"
 
 static int privkey_sign_prehashed(gnutls_privkey_t signer,
 				  const gnutls_sign_entry_st *se,
@@ -181,19 +181,44 @@ static int privkey_to_pubkey(gnutls_pk_algorithm_t pk,
 
 		break;
 	case GNUTLS_PK_DSA:
-		pub->params[0] = _gnutls_mpi_copy(priv->params[0]);
-		pub->params[1] = _gnutls_mpi_copy(priv->params[1]);
-		pub->params[2] = _gnutls_mpi_copy(priv->params[2]);
-		pub->params[3] = _gnutls_mpi_copy(priv->params[3]);
+		pub->params[DSA_P] = _gnutls_mpi_copy(priv->params[DSA_P]);
+		pub->params[DSA_Q] = _gnutls_mpi_copy(priv->params[DSA_Q]);
+		pub->params[DSA_G] = _gnutls_mpi_copy(priv->params[DSA_G]);
+		pub->params[DSA_Y] = _gnutls_mpi_copy(priv->params[DSA_Y]);
 
 		pub->params_nr = DSA_PUBLIC_PARAMS;
 
-		if (pub->params[0] == NULL || pub->params[1] == NULL ||
-		    pub->params[2] == NULL || pub->params[3] == NULL) {
+		if (pub->params[DSA_P] == NULL || pub->params[DSA_Q] == NULL ||
+		    pub->params[DSA_G] == NULL || pub->params[DSA_Y] == NULL) {
 			gnutls_assert();
 			ret = GNUTLS_E_MEMORY_ERROR;
 			goto cleanup;
 		}
+
+		break;
+	case GNUTLS_PK_DH:
+		pub->params[DH_P] = _gnutls_mpi_copy(priv->params[DH_P]);
+		pub->params[DH_G] = _gnutls_mpi_copy(priv->params[DH_G]);
+		pub->params[DH_Y] = _gnutls_mpi_copy(priv->params[DH_Y]);
+
+		if (pub->params[DH_P] == NULL || pub->params[DH_G] == NULL ||
+		    pub->params[DH_Y] == NULL) {
+			gnutls_assert();
+			ret = GNUTLS_E_MEMORY_ERROR;
+			goto cleanup;
+		}
+
+		if (priv->params[DH_Q]) {
+			pub->params[DH_Q] =
+				_gnutls_mpi_copy(priv->params[DH_Q]);
+			if (pub->params[DH_Q] == NULL) {
+				gnutls_assert();
+				ret = GNUTLS_E_MEMORY_ERROR;
+				goto cleanup;
+			}
+		}
+
+		pub->params_nr = DH_PUBLIC_PARAMS;
 
 		break;
 	case GNUTLS_PK_ECDSA:
@@ -546,7 +571,7 @@ int gnutls_privkey_import_pkcs11(gnutls_privkey_t pkey,
  * @key: A key of type #gnutls_pubkey_t
  * @url: A PKCS 11 url
  *
- * This function will import a PKCS 11 private key to a #gnutls_private_key_t
+ * This function will import a PKCS 11 private key to a #gnutls_privkey_t
  * type.
  *
  * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
@@ -2002,4 +2027,41 @@ unsigned _gnutls_privkey_compatible_with_sig(gnutls_privkey_t privkey,
 #endif
 
 	return 1;
+}
+
+/**
+ * gnutls_privkey_derive_secret:
+ * @privkey: a private key of type #gnutls_privkey_t
+ * @pubkey: a public key of type #gnutls_pubkey_t
+ * @nonce: an optional nonce value
+ * @secret: where shared secret will be stored
+ * @flags: must be zero
+ *
+ * This function will calculate a shared secret from our @privkey and
+ * peer's @pubkey. The result will be stored in @secret, whose data
+ * member should be freed after use using gnutls_free(). @privkey and
+ * @pubkey must be backed by the X.509 keys.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error value.
+ *
+ * Since: 3.8.2
+ **/
+int gnutls_privkey_derive_secret(gnutls_privkey_t privkey,
+				 gnutls_pubkey_t pubkey,
+				 const gnutls_datum_t *nonce,
+				 gnutls_datum_t *secret, unsigned int flags)
+{
+	if (unlikely(privkey == NULL || privkey->type != GNUTLS_PRIVKEY_X509)) {
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+	}
+
+	if (unlikely(pubkey == NULL ||
+		     pubkey->params.algo != privkey->pk_algorithm)) {
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+	}
+
+	return _gnutls_pk_derive_nonce(privkey->pk_algorithm, secret,
+				       &privkey->key.x509->params,
+				       &pubkey->params, nonce);
 }

@@ -30,17 +30,17 @@
 #include "dh.h"
 #include "num.h"
 #include "datum.h"
-#include <auth/cert.h>
-#include <pk.h>
-#include <algorithms.h>
-#include <global.h>
+#include "auth/cert.h"
+#include "pk.h"
+#include "algorithms.h"
+#include "global.h"
 #include "debug.h"
-#include <tls-sig.h>
-#include <x509.h>
-#include <random.h>
-#include <mpi.h>
-#include <abstract_int.h>
-#include <auth/rsa_common.h>
+#include "tls-sig.h"
+#include "x509.h"
+#include "random.h"
+#include "mpi.h"
+#include "abstract_int.h"
+#include "auth/rsa_common.h"
 
 int _gnutls_gen_rsa_client_kx(gnutls_session_t, gnutls_buffer_st *);
 static int proc_rsa_client_kx(gnutls_session_t, uint8_t *, size_t);
@@ -206,7 +206,7 @@ static int proc_rsa_client_kx(gnutls_session_t session, uint8_t *data,
 				     session->key.key.size);
 	/* After this point, any conditional on failure that cause differences
 	 * in execution may create a timing or cache access pattern side
-	 * channel that can be used as an oracle, so treat very carefully */
+	 * channel that can be used as an oracle, so tread carefully */
 
 	/* Error handling logic:
 	 * In case decryption fails then don't inform the peer. Just use the

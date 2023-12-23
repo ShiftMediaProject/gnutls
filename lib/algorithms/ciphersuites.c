@@ -22,15 +22,15 @@
  */
 
 #include "gnutls_int.h"
-#include <algorithms.h>
+#include "algorithms.h"
 #include "errors.h"
-#include <dh.h>
-#include <state.h>
-#include <x509/common.h>
-#include <auth/cert.h>
-#include <auth/anon.h>
-#include <auth/psk.h>
-#include <ext/safe_renegotiation.h>
+#include "dh.h"
+#include "state.h"
+#include "x509/common.h"
+#include "auth/cert.h"
+#include "auth/anon.h"
+#include "auth/psk.h"
+#include "ext/safe_renegotiation.h"
 
 #ifndef ENABLE_SSL3
 #define GNUTLS_SSL3 GNUTLS_TLS1
@@ -1790,7 +1790,7 @@ static unsigned check_server_dh_params(gnutls_session_t session,
 	}
 
 	if (session->internals.hsk_flags & HSK_HAVE_FFDHE) {
-		/* if the client has advertized FFDHE then it doesn't matter
+		/* if the client has advertised FFDHE then it doesn't matter
 		 * whether we have server DH parameters. They are no good. */
 		gnutls_assert();
 		return 0;

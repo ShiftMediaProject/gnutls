@@ -23,15 +23,15 @@
 
 #include "gnutls_int.h"
 #include "errors.h"
-#include <global.h>
+#include "global.h"
 #include <libtasn1.h>
-#include <datum.h>
+#include "datum.h"
 #include "common.h"
 #include "x509_int.h"
-#include <num.h>
-#include <pk.h>
-#include <mpi.h>
-#include <ecc.h>
+#include "num.h"
+#include "pk.h"
+#include "mpi.h"
+#include "ecc.h"
 
 static int _gnutls_x509_write_rsa_pubkey(const gnutls_pk_params_st *params,
 					 gnutls_datum_t *der);
@@ -1032,6 +1032,9 @@ int _gnutls_asn1_encode_privkey(asn1_node *c2, gnutls_pk_params_st *params)
 	case GNUTLS_PK_GOST_12_256:
 	case GNUTLS_PK_GOST_12_512:
 		return _gnutls_asn1_encode_gost(c2, params);
+	case GNUTLS_PK_DH:
+		/* DH keys are only exportable in PKCS#8 format */
+		return GNUTLS_E_INVALID_REQUEST;
 	default:
 		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
 	}

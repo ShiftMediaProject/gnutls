@@ -22,15 +22,15 @@
 #include <stdio.h>
 #include <string.h>
 #include "errors.h"
-#include <datum.h>
-#include <pkcs11_int.h>
+#include "datum.h"
+#include "pkcs11_int.h"
 #include <gnutls/abstract.h>
-#include <pk.h>
-#include <x509_int.h>
-#include <tls-sig.h>
-#include <algorithms.h>
-#include <fips.h>
-#include <abstract_int.h>
+#include "pk.h"
+#include "x509_int.h"
+#include "tls-sig.h"
+#include "algorithms.h"
+#include "fips.h"
+#include "abstract_int.h"
 
 /**
  * gnutls_privkey_export_rsa_raw:
@@ -177,6 +177,55 @@ int gnutls_privkey_export_dsa_raw2(gnutls_privkey_t key, gnutls_datum_t *p,
 	gnutls_pk_params_release(&params);
 
 	return ret;
+}
+
+/**
+ * gnutls_privkey_export_dh_raw:
+ * @key: Holds the private key
+ * @params: will hold the Diffie-Hellman parameters (optional), must be initialized
+ * @y: will hold the y (optional)
+ * @x: will hold the x
+ * @flags: flags from %gnutls_abstract_export_flags_t
+ *
+ * This function will export the Diffie-Hellman private key parameter
+ * found in the given %gnutls_privkey_t structure. The new parameter
+ * will be allocated using gnutls_malloc() and will be stored in the
+ * appropriate datum.
+ *
+ * To retrieve other parameters common in both public key and private
+ * key, use gnutls_dh_params_export_raw().
+ *
+ * Returns: %GNUTLS_E_SUCCESS on success, otherwise a negative error code.
+ *
+ * Since: 3.8.2
+ **/
+int gnutls_privkey_export_dh_raw(gnutls_privkey_t key,
+				 gnutls_dh_params_t params, gnutls_datum_t *y,
+				 gnutls_datum_t *x, unsigned int flags)
+{
+	if (params) {
+		gnutls_pk_params_st pk_params;
+		int ret;
+
+		gnutls_pk_params_init(&pk_params);
+
+		ret = _gnutls_privkey_get_mpis(key, &pk_params);
+		if (ret < 0)
+			return gnutls_assert_val(ret);
+
+		params->params[0] = _gnutls_mpi_copy(pk_params.params[DH_P]);
+		params->params[1] = _gnutls_mpi_copy(pk_params.params[DH_G]);
+		if (pk_params.params[DH_Q]) {
+			params->params[2] =
+				_gnutls_mpi_copy(pk_params.params[DH_Q]);
+		}
+		params->q_bits = pk_params.qbits;
+
+		gnutls_pk_params_release(&pk_params);
+	}
+
+	return gnutls_privkey_export_dsa_raw2(key, NULL, NULL, NULL, y, x,
+					      flags);
 }
 
 /**
@@ -385,6 +434,54 @@ int gnutls_privkey_import_dsa_raw(gnutls_privkey_t key, const gnutls_datum_t *p,
 		return gnutls_assert_val(ret);
 
 	ret = gnutls_x509_privkey_import_dsa_raw(xkey, p, q, g, y, x);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	ret = gnutls_privkey_import_x509(key, xkey,
+					 GNUTLS_PRIVKEY_IMPORT_AUTO_RELEASE);
+	if (ret < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	return 0;
+
+error:
+	gnutls_x509_privkey_deinit(xkey);
+	return ret;
+}
+
+/**
+ * gnutls_privkey_import_dh_raw:
+ * @key: The structure to store the parsed key
+ * @params: holds the %gnutls_dh_params_t
+ * @y: holds the y (optional)
+ * @x: holds the x
+ *
+ * This function will convert the given Diffie-Hellman raw parameters
+ * to the native #gnutls_privkey_t format.  The output will be stored
+ * in @key.
+ *
+ * Returns: On success, %GNUTLS_E_SUCCESS (0) is returned, otherwise a
+ *   negative error value.
+ *
+ * Since: 3.8.2
+ **/
+int gnutls_privkey_import_dh_raw(gnutls_privkey_t key,
+				 const gnutls_dh_params_t params,
+				 const gnutls_datum_t *y,
+				 const gnutls_datum_t *x)
+{
+	int ret;
+	gnutls_x509_privkey_t xkey;
+
+	ret = gnutls_x509_privkey_init(&xkey);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
+
+	ret = gnutls_x509_privkey_import_dh_raw(xkey, params, y, x);
 	if (ret < 0) {
 		gnutls_assert();
 		goto error;

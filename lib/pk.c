@@ -26,16 +26,16 @@
  */
 
 #include "gnutls_int.h"
-#include <mpi.h>
-#include <pk.h>
+#include "mpi.h"
+#include "pk.h"
 #include "errors.h"
-#include <datum.h>
-#include <global.h>
-#include <num.h>
+#include "datum.h"
+#include "global.h"
+#include "num.h"
 #include "debug.h"
-#include <x509/x509_int.h>
-#include <x509/common.h>
-#include <random.h>
+#include "x509/x509_int.h"
+#include "x509/common.h"
+#include "random.h"
 #include <gnutls/crypto.h>
 
 /**
@@ -478,9 +478,11 @@ int _gnutls_pk_params_copy(gnutls_pk_params_st *dst,
 	dst->algo = src->algo;
 
 	for (i = 0; i < src->params_nr; i++) {
-		dst->params[i] = _gnutls_mpi_copy(src->params[i]);
-		if (dst->params[i] == NULL) {
-			goto fail;
+		if (src->params[i]) {
+			dst->params[i] = _gnutls_mpi_copy(src->params[i]);
+			if (dst->params[i] == NULL) {
+				goto fail;
+			}
 		}
 
 		dst->params_nr++;
@@ -922,7 +924,7 @@ int _gnutls_params_get_dsa_raw(const gnutls_pk_params_st *params,
 		return GNUTLS_E_INVALID_REQUEST;
 	}
 
-	if (params->algo != GNUTLS_PK_DSA) {
+	if (params->algo != GNUTLS_PK_DSA && params->algo != GNUTLS_PK_DH) {
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
