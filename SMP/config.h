@@ -843,6 +843,9 @@ don't. */
 /* Define to 1 if you have the `nettle_streebog512_update' function. */
 #define HAVE_NETTLE_STREEBOG512_UPDATE 1
 
+/* Define to 1 if you have the `nettle_siv_gcm_encrypt_message' function. */
+#define HAVE_NETTLE_SIV_GCM_ENCRYPT_MESSAGE 1
+
 /* Define to 1 if you have the `nanosleep' function. */
 /* #undef HAVE_NANOSLEEP */
 

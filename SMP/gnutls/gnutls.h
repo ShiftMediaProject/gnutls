@@ -38,11 +38,11 @@
 
 /* Get ssize_t. */
 #ifdef _MSC_VER
-#include <BaseTsd.h>
+#  include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
-#include <sys/types.h>
+#  include <sys/types.h>
 #else
-#include <sys/types.h>
+#  include <sys/types.h>
 #endif
 
 /* Get size_t. */
@@ -55,14 +55,14 @@ typedef SSIZE_T ssize_t;
 extern "C" {
 #endif
 
-#define GNUTLS_VERSION "3.8.1"
+#define GNUTLS_VERSION "3.8.2"
 
 /* clang-format off */
 #define GNUTLS_VERSION_MAJOR 3
 #define GNUTLS_VERSION_MINOR 8
-#define GNUTLS_VERSION_PATCH 1
+#define GNUTLS_VERSION_PATCH 2
 
-#define GNUTLS_VERSION_NUMBER 0x030801
+#define GNUTLS_VERSION_NUMBER 0x030802
 /* clang-format on */
 
 #define GNUTLS_CIPHER_RIJNDAEL_128_CBC GNUTLS_CIPHER_AES_128_CBC
@@ -154,6 +154,8 @@ extern "C" {
  *                             the authentication tag while it is prepended to
  *                             the cipher text.
  * @GNUTLS_CIPHER_AES_192_GCM: AES in GCM mode with 192-bit keys (AEAD).
+ * @GNUTLS_CIPHER_AES_128_SIV_GCM: AES in SIV-GCM mode with 128-bit key.
+ * @GNUTLS_CIPHER_AES_256_SIV_GCM: AES in SIV-GCM mode with 256-bit key.
  *
  * Enumeration of different symmetric encryption algorithms.
  */
@@ -200,6 +202,8 @@ typedef enum gnutls_cipher_algorithm {
 	GNUTLS_CIPHER_AES_192_GCM = 39,
 	GNUTLS_CIPHER_MAGMA_CTR_ACPKM = 40,
 	GNUTLS_CIPHER_KUZNYECHIK_CTR_ACPKM = 41,
+	GNUTLS_CIPHER_AES_128_SIV_GCM = 42,
+	GNUTLS_CIPHER_AES_256_SIV_GCM = 43,
 
 	/* used only for PGP internals. Ignored in TLS/SSL
 	 */
@@ -469,7 +473,7 @@ typedef enum {
  *   For example (ECDH + x25519). This is the default.
  * @GNUTLS_KEY_SHARE_TOP: Generate key share for the first group which is enabled.
  *   For example x25519. This option is the most performant for client (less CPU spent
- *   generating keys), but if the server doesn't support the advertized option it may
+ *   generating keys), but if the server doesn't support the advertised option it may
  *   result to more roundtrips needed to discover the server's choice.
  * @GNUTLS_NO_AUTO_REKEY: Disable auto-rekeying under TLS1.3. If this option is not specified
  *   gnutls will force a rekey after 2^24 records have been sent.
@@ -547,6 +551,9 @@ typedef enum {
 #define GNUTLS_NO_TICKETS (1 << 10)
 #define GNUTLS_ENABLE_CERT_TYPE_NEG 0
 // Here for compatibility reasons
+
+/* Keep backward compatibility */
+#define GNUTLS_NO_EXTENSIONS GNUTLS_NO_DEFAULT_EXTENSIONS
 
 /**
  * gnutls_alert_level_t:

@@ -555,6 +555,8 @@ gnutls_priority_string_list
 gnutls_privkey_decrypt_data2
 gnutls_privkey_decrypt_data
 gnutls_privkey_deinit
+gnutls_privkey_derive_secret
+gnutls_privkey_export_dh_raw
 gnutls_privkey_export_dsa_raw2
 gnutls_privkey_export_dsa_raw
 gnutls_privkey_export_ecc_raw2
@@ -570,6 +572,7 @@ gnutls_privkey_get_pk_algorithm
 gnutls_privkey_get_seed
 gnutls_privkey_get_spki
 gnutls_privkey_get_type
+gnutls_privkey_import_dh_raw
 gnutls_privkey_import_dsa_raw
 gnutls_privkey_import_ecc_raw
 gnutls_privkey_import_ext2
@@ -627,6 +630,7 @@ gnutls_pubkey_deinit
 gnutls_pubkey_encrypt_data
 gnutls_pubkey_export2
 gnutls_pubkey_export
+gnutls_pubkey_export_dh_raw
 gnutls_pubkey_export_dsa_raw2
 gnutls_pubkey_export_dsa_raw
 gnutls_pubkey_export_ecc_raw2
@@ -642,6 +646,7 @@ gnutls_pubkey_get_pk_algorithm
 gnutls_pubkey_get_preferred_hash_algorithm
 gnutls_pubkey_get_spki
 gnutls_pubkey_import
+gnutls_pubkey_import_dh_raw
 gnutls_pubkey_import_dsa_raw
 gnutls_pubkey_import_ecc_raw
 gnutls_pubkey_import_ecc_x962
@@ -1164,6 +1169,7 @@ gnutls_x509_privkey_get_seed
 gnutls_x509_privkey_get_spki
 gnutls_x509_privkey_import2
 gnutls_x509_privkey_import
+gnutls_x509_privkey_import_dh_raw
 gnutls_x509_privkey_import_dsa_raw
 gnutls_x509_privkey_import_ecc_raw
 gnutls_x509_privkey_import_gost_raw
