@@ -40,9 +40,9 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #     in CONTRIBUTION.md for more info.
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
-  AC_SUBST(LT_CURRENT, 67)
-  AC_SUBST(LT_REVISION, 1)
-  AC_SUBST(LT_AGE, 37)
+  AC_SUBST(LT_CURRENT, 68)
+  AC_SUBST(LT_REVISION, 0)
+  AC_SUBST(LT_AGE, 38)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
@@ -367,8 +367,8 @@ LIBTASN1_MINIMUM=4.9
   AC_MSG_RESULT($enable_ktls)
 
   if test "$enable_ktls" = "yes"; then
-    AC_MSG_CHECKING([whethwe KTLS is supported by the OS])
-    AS_CASE([$host_os], 
+    AC_MSG_CHECKING([whether KTLS is supported by the OS])
+    AS_CASE([$host_os],
       [freebsd*], [AC_CHECK_HEADERS([sys/ktls.h], [
         AC_DEFINE([HAVE_KTLS],[1],[KTLS headers found at compile time])
       ], [

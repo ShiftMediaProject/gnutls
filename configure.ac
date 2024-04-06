@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.8.3], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.8.4], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -785,7 +785,16 @@ AC_CHECK_FUNCS(nettle_siv_gcm_encrypt_message)
 LIBS=$save_LIBS
 AM_CONDITIONAL([NEED_SIV_GCM], [test "$ac_cv_func_nettle_siv_gcm_encrypt_message" != yes])
 
+# Check for RSA-OAEP
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_rsa_oaep_sha256_encrypt)
+LIBS=$save_LIBS
+AM_CONDITIONAL([NEED_RSA_OAEP], [test "$ac_cv_func_nettle_rsa_oaep_sha256_encrypt" != yes])
+
 # Check sonames of the linked libraries needed for FIPS selftests.
+save_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS $GMP_CFLAGS"
 save_LIBS=$LIBS
 LIBS="$LIBS $GMP_LIBS"
 AC_MSG_CHECKING([gmp soname])
@@ -799,9 +808,14 @@ if test -z "$gmp_so"; then
 	gmp_so=none
 fi
 AC_MSG_RESULT($gmp_so)
-AC_DEFINE_UNQUOTED([GMP_LIBRARY_SONAME], ["$gmp_so"], [The soname of gmp library])
+if test "$gmp_so" != none; then
+	AC_DEFINE_UNQUOTED([GMP_LIBRARY_SONAME], ["$gmp_so"], [The soname of gmp library])
+fi
 LIBS=$save_LIBS
+CFLAGS=$save_CFLAGS
 
+save_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS $NETTLE_CFLAGS"
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
 AC_MSG_CHECKING([nettle soname])
@@ -817,7 +831,11 @@ fi
 AC_MSG_RESULT($nettle_so)
 AC_DEFINE_UNQUOTED([NETTLE_LIBRARY_SONAME], ["$nettle_so"], [The soname of nettle library])
 LIBS=$save_LIBS
+CFLAGS=$save_CFLAGS
 
+save_CFLAGS=$CFLAGS
+# <nettle/bignum.h> includes <gmp.h>
+CFLAGS="$CFLAGS $HOGWEED_CFLAGS $GMP_CFLAGS"
 save_LIBS=$LIBS
 LIBS="$LIBS $HOGWEED_LIBS"
 AC_MSG_CHECKING([hogweed soname])
@@ -833,6 +851,7 @@ fi
 AC_MSG_RESULT($hogweed_so)
 AC_DEFINE_UNQUOTED([HOGWEED_LIBRARY_SONAME], ["$hogweed_so"], [The soname of hogweed library])
 LIBS=$save_LIBS
+CFLAGS=$save_CFLAGS
 
 gnutls_so=libgnutls.so.`expr "$LT_CURRENT" - "$LT_AGE"`
 AC_DEFINE_UNQUOTED([GNUTLS_LIBRARY_SONAME], ["$gnutls_so"], [The soname of gnutls library])

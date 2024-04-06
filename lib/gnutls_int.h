@@ -232,7 +232,10 @@ typedef enum record_send_state_t {
 
 #define MAX_PK_PARAM_SIZE 2048
 
-/* defaults for verification functions
+/* Defaults for verification functions.
+ *
+ * update many_icas in tests/test-chains.h when increasing
+ * DEFAULT_MAX_VERIFY_DEPTH.
  */
 #define DEFAULT_MAX_VERIFY_DEPTH 16
 #define DEFAULT_MAX_VERIFY_BITS (MAX_PK_PARAM_SIZE * 8)
@@ -453,8 +456,9 @@ typedef enum content_type_t {
 #define GNUTLS_PK_ANY (gnutls_pk_algorithm_t) - 1
 #define GNUTLS_PK_NONE (gnutls_pk_algorithm_t) - 2
 
-#define GNUTLS_PK_IS_RSA(pk) \
-	((pk) == GNUTLS_PK_RSA || (pk) == GNUTLS_PK_RSA_PSS)
+#define GNUTLS_PK_IS_RSA(pk)                                   \
+	((pk) == GNUTLS_PK_RSA || (pk) == GNUTLS_PK_RSA_PSS || \
+	 (pk) == GNUTLS_PK_RSA_OAEP)
 
 /* Message buffers (mbuffers) structures */
 
