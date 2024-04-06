@@ -87,10 +87,10 @@ index 51c4891d5..da8683cc2 100644
  	switch (type) {
  	case BINDER_EXT:
 diff --git a/lib/global.c b/lib/global.c
-index 924ec945d..ae7a40a0a 100644
+index 718740c10..fdd331940 100644
 --- a/lib/global.c
 +++ b/lib/global.c
-@@ -495,7 +495,8 @@ const char *gnutls_check_version(const char *req_version)
+@@ -497,7 +497,8 @@ const char *gnutls_check_version(const char *req_version)
  	return NULL;
  }
  
@@ -100,7 +100,7 @@ index 924ec945d..ae7a40a0a 100644
  {
  	int ret;
  	const char *e;
-@@ -527,7 +528,8 @@ static void _CONSTRUCTOR lib_init(void)
+@@ -529,7 +530,8 @@ static void _CONSTRUCTOR lib_init(void)
  	}
  }
  
@@ -111,7 +111,7 @@ index 924ec945d..ae7a40a0a 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index 53164d0a2..05e6e078c 100644
+index e31aad3a0..66fe3789d 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -37,7 +37,13 @@

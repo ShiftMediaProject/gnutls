@@ -109,6 +109,7 @@
     <ClInclude Include="..\lib\nettle\int\ecdsa-compute-k.h" />
     <ClInclude Include="..\lib\nettle\int\mpn-base256.h" />
     <ClInclude Include="..\lib\nettle\int\rsa-fips.h" />
+    <ClInclude Include="..\lib\nettle\int\rsa-oaep.h" />
     <ClInclude Include="..\lib\nettle\int\tls1-prf.h" />
     <ClInclude Include="..\lib\nettle\gost\hmac-gost.h" />
     <ClInclude Include="..\lib\nettle\gost\magma.h" />

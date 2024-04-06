@@ -846,6 +846,9 @@ don't. */
 /* Define to 1 if you have the `nettle_siv_gcm_encrypt_message' function. */
 #define HAVE_NETTLE_SIV_GCM_ENCRYPT_MESSAGE 1
 
+/* Define to 1 if you have the `ac_cv_func_nettle_rsa_oaep_sha256_encrypt' function. */
+#define HAVE_NETTLE_RSA_OAEP_SHA256_ENCRYPT 1
+
 /* Define to 1 if you have the `nanosleep' function. */
 /* #undef HAVE_NANOSLEEP */
 

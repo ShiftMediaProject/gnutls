@@ -612,6 +612,9 @@
     <ClInclude Include="..\lib\pathbuf.h">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\rsa-oaep.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">
