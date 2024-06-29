@@ -1423,7 +1423,8 @@ int gnutls_x509_trust_list_verify_crt2(
 	}
 
 	/* Allocate extra for retrieved certificates. */
-	if (!INT_ADD_OK(cert_list_size, DEFAULT_MAX_VERIFY_DEPTH,
+	size_t size = DEFAULT_MAX_VERIFY_DEPTH;
+	if (!INT_ADD_OK(cert_list_size, size,
 			&cert_list_max_size))
 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
 
