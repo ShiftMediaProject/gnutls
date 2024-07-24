@@ -1433,9 +1433,9 @@ int gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_const_t resp, unsigned indx,
 				gnutls_datum_t *issuer_name_hash,
 				gnutls_datum_t *issuer_key_hash,
 				gnutls_datum_t *serial_number,
-				unsigned int *cert_status, time_t *this_update,
+				gnutls_ocsp_cert_status_t *cert_status, time_t *this_update,
 				time_t *next_update, time_t *revocation_time,
-				unsigned int *revocation_reason)
+				gnutls_x509_crl_reason_t *revocation_reason)
 {
 	char name[MAX_NAME_SIZE];
 	int ret, result;
