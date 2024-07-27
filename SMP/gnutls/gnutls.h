@@ -39,7 +39,9 @@
 /* Get ssize_t. */
 #ifdef _MSC_VER
 #  include <BaseTsd.h>
+#  ifndef ssize_t
 typedef SSIZE_T ssize_t;
+#  endif
 #  include <sys/types.h>
 #else
 #  include <sys/types.h>
