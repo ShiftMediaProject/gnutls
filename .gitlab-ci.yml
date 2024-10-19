@@ -27,9 +27,10 @@ variables:
   # The numbers are hard-coded for the platforms without the nproc command.
   BUILDJOBS: 2
   CHECKJOBS: 16
+  GNULIB_TOOL_IMPL: py
 
 cache:
-  key: "$CI_JOB_NAME-ver39"
+  key: "$CI_JOB_NAME-ver40"
   paths:
     - cache/
 
@@ -342,10 +343,10 @@ fedora/build:
       --disable-non-suiteb-curves
       --with-system-priority-file=/etc/crypto-policies/back-ends/gnutls.config
       --with-default-trust-store-pkcs11='pkcs11:'
-      --without-tpm --with-tpm2 --enable-ktls
+      --without-tpm --with-tpm2 --enable-ktls --with-liboqs
       --htmldir=/usr/share/doc/manual
       --with-unbound-root-key-file=/var/lib/unbound/root.key
-      --enable-libdane --without-zlib --without-brotli --without-zstd --disable-rpath
+      --enable-libdane --disable-rpath
       --with-default-priority-string=@SYSTEM
     - make -j$BUILDJOBS
     # build tests, but don't execute them
@@ -650,6 +651,25 @@ fedora-abicoverage/test:
       - ./**/*.log
       - gnutls-prev-abi.tmp/
       - compat_reports/
+
+fedora-no-liboqs/test:
+  extends:
+    - .test
+    - .fedora
+  dependencies:
+    - fedora/build
+  needs:
+    - fedora/build
+  script:
+    - |
+      cat > /etc/crypto-policies/local.d/gnutls-ktls.config <<EOF
+      [global]
+      ktls = true
+      EOF
+      update-crypto-policies
+      echo "SYSTEM=NORMAL" >> tests/system.prio
+    - dnf remove -y liboqs
+    - make -j$CHECKJOBS check
 
 fedora-cross/bootstrap:
   extends:

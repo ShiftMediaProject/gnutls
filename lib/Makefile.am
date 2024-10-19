@@ -29,11 +29,15 @@ if ENABLE_MINITASN1
 SUBDIRS += minitasn1
 endif
 
+if ENABLE_LIBOQS
+SUBDIRS += liboqs
+endif
+
 localedir = $(datadir)/locale
 
 include $(top_srcdir)/lib/common.mk
 
-AM_CPPFLAGS = \
+AM_CPPFLAGS =					\
 	-DLOCALEDIR=\"$(localedir)\"		\
 	-I$(srcdir)/../gl			\
 	-I$(builddir)/../gl			\
@@ -45,7 +49,8 @@ AM_CPPFLAGS = \
 	$(LIBTASN1_CFLAGS)			\
 	$(P11_KIT_CFLAGS)			\
 	$(TSS2_CFLAGS)
-	$(LIBZSTD_CFLAGS)
+
+thirdparty_libadd =
 
 if !HAVE_LIBUNISTRING
 SUBDIRS += unistring
@@ -85,12 +90,76 @@ COBJECTS = range.c record.c compress.c debug.c cipher.c gthreads.h handshake-tls
 	hello_ext_lib.c hello_ext_lib.h ocsp-api.c stek.c cert-cred-rawpk.c \
 	iov.c iov.h system/ktls.c system/ktls.h pathbuf.c pathbuf.h
 
+if HAVE_ZLIB
+COBJECTS += dlwrap/zlib.c dlwrap/zlibfuncs.h dlwrap/zlib.h
+AM_CPPFLAGS += $(ZLIB_CFLAGS)
+
+if ENABLE_DLOPEN
+AM_CPPFLAGS += -DGNUTLS_ZLIB_ENABLE_DLOPEN=1
+else
+thirdparty_libadd += $(ZLIB_LIBS)
+endif
+endif
+
+if HAVE_LIBZSTD
+COBJECTS += dlwrap/zstd.c dlwrap/zstdfuncs.h dlwrap/zstd.h
+AM_CPPFLAGS += $(LIBZSTD_CFLAGS)
+
+if ENABLE_DLOPEN
+AM_CPPFLAGS += -DGNUTLS_ZSTD_ENABLE_DLOPEN=1
+else
+thirdparty_libadd += $(LIBZSTD_LIBS)
+endif
+endif
+
+if HAVE_LIBBROTLI
+COBJECTS += dlwrap/brotlienc.c dlwrap/brotliencfuncs.h dlwrap/brotlienc.h
+COBJECTS += dlwrap/brotlidec.c dlwrap/brotlidecfuncs.h dlwrap/brotlidec.h
+AM_CPPFLAGS += $(LIBBROTLIENC_CFLAGS)
+AM_CPPFLAGS += $(LIBBROTLIDEC_CFLAGS)
+
+if ENABLE_DLOPEN
+AM_CPPFLAGS += -DGNUTLS_BROTLIENC_ENABLE_DLOPEN=1
+AM_CPPFLAGS += -DGNUTLS_BROTLIDEC_ENABLE_DLOPEN=1
+else
+thirdparty_libadd += $(LIBBROTLIENC_LIBS)
+thirdparty_libadd += $(LIBBROTLIDEC_LIBS)
+endif
+endif
+
+if ENABLE_LIBOQS
+COBJECTS += dlwrap/oqs.c dlwrap/oqsfuncs.h dlwrap/oqs.h
+AM_CPPFLAGS += $(LIBOQS_CFLAGS)
+
+if ENABLE_DLOPEN
+AM_CPPFLAGS += -DGNUTLS_OQS_ENABLE_DLOPEN=1
+else
+thirdparty_libadd += $(LIBOQS_LIBS)
+endif
+endif
+
 if ENABLE_GOST
 COBJECTS += vko.c
 endif
 
 if ENABLE_TPM2
 COBJECTS += tpm2.c tpm2.h tpm2_esys.c
+COBJECTS += dlwrap/tss2_esys.c dlwrap/tss2_esysfuncs.h dlwrap/tss2_esys.h
+COBJECTS += dlwrap/tss2_mu.c dlwrap/tss2_mufuncs.h dlwrap/tss2_mu.h
+COBJECTS += dlwrap/tss2_tctildr.c dlwrap/tss2_tctildrfuncs.h dlwrap/tss2_tctildr.h
+AM_CPPFLAGS += $(TSS2_ESYS_CFLAGS)
+AM_CPPFLAGS += $(TSS2_MU_CFLAGS)
+AM_CPPFLAGS += $(TSS2_TCTILDR_CFLAGS)
+
+if ENABLE_DLOPEN
+AM_CPPFLAGS += -DGNUTLS_TSS2_ESYS_ENABLE_DLOPEN=1
+AM_CPPFLAGS += -DGNUTLS_TSS2_MU_ENABLE_DLOPEN=1
+AM_CPPFLAGS += -DGNUTLS_TSS2_TCTILDR_ENABLE_DLOPEN=1
+else
+thirdparty_libadd += $(TSS2_ESYS_LIBS)
+thirdparty_libadd += $(TSS2_MU_LIBS)
+thirdparty_libadd += $(TSS2_TCTILDR_LIBS)
+endif
 endif
 
 if WINDOWS
@@ -156,7 +225,7 @@ libgnutls_la_LIBADD = ../gl/libgnu.la x509/libgnutls_x509.la \
 	ext/libgnutls_ext.la \
 	auth/libgnutls_auth.la algorithms/libgnutls_alg.la \
 	extras/libgnutls_extras.la
-thirdparty_libadd = $(LTLIBINTL) $(LIBSOCKET) $(LTLIBNSL) \
+thirdparty_libadd += $(LTLIBINTL) $(LIBSOCKET) $(LTLIBNSL) \
 	$(P11_KIT_LIBS) $(LIB_SELECT) $(GNUTLS_LIBS_PRIVATE)
 
 if HAVE_LIBIDN2
@@ -221,8 +290,12 @@ thirdparty_libadd += $(LIBTASN1_LIBS)
 endif
 
 if ENABLE_NETTLE
-thirdparty_libadd += $(NETTLE_LIBS) $(HOGWEED_LIBS) $(GMP_LIBS)
+thirdparty_libadd += $(HOGWEED_LIBS) $(NETTLE_LIBS) $(GMP_LIBS)
 libgnutls_la_LIBADD += nettle/libcrypto.la
+endif
+
+if ENABLE_LIBOQS
+libgnutls_la_LIBADD += liboqs/libcrypto.la
 endif
 
 if HAVE_LD_OUTPUT_DEF

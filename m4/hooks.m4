@@ -41,7 +41,7 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
   AC_SUBST(LT_CURRENT, 70)
-  AC_SUBST(LT_REVISION, 0)
+  AC_SUBST(LT_REVISION, 1)
   AC_SUBST(LT_AGE, 40)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
@@ -420,4 +420,24 @@ dnl this is called from somewhere else
 dnl #AM_ICONV
 dnl m4_ifdef([gl_ICONV_MODULE_INDICATOR],
 dnl  [gl_ICONV_MODULE_INDICATOR([iconv])])
+])
+
+AC_DEFUN([LIBGNUTLS_CHECK_SONAME],
+[
+  m4_pushdef([soname], AS_TR_SH([$1]))
+  m4_pushdef([SONAME], AS_TR_CPP([$1]))
+  AC_MSG_CHECKING([$1 [soname]])
+  AC_LINK_IFELSE([$2],
+	[soname[]_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^lib[]$1\.so'`],
+	[soname[]_so=none])
+  if test -z "$soname[]_so"; then
+	soname[]_so=none
+  fi
+  AC_MSG_RESULT($soname[]_so)
+  if test "$soname[]_so" != none; then
+	SONAME[]_LIBRARY_SONAME="$soname[]_so"
+	AC_DEFINE_UNQUOTED([SONAME[]_LIBRARY_SONAME], ["$soname[]_so"], [The soname of $1 library])
+  fi
+  m4_popdef([soname])
+  m4_popdef([SONAME])
 ])

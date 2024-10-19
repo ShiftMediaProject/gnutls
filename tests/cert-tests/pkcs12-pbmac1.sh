@@ -35,7 +35,7 @@ fi
 DEBUG=""
 
 . "${srcdir}/../scripts/common.sh"
-testdir=`create_testdir pkcs12`
+testdir=`create_testdir pkcs12-pbmac1`
 
 TMPFILE=$testdir/pkcs12
 TMPFILE_PEM=$testdir/pkcs12.pem
@@ -54,6 +54,8 @@ pbmac1_256_256.bad-iter.p12
 pbmac1_256_256.bad-salt.p12
 pbmac1_256_256.no-len.p12
 pbmac1_256_256.short-len.p12
+pbmac1_256_256.extended-mac.p12
+pbmac1_256_256.truncated-len.p12
 "
 
 for p12 in $GOOD; do
@@ -105,6 +107,21 @@ rc=$?
 if test ${rc} != 0; then
 	echo "PKCS12 FATAL decrypting/decoding"
 	exit 1
+fi
+
+# check if PBMAC1 is used by default in FIPS mode
+if test "$GNUTLS_FORCE_FIPS_MODE" = 1; then
+	${VALGRIND} "$CERTTOOL" --to-p12 --password 1234 --p12-name "my-key" --load-certificate "$srcdir/../certs/cert-ecc256.pem" --load-privkey "$srcdir/../certs/ecc256.pem" --outder --outfile "$TMPFILE" >/dev/null
+	rc=$?
+	if test $rc != 0; then
+		echo "PKCS12 FATAL encoding"
+		exit 1
+	fi
+	${VALGRIND} "$CERTTOOL" -d 99 --p12-info --inder --password 1234 \
+		    --infile "$TMPFILE" | grep "^	MAC: PBMAC1" || {
+		echo "Generated PKCS12 file doesn't use PBMAC1 in FIPS mode"
+		exit 1
+	}
 fi
 
 rm -rf "${testdir}"

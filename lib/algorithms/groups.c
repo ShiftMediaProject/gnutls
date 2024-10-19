@@ -170,6 +170,14 @@ static const gnutls_group_entry_st supported_groups[] = {
 	  .pk = GNUTLS_PK_DH,
 	  .tls_id = 0x104 },
 #endif
+#ifdef HAVE_LIBOQS
+	{ .name = "X25519-KYBER768",
+	  .id = GNUTLS_GROUP_EXP_X25519_KYBER768,
+	  .curve = GNUTLS_ECC_CURVE_X25519,
+	  .pk = GNUTLS_PK_ECDH_X25519,
+	  .pk2 = GNUTLS_PK_EXP_KYBER768,
+	  .tls_id = 0x6399 },
+#endif
 	{ 0, 0, 0 }
 };
 
@@ -226,9 +234,12 @@ const gnutls_group_t *gnutls_group_list(void)
 	if (groups[0] == 0) {
 		int i = 0;
 
-		GNUTLS_GROUP_LOOP(if (p->curve == 0 ||
-				      _gnutls_ecc_curve_is_supported(p->curve))
-					  groups[i++] = p->id;);
+		GNUTLS_GROUP_LOOP(
+			if ((p->curve == 0 ||
+			     _gnutls_ecc_curve_is_supported(p->curve)) &&
+			    (p->pk == 0 || _gnutls_pk_exists(p->pk)) &&
+			    (p->pk2 == 0 || _gnutls_pk_exists(p->pk2)))
+				groups[i++] = p->id;);
 		groups[i++] = 0;
 	}
 

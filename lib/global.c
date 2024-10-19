@@ -41,6 +41,7 @@
 #include "system-keys.h"
 #include "str.h"
 #include "global.h"
+#include "liboqs/liboqs.h"
 
 /* Minimum library versions we accept. */
 #define GNUTLS_MIN_LIBTASN1_VERSION "0.3.4"
@@ -444,6 +445,9 @@ static void _gnutls_global_deinit(unsigned destructor)
 #ifdef HAVE_TPM2
 		_gnutls_tpm2_deinit();
 #endif
+#ifdef HAVE_LIBOQS
+		_gnutls_liboqs_deinit();
+#endif
 
 		_gnutls_nss_keylog_deinit();
 	} else {
@@ -565,9 +569,15 @@ static const struct gnutls_library_config_st _gnutls_library_config[] = {
 #ifdef FIPS_MODULE_VERSION
 	{ "fips-module-version", FIPS_MODULE_VERSION },
 #endif
+#ifdef GNUTLS_LIBRARY_SONAME
 	{ "libgnutls-soname", GNUTLS_LIBRARY_SONAME },
+#endif
+#ifdef NETTLE_LIBRARY_SONAME
 	{ "libnettle-soname", NETTLE_LIBRARY_SONAME },
+#endif
+#ifdef HOGWEED_LIBRARY_SONAME
 	{ "libhogweed-soname", HOGWEED_LIBRARY_SONAME },
+#endif
 #ifdef GMP_LIBRARY_SONAME
 	{ "libgmp-soname", GMP_LIBRARY_SONAME },
 #endif

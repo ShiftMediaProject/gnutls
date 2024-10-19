@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.8.6], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.8.7], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -592,6 +592,7 @@ if test "$gl_gcc_warnings" = yes; then
   nw="$nw -Wredundant-decls"        # Some files cannot be compiled with that (gl_fd_to_handle)
   nw="$nw -Wtype-limits"            # Too many warnings in gnulib macros
   nw="$nw -Warith-conversion"       # Too compiler dependent
+  nw="$nw -Wmissing-variable-declarations" # asn1Parser provides no way to embed declarations in generated code
 
   gl_MANYWARN_ALL_GCC([ws])
   gl_MANYWARN_COMPLEMENT(ws, [$ws], [$nw])
@@ -733,6 +734,14 @@ if test "$enable_non_suiteb" = "yes";then
 fi
 AM_CONDITIONAL(ENABLE_NON_SUITEB_CURVES, test "$enable_non_suiteb" = "yes")
 
+AC_ARG_ENABLE(dsa,
+  AS_HELP_STRING([--disable-dsa], [disable DSA]),
+  enable_dsa=$enableval, enable_dsa=yes)
+if test x$enable_dsa != xno; then
+    AC_DEFINE([ENABLE_DSA], 1, [Define if DSA is enabled.])
+fi
+AM_CONDITIONAL([ENABLE_DSA], [test x$enable_dsa != xno])
+
 # We MUST require a Nettle version that has rsa_sec_decrypt now.
 save_LIBS=$LIBS
 LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS $GMP_LIBS"
@@ -787,7 +796,7 @@ AM_CONDITIONAL([NEED_SIV_GCM], [test "$ac_cv_func_nettle_siv_gcm_encrypt_message
 
 # Check for RSA-OAEP
 save_LIBS=$LIBS
-LIBS="$LIBS $NETTLE_LIBS"
+LIBS="$LIBS $HOGWEED_LIBS $NETTLE_LIBS $GMP_LIBS"
 AC_CHECK_FUNCS(nettle_rsa_oaep_sha256_encrypt)
 LIBS=$save_LIBS
 AM_CONDITIONAL([NEED_RSA_OAEP], [test "$ac_cv_func_nettle_rsa_oaep_sha256_encrypt" != yes])
@@ -810,61 +819,35 @@ save_CFLAGS=$CFLAGS
 CFLAGS="$CFLAGS $GMP_CFLAGS"
 save_LIBS=$LIBS
 LIBS="$LIBS $GMP_LIBS"
-AC_MSG_CHECKING([gmp soname])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([
+LIBGNUTLS_CHECK_SONAME([gmp], [AC_LANG_PROGRAM([
                #include <gmp.h>],[
                mpz_t n;
-               mpz_init(n);])],
-	[gmp_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libgmp\.so'`],
-	[gmp_so=none])
-if test -z "$gmp_so"; then
-	gmp_so=none
-fi
-AC_MSG_RESULT($gmp_so)
-if test "$gmp_so" != none; then
-	AC_DEFINE_UNQUOTED([GMP_LIBRARY_SONAME], ["$gmp_so"], [The soname of gmp library])
-fi
-LIBS=$save_LIBS
-CFLAGS=$save_CFLAGS
+               mpz_init(n);])])
+LIBS="$save_LIBS"
+CFLAGS="$save_CFLAGS"
 
 save_CFLAGS=$CFLAGS
 CFLAGS="$CFLAGS $NETTLE_CFLAGS"
 save_LIBS=$LIBS
 LIBS="$LIBS $NETTLE_LIBS"
-AC_MSG_CHECKING([nettle soname])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([
+LIBGNUTLS_CHECK_SONAME([nettle], [AC_LANG_PROGRAM([
                #include <nettle/sha2.h>],[
                struct sha256_ctx ctx;
-               sha256_init(&ctx);])],
-	[nettle_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libnettle\.so'`],
-	[nettle_so=none])
-if test -z "$nettle_so"; then
-	nettle_so=none
-fi
-AC_MSG_RESULT($nettle_so)
-AC_DEFINE_UNQUOTED([NETTLE_LIBRARY_SONAME], ["$nettle_so"], [The soname of nettle library])
-LIBS=$save_LIBS
-CFLAGS=$save_CFLAGS
+               sha256_init(&ctx);])])
+LIBS="$save_LIBS"
+CFLAGS="$save_CFLAGS"
 
 save_CFLAGS=$CFLAGS
 # <nettle/bignum.h> includes <gmp.h>
 CFLAGS="$CFLAGS $HOGWEED_CFLAGS $GMP_CFLAGS"
 save_LIBS=$LIBS
 LIBS="$LIBS $HOGWEED_LIBS"
-AC_MSG_CHECKING([hogweed soname])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([
+LIBGNUTLS_CHECK_SONAME([hogweed], [AC_LANG_PROGRAM([
                #include <nettle/rsa.h>],[
                struct rsa_private_key priv;
-               nettle_rsa_private_key_init(&priv);])],
-	[hogweed_so=`(eval "$LDDPROG conftest$EXEEXT $LDDPOSTPROC") | grep '^libhogweed\.so'`],
-	[hogweed_so=none])
-if test -z "$hogweed_so"; then
-	hogweed_so=none
-fi
-AC_MSG_RESULT($hogweed_so)
-AC_DEFINE_UNQUOTED([HOGWEED_LIBRARY_SONAME], ["$hogweed_so"], [The soname of hogweed library])
-LIBS=$save_LIBS
-CFLAGS=$save_CFLAGS
+               nettle_rsa_private_key_init(&priv);])])
+LIBS="$save_LIBS"
+CFLAGS="$save_CFLAGS"
 
 gnutls_so=libgnutls.so.`expr "$LT_CURRENT" - "$LT_AGE"`
 AC_DEFINE_UNQUOTED([GNUTLS_LIBRARY_SONAME], ["$gnutls_so"], [The soname of gnutls library])
@@ -972,31 +955,83 @@ AM_CONDITIONAL(P11KIT_0_23_11_API, $PKG_CONFIG --atleast-version=0.23.11 p11-kit
 
 AM_CONDITIONAL(ENABLE_PKCS11, test "$with_p11_kit" != "no")
 
+save_LIBS=$LIBS
+LIBS="$LIBS -lm"
+LIBGNUTLS_CHECK_SONAME([m], [AC_LANG_PROGRAM([
+               #include <math.h>],[
+               trunc (0);])])
+LIBS="$save_LIBS"
+CFLAGS="$save_CFLAGS"
+
+AC_RUN_IFELSE(
+  [AC_LANG_PROGRAM(
+    [[#include <dlfcn.h>
+      #include <stdlib.h>
+    ]],
+    [[void *handle = dlopen("$M_LIBRARY_SONAME", RTLD_LAZY | RTLD_GLOBAL);
+      return handle != NULL ? 0 : 1;
+    ]])],
+  [ac_cv_dlopen_soname_works=yes],
+  [ac_cv_dlopen_soname_works=no],
+  [ac_cv_dlopen_soname_works=cross-compiling])
+
+AM_CONDITIONAL([ENABLE_DLOPEN], [test "$ac_cv_dlopen_soname_works" = yes])
 need_ltlibdl=no
 
 AC_ARG_WITH(tpm2,
 	AS_HELP_STRING([--without-tpm2],
 		[Disable TPM2 support.]),
 	[with_tpm2=$withval], [with_tpm2=auto])
-if test "$with_tpm2" != "no"; then
-	PKG_CHECK_MODULES(TSS2, [tss2-esys tss2-mu tss2-tctildr],
-		[have_tpm2=yes], [have_tpm2=no])
-	if test "$have_tpm2" = "yes"; then
-		tss2lib="tss2-esys tss2-mu tss2-tctildr"
-		AC_DEFINE([HAVE_TSS2], 1, [Have TSS2])
-		with_tpm2=yes
-		need_ltlibdl=yes
-	elif test "$with_tpm2" = "yes"; then
-		AC_MSG_ERROR([[
+AS_IF([test "$with_tpm2" != no], [
+	PKG_CHECK_MODULES(TSS2_ESYS, [tss2-esys],
+		[have_tss2_esys=yes], [have_tss2_esys=no])
+	PKG_CHECK_MODULES(TSS2_MU, [tss2-mu],
+		[have_tss2_mu=yes], [have_tss2_mu=no])
+	PKG_CHECK_MODULES(TSS2_TCTILDR, [tss2-tctildr],
+		[have_tss2_tctildr=yes], [have_tss2_tctildr=no])
+])
+AS_IF([test "$have_tss2_esys" = yes && test "$have_tss2_mu" = yes && test "$have_tss2_tctildr" = yes], [
+	tss2lib="tss2-esys tss2-mu tss2-tctildr"
+	AC_DEFINE([HAVE_TSS2], 1, [Have TSS2])
+	with_tpm2=yes
+	need_ltlibdl=yes
+],
+      [test "$with_tpm2" = yes], [
+	AC_MSG_ERROR([[
 ***
 *** TPM2 support was requested but the required libraries were not found.
 *** To disable TPM2 support use --without-tpm2, otherwise you may get tpm2-tss from
 *** https://github.com/tpm2-software/tpm2-tss
 *** ]])
-	fi
-fi
+])
 
-AM_CONDITIONAL(ENABLE_TPM2, test "$have_tpm2" = "yes")
+AM_CONDITIONAL(ENABLE_TPM2, test -n "$tss2lib")
+
+AS_IF([test "$ac_cv_dlopen_soname_works" = yes], [
+    save_LIBS=$LIBS
+    LIBS="$LIBS $TSS2_ESYS_LIBS"
+    LIBGNUTLS_CHECK_SONAME([tss2-esys], [AC_LANG_PROGRAM([
+                   #include <tss2/tss2_esys.h>],[
+                   Esys_Initialize (0, 0, 0);])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+
+    save_LIBS=$LIBS
+    LIBS="$LIBS $TSS2_MU_LIBS"
+    LIBGNUTLS_CHECK_SONAME([tss2-mu], [AC_LANG_PROGRAM([
+                   #include <tss2/tss2_mu.h>],[
+                   Tss2_MU_INT8_Marshal (0, 0, 0, 0);])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+
+    save_LIBS=$LIBS
+    LIBS="$LIBS $TSS2_TCTILDR_LIBS"
+    LIBGNUTLS_CHECK_SONAME([tss2-tctildr], [AC_LANG_PROGRAM([
+                   #include <tss2/tss2_tctildr.h>],[
+                   Tss2_TctiLdr_Initialize (0, 0);])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+])
 
 AC_ARG_WITH(tpm,
 	AS_HELP_STRING([--without-tpm],
@@ -1053,8 +1088,6 @@ AC_DEFINE_UNQUOTED([TROUSERS_LIB], ["$ac_trousers_lib"], [the location of the tr
 AC_SUBST(TROUSERS_LIB)
 
 
-AM_CONDITIONAL(NEED_LTLIBDL, test "$need_ltlibdl" = yes)
-
 # For minitasn1.
 AC_CHECK_SIZEOF(unsigned long int, 4)
 AC_CHECK_SIZEOF(unsigned int, 4)
@@ -1063,34 +1096,45 @@ AC_CHECK_SIZEOF(time_t, 4)
 AC_ARG_WITH(zlib, AS_HELP_STRING([--without-zlib],
                                  [disable zlib compression support]),
             ac_zlib=$withval, ac_zlib=yes)
-AC_MSG_CHECKING([whether to include zlib compression support])
 if test x$ac_zlib != xno; then
-    AC_MSG_RESULT(yes)
-    AC_LIB_HAVE_LINKFLAGS(z,, [#include <zlib.h>], [compress (0, 0, 0, 0);])
-    if test x$ac_cv_libz != xyes; then
-	AC_MSG_WARN(
-  *** 
-  *** ZLIB was not found. You will not be able to use ZLIB compression.)
-fi
-else
-    AC_MSG_RESULT(no)
-fi
-
-PKG_CHECK_EXISTS(zlib, ZLIB_HAS_PKGCONFIG=y, ZLIB_HAS_PKGCONFIG=n)
-
-if test x$ac_zlib != xno; then
+    PKG_CHECK_EXISTS(zlib, ZLIB_HAS_PKGCONFIG=y, ZLIB_HAS_PKGCONFIG=n)
     if test "$ZLIB_HAS_PKGCONFIG" = "y" ; then
+        PKG_CHECK_MODULES(ZLIB, [zlib])
 	if test "x$GNUTLS_REQUIRES_PRIVATE" = x; then
 	    GNUTLS_REQUIRES_PRIVATE="Requires.private: zlib"
 	else
 	    GNUTLS_REQUIRES_PRIVATE="$GNUTLS_REQUIRES_PRIVATE, zlib"
 	fi
-	LIBZ_PC=""
+	ac_zlib=yes
     else
+	AC_LIB_HAVE_LINKFLAGS(z,, [#include <zlib.h>], [compress (0, 0, 0, 0);])
+	if test x$ac_cv_libz != xyes; then
+	    AC_MSG_WARN([[
+*** 
+*** ZLIB was not found. You will not be able to use ZLIB compression.
+*** ]])
+        fi
+	ac_zlib=$ac_cv_libz
+	ZLIB_LIBS=$LIBZ
 	LIBZ_PC=$LIBZ
     fi
 fi
+if test x$ac_zlib != xno; then
+    AC_DEFINE([HAVE_LIBZ], 1, [Define if ZLIB compression is enabled.])
+    need_ltlibdl=yes
+fi
+AM_CONDITIONAL(HAVE_ZLIB, test "$ac_zlib" = "yes")
 AC_SUBST(LIBZ_PC)
+
+AS_IF([test "$ac_cv_dlopen_soname_works" = yes], [
+    save_LIBS=$LIBS
+    LIBS="$LIBS $ZLIB_LIBS"
+    LIBGNUTLS_CHECK_SONAME([z], [AC_LANG_PROGRAM([
+                   #include <zlib.h>],[
+                   compress (0, 0, 0, 0);])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+])
 
 AC_ARG_WITH(brotli,
 	    AS_HELP_STRING([--without-brotli], [disable brotli compression support]),
@@ -1107,6 +1151,7 @@ if test x$ac_brotli != xno; then
 	else
 	    GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libbrotlienc, libbrotlidec"
 	fi
+	need_ltlibdl=yes
     else
 	AC_MSG_WARN(*** LIBBROTLI was not found. You will not be able to use BROTLI compression.)
     fi
@@ -1114,6 +1159,28 @@ else
     AC_MSG_RESULT(no)
 fi
 AM_CONDITIONAL(HAVE_LIBBROTLI, test "$with_libbrotlienc" != "no" && test "$with_libbrotlidec" != "no")
+
+AS_IF([test "$ac_cv_dlopen_soname_works" = yes], [
+    save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS $LIBBROTLIENC_CFLAGS"
+    save_LIBS=$LIBS
+    LIBS="$LIBS $LIBBROTLIENC_LIBS"
+    LIBGNUTLS_CHECK_SONAME([brotlienc], [AC_LANG_PROGRAM([
+           #include <brotli/encode.h>],[
+           BrotliEncoderVersion();])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+
+    save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS $LIBBROTLIDEC_CFLAGS"
+    save_LIBS=$LIBS
+    LIBS="$LIBS $LIBBROTLIDEC_LIBS"
+    LIBGNUTLS_CHECK_SONAME([brotlidec], [AC_LANG_PROGRAM([
+           #include <brotli/decode.h>],[
+           BrotliDecoderVersion();])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+])
 
 AC_ARG_WITH(zstd,
 	    AS_HELP_STRING([--without-zstd], [disable zstd compression support]),
@@ -1129,6 +1196,7 @@ if test x$ac_zstd != xno; then
 	else
 	    GNUTLS_REQUIRES_PRIVATE="${GNUTLS_REQUIRES_PRIVATE}, libzstd"
 	fi
+	need_ltlibdl=yes
     else
 	AC_MSG_WARN(*** LIBZSTD was not found. You will not be able to use ZSTD compression.)
     fi
@@ -1136,6 +1204,55 @@ else
     AC_MSG_RESULT(no)
 fi
 AM_CONDITIONAL(HAVE_LIBZSTD, test "$with_libzstd" != "no")
+
+AS_IF([test "$ac_cv_dlopen_soname_works" = yes], [
+    save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS $LIBZSTD_CFLAGS"
+    save_LIBS=$LIBS
+    LIBS="$LIBS $LIBZSTD_LIBS"
+    LIBGNUTLS_CHECK_SONAME([zstd], [AC_LANG_PROGRAM([
+           #include <zstd.h>],[
+           ZSTD_versionNumber();])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+])
+
+AC_ARG_WITH(liboqs,
+	AS_HELP_STRING([--with-liboqs],
+		[Enable liboqs support.]),
+	[with_liboqs=$withval], [with_liboqs=no])
+AS_IF([test "$with_liboqs" != no], [PKG_CHECK_MODULES(LIBOQS, [liboqs >= 0.10.1], [have_liboqs=yes], [have_liboqs=no])])
+AS_IF([test "$have_liboqs" = yes], [AC_DEFINE([HAVE_LIBOQS], 1, [Have liboqs])],
+      [test "$with_liboqs" = yes], [AC_MSG_ERROR([[
+***
+*** liboqs support was requested but the required libraries were not found.
+*** ]])])
+
+save_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS $LIBOQS_CFLAGS"
+AC_CHECK_DECLS([OQS_SHA3_set_callbacks])
+CFLAGS="$save_CFLAGS"
+
+# liboqs 0.10.1 didn't expose OQS_SHA3_set_callbacks from the header
+# file, so extra treatment is needed:
+# https://github.com/open-quantum-safe/liboqs/pull/1832
+AM_CONDITIONAL(NEED_LIBOQS_SHA3_OPS_H, test "$ac_cv_have_decl_OQS_SHA3_set_callbacks" != yes)
+
+AM_CONDITIONAL(ENABLE_LIBOQS, test "$have_liboqs" = yes)
+
+AS_IF([test "$ac_cv_dlopen_soname_works" = yes], [
+    save_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS $LIBOQS_CFLAGS"
+    save_LIBS=$LIBS
+    LIBS="$LIBS $LIBOQS_LIBS"
+    LIBGNUTLS_CHECK_SONAME([oqs], [AC_LANG_PROGRAM([
+                   #include <oqs/oqs.h>],[
+                   OQS_version ();])])
+    LIBS="$save_LIBS"
+    CFLAGS="$save_CFLAGS"
+])
+
+AM_CONDITIONAL(NEED_LTLIBDL, test "$need_ltlibdl" = yes)
 
 # export for use in scripts
 AC_SUBST(ac_cv_sizeof_time_t)
@@ -1332,6 +1449,7 @@ AC_CONFIG_FILES([
   lib/gnutls.pc
   lib/includes/Makefile
   lib/includes/gnutls/gnutls.h
+  lib/liboqs/Makefile
   lib/minitasn1/Makefile
   lib/nettle/Makefile
   lib/x509/Makefile
