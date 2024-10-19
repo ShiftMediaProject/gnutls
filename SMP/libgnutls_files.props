@@ -178,25 +178,39 @@
     <ClCompile Include="..\devel\libtasn1\lib\coding.c" />
     <ClCompile Include="..\devel\libtasn1\lib\decoding.c" />
     <ClCompile Include="..\devel\libtasn1\lib\element.c" />
-    <ClCompile Include="..\devel\libtasn1\lib\errors.c">
-      <ObjectFileName>$(IntDir)\tasn1_$(filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\devel\libtasn1\lib\gstr.c" />
     <ClCompile Include="..\devel\libtasn1\lib\parser_aux.c" />
     <ClCompile Include="..\devel\libtasn1\lib\structure.c" />
     <ClCompile Include="..\devel\libtasn1\lib\version.c" />
     <ClCompile Include="..\gnulib\lib\c-strcasecmp.c" />
     <ClCompile Include="..\gnulib\lib\c-strncasecmp.c" />
+    <ClCompile Include="..\gnulib\lib\cloexec.c" />
+    <ClCompile Include="..\gnulib\lib\close.c" />
+    <ClCompile Include="..\gnulib\lib\dup2.c" />
+    <ClCompile Include="..\gnulib\lib\explicit_bzero.c" />
+    <ClCompile Include="..\gnulib\lib\fcntl.c" />
+    <ClCompile Include="..\gnulib\lib\fd-hook.c" />
+    <ClCompile Include="..\gnulib\lib\getdelim.c" />
+    <ClCompile Include="..\gnulib\lib\getdtablesize.c" />
+    <ClCompile Include="..\gnulib\lib\getline.c" />
     <ClCompile Include="..\gnulib\lib\gl_linkedhash_list.c" />
     <ClCompile Include="..\gnulib\lib\hash-pjw-bare.c" />
     <ClCompile Include="..\gnulib\lib\hash.c" />
+    <ClCompile Include="..\gnulib\lib\memmem.c" />
+    <ClCompile Include="..\gnulib\lib\msvc-inval.c" />
+    <ClCompile Include="..\gnulib\lib\open.c" />
+    <ClCompile Include="..\gnulib\lib\printf-args.c" />
+    <ClCompile Include="..\gnulib\lib\printf-parse.c" />
+    <ClCompile Include="..\gnulib\lib\read.c" />
     <ClCompile Include="..\gnulib\lib\read-file.c" />
     <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
     <ClCompile Include="..\gnulib\lib\stpcpy.c" />
+    <ClCompile Include="..\gnulib\lib\strverscmp.c" />
     <ClCompile Include="..\gnulib\lib\windows-mutex.c" />
     <ClCompile Include="..\gnulib\lib\windows-rwlock.c" />
     <ClCompile Include="..\gnulib\lib\windows-tls.c" />
     <ClCompile Include="..\gnulib\lib\windows-once.c" />
+    <ClCompile Include="..\gnulib\lib\write.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_and_not.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_Cc.c" />
     <ClCompile Include="..\gnulib\lib\unictype\categ_Cf.c" />
@@ -261,6 +275,8 @@
     <ClCompile Include="..\gnulib\lib\unistr\u8-to-u16.c" />
     <ClCompile Include="..\gnulib\lib\unistr\u8-to-u32.c" />
     <ClCompile Include="..\gnulib\lib\unistr\u8-uctomb-aux.c" />
+    <ClCompile Include="..\gnulib\lib\vasnprintf.c" />
+    <ClCompile Include="..\gnulib\lib\vasprintf.c" />
     <ClCompile Include="..\lib\accelerated\accelerated.c" />
     <ClCompile Include="..\lib\accelerated\afalg.c" />
     <ClCompile Include="..\lib\accelerated\cryptodev-gcm.c" />
@@ -285,52 +301,25 @@
     <ClCompile Include="..\lib\accelerated\x86\sha-x86-ssse3.c" />
     <ClCompile Include="..\lib\accelerated\x86\x86-common.c" />
     <ClCompile Include="..\lib\alert.c" />
-    <ClCompile Include="..\lib\algorithms\cert_types.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\ciphers.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\ciphersuites.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\ecc.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\algorithms\cert_types.c" />
+    <ClCompile Include="..\lib\algorithms\ciphers.c" />
+    <ClCompile Include="..\lib\algorithms\ciphersuites.c" />
     <ClCompile Include="..\lib\algorithms\groups.c" />
-    <ClCompile Include="..\lib\algorithms\kx.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\mac.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\protocols.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\publickey.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\secparams.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\algorithms\sign.c">
-      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\algorithms\mac.c" />
+    <ClCompile Include="..\lib\algorithms\protocols.c" />
+    <ClCompile Include="..\lib\algorithms\publickey.c" />
+    <ClCompile Include="..\lib\algorithms\secparams.c" />
+    <ClCompile Include="..\lib\algorithms\sign.c" />
     <ClCompile Include="..\lib\anon_cred.c" />
     <ClCompile Include="..\lib\atfork.c" />
     <ClCompile Include="..\lib\auth.c" />
     <ClCompile Include="..\lib\auth\anon.c" />
     <ClCompile Include="..\lib\auth\anon_ecdh.c" />
-    <ClCompile Include="..\lib\auth\cert.c">
-      <ObjectFileName>$(IntDir)\auth_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\auth\cert.c" />
     <ClCompile Include="..\lib\auth\dhe.c" />
     <ClCompile Include="..\lib\auth\dhe_psk.c" />
     <ClCompile Include="..\lib\auth\dh_common.c" />
     <ClCompile Include="..\lib\auth\ecdhe.c" />
-    <ClCompile Include="..\lib\auth\psk.c">
-      <ObjectFileName>$(IntDir)\auth_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\auth\psk_passwd.c" />
     <ClCompile Include="..\lib\auth\rsa.c" />
     <ClCompile Include="..\lib\auth\rsa_psk.c" />
@@ -365,58 +354,31 @@
     <ClCompile Include="..\lib\ecc.c" />
     <ClCompile Include="..\lib\errors.c" />
     <ClCompile Include="..\lib\extras\hex.c" />
-    <ClCompile Include="..\lib\extras\randomart.c">
-      <ObjectFileName>$(IntDir)\extras_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\extv.c" />
-    <ClCompile Include="..\lib\ext\alpn.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ext\alpn.c" />
     <ClCompile Include="..\lib\ext\client_cert_type.c" />
     <ClCompile Include="..\lib\ext\compress_certificate.c" />
     <ClCompile Include="..\lib\ext\cookie.c" />
-    <ClCompile Include="..\lib\ext\dumbfw.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ext\dumbfw.c" />
     <ClCompile Include="..\lib\ext\early_data.c" />
     <ClCompile Include="..\lib\ext\ec_point_formats.c" />
     <ClCompile Include="..\lib\ext\etm.c" />
     <ClCompile Include="..\lib\ext\ext_master_secret.c" />
-    <ClCompile Include="..\lib\ext\heartbeat.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ext\heartbeat.c" />
     <ClCompile Include="..\lib\ext\key_share.c" />
-    <ClCompile Include="..\lib\ext\max_record.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\ext\max_record.c" />
     <ClCompile Include="..\lib\ext\post_handshake.c" />
     <ClCompile Include="..\lib\ext\pre_shared_key.c" />
     <ClCompile Include="..\lib\ext\psk_ke_modes.c" />
     <ClCompile Include="..\lib\ext\record_size_limit.c" />
-    <ClCompile Include="..\lib\ext\safe_renegotiation.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\ext\server_cert_type.c" />
-    <ClCompile Include="..\lib\ext\server_name.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\ext\session_ticket.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\ext\signature.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\ext\srp.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\ext\srtp.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\ext\status_request.c">
-      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\ext\supported_groups.c" />
     <ClCompile Include="..\lib\ext\supported_versions.c" />
+    <ClCompile Include="..\lib\ext\safe_renegotiation.c" />
+    <ClCompile Include="..\lib\ext\server_name.c" />
+    <ClCompile Include="..\lib\ext\signature.c" />
+    <ClCompile Include="..\lib\ext\srtp.c" />
+    <ClCompile Include="..\lib\ext\status_request.c" />
     <ClCompile Include="..\lib\file.c" />
     <ClCompile Include="..\lib\fingerprint.c" />
     <ClCompile Include="..\lib\fips.c" />
@@ -434,9 +396,6 @@
     <ClCompile Include="..\lib\mbuffers.c" />
     <ClCompile Include="..\lib\mem.c" />
     <ClCompile Include="..\lib\mpi.c" />
-    <ClCompile Include="..\lib\nettle\cipher.c">
-      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\nettle\init.c" />
     <ClCompile Include="..\lib\nettle\int\dsa-compute-k.c" />
     <ClCompile Include="..\lib\nettle\int\dsa-keygen-fips186.c" />
@@ -453,18 +412,6 @@
     <ClCompile Include="..\lib\nettle\gost\acpkm.c" />
     <ClCompile Include="..\lib\nettle\gost\cmac-magma.c" />
     <ClCompile Include="..\lib\nettle\gost\cmac-kuznyechik.c" />
-    <ClCompile Include="..\lib\nettle\mac.c">
-      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\nettle\mpi.c">
-      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\nettle\pk.c">
-      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\nettle\prf.c">
-      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\nettle\rnd-fuzzer.c" />
     <ClCompile Include="..\lib\nettle\rnd.c" />
     <ClCompile Include="..\lib\nettle\sysrng-bcrypt.c" />
@@ -512,116 +459,111 @@
     <ClCompile Include="..\lib\tls13\certificate.c" />
     <ClCompile Include="..\lib\tls13\certificate_request.c" />
     <ClCompile Include="..\lib\tls13\certificate_verify.c" />
-    <ClCompile Include="..\lib\tls13\early_data.c">
-      <ObjectFileName>$(IntDir)\tls_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\tls13\encrypted_extensions.c" />
     <ClCompile Include="..\lib\tls13\finished.c" />
     <ClCompile Include="..\lib\tls13\hello_retry.c" />
     <ClCompile Include="..\lib\tls13\key_update.c" />
-    <ClCompile Include="..\lib\tls13\post_handshake.c">
-      <ObjectFileName>$(IntDir)\tls_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\tls13\psk_ext_parser.c" />
     <ClCompile Include="..\lib\tls13\session_ticket.c" />
     <ClCompile Include="..\lib\tpm.c" />
     <ClCompile Include="..\lib\urls.c" />
     <ClCompile Include="..\lib\verify-tofu.c" />
+    <ClCompile Include="..\lib\x509_b64.c" />
     <ClCompile Include="..\lib\x509\attributes.c" />
-    <ClCompile Include="..\lib\x509\common.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\crl.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\crl_write.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\crq.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\dn.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\x509\crl.c" />
+    <ClCompile Include="..\lib\x509\crl_write.c" />
+    <ClCompile Include="..\lib\x509\crq.c" />
+    <ClCompile Include="..\lib\x509\dn.c" />
     <ClCompile Include="..\lib\x509\email-verify.c" />
-    <ClCompile Include="..\lib\x509\extensions.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\x509\extensions.c" />
     <ClCompile Include="..\lib\x509\hostname-verify.c" />
     <ClCompile Include="..\lib\x509\ip.c" />
-    <ClCompile Include="..\lib\x509\key_decode.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\key_encode.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\x509\key_decode.c" />
+    <ClCompile Include="..\lib\x509\key_encode.c" />
     <ClCompile Include="..\lib\x509\krb5.c" />
-    <ClCompile Include="..\lib\x509\mpi.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="..\lib\x509\name_constraints.c" />
-    <ClCompile Include="..\lib\x509\ocsp.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\ocsp_output.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\output.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\pkcs12.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\pkcs12_bag.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\pkcs12_encr.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
+    <ClCompile Include="..\lib\x509\ocsp.c" />
+    <ClCompile Include="..\lib\x509\ocsp_output.c" />
+    <ClCompile Include="..\lib\x509\output.c" />
+    <ClCompile Include="..\lib\x509\pkcs12.c" />
+    <ClCompile Include="..\lib\x509\pkcs12_bag.c" />
+    <ClCompile Include="..\lib\x509\pkcs12_encr.c" />
+    <ClCompile Include="..\lib\x509\pkcs7.c" />
     <ClCompile Include="..\lib\x509\pkcs7-attrs.c" />
     <ClCompile Include="..\lib\x509\pkcs7-crypt.c" />
     <ClCompile Include="..\lib\x509\pkcs7-output.c" />
-    <ClCompile Include="..\lib\x509\pkcs7.c">
+    <ClCompile Include="..\lib\x509\privkey_openssl.c" />
+    <ClCompile Include="..\lib\x509\privkey_pkcs8.c" />
+    <ClCompile Include="..\lib\x509\privkey_pkcs8_pbes1.c" />
+    <ClCompile Include="..\lib\x509\prov-seed.c" />
+    <ClCompile Include="..\lib\x509\spki.c" />
+    <ClCompile Include="..\lib\x509\time.c" />
+    <ClCompile Include="..\lib\x509\tls_features.c" />
+    <ClCompile Include="..\lib\x509\verify-high.c" />
+    <ClCompile Include="..\lib\x509\verify-high2.c" />
+    <ClCompile Include="..\lib\x509\verify.c" />
+    <ClCompile Include="..\lib\x509\virt-san.c" />
+    <ClCompile Include="..\lib\x509\x509_ext.c" />
+    <ClCompile Include="..\lib\x509\x509.c" />
+    <ClCompile Include="..\lib\x509\x509_dn.c" />
+    <ClCompile Include="..\lib\x509\x509_write.c" />
+    <ClCompile Include="..\gnulib\lib\fopen.c">
+      <PreprocessorDefinitions>GNULIB_FOPEN_GNU;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\devel\libtasn1\lib\errors.c">
+      <ObjectFileName>$(IntDir)\tasn1_$(filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\algorithms\ecc.c">
+      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\algorithms\kx.c">
+      <ObjectFileName>$(IntDir)\alg_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\auth\psk.c">
+      <ObjectFileName>$(IntDir)\auth_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\extras\randomart.c">
+      <ObjectFileName>$(IntDir)\extras_%(Filename).obj</ObjectFileName>
+    </ClCompile>	
+    <ClCompile Include="..\lib\ext\session_ticket.c">
+      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\ext\srp.c">
+      <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\cipher.c">
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\mac.c">
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\mpi.c">
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\pk.c">
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\nettle\prf.c">
+      <ObjectFileName>$(IntDir)\nettle_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\tls13\early_data.c">
+      <ObjectFileName>$(IntDir)\tls_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\tls13\post_handshake.c">
+      <ObjectFileName>$(IntDir)\tls_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\common.c">
+      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\lib\x509\mpi.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\lib\x509\privkey.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="..\lib\x509\privkey_openssl.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\privkey_pkcs8.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\privkey_pkcs8_pbes1.c" />
-    <ClCompile Include="..\lib\x509\prov-seed.c" />
     <ClCompile Include="..\lib\x509\sign.c">
       <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="..\lib\x509\spki.c" />
-    <ClCompile Include="..\lib\x509\time.c" />
-    <ClCompile Include="..\lib\x509\tls_features.c" />
-    <ClCompile Include="..\lib\x509\verify-high.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\verify-high2.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\verify.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\virt-san.c" />
-    <ClCompile Include="..\lib\x509\x509.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\x509_dn.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509\x509_ext.c" />
-    <ClCompile Include="..\lib\x509\x509_write.c">
-      <ObjectFileName>$(IntDir)\x509_%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="..\lib\x509_b64.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def" />

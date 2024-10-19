@@ -167,6 +167,12 @@ declaration of the second argument to gettimeofday. */
 "__gnu_printf__" instead of "__printf__" */
 /* #undef GNULIB_PRINTF_ATTRIBUTE_FLAVOR_GNU */
 
+#include <winapifamily.h>
+#if !defined(WINAPI_FAMILY) || !(WINAPI_FAMILY == WINAPI_FAMILY_PC_APP || \
+				 WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
+#define GNULIB_NONBLOCKING 1
+#endif
+
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
  whether the gnulib module scanf shall be considered present. */
 #define GNULIB_SCANF 1
@@ -663,6 +669,7 @@ don't. */
 /* Define to 1 on MSVC platforms that have the "invalid parameter handler"
  concept. */
 #define HAVE_MSVC_INVALID_PARAMETER_HANDLER 1
+#define MSVC_INVALID_PARAMETER_HANDLING 1
 
 /* Define to 1 if you have the `nettle_cbc_aes128_encrypt' function. */
 #define HAVE_NETTLE_CBC_AES128_ENCRYPT 1
@@ -1765,6 +1772,8 @@ don't. */
  'ptrdiff_t'. */
  /* #undef PTRDIFF_T_SUFFIX */
 
+#define PROMOTED_MODE_T int
+
  /* name of regex header file */
  /* #undef REGEX_HEADER */
 
@@ -2194,11 +2203,19 @@ _GL_UNUSED_LABEL should be used with a trailing ;*/
 #   define _GL_ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
 #  endif
 
+#ifndef _GL_ATTRIBUTE_FORMAT
+#define _GL_ATTRIBUTE_FORMAT(...)
+#endif
+
 #define _GL_CMP(n1, n2) (((n1) > (n2)) - ((n1) < (n2)))
 
 #ifndef WORD_BIT
 /* Assume 'int' is 32 bits wide.*/
 # define WORD_BIT 32
+#endif
+
+#ifdef _MSC_VER
+#define __builtin_expect(operator, value) operator
 #endif
 
 /* Define as `fork' if `vfork' does not work. */
