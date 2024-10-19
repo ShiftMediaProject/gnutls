@@ -39,6 +39,8 @@
     <ClInclude Include="..\lib\dtls.h" />
     <ClInclude Include="..\lib\ecc.h" />
     <ClInclude Include="..\lib\errors.h" />
+    <ClInclude Include="..\lib\dlwrap\zlib.h" />
+    <ClInclude Include="..\lib\dlwrap\zlibfuncs.h" />
     <ClInclude Include="..\lib\extras\hex.h" />
     <ClInclude Include="..\lib\extras\randomart.h" />
     <ClInclude Include="..\lib\extv.h" />
@@ -354,6 +356,7 @@
     <ClCompile Include="..\lib\datum.c" />
     <ClCompile Include="..\lib\db.c" />
     <ClCompile Include="..\lib\debug.c" />
+    <ClCompile Include="..\lib\dlwrap\zlib.c" />
     <ClCompile Include="..\lib\dh-primes.c" />
     <ClCompile Include="..\lib\dh-session.c" />
     <ClCompile Include="..\lib\dh.c" />

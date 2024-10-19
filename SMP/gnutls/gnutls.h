@@ -57,14 +57,14 @@ typedef SSIZE_T ssize_t;
 extern "C" {
 #endif
 
-#define GNUTLS_VERSION "3.8.6"
+#define GNUTLS_VERSION "3.8.7"
 
 /* clang-format off */
 #define GNUTLS_VERSION_MAJOR 3
 #define GNUTLS_VERSION_MINOR 8
-#define GNUTLS_VERSION_PATCH 6
+#define GNUTLS_VERSION_PATCH 7
 
-#define GNUTLS_VERSION_NUMBER 0x030806
+#define GNUTLS_VERSION_NUMBER 0x030807
 /* clang-format on */
 
 #define GNUTLS_CIPHER_RIJNDAEL_128_CBC GNUTLS_CIPHER_AES_128_CBC
@@ -916,7 +916,12 @@ typedef enum {
 	GNUTLS_PK_ECDH_X448 = 11,
 	GNUTLS_PK_EDDSA_ED448 = 12,
 	GNUTLS_PK_RSA_OAEP = 13,
-	GNUTLS_PK_MAX = GNUTLS_PK_RSA_OAEP
+	GNUTLS_PK_MAX = GNUTLS_PK_RSA_OAEP,
+
+	/* Experimental algorithms */
+	GNUTLS_PK_EXP_MIN = 256,
+	GNUTLS_PK_EXP_KYBER768 = GNUTLS_PK_EXP_MIN,
+	GNUTLS_PK_EXP_MAX = GNUTLS_PK_EXP_KYBER768
 } gnutls_pk_algorithm_t;
 
 const char *gnutls_pk_algorithm_get_name(gnutls_pk_algorithm_t algorithm);
@@ -1144,6 +1149,11 @@ typedef enum {
 	GNUTLS_GROUP_FFDHE8192,
 	GNUTLS_GROUP_FFDHE6144,
 	GNUTLS_GROUP_MAX = GNUTLS_GROUP_FFDHE6144,
+
+	/* Experimental algorithms */
+	GNUTLS_GROUP_EXP_MIN = 512,
+	GNUTLS_GROUP_EXP_X25519_KYBER768 = GNUTLS_GROUP_EXP_MIN,
+	GNUTLS_GROUP_EXP_MAX = GNUTLS_GROUP_EXP_X25519_KYBER768
 } gnutls_group_t;
 
 /* macros to allow specifying a specific curve in gnutls_privkey_generate()

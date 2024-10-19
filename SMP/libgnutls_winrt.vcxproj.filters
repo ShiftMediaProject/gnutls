@@ -112,6 +112,12 @@
     <Filter Include="Source Files\lib\nettle\gost">
       <UniqueIdentifier>{14dbb6a8-3d06-47f8-8413-ec8181f8ab8f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\lib\dlwrap">
+      <UniqueIdentifier>{bb097ad3-a132-442a-9708-c618b5dedabb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\dlwrap">
+      <UniqueIdentifier>{51f271c6-a23f-4e79-bdf2-01cc257efe89}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -617,6 +623,12 @@
     </ClInclude>
     <ClInclude Include="..\lib\nettle\int\sha3-shake.h">
       <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\dlwrap\zlibfuncs.h">
+      <Filter>Header Files\lib\dlwrap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\dlwrap\zlib.h">
+      <Filter>Header Files\lib\dlwrap</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1603,6 +1615,9 @@
     </ClCompile>
     <ClCompile Include="..\gnulib\lib\stpcpy.c">
       <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\dlwrap\zlib.c">
+      <Filter>Source Files\lib\dlwrap</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

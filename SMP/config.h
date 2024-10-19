@@ -70,6 +70,9 @@
 /* enable DHE */
 #define ENABLE_DHE 1
 
+/* Define if DSA is enabled. */
+#define ENABLE_DSA 1
+
 /* enable DTLS-SRTP support */
 #define ENABLE_DTLS_SRTP 1
 
