@@ -12,9 +12,9 @@ variables:
   # name to allow expiration of old caches.
   BUILD_IMAGES_PROJECT: gnutls/build-images
   DEBIAN_BUILD: buildenv-debian-testing
-  FEDORA_BUILD: buildenv-fedora38
-  FEDORA_CROSS_BUILD: buildenv-cross-fedora38
-  MINGW_BUILD: buildenv-mingw-fedora38
+  FEDORA_BUILD: buildenv-fedora40
+  FEDORA_CROSS_BUILD: buildenv-cross-fedora40
+  MINGW_BUILD: buildenv-mingw-fedora40
   ALPINE_BASE_BUILD: buildenv-alpine-base
   COMPILER: gcc
   CPPCHECK_OPTIONS: "--enable=warning --enable=performance --enable=portability --std=c99 --suppressions-list=devel/cppcheck.suppressions --template='{id}:{file}:{line},{severity},{message}'"
@@ -29,7 +29,7 @@ variables:
   CHECKJOBS: 16
 
 cache:
-  key: "$CI_JOB_NAME-ver32"
+  key: "$CI_JOB_NAME-ver39"
   paths:
     - cache/
 
@@ -59,8 +59,7 @@ default:
 .bootstrap:
   stage: bootstrap
   tags:
-    - shared
-    - linux
+    - saas-linux-small-amd64
   script:
     - devel/preserve-timestamp stamp.pre-bootstrap
     - SUBMODULE_NOFETCH=1 ./bootstrap --copy --skip-po
@@ -71,8 +70,7 @@ default:
 .build:
   stage: build
   tags:
-    - shared
-    - linux
+    - saas-linux-small-amd64
   except:
     - tags # TODO
   artifacts:
@@ -84,8 +82,7 @@ default:
   script:
     - make -j$CHECKJOBS check
   tags:
-    - shared
-    - linux
+    - saas-linux-small-amd64
   except:
     - tags # TODO
   artifacts:
@@ -114,10 +111,10 @@ default:
 .mingw:
   image: $CI_REGISTRY/$BUILD_IMAGES_PROJECT:$MINGW_BUILD
   variables:
-    COMPILER: "${arch_name}-w64-mingw32-gcc"
-    CFLAGS: "-fstack-protector"
-    CXXFLAGS: "-fstack-protector"
-    LDFLAGS: "-fstack-protector"
+    # COMPILER: "${arch_name}-w64-mingw32-gcc"
+    # CFLAGS: "-fstack-protector"
+    # CXXFLAGS: "-fstack-protector"
+    # LDFLAGS: "-fstack-protector"
     WINEPATH: "/usr/${arch_name}-w64-mingw32/sys-root/mingw/bin"
   before_script:
     - *prepare-ccache
@@ -163,9 +160,9 @@ commit-check:
   cache: {}
   script:
     # we want $ALPINE_BASE_BUILD without git, so we are adding it here
-    - apk add git bash grep clang16-extra-tools
+    - apk add git bash grep clang18-extra-tools
     - devel/check_if_signed
-    - PATH=/usr/lib/llvm16/bin:$PATH devel/indent-gnutls
+    - PATH=/usr/lib/llvm18/bin:$PATH devel/indent-gnutls
     - devel/check-headers.sh
     - git diff --exit-code # nothing should change version controlled files
   retry: 0
@@ -221,8 +218,7 @@ UB+ASAN-Werror.Fedora.x86_64.gcc:
     # Use $BUILDJOBS since most of the job is building all tests, then just running 4 tests
     - make -j$BUILDJOBS check -C tests TESTS="trust-store p11-kit-load.sh priority-init2 set-default-prio" SUBDIRS=.
   tags:
-    - shared
-    - linux
+    - saas-linux-small-amd64
   except:
     - tags
 
@@ -258,8 +254,7 @@ UB+ASAN-Werror-aggressive.Fedora.x86_64.gcc:
     # Use $BUILDJOBS since most of the job is building all tests, then just running 4 tests
     - make -j$BUILDJOBS check -C tests TESTS="trust-store p11-kit-load.sh priority-init2 set-default-prio" SUBDIRS=.
   tags:
-    - shared
-    - linux
+    - saas-linux-small-amd64
   except:
     - tags
 
@@ -403,6 +398,7 @@ fedora-interop/test:
     - echo "PATH=$PATH"
     - which gnutls-cli gnutls-serv
     - cd tests/suite/tls-interoperability/
+    - cp openssl/openssl.cnf /etc/pki/tls/openssl.cnf # workaround for CCM8 ciphers moved to SECLEVEL=0
     - echo "Tests to run:"
     - tmt run plans -n interop tests -f "tag:interop-gnutls" -f "tag:interop-$TYPE" -f "tag:interop-$COMPONENT"  discover -v
     - echo "Slicing SLICE_TOTAL=$SLICES SLICE_ID=$SLICEID"
@@ -520,10 +516,9 @@ fedora-threadsan/build:
   needs:
     - fedora/bootstrap
   script:
-    - CFLAGS="-fsanitize=thread -g -O2" CXXFLAGS=$CFLAGS
-      dash ./configure --disable-gcc-warnings --disable-doc --cache-file $CCACHE_FILE --disable-non-suiteb-curves --enable-fips140-mode --disable-full-test-suite --with-pkcs12-iter-count=10000
-    - make -j$BUILDJOBS
-    - make -j$BUILDJOBS -C tests check SUBDIRS=. TESTS="" TSAN_OPTIONS="suppressions=$(pwd)/devel/tsan.supp" GNUTLS_SKIP_FIPS_INTEGRITY_CHECKS=1 GNUTLS_FORCE_FIPS_MODE=1
+    - setarch $(uname -m) -R -- dash ./configure --disable-gcc-warnings --disable-doc --cache-file $CCACHE_FILE --disable-non-suiteb-curves --enable-fips140-mode --disable-full-test-suite --with-pkcs12-iter-count=10000 CFLAGS="-fsanitize=thread -g -O2" CXXFLAGS=$CFLAGS
+    - setarch $(uname -m) -R -- make -j$BUILDJOBS
+    - setarch $(uname -m) -R -- make -j$BUILDJOBS -C tests check SUBDIRS=. TESTS="" TSAN_OPTIONS="suppressions=$(pwd)/devel/tsan.supp" GNUTLS_SKIP_FIPS_INTEGRITY_CHECKS=1 GNUTLS_FORCE_FIPS_MODE=1
 
 fedora-threadsan/test:
   extends:
@@ -534,7 +529,7 @@ fedora-threadsan/test:
   needs:
     - fedora-threadsan/build
   script:
-    - make -j$CHECKJOBS -C tests check SUBDIRS=. TESTS="tls-pthread dtls-pthread fips-mode-pthread rng-pthread" TSAN_OPTIONS="suppressions=$(pwd)/devel/tsan.supp" GNUTLS_SKIP_FIPS_INTEGRITY_CHECKS=1 GNUTLS_FORCE_FIPS_MODE=1
+    - setarch $(uname -m) -R -- make -j$CHECKJOBS -C tests check SUBDIRS=. TESTS="tls-pthread dtls-pthread fips-mode-pthread rng-pthread" TSAN_OPTIONS="suppressions=$(pwd)/devel/tsan.supp" GNUTLS_SKIP_FIPS_INTEGRITY_CHECKS=1 GNUTLS_FORCE_FIPS_MODE=1
 
 fedora-static-analyzers/build:
   extends:
@@ -623,8 +618,7 @@ fedora-abicoverage/build:
     - make -j$BUILDJOBS
     - make -j$BUILDJOBS check TESTS=""
   tags:
-    - shared
-    - linux
+    - saas-linux-small-amd64
   except:
     - tags
 
@@ -640,7 +634,7 @@ fedora-abicoverage/test:
     - make abi-check
     - make pic-check
     - make -j$CHECKJOBS check
-    - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}
+    - gcovr -fprofile-update=atomic --xml-pretty --exclude-unreachable-branches --gcov-ignore-parse-errors=negative_hits.warn_once_per_file --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}
     - if objdump -R lib/.libs/libgnutls.so | grep INTERNAL ; then false ; fi
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
@@ -679,9 +673,7 @@ fedora-cross/bootstrap:
     # build tests, but don't execute them
     - make -j$BUILDJOBS -C tests check TESTS=""
   tags:
-    - shared
-    - docker
-    - linux
+    - saas-linux-small-amd64
 
 .fedora-cross/test:
   extends:
@@ -695,9 +687,7 @@ fedora-cross/bootstrap:
     - make pic-check
     - make -j$BUILDJOBS -C tests check
   tags:
-    - shared
-    - docker
-    - linux
+    - saas-linux-small-amd64
 
 fedora-cross/aarch64-linux-gnu/build: # name is important, see .fedora-cross/build
   extends:
@@ -820,7 +810,7 @@ debian/test:
   script:
 #    - mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
 #    - echo ':DOSWin:M::MZ::/usr/bin/wine:' > /proc/sys/fs/binfmt_misc/register
-    - dash ./configure --disable-gcc-warnings --host=${arch_name}-w64-mingw32 --target=${arch_name}-w64-mingw32 --cache-file $CCACHE_FILE --with-included-libtasn1 --disable-nls --with-included-unistring --without-p11-kit --disable-non-suiteb-curves --disable-full-test-suite --disable-doc --with-pkcs12-iter-count=10000
+    - mingw${arch_bits}-configure --disable-gcc-warnings --host=${arch_name}-w64-mingw32 --target=${arch_name}-w64-mingw32 --cache-file $CCACHE_FILE --disable-nls --with-included-unistring --disable-non-suiteb-curves --disable-full-test-suite --disable-doc --with-pkcs12-iter-count=10000
     - mingw${arch_bits}-make -j$BUILDJOBS
     # https://bugzilla.redhat.com/show_bug.cgi?id=2049401
     - mingw${arch_bits}-make -j$BUILDJOBS -C $PWD/tests check TESTS=""
@@ -883,6 +873,8 @@ mingw64/test:
   extends:
     - .mingw/test
     - .mingw64
+  variables:
+    GNUTLS_NO_IMPLICIT_INIT: 1
   dependencies:
     - mingw64/build
   needs:
@@ -911,6 +903,8 @@ mingw64-vista/test:
     - .mingw/test
     - .mingw64
     - .mingw-vista
+  variables:
+    GNUTLS_NO_IMPLICIT_INIT: 1
   dependencies:
     - mingw64-vista/build
   needs:

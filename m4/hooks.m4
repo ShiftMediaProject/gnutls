@@ -40,9 +40,9 @@ AC_DEFUN([LIBGNUTLS_HOOKS],
   #     in CONTRIBUTION.md for more info.
   #
   # Interfaces removed:                           AGE=0 (+bump all symbol versions in .map)
-  AC_SUBST(LT_CURRENT, 68)
+  AC_SUBST(LT_CURRENT, 70)
   AC_SUBST(LT_REVISION, 0)
-  AC_SUBST(LT_AGE, 38)
+  AC_SUBST(LT_AGE, 40)
 
   AC_SUBST(LT_SSL_CURRENT, 27)
   AC_SUBST(LT_SSL_REVISION, 2)
@@ -97,7 +97,7 @@ AC_MSG_ERROR([[
     GMP_CFLAGS=""
     GMP_LIBS=""
   else
-    if test x$GMP_LIBS = x; then
+    if test "x$GMP_LIBS" = "x"; then
 	AC_CHECK_LIB(gmp, __gmpz_cmp, [GMP_LIBS="-lgmp"], [AC_MSG_ERROR([[
 ***
 *** gmp was not found.

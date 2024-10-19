@@ -2088,6 +2088,14 @@ const struct hash_vectors_st md5_vectors[] = {
 	},
 };
 
+const struct hash_vectors_st rmd160_vectors[] = {
+	{
+		STR(plaintext, plaintext_size, "abcdefghijklmnopqrstuvwxyz"),
+		STR(output, output_size,
+		    "\xf7\x1c\x27\x10\x9c\x69\x2c\x1b\x56\xbb\xdc\xeb\x5b\x9d\x28\x65\xb3\x70\x8d\xbc"),
+	},
+};
+
 const struct hash_vectors_st sha1_vectors[] = {
 	{
 		STR(plaintext, plaintext_size, "what do ya want for nothing?"),
@@ -2173,6 +2181,34 @@ const struct hash_vectors_st sha3_512_vectors[] = {
 		    "\x82\xE1\x92\xE4\x04\x3D\xDC\xD1\x2E\xCF\x52\x96\x9D\x0F\x80\x7E\xED"),
 		STR(output, output_size,
 		    "\x96\x44\xE3\xC9\x0B\x67\xE2\x21\x24\xE9\x6D\xFE\xDC\xE5\x3D\x33\xC4\x60\xF1\x32\x86\x8F\x09\x75\xD1\x8B\x22\xCF\xD5\x9F\x63\x7D\xD8\x5A\xA4\x05\xE3\x98\x08\xA4\x55\x70\xA4\x98\xC0\xB8\xF2\xCB\xA5\x9F\x8E\x14\x37\xEA\xEF\x89\xF2\x0B\x88\x29\x8A\xDF\xA2\xDE"),
+	},
+};
+
+const struct hash_vectors_st shake128_vectors[] = {
+	{
+		STR(plaintext, plaintext_size, "\xC1\xEC\xFD\xFC"),
+		STR(output, output_size,
+		    "\xB5\xEB\x98\x7E\x7C\xBF\xC7\xC9\xD1\x40\xAF\xD2\x0B\x50\x0E\x30"),
+	},
+	{
+		STR(plaintext, plaintext_size, "\xC1\xEC\xFD\xFC"),
+		STR(output, output_size,
+		    "\xB5\xEB\x98\x7E\x7C\xBF\xC7\xC9\xD1\x40\xAF\xD2\x0B\x50\x0E\x30"
+		    "\xF2\xF7\x11\x88\xBC\xE8\x85\x95\x1F\x22\xFB\xC3\x5D\xE4\x0E\x74"),
+	},
+};
+
+const struct hash_vectors_st shake256_vectors[] = {
+	{
+		STR(plaintext, plaintext_size, "\xC1\xEC\xFD\xFC"),
+		STR(output, output_size,
+		    "\xCE\x7F\xBC\x15\x50\x39\x86\xE3\xB8\x45\x30\xD8\x4A\x16\xEF\x64"),
+	},
+	{
+		STR(plaintext, plaintext_size, "\xC1\xEC\xFD\xFC"),
+		STR(output, output_size,
+		    "\xCE\x7F\xBC\x15\x50\x39\x86\xE3\xB8\x45\x30\xD8\x4A\x16\xEF\x64"
+		    "\x33\x2A\x6E\xA5\x7E\x35\x4E\x9F\x20\x54\xBF\xC2\xAA\x88\x91\xF9"),
 	},
 };
 
@@ -2305,6 +2341,62 @@ static int test_digest(gnutls_digest_algorithm_t dig,
 				return gnutls_assert_val(
 					GNUTLS_E_SELF_TEST_ERROR);
 			}
+		}
+	}
+
+	_gnutls_debug_log("%s self check succeeded\n",
+			  gnutls_digest_get_name(dig));
+
+	return 0;
+}
+
+static int test_xof(gnutls_digest_algorithm_t dig,
+		    const struct hash_vectors_st *vectors, size_t vectors_size,
+		    unsigned flags)
+{
+	uint8_t data[2 * HASH_DATA_SIZE];
+	unsigned int i;
+	int ret;
+	gnutls_hash_hd_t hd;
+
+	if (!_gnutls_digest_exists(dig))
+		return 0;
+
+	for (i = 0; i < vectors_size; i++) {
+		ret = gnutls_hash_init(&hd, dig);
+		if (ret < 0) {
+			_gnutls_debug_log("error initializing: %s\n",
+					  gnutls_digest_get_name(dig));
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		ret = gnutls_hash(hd, vectors[i].plaintext, 1);
+		if (ret < 0) {
+			gnutls_hash_deinit(hd, NULL);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		ret = gnutls_hash(hd, &vectors[i].plaintext[1],
+				  vectors[i].plaintext_size - 1);
+		if (ret < 0) {
+			gnutls_hash_deinit(hd, NULL);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		assert(sizeof(data) >= vectors[i].output_size);
+		ret = gnutls_hash_squeeze(hd, data, vectors[i].output_size);
+		if (ret < 0) {
+			gnutls_hash_deinit(hd, NULL);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
+		}
+
+		gnutls_hash_deinit(hd, NULL);
+
+		if (memcmp(data, vectors[i].output, vectors[i].output_size) !=
+		    0) {
+			_gnutls_debug_log("%s test vector %d failed!\n",
+					  gnutls_digest_get_name(dig), i);
+			return gnutls_assert_val(GNUTLS_E_SELF_TEST_ERROR);
 		}
 	}
 
@@ -2862,6 +2954,8 @@ int gnutls_digest_self_test(unsigned flags, gnutls_digest_algorithm_t digest)
 	case GNUTLS_DIG_UNKNOWN:
 		NON_FIPS_CASE(GNUTLS_DIG_MD5, test_digest, md5_vectors);
 		FALLTHROUGH;
+		NON_FIPS_CASE(GNUTLS_DIG_RMD160, test_digest, rmd160_vectors);
+		FALLTHROUGH;
 		CASE(GNUTLS_DIG_SHA1, test_digest, sha1_vectors);
 		FALLTHROUGH;
 		CASE(GNUTLS_DIG_SHA224, test_digest, sha224_vectors);
@@ -2881,6 +2975,10 @@ int gnutls_digest_self_test(unsigned flags, gnutls_digest_algorithm_t digest)
 		FALLTHROUGH;
 		CASE(GNUTLS_DIG_SHA3_512, test_digest, sha3_512_vectors);
 #endif
+		FALLTHROUGH;
+		CASE(GNUTLS_DIG_SHAKE_128, test_xof, shake128_vectors);
+		FALLTHROUGH;
+		CASE(GNUTLS_DIG_SHAKE_256, test_xof, shake256_vectors);
 #if ENABLE_GOST
 		FALLTHROUGH;
 		NON_FIPS_CASE(GNUTLS_DIG_GOSTR_94, test_digest,

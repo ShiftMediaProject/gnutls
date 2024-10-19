@@ -28,8 +28,12 @@
 #include "errors.h"
 #include <nettle/md5.h>
 #include <nettle/md2.h>
+#include <nettle/ripemd160.h>
 #include <nettle/sha.h>
 #include <nettle/sha3.h>
+#ifndef HAVE_NETTLE_SHA3_128_SHAKE_OUTPUT
+#include "int/sha3-shake.h"
+#endif
 #include <nettle/hmac.h>
 #include <nettle/umac.h>
 #include <nettle/hkdf.h>
@@ -48,6 +52,7 @@ typedef void (*update_func)(void *, size_t, const uint8_t *);
 typedef void (*digest_func)(void *, size_t, uint8_t *);
 typedef void (*set_key_func)(void *, size_t, const uint8_t *);
 typedef void (*set_nonce_func)(void *, size_t, const uint8_t *);
+typedef void (*init_func)(void *);
 
 static int wrap_nettle_hash_init(gnutls_digest_algorithm_t algo, void **_ctx);
 
@@ -76,12 +81,14 @@ struct nettle_hash_ctx {
 		struct sha256_ctx sha256;
 		struct sha384_ctx sha384;
 		struct sha512_ctx sha512;
+		struct sha3_128_ctx sha3_128;
 		struct sha3_224_ctx sha3_224;
 		struct sha3_256_ctx sha3_256;
 		struct sha3_384_ctx sha3_384;
 		struct sha3_512_ctx sha3_512;
 		struct sha1_ctx sha1;
 		struct md2_ctx md2;
+		struct ripemd160_ctx ripemd160;
 		struct md5_sha1_ctx md5_sha1;
 #if ENABLE_GOST
 		struct gosthash94cp_ctx gosthash94cp;
@@ -94,6 +101,7 @@ struct nettle_hash_ctx {
 	size_t length;
 	update_func update;
 	digest_func digest;
+	init_func init;
 };
 
 struct nettle_mac_ctx {
@@ -606,10 +614,9 @@ static int wrap_nettle_hash_exists(gnutls_digest_algorithm_t algo)
 	case GNUTLS_DIG_SHA3_256:
 	case GNUTLS_DIG_SHA3_384:
 	case GNUTLS_DIG_SHA3_512:
-#endif
-
 	case GNUTLS_DIG_SHAKE_128:
 	case GNUTLS_DIG_SHAKE_256:
+#endif
 
 	case GNUTLS_DIG_MD2:
 	case GNUTLS_DIG_RMD160:
@@ -645,6 +652,14 @@ static void _md5_sha1_digest(void *_ctx, size_t len, uint8_t *digest)
 			    digest + MD5_DIGEST_SIZE);
 }
 
+static void _md5_sha1_init(void *_ctx)
+{
+	struct md5_sha1_ctx *ctx = _ctx;
+
+	md5_init(&ctx->md5);
+	sha1_init(&ctx->sha1);
+}
+
 static int _ctx_init(gnutls_digest_algorithm_t algo,
 		     struct nettle_hash_ctx *ctx)
 {
@@ -652,50 +667,49 @@ static int _ctx_init(gnutls_digest_algorithm_t algo,
 	 * gnutls_hash_init() and gnutls_hmac_init() */
 	switch (algo) {
 	case GNUTLS_DIG_MD5:
-		md5_init(&ctx->ctx.md5);
+		ctx->init = (init_func)md5_init;
 		ctx->update = (update_func)md5_update;
 		ctx->digest = (digest_func)md5_digest;
 		ctx->ctx_ptr = &ctx->ctx.md5;
 		ctx->length = MD5_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA1:
-		sha1_init(&ctx->ctx.sha1);
+		ctx->init = (init_func)sha1_init;
 		ctx->update = (update_func)sha1_update;
 		ctx->digest = (digest_func)sha1_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha1;
 		ctx->length = SHA1_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_MD5_SHA1:
-		md5_init(&ctx->ctx.md5_sha1.md5);
-		sha1_init(&ctx->ctx.md5_sha1.sha1);
+		ctx->init = (init_func)_md5_sha1_init;
 		ctx->update = (update_func)_md5_sha1_update;
 		ctx->digest = (digest_func)_md5_sha1_digest;
 		ctx->ctx_ptr = &ctx->ctx.md5_sha1;
 		ctx->length = MD5_DIGEST_SIZE + SHA1_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA224:
-		sha224_init(&ctx->ctx.sha224);
+		ctx->init = (init_func)sha224_init;
 		ctx->update = (update_func)sha224_update;
 		ctx->digest = (digest_func)sha224_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha224;
 		ctx->length = SHA224_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA256:
-		sha256_init(&ctx->ctx.sha256);
+		ctx->init = (init_func)sha256_init;
 		ctx->update = (update_func)sha256_update;
 		ctx->digest = (digest_func)sha256_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha256;
 		ctx->length = SHA256_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA384:
-		sha384_init(&ctx->ctx.sha384);
+		ctx->init = (init_func)sha384_init;
 		ctx->update = (update_func)sha384_update;
 		ctx->digest = (digest_func)sha384_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha384;
 		ctx->length = SHA384_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA512:
-		sha512_init(&ctx->ctx.sha512);
+		ctx->init = (init_func)sha512_init;
 		ctx->update = (update_func)sha512_update;
 		ctx->digest = (digest_func)sha512_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha512;
@@ -703,58 +717,80 @@ static int _ctx_init(gnutls_digest_algorithm_t algo,
 		break;
 #ifdef NETTLE_SHA3_FIPS202
 	case GNUTLS_DIG_SHA3_224:
-		sha3_224_init(&ctx->ctx.sha3_224);
+		ctx->init = (init_func)sha3_224_init;
 		ctx->update = (update_func)sha3_224_update;
 		ctx->digest = (digest_func)sha3_224_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha3_224;
 		ctx->length = SHA3_224_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA3_256:
-		sha3_256_init(&ctx->ctx.sha3_256);
+		ctx->init = (init_func)sha3_256_init;
 		ctx->update = (update_func)sha3_256_update;
 		ctx->digest = (digest_func)sha3_256_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha3_256;
 		ctx->length = SHA3_256_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA3_384:
-		sha3_384_init(&ctx->ctx.sha3_384);
+		ctx->init = (init_func)sha3_384_init;
 		ctx->update = (update_func)sha3_384_update;
 		ctx->digest = (digest_func)sha3_384_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha3_384;
 		ctx->length = SHA3_384_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_SHA3_512:
-		sha3_512_init(&ctx->ctx.sha3_512);
+		ctx->init = (init_func)sha3_512_init;
 		ctx->update = (update_func)sha3_512_update;
 		ctx->digest = (digest_func)sha3_512_digest;
 		ctx->ctx_ptr = &ctx->ctx.sha3_512;
 		ctx->length = SHA3_512_DIGEST_SIZE;
 		break;
+	case GNUTLS_DIG_SHAKE_128:
+		ctx->init = (init_func)sha3_128_init;
+		ctx->update = (update_func)sha3_128_update;
+		ctx->digest = (digest_func)sha3_128_shake_output;
+		ctx->ctx_ptr = &ctx->ctx.sha3_128;
+		ctx->length = 0; /* unused */
+		break;
+	case GNUTLS_DIG_SHAKE_256:
+		ctx->init = (init_func)sha3_256_init;
+		ctx->update = (update_func)sha3_256_update;
+		ctx->digest = (digest_func)sha3_256_shake_output;
+		ctx->ctx_ptr = &ctx->ctx.sha3_256;
+		ctx->length = 0; /* unused */
+		break;
 #endif
 	case GNUTLS_DIG_MD2:
-		md2_init(&ctx->ctx.md2);
+		ctx->init = (init_func)md2_init;
 		ctx->update = (update_func)md2_update;
 		ctx->digest = (digest_func)md2_digest;
 		ctx->ctx_ptr = &ctx->ctx.md2;
 		ctx->length = MD2_DIGEST_SIZE;
 		break;
+
+	case GNUTLS_DIG_RMD160:
+		ctx->init = (init_func)ripemd160_init;
+		ctx->update = (update_func)ripemd160_update;
+		ctx->digest = (digest_func)ripemd160_digest;
+		ctx->ctx_ptr = &ctx->ctx.ripemd160;
+		ctx->length = RIPEMD160_DIGEST_SIZE;
+		break;
 #if ENABLE_GOST
 	case GNUTLS_DIG_GOSTR_94:
-		gosthash94cp_init(&ctx->ctx.gosthash94cp);
+		ctx->init = (init_func)gosthash94cp_init;
 		ctx->update = (update_func)gosthash94cp_update;
 		ctx->digest = (digest_func)gosthash94cp_digest;
 		ctx->ctx_ptr = &ctx->ctx.gosthash94cp;
 		ctx->length = GOSTHASH94_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_STREEBOG_256:
-		streebog256_init(&ctx->ctx.streebog256);
+		ctx->init = (init_func)streebog256_init;
 		ctx->update = (update_func)streebog256_update;
 		ctx->digest = (digest_func)streebog256_digest;
 		ctx->ctx_ptr = &ctx->ctx.streebog256;
 		ctx->length = STREEBOG256_DIGEST_SIZE;
 		break;
 	case GNUTLS_DIG_STREEBOG_512:
-		streebog512_init(&ctx->ctx.streebog512);
+		ctx->init = (init_func)streebog512_init;
 		ctx->update = (update_func)streebog512_update;
 		ctx->digest = (digest_func)streebog512_digest;
 		ctx->ctx_ptr = &ctx->ctx.streebog512;
@@ -765,7 +801,7 @@ static int _ctx_init(gnutls_digest_algorithm_t algo,
 		gnutls_assert();
 		return GNUTLS_E_INVALID_REQUEST;
 	}
-
+	ctx->init(ctx->ctx_ptr);
 	return 0;
 }
 
@@ -835,7 +871,12 @@ static int wrap_nettle_hash_output(void *src_ctx, void *digest,
 	struct nettle_hash_ctx *ctx;
 	ctx = src_ctx;
 
-	if (digestsize < ctx->length) {
+	if (digest == NULL) {
+		ctx->init(ctx->ctx_ptr);
+		return 0;
+	}
+
+	if (ctx->length > 0 && digestsize < ctx->length) {
 		gnutls_assert();
 		return GNUTLS_E_SHORT_MEMORY_BUFFER;
 	}

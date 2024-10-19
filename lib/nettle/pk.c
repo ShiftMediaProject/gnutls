@@ -769,6 +769,12 @@ static int _wrap_nettle_pk_encrypt(gnutls_pk_algorithm_t algo,
 		struct rsa_public_key pub;
 		nettle_random_func *random_func;
 
+		if (!_gnutls_config_is_rsa_pkcs1_encrypt_allowed()) {
+			ret = gnutls_assert_val(
+				GNUTLS_E_UNSUPPORTED_ENCRYPTION_ALGORITHM);
+			goto cleanup;
+		}
+
 		/* RSA encryption with PKCS#1 v1.5 padding is not approved */
 		not_approved = true;
 
@@ -939,6 +945,12 @@ static int _wrap_nettle_pk_decrypt(gnutls_pk_algorithm_t algo,
 		size_t length;
 		nettle_random_func *random_func;
 
+		if (!_gnutls_config_is_rsa_pkcs1_encrypt_allowed()) {
+			ret = gnutls_assert_val(
+				GNUTLS_E_UNSUPPORTED_ENCRYPTION_ALGORITHM);
+			goto cleanup;
+		}
+
 		/* RSA decryption with PKCS#1 v1.5 padding is not approved */
 		not_approved = true;
 
@@ -1034,7 +1046,6 @@ static int _wrap_nettle_pk_decrypt(gnutls_pk_algorithm_t algo,
 cleanup:
 	gnutls_free(buf);
 	if (ret < 0) {
-		gnutls_free(plaintext->data);
 		_gnutls_switch_fips_state(GNUTLS_FIPS140_OP_ERROR);
 	} else if (not_approved) {
 		_gnutls_switch_fips_state(GNUTLS_FIPS140_OP_NOT_APPROVED);
@@ -1116,6 +1127,12 @@ static int _wrap_nettle_pk_decrypt2(gnutls_pk_algorithm_t algo,
 
 	switch (algo) {
 	case GNUTLS_PK_RSA:
+		if (!_gnutls_config_is_rsa_pkcs1_encrypt_allowed()) {
+			ret = gnutls_assert_val(
+				GNUTLS_E_UNSUPPORTED_ENCRYPTION_ALGORITHM);
+			goto fail;
+		}
+
 		/* RSA decryption with PKCS#1 v1.5 padding is not approved */
 		not_approved = true;
 

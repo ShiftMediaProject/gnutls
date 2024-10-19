@@ -38,6 +38,7 @@
 #include "pk.h"
 
 #define PBES1_DES_MD5_OID "1.2.840.113549.1.5.3"
+#define PBES1_DES_SHA1_OID "1.2.840.113549.1.5.10"
 
 #define PBES2_OID "1.2.840.113549.1.5.13"
 #define PBKDF2_OID "1.2.840.113549.1.5.12"
@@ -60,6 +61,16 @@ static const struct pkcs_cipher_schema_st avail_pkcs_cipher_schemas[] = {
 	  .pbes2 = 0,
 	  .cipher_oid = PBES1_DES_MD5_OID,
 	  .write_oid = PBES1_DES_MD5_OID,
+	  .desc = NULL,
+	  .iv_name = NULL,
+	  .decrypt_only = 1 },
+	{ .schema = PBES1_DES_SHA1,
+	  .name = "PBES1-DES-CBC-SHA1",
+	  .flag = GNUTLS_PKCS_PBES1_DES_SHA1,
+	  .cipher = GNUTLS_CIPHER_DES_CBC,
+	  .pbes2 = 0,
+	  .cipher_oid = PBES1_DES_SHA1_OID,
+	  .write_oid = PBES1_DES_SHA1_OID,
 	  .desc = NULL,
 	  .iv_name = NULL,
 	  .decrypt_only = 1 },
@@ -611,8 +622,8 @@ error:
 
 /* Reads the PBKDF2 parameters.
  */
-static int read_pbkdf2_params(asn1_node pasn, const gnutls_datum_t *der,
-			      struct pbkdf2_params *params)
+int _gnutls_read_pbkdf2_params(asn1_node pasn, const gnutls_datum_t *der,
+			       struct pbkdf2_params *params)
 {
 	int params_start, params_end;
 	int params_len, len, result;
@@ -669,7 +680,8 @@ static int read_pbkdf2_params(asn1_node pasn, const gnutls_datum_t *der,
 		goto error;
 	}
 
-	/* read the salt */
+	/* Read the salt.
+	 */
 	params->salt_size = sizeof(params->salt);
 	result = asn1_read_value(pbkdf2_asn, "salt.specified", params->salt,
 				 &params->salt_size);
@@ -685,7 +697,7 @@ static int read_pbkdf2_params(asn1_node pasn, const gnutls_datum_t *der,
 		goto error;
 	}
 
-	/* read the iteration count 
+	/* Read the iteration count.
 	 */
 	result = _gnutls_x509_read_uint(pbkdf2_asn, "iterationCount",
 					&params->iter_count);
@@ -701,7 +713,7 @@ static int read_pbkdf2_params(asn1_node pasn, const gnutls_datum_t *der,
 
 	_gnutls_hard_log("iterationCount: %d\n", params->iter_count);
 
-	/* read the keylength, if it is set.
+	/* Read the keyLength, if it is present.
 	 */
 	result = _gnutls_x509_read_uint(pbkdf2_asn, "keyLength",
 					&params->key_size);
@@ -709,7 +721,7 @@ static int read_pbkdf2_params(asn1_node pasn, const gnutls_datum_t *der,
 		params->key_size = 0;
 	}
 
-	if (params->key_size > MAX_CIPHER_KEY_SIZE) {
+	if (params->key_size > MAX_MAC_KEY_SIZE) {
 		result = gnutls_assert_val(GNUTLS_E_ILLEGAL_PARAMETER);
 		goto error;
 	}
@@ -972,7 +984,7 @@ int _gnutls_read_pkcs_schema_params(schema_id *schema, const char *password,
 		tmp.data = (uint8_t *)data;
 		tmp.size = data_size;
 
-		result = read_pbkdf2_params(pasn, &tmp, kdf_params);
+		result = _gnutls_read_pbkdf2_params(pasn, &tmp, kdf_params);
 		if (result < 0) {
 			gnutls_assert();
 			goto error;
@@ -995,7 +1007,7 @@ int _gnutls_read_pkcs_schema_params(schema_id *schema, const char *password,
 
 		*schema = p->schema;
 		return 0;
-	} else if (*schema == PBES1_DES_MD5) {
+	} else if (*schema == PBES1_DES_MD5 || *schema == PBES1_DES_SHA1) {
 		return _gnutls_read_pbkdf1_params(data, data_size, kdf_params,
 						  enc_params);
 	} else { /* PKCS #12 schema */
@@ -1055,10 +1067,9 @@ error:
 	return result;
 }
 
-static int _gnutls_pbes2_string_to_key(unsigned int pass_len,
-				       const char *password,
-				       const struct pbkdf2_params *kdf_params,
-				       int key_size, uint8_t *key)
+int _gnutls_pbes2_string_to_key(unsigned int pass_len, const char *password,
+				const struct pbkdf2_params *kdf_params,
+				int key_size, uint8_t *key)
 {
 	gnutls_datum_t _key;
 	gnutls_datum_t salt;
@@ -1114,6 +1125,14 @@ int _gnutls_pkcs_raw_decrypt_data(schema_id schema, asn1_node pkcs8_asn,
 		ret = _gnutls_decrypt_pbes1_des_md5_data(password, pass_len,
 							 kdf_params, enc_params,
 							 &enc, decrypted_data);
+		if (ret < 0)
+			goto error;
+		goto cleanup;
+	} else if (schema == PBES1_DES_SHA1) {
+		ret = _gnutls_decrypt_pbes1_des_sha1_data(password, pass_len,
+							  kdf_params,
+							  enc_params, &enc,
+							  decrypted_data);
 		if (ret < 0)
 			goto error;
 		goto cleanup;
@@ -1263,15 +1282,14 @@ error:
 
 /* Writes the PBKDF2 parameters.
  */
-static int write_pbkdf2_params(asn1_node pasn,
-			       const struct pbkdf2_params *kdf_params)
+int _gnutls_write_pbkdf2_params(asn1_node pasn,
+				const struct pbkdf2_params *kdf_params)
 {
 	int result;
 	asn1_node pbkdf2_asn = NULL;
-	uint8_t tmp[MAX_OID_SIZE];
 	const mac_entry_st *me;
 
-	/* Write the key derivation algorithm
+	/* Write the key derivation algorithm.
 	 */
 	result = asn1_write_value(pasn, "keyDerivationFunc.algorithm",
 				  PBKDF2_OID, 1);
@@ -1297,7 +1315,7 @@ static int write_pbkdf2_params(asn1_node pasn,
 		goto error;
 	}
 
-	/* write the salt 
+	/* Write the salt.
 	 */
 	result = asn1_write_value(pbkdf2_asn, "salt.specified",
 				  kdf_params->salt, kdf_params->salt_size);
@@ -1308,25 +1326,25 @@ static int write_pbkdf2_params(asn1_node pasn,
 	}
 	_gnutls_hard_log("salt.specified.size: %d\n", kdf_params->salt_size);
 
-	/* write the iteration count 
+	/* Write the iteration count.
 	 */
-	_gnutls_write_uint32(kdf_params->iter_count, tmp);
-
-	result = asn1_write_value(pbkdf2_asn, "iterationCount", tmp, 4);
-	if (result != ASN1_SUCCESS) {
+	result = _gnutls_x509_write_uint32(pbkdf2_asn, "iterationCount",
+					   kdf_params->iter_count);
+	if (result < 0) {
 		gnutls_assert();
-		result = _gnutls_asn2err(result);
 		goto error;
 	}
 	_gnutls_hard_log("iterationCount: %d\n", kdf_params->iter_count);
 
-	/* write the keylength, if it is set.
+	/* Write the keyLength, if it is set.
 	 */
-	result = asn1_write_value(pbkdf2_asn, "keyLength", NULL, 0);
-	if (result != ASN1_SUCCESS) {
-		gnutls_assert();
-		result = _gnutls_asn2err(result);
-		goto error;
+	if (kdf_params->key_size > 0) {
+		result = _gnutls_x509_write_uint32(pbkdf2_asn, "keyLength",
+						   kdf_params->key_size);
+		if (result < 0) {
+			gnutls_assert();
+			goto error;
+		}
 	}
 
 	me = _gnutls_mac_to_entry(kdf_params->mac);
@@ -1351,8 +1369,8 @@ static int write_pbkdf2_params(asn1_node pasn,
 		goto error;
 	}
 
-	/* now encode them an put the DER output
-	 * in the keyDerivationFunc.parameters
+	/* Now encode them an put the DER output in the
+	 * keyDerivationFunc.parameters.
 	 */
 	result = _gnutls_x509_der_encode_and_copy(
 		pbkdf2_asn, "", pasn, "keyDerivationFunc.parameters", 0);
@@ -1598,7 +1616,7 @@ int _gnutls_pkcs_write_schema_params(schema_id schema, asn1_node pkcs8_asn,
 			return _gnutls_asn2err(result);
 		}
 
-		result = write_pbkdf2_params(pasn, kdf_params);
+		result = _gnutls_write_pbkdf2_params(pasn, kdf_params);
 		if (result < 0) {
 			gnutls_assert();
 			goto error;
@@ -1715,5 +1733,165 @@ error:
 	if (ch) {
 		gnutls_cipher_deinit(ch);
 	}
+	return result;
+}
+
+int _gnutls_pbmac1(gnutls_mac_algorithm_t mac, const gnutls_datum_t *key,
+		   const struct pbkdf2_params *params,
+		   const gnutls_datum_t *data, uint8_t *output)
+{
+	int result;
+	gnutls_datum_t salt;
+	uint8_t mac_key[MAX_HASH_SIZE];
+
+	/* Derive the MAC key */
+	salt.data = (void *)params->salt;
+	salt.size = params->salt_size;
+	result = gnutls_pbkdf2(params->mac, key, &salt, params->iter_count,
+			       mac_key, params->key_size);
+	if (result < 0)
+		return gnutls_assert_val(result);
+
+	/* Calculate the MAC */
+	result = gnutls_hmac_fast(mac, mac_key, params->key_size, data->data,
+				  data->size, output);
+	if (result < 0)
+		return gnutls_assert_val(result);
+
+	return result;
+}
+
+static int read_pbmac1_auth(asn1_node pasn, const gnutls_datum_t *der)
+{
+	char oid[MAX_OID_SIZE];
+	int len;
+	int result;
+
+	len = sizeof(oid);
+	result =
+		asn1_read_value(pasn, "messageAuthScheme.algorithm", oid, &len);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+	_gnutls_hard_log("messageAuthScheme.algorithm: %s\n", oid);
+
+	return gnutls_oid_to_mac(oid);
+}
+
+int _gnutls_read_pbmac1_params(const uint8_t *data, int data_size,
+			       struct pbkdf2_params *kdf_params,
+			       gnutls_mac_algorithm_t *mac)
+{
+	asn1_node pasn = NULL;
+	int result;
+	gnutls_datum_t tmp;
+
+	if ((result = asn1_create_element(_gnutls_get_pkix(),
+					  "PKIX1.pkcs-5-PBMAC1-params",
+					  &pasn)) != ASN1_SUCCESS) {
+		gnutls_assert();
+		result = _gnutls_asn2err(result);
+		goto error;
+	}
+
+	result = _asn1_strict_der_decode(&pasn, data, data_size, NULL);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		result = _gnutls_asn2err(result);
+		goto error;
+	}
+
+	tmp.data = (uint8_t *)data;
+	tmp.size = data_size;
+
+	result = _gnutls_read_pbkdf2_params(pasn, &tmp, kdf_params);
+	if (result < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	result = read_pbmac1_auth(pasn, &tmp);
+	if (result < 0) {
+		gnutls_assert();
+		goto error;
+	}
+	*mac = result;
+
+	/* The keyLength field must present and the minimum is 20 bytes.
+	 */
+	if (kdf_params->key_size < 20) {
+		gnutls_assert();
+		result = GNUTLS_E_INSUFFICIENT_SECURITY;
+		goto error;
+	}
+
+	result = 0;
+
+error:
+	asn1_delete_structure2(&pasn, ASN1_DELETE_FLAG_ZEROIZE);
+	return result;
+}
+
+static int write_pbmac1_auth(asn1_node pasn, gnutls_mac_algorithm_t algo)
+{
+	int result;
+	const mac_entry_st *me = mac_to_entry(algo);
+
+	if (unlikely(me == NULL))
+		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+
+	result = asn1_write_value(pasn, "messageAuthScheme.algorithm",
+				  me->mac_oid, 1);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+	_gnutls_hard_log("messageAuthScheme.algorithm: %s\n", me->oid);
+
+	result =
+		asn1_write_value(pasn, "messageAuthScheme.parameters", NULL, 0);
+	if (result != ASN1_SUCCESS) {
+		gnutls_assert();
+		return _gnutls_asn2err(result);
+	}
+
+	return 0;
+}
+
+int _gnutls_write_pbmac1_params(asn1_node pkcs12,
+				const struct pbkdf2_params *kdf_params,
+				gnutls_mac_algorithm_t algo, const char *where)
+{
+	int result;
+	asn1_node pasn = NULL;
+
+	if ((result = asn1_create_element(_gnutls_get_pkix(),
+					  "PKIX1.pkcs-5-PBMAC1-params",
+					  &pasn)) != ASN1_SUCCESS) {
+		gnutls_assert();
+		result = _gnutls_asn2err(result);
+		goto error;
+	}
+
+	result = _gnutls_write_pbkdf2_params(pasn, kdf_params);
+	if (result < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	result = write_pbmac1_auth(pasn, algo);
+	if (result < 0) {
+		gnutls_assert();
+		goto error;
+	}
+
+	result = _gnutls_x509_der_encode_and_copy(pasn, "", pkcs12, where, 0);
+	if (result < 0) {
+		gnutls_assert();
+		goto error;
+	}
+error:
+	asn1_delete_structure2(&pasn, ASN1_DELETE_FLAG_ZEROIZE);
 	return result;
 }

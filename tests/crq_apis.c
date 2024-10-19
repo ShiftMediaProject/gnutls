@@ -97,6 +97,7 @@ static gnutls_x509_crq_t generate_crq(void)
 	int ret;
 	size_t s = 0;
 	char smallbuf[10];
+	char oidbuf[128];
 	gnutls_datum_t out;
 	unsigned crit;
 
@@ -163,8 +164,12 @@ static gnutls_x509_crq_t generate_crq(void)
 
 	s = 0;
 	ret = gnutls_x509_crq_get_extension_info(crq, 0, NULL, &s, NULL);
-	if (ret != 0)
+	if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER || s > sizeof(oidbuf))
 		fail("gnutls_x509_crq_get_extension_info2\n");
+
+	ret = gnutls_x509_crq_get_extension_info(crq, 0, oidbuf, &s, NULL);
+	if (ret != 0)
+		fail("gnutls_x509_crq_get_extension_info3\n");
 
 	s = 0;
 	ret = gnutls_x509_crq_get_extension_data(crq, 0, NULL, &s);
@@ -386,14 +391,6 @@ static void run_set_extensions(gnutls_x509_crq_t crq)
 	gnutls_datum_t out;
 	int ret;
 
-	ret = global_init();
-	if (ret < 0)
-		fail("global_init\n");
-
-	gnutls_global_set_log_function(tls_log_func);
-	if (debug)
-		gnutls_global_set_log_level(4711);
-
 	ret = gnutls_x509_crt_init(&crt);
 	if (ret != 0)
 		fail("gnutls_x509_crt_init\n");
@@ -451,8 +448,6 @@ static void run_set_extensions(gnutls_x509_crq_t crq)
 	gnutls_free(out.data);
 
 	gnutls_x509_crt_deinit(crt);
-
-	gnutls_global_deinit();
 }
 
 static void run_set_extension_by_oid(gnutls_x509_crq_t crq)
@@ -464,14 +459,6 @@ static void run_set_extension_by_oid(gnutls_x509_crq_t crq)
 	unsigned i;
 	int ret;
 	char oid[128];
-
-	ret = global_init();
-	if (ret < 0)
-		fail("global_init\n");
-
-	gnutls_global_set_log_function(tls_log_func);
-	if (debug)
-		gnutls_global_set_log_level(4711);
 
 	ret = gnutls_x509_crt_init(&crt);
 	if (ret != 0)
@@ -550,14 +537,21 @@ static void run_set_extension_by_oid(gnutls_x509_crq_t crq)
 	gnutls_free(out.data);
 
 	gnutls_x509_crt_deinit(crt);
-
-	gnutls_global_deinit();
 }
 
 void doit(void)
 {
 	gnutls_datum_t out;
 	gnutls_x509_crq_t crq;
+	int ret;
+
+	ret = global_init();
+	if (ret < 0)
+		fail("global_init\n");
+
+	gnutls_global_set_log_function(tls_log_func);
+	if (debug)
+		gnutls_global_set_log_level(4711);
 
 	gnutls_global_set_time_function(mytime);
 
@@ -577,4 +571,6 @@ void doit(void)
 
 	gnutls_free(out.data);
 	gnutls_x509_crq_deinit(crq);
+
+	gnutls_global_deinit();
 }

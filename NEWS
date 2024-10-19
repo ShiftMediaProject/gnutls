@@ -5,6 +5,47 @@ Copyright (C) 2000-2016 Free Software Foundation, Inc.
 Copyright (C) 2013-2019 Nikos Mavrogiannopoulos
 See the end for copying conditions.
 
+* Version 3.8.6 (released 2024-07-03)
+
+** libgnutls: PBMAC1 is now supported as a MAC mechanism for PKCS#12
+   To be compliant with FIPS 140-3, PKCS#12 files with MAC based on
+   PBKDF2 (PBMAC1) is now supported, according to the specification
+   proposed in draft-ietf-lamps-pkcs12-pbmac1.
+
+** libgnutls: SHA3 extendable output functions (XOF) are now supported
+   SHA3 XOF, SHAKE128 and SHAKE256, are now usable through a new
+   public API gnutls_hash_squeeze.
+
+** API and ABI modifications:
+gnutls_pkcs12_generate_mac3: New function
+gnutls_pkcs12_flags_t: New enum
+gnutls_hash_squeeze: New function
+
+* Version 3.8.5 (released 2024-04-04)
+
+** libgnutls: Due to majority of usages and implementations of
+   RSA decryption with PKCS#1 v1.5 padding being incorrect,
+   leaving them vulnerable to Marvin attack, the RSAES-PKCS1-v1_5
+   is being deprecated (encryption and decryption) and will be
+   disabled in the future. A new option `allow-rsa-pkcs1-encrypt`
+   has been added into the system-wide library configuration which
+   allows to enable/disable the RSAES-PKCS1-v1_5. Currently, the
+   RSAES-PKCS1-v1_5 is enabled by default.
+
+** libgnutls: Added support for RIPEMD160 and PBES1-DES-SHA1 for
+   backward compatibility with GCR.
+
+** libgnutls: A couple of memory related issues have been fixed in RSA PKCS#1
+   v1.5 decryption error handling and deterministic ECDSA with earlier
+   versions of GMP.  These were a regression introduced in the 3.8.4
+   release. See #1535 and !1827.
+
+** build: Fixed a bug where building gnutls statically failed due
+   to a duplicate definition of nettle_rsa_compute_root_tr().
+
+** API and ABI modifications:
+GNUTLS_PKCS_PBES1_DES_SHA1: New enum member of gnutls_pkcs_encrypt_flags_t
+
 * Version 3.8.4 (released 2024-03-18)
 
 ** libgnutls: RSA-OAEP encryption scheme is now supported

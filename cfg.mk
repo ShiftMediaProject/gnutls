@@ -254,7 +254,7 @@ lib/accelerated/x86/coff/%-x86_64.s: devel/perlasm/%-x86_64.pl .submodule.stamp
 	echo "" >> $@
 	sed -i 's/OPENSSL_ia32cap_P/GNUTLS_x86_cpuid_s/g' $@
 
-lib/accelerated/x86/macosx/%.s: devel/perlasm/%.pl .submodule.stamp 
+lib/accelerated/x86/macosx/%.s: devel/perlasm/%.pl ./lib/accelerated/x86/x86-common.h .submodule.stamp
 	CC=gcc perl $< macosx \
 		$(if $(findstring $(<F),$(PL_NEEDS_FPIC)),-fPIC) \
 		$@.tmp
@@ -262,7 +262,7 @@ lib/accelerated/x86/macosx/%.s: devel/perlasm/%.pl .submodule.stamp
 	echo "" >> $@
 	sed -i 's/OPENSSL_ia32cap_P/GNUTLS_x86_cpuid_s/g' $@
 
-lib/accelerated/aarch64/elf/%.s: devel/perlasm/%.pl .submodule.stamp 
+lib/accelerated/aarch64/elf/%.s: devel/perlasm/%.pl lib/accelerated/aarch64/aarch64-common.h .submodule.stamp
 	rm -f $@tmp
 	CC=aarch64-linux-gnu-gcc perl $< linux64 \
 		$(if $(findstring $(<F),$(PL_NEEDS_FPIC)),-fPIC) \
@@ -271,7 +271,7 @@ lib/accelerated/aarch64/elf/%.s: devel/perlasm/%.pl .submodule.stamp
 	echo "" >> $@.tmp.S
 	sed -i 's/OPENSSL_armcap_P/_gnutls_arm_cpuid_s/g' $@.tmp.S
 	sed -i 's/arm_arch.h/aarch64-common.h/g' $@.tmp.S
-	aarch64-linux-gnu-gcc -D__ARM_MAX_ARCH__=8 -Ilib/accelerated/aarch64 -Wa,--noexecstack -E $@.tmp.S -o $@.tmp.s
+	aarch64-linux-gnu-gcc $(CFLAGS) -D__ARM_MAX_ARCH__=8 -Ilib/accelerated/aarch64 -Wa,--noexecstack -E $@.tmp.S -o $@.tmp.s
 	cat $<.license $@.tmp.s > $@
 	echo ".section .note.GNU-stack,\"\",%progbits" >> $@
 	rm -f $@.tmp.S $@.tmp.s $@.tmp

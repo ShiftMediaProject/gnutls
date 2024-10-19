@@ -20,6 +20,7 @@ GNUTLS_3_7_7@GNUTLS_3_7_7
 GNUTLS_3_8_1@GNUTLS_3_8_1
 GNUTLS_3_8_2@GNUTLS_3_8_2
 GNUTLS_3_8_4@GNUTLS_3_8_4
+GNUTLS_3_8_6@GNUTLS_3_8_6
 _gnutls_global_init_skip@GNUTLS_3_4
 gnutls_aead_cipher_decrypt@GNUTLS_3_4
 gnutls_aead_cipher_decryptv2@GNUTLS_3_6_10
@@ -307,6 +308,7 @@ gnutls_hash_fast@GNUTLS_3_4
 gnutls_hash_get_len@GNUTLS_3_4
 gnutls_hash_init@GNUTLS_3_4
 gnutls_hash_output@GNUTLS_3_4
+gnutls_hash_squeeze@GNUTLS_3_8_6
 gnutls_heartbeat_allowed@GNUTLS_3_4
 gnutls_heartbeat_enable@GNUTLS_3_4
 gnutls_heartbeat_get_timeout@GNUTLS_3_4
@@ -566,6 +568,7 @@ gnutls_pkcs12_deinit@GNUTLS_3_4
 gnutls_pkcs12_export2@GNUTLS_3_4
 gnutls_pkcs12_export@GNUTLS_3_4
 gnutls_pkcs12_generate_mac2@GNUTLS_3_4
+gnutls_pkcs12_generate_mac3@GNUTLS_3_8_6
 gnutls_pkcs12_generate_mac@GNUTLS_3_4
 gnutls_pkcs12_get_bag@GNUTLS_3_4
 gnutls_pkcs12_import@GNUTLS_3_4

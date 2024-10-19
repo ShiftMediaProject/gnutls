@@ -21,7 +21,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 dnl when updating version also update LT_REVISION in m4/hooks.m4
-AC_INIT([GnuTLS], [3.8.4], [bugs@gnutls.org])
+AC_INIT([GnuTLS], [3.8.6], [bugs@gnutls.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4 src/gl/m4 lib/unistring/m4])
 AC_CANONICAL_HOST
@@ -56,6 +56,8 @@ AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" = "no"; then
   AC_MSG_WARN([[Compiler does not support C99. It may not be able to compile the project.]])
 fi
+
+AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = yes)
 
 AX_CODE_COVERAGE
 
@@ -268,8 +270,6 @@ fi
 AC_ARG_ENABLE(tls13-interop,
   AS_HELP_STRING([--disable-tls13-interop], [disable TLS1.3 interoperability testing with openssl]),
     enable_tls13_interop=$enableval, enable_tls13_interop=yes)
-
-AM_CONDITIONAL(ENABLE_TLS13_INTEROP, test "$enable_tls13_interop" != "no")
 
 dnl Check for iovec type
 AC_CHECK_MEMBERS([struct iovec.iov_base],
@@ -791,6 +791,19 @@ LIBS="$LIBS $NETTLE_LIBS"
 AC_CHECK_FUNCS(nettle_rsa_oaep_sha256_encrypt)
 LIBS=$save_LIBS
 AM_CONDITIONAL([NEED_RSA_OAEP], [test "$ac_cv_func_nettle_rsa_oaep_sha256_encrypt" != yes])
+
+# Check for specialized AES-CBC encryption
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_cbc_aes128_encrypt)
+LIBS=$save_LIBS
+
+# Check for incremental SHAKE
+save_LIBS=$LIBS
+LIBS="$LIBS $NETTLE_LIBS"
+AC_CHECK_FUNCS(nettle_sha3_128_shake_output)
+LIBS=$save_LIBS
+AM_CONDITIONAL([NEED_SHAKE_OUTPUT], [test "$ac_cv_func_nettle_sha3_128_shake_output" != yes])
 
 # Check sonames of the linked libraries needed for FIPS selftests.
 save_CFLAGS=$CFLAGS

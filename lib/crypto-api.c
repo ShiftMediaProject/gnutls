@@ -895,8 +895,9 @@ int gnutls_hash(gnutls_hash_hd_t handle, const void *ptext, size_t ptext_len)
  * @handle: is a #gnutls_hash_hd_t type
  * @digest: is the output value of the hash
  *
- * This function will output the current hash value
- * and reset the state of the hash.
+ * This function will output the current hash value and reset the
+ * state of the hash. If @digest is %NULL, it only resets the state of
+ * the hash.
  *
  * Since: 2.10.0
  **/
@@ -1009,6 +1010,28 @@ gnutls_hash_hd_t gnutls_hash_copy(gnutls_hash_hd_t handle)
 	}
 
 	return dig;
+}
+
+/**
+ * gnutls_hash_squeeze:
+ * @handle: a #gnutls_hash_hd_t
+ * @output: destination to store the output; must be equal to or larger than @length
+ * @length: length of @output
+ *
+ * This function will extract digest output of @length bytes. The @handle must
+ * be initialized with gnutls_hash_init() as an extended output function (XOF),
+ * such as %GNUTLS_DIG_SHAKE_128 or %GNUTLS_DIG_SHAKE_256.
+ *
+ * This function can be called multiple times. To reset the state of @handle,
+ * call gnutls_hash_deinit() with %NULL as the digest argument.
+ *
+ * Returns: %GNUTLS_E_SUCCESS (0) on success; negative error code otherwise.
+ *
+ * Since: 3.8.6
+ */
+int gnutls_hash_squeeze(gnutls_hash_hd_t handle, void *output, size_t length)
+{
+	return _gnutls_hash_squeeze((digest_hd_st *)handle, output, length);
 }
 
 /**
@@ -1368,10 +1391,7 @@ static int copy_to_iov(const uint8_t *data, size_t size, const giovec_t *iov,
 	return 0;
 }
 
-#define IOV_STORE_INIT     \
-	{                  \
-		NULL, 0, 0 \
-	}
+#define IOV_STORE_INIT { NULL, 0, 0 }
 
 static int aead_cipher_encryptv_fallback(gnutls_aead_cipher_hd_t handle,
 					 const void *nonce, size_t nonce_len,

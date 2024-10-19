@@ -996,6 +996,7 @@ static void dummy_func(gnutls_priority_t c)
 struct cfg {
 	bool allowlisting;
 	bool ktls_enabled;
+	bool allow_rsa_pkcs1_encrypt;
 
 	name_val_array_t priority_strings;
 	char *priority_string;
@@ -1016,6 +1017,12 @@ struct cfg {
 	ext_master_secret_t force_ext_master_secret;
 	bool force_ext_master_secret_set;
 };
+
+static inline void cfg_init(struct cfg *cfg)
+{
+	memset(cfg, 0, sizeof(*cfg));
+	cfg->allow_rsa_pkcs1_encrypt = true;
+}
 
 static inline void cfg_deinit(struct cfg *cfg)
 {
@@ -1094,6 +1101,12 @@ struct ini_ctx {
 	size_t curves_size;
 };
 
+static inline void ini_ctx_init(struct ini_ctx *ctx)
+{
+	memset(ctx, 0, sizeof(*ctx));
+	cfg_init(&ctx->cfg);
+}
+
 static inline void ini_ctx_deinit(struct ini_ctx *ctx)
 {
 	cfg_deinit(&ctx->cfg);
@@ -1119,6 +1132,7 @@ static inline void cfg_steal(struct cfg *dst, struct cfg *src)
 
 	dst->allowlisting = src->allowlisting;
 	dst->ktls_enabled = src->ktls_enabled;
+	dst->allow_rsa_pkcs1_encrypt = src->allow_rsa_pkcs1_encrypt;
 	dst->force_ext_master_secret = src->force_ext_master_secret;
 	dst->force_ext_master_secret_set = src->force_ext_master_secret_set;
 	memcpy(dst->ciphers, src->ciphers, sizeof(src->ciphers));
@@ -2051,6 +2065,20 @@ static int cfg_ini_handler(void *_ctx, const char *section, const char *name,
 					return 0;
 				goto exit;
 			}
+		} else if (c_strcasecmp(name, "allow-rsa-pkcs1-encrypt") == 0) {
+			p = clear_spaces(value, str);
+			if (c_strcasecmp(p, "true") == 0) {
+				cfg->allow_rsa_pkcs1_encrypt = true;
+			} else if (c_strcasecmp(p, "false") == 0) {
+				cfg->allow_rsa_pkcs1_encrypt = false;
+			} else {
+				_gnutls_debug_log(
+					"cfg: unknown RSA PKCS1 encryption mode %s\n",
+					p);
+				if (fail_on_invalid_config)
+					return 0;
+				goto exit;
+			}
 		} else {
 			_gnutls_debug_log("unknown parameter %s\n", name);
 			if (fail_on_invalid_config)
@@ -2198,22 +2226,73 @@ update_system_wide_priority_string(void)
 	return 0;
 }
 
-static int _gnutls_update_system_priorities(bool defer_system_wide)
+/* Returns false on parse error, otherwise true.
+ * The system_wide_config must be locked for writing.
+ */
+static inline bool load_system_priority_file(void)
 {
-	int ret, err = 0;
-	struct stat sb;
+	int err;
 	FILE *fp;
-	gnutls_buffer_st buf;
 	struct ini_ctx ctx;
 
-	ret = gnutls_rwlock_rdlock(&system_wide_config_rwlock);
-	if (ret < 0) {
-		return gnutls_assert_val(ret);
+	cfg_init(&system_wide_config);
+
+	fp = fopen(system_priority_file, "re");
+	if (fp == NULL) {
+		_gnutls_debug_log("cfg: unable to open: %s: %d\n",
+				  system_priority_file, errno);
+		return true;
 	}
+
+	/* Parsing the configuration file needs to be done in 2 phases:
+	 * first parsing the [global] section
+	 * and then the other sections,
+	 * because the [global] section modifies the parsing behavior.
+	 */
+	ini_ctx_init(&ctx);
+	err = ini_parse_file(fp, global_ini_handler, &ctx);
+	if (!err) {
+		if (fseek(fp, 0L, SEEK_SET) < 0) {
+			_gnutls_debug_log("cfg: unable to rewind: %s\n",
+					  system_priority_file);
+			if (fail_on_invalid_config)
+				exit(1);
+		}
+		err = ini_parse_file(fp, cfg_ini_handler, &ctx);
+	}
+	fclose(fp);
+	if (err) {
+		ini_ctx_deinit(&ctx);
+		_gnutls_debug_log("cfg: unable to parse: %s: %d\n",
+				  system_priority_file, err);
+		return false;
+	}
+	cfg_apply(&system_wide_config, &ctx);
+	ini_ctx_deinit(&ctx);
+	return true;
+}
+
+static int _gnutls_update_system_priorities(bool defer_system_wide)
+{
+	int ret;
+	bool config_parse_error = false;
+	struct stat sb;
+	gnutls_buffer_st buf;
+
+	ret = gnutls_rwlock_rdlock(&system_wide_config_rwlock);
+	if (ret < 0)
+		return gnutls_assert_val(ret);
 
 	if (stat(system_priority_file, &sb) < 0) {
 		_gnutls_debug_log("cfg: unable to access: %s: %d\n",
 				  system_priority_file, errno);
+
+		(void)gnutls_rwlock_unlock(&system_wide_config_rwlock);
+		ret = gnutls_rwlock_wrlock(&system_wide_config_rwlock);
+		if (ret < 0)
+			goto out;
+		/* If system-wide config is unavailable, apply the defaults */
+		cfg_init(&system_wide_config);
 		goto out;
 	}
 
@@ -2221,63 +2300,27 @@ static int _gnutls_update_system_priorities(bool defer_system_wide)
 	    system_priority_last_mod == sb.st_mtime) {
 		_gnutls_debug_log("cfg: system priority %s has not changed\n",
 				  system_priority_file);
-		if (system_wide_config.priority_string) {
+		if (system_wide_config.priority_string)
 			goto out; /* nothing to do */
-		}
 	}
 
 	(void)gnutls_rwlock_unlock(&system_wide_config_rwlock);
 
 	ret = gnutls_rwlock_wrlock(&system_wide_config_rwlock);
-	if (ret < 0) {
+	if (ret < 0)
 		return gnutls_assert_val(ret);
-	}
 
 	/* Another thread could have successfully re-read system-wide config,
 	 * skip re-reading if the mtime it has used is exactly the same.
 	 */
-	if (system_priority_file_loaded) {
+	if (system_priority_file_loaded)
 		system_priority_file_loaded =
 			(system_priority_last_mod == sb.st_mtime);
-	}
 
 	if (!system_priority_file_loaded) {
-		_name_val_array_clear(&system_wide_config.priority_strings);
-
-		gnutls_free(system_wide_config.priority_string);
-		system_wide_config.priority_string = NULL;
-
-		fp = fopen(system_priority_file, "re");
-		if (fp == NULL) {
-			_gnutls_debug_log("cfg: unable to open: %s: %d\n",
-					  system_priority_file, errno);
+		config_parse_error = !load_system_priority_file();
+		if (config_parse_error)
 			goto out;
-		}
-		/* Parsing the configuration file needs to be done in 2 phases:
-		 * first parsing the [global] section
-		 * and then the other sections,
-		 * because the [global] section modifies the parsing behavior.
-		 */
-		memset(&ctx, 0, sizeof(ctx));
-		err = ini_parse_file(fp, global_ini_handler, &ctx);
-		if (!err) {
-			if (fseek(fp, 0L, SEEK_SET) < 0) {
-				_gnutls_debug_log("cfg: unable to rewind: %s\n",
-						  system_priority_file);
-				if (fail_on_invalid_config)
-					exit(1);
-			}
-			err = ini_parse_file(fp, cfg_ini_handler, &ctx);
-		}
-		fclose(fp);
-		if (err) {
-			ini_ctx_deinit(&ctx);
-			_gnutls_debug_log("cfg: unable to parse: %s: %d\n",
-					  system_priority_file, err);
-			goto out;
-		}
-		cfg_apply(&system_wide_config, &ctx);
-		ini_ctx_deinit(&ctx);
 		_gnutls_debug_log("cfg: loaded system config %s mtime %lld\n",
 				  system_priority_file,
 				  (unsigned long long)sb.st_mtime);
@@ -2313,9 +2356,8 @@ static int _gnutls_update_system_priorities(bool defer_system_wide)
 out:
 	(void)gnutls_rwlock_unlock(&system_wide_config_rwlock);
 
-	if (err && fail_on_invalid_config) {
+	if (config_parse_error && fail_on_invalid_config)
 		exit(1);
-	}
 
 	return ret;
 }
@@ -3895,6 +3937,11 @@ const char *gnutls_priority_string_list(unsigned iter, unsigned int flags)
 bool _gnutls_config_is_ktls_enabled(void)
 {
 	return system_wide_config.ktls_enabled;
+}
+
+bool _gnutls_config_is_rsa_pkcs1_encrypt_allowed(void)
+{
+	return system_wide_config.allow_rsa_pkcs1_encrypt;
 }
 
 /*

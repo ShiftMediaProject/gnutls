@@ -428,7 +428,7 @@ verify(GNUTLS_EXTENSION_MAX < MAX_EXT_TYPES);
  */
 verify(GNUTLS_EXTENSION_MAX_VALUE - GNUTLS_EXTENSION_MAX >= 16);
 
-/* MAX_EXT_TYPES + 1 must fit in a single byte, to generate random
+/* MAX_EXT_TYPES must fit in a single byte, to generate random
  * permutation at once.
  */
 verify(MAX_EXT_TYPES <= UINT8_MAX);
@@ -777,6 +777,8 @@ typedef struct gnutls_group_entry_st {
 #define GNUTLS_MAC_FLAG_ALLOW_INSECURE_REVERTIBLE \
 	(1                                        \
 	 << 3) /* when checking with _gnutls_digest_is_insecure2, don't treat revertible setting as fatal */
+#define GNUTLS_MAC_FLAG_XOF \
+	(1 << 4) /* this function is an extendable output function (XOF) */
 /* This structure is used both for MACs and digests
  */
 typedef struct mac_entry_st {
@@ -1793,5 +1795,6 @@ get_certificate_type(gnutls_session_t session, gnutls_ctype_target_t target)
 extern unsigned int _gnutls_global_version;
 
 bool _gnutls_config_is_ktls_enabled(void);
+bool _gnutls_config_is_rsa_pkcs1_encrypt_allowed(void);
 
 #endif /* GNUTLS_LIB_GNUTLS_INT_H */
