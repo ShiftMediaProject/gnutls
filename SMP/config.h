@@ -77,7 +77,7 @@
 #define ENABLE_ECDHE 1
 
 /* Enable FIPS140-2 mode */
-/* #undef ENABLE_FIPS140 */
+/* #undef ENABLE_FIPS */
 
 /* enable GOST support */
 /* #undef ENABLE_GOST */
@@ -176,162 +176,6 @@ whether the gnulib module snprintf shall be considered present. */
  whether the gnulib module strerror shall be considered present. */
 #define GNULIB_STRERROR 1
 
- /* Define to 1 when the gnulib module accept should be tested. */
-#define GNULIB_TEST_ACCEPT 1
-
-/* Define to 1 when the gnulib module bind should be tested. */
-#define GNULIB_TEST_BIND 1
-
-/* Define to 1 when the gnulib module close should be tested. */
-#define GNULIB_TEST_CLOSE 1
-
-/* Define to 1 when the gnulib module connect should be tested. */
-#define GNULIB_TEST_CONNECT 1
-
-/* Define to 1 when the gnulib module dup2 should be tested. */
-#define GNULIB_TEST_DUP2 1
-
-/* Define to 1 when the gnulib module environ should be tested. */
-#define GNULIB_TEST_ENVIRON 1
-
-/* Define to 1 when the gnulib module fdopen should be tested. */
-#define GNULIB_TEST_FDOPEN 1
-
-/* Define to 1 when the gnulib module fseek should be tested. */
-#define GNULIB_TEST_FSEEK 1
-
-/* Define to 1 when the gnulib module fseeko should be tested. */
-#define GNULIB_TEST_FSEEKO 1
-
-/* Define to 1 when the gnulib module fstat should be tested. */
-#define GNULIB_TEST_FSTAT 1
-
-/* Define to 1 when the gnulib module ftell should be tested. */
-#define GNULIB_TEST_FTELL 1
-
-/* Define to 1 when the gnulib module ftello should be tested. */
-#define GNULIB_TEST_FTELLO 1
-
-/* Define to 1 when the gnulib module getaddrinfo should be tested. */
-#define GNULIB_TEST_GETADDRINFO 1
-
-/* Define to 1 when the gnulib module getdelim should be tested. */
-#define GNULIB_TEST_GETDELIM 1
-
-/* Define to 1 when the gnulib module getline should be tested. */
-#define GNULIB_TEST_GETLINE 1
-
-/* Define to 1 when the gnulib module getpagesize should be tested. */
-#define GNULIB_TEST_GETPAGESIZE 1
-
-/* Define to 1 when the gnulib module getpeername should be tested. */
-#define GNULIB_TEST_GETPEERNAME 1
-
-/* Define to 1 when the gnulib module gettimeofday should be tested. */
-#define GNULIB_TEST_GETTIMEOFDAY 1
-
-/* Define to 1 when the gnulib module listen should be tested. */
-#define GNULIB_TEST_LISTEN 1
-
-/* Define to 1 when the gnulib module lseek should be tested. */
-#define GNULIB_TEST_LSEEK 1
-
-/* Define to 1 when the gnulib module malloc-posix should be tested. */
-#define GNULIB_TEST_MALLOC_POSIX 1
-
-/* Define to 1 when the gnulib module memchr should be tested. */
-#define GNULIB_TEST_MEMCHR 1
-
-/* Define to 1 when the gnulib module memmem should be tested. */
-#define GNULIB_TEST_MEMMEM 1
-
-/* Define to 1 when the gnulib module mktime should be tested. */
-#define GNULIB_TEST_MKTIME 1
-
-/* Define to 1 when the gnulib module realloc-posix should be tested. */
-#define GNULIB_TEST_REALLOC_POSIX 1
-
-/* Define to 1 when the gnulib module recv should be tested. */
-#define GNULIB_TEST_RECV 1
-
-/* Define to 1 when the gnulib module recvfrom should be tested. */
-#define GNULIB_TEST_RECVFROM 1
-
-/* Define to 1 when the gnulib module secure_getenv should be tested. */
-#define GNULIB_TEST_SECURE_GETENV 1
-
-/* Define to 1 when the gnulib module select should be tested. */
-#define GNULIB_TEST_SELECT 1
-
-/* Define to 1 when the gnulib module send should be tested. */
-#define GNULIB_TEST_SEND 1
-
-/* Define to 1 when the gnulib module sendto should be tested. */
-#define GNULIB_TEST_SENDTO 1
-
-/* Define to 1 when the gnulib module setenv should be tested. */
-#define GNULIB_TEST_SETENV 1
-
-/* Define to 1 when the gnulib module setsockopt should be tested. */
-#define GNULIB_TEST_SETSOCKOPT 1
-
-/* Define to 1 when the gnulib module shutdown should be tested. */
-#define GNULIB_TEST_SHUTDOWN 1
-
-/* Define to 1 when the gnulib module snprintf should be tested. */
-#define GNULIB_TEST_SNPRINTF 1
-
-/* Define to 1 when the gnulib module socket should be tested. */
-#define GNULIB_TEST_SOCKET 1
-
-/* Define to 1 when the gnulib module strdup should be tested. */
-#define GNULIB_TEST_STRDUP 1
-
-/* Define to 1 when the gnulib module strerror should be tested. */
-#define GNULIB_TEST_STRERROR 1
-
-/* Define to 1 when the gnulib module strndup should be tested. */
-#define GNULIB_TEST_STRNDUP 1
-
-/* Define to 1 when the gnulib module strnlen should be tested. */
-#define GNULIB_TEST_STRNLEN 1
-
-/* Define to 1 when the gnulib module strtok_r should be tested. */
-#define GNULIB_TEST_STRTOK_R 1
-
-/* Define to 1 when the gnulib module strverscmp should be tested. */
-#define GNULIB_TEST_STRVERSCMP 1
-
-/* Define to 1 when the gnulib module timegm should be tested. */
-#define GNULIB_TEST_TIMEGM 1
-
-/* Define to 1 when the gnulib module time_r should be tested. */
-#define GNULIB_TEST_TIME_R 1
-
-/* Define to 1 when the gnulib module time_rz should be tested. */
-#define GNULIB_TEST_TIME_RZ 1
-
-/* Define to 1 when the gnulib module uninorm/u16-normalize should be tested.
- */
-#define GNULIB_TEST_UNINORM_U16_NORMALIZE 1
-
- /* Define to 1 when the gnulib module uninorm/u32-normalize should be tested.
-*/
-#define GNULIB_TEST_UNINORM_U32_NORMALIZE 1
-
-/* Define to 1 when the gnulib module uninorm/u8-normalize should be tested.
- */
-#define GNULIB_TEST_UNINORM_U8_NORMALIZE 1
-
- /* Define to 1 when the gnulib module unsetenv should be tested. */
-#define GNULIB_TEST_UNSETENV 1
-
-/* Define to 1 when the gnulib module vasprintf should be tested. */
-#define GNULIB_TEST_VASPRINTF 1
-
-/* Define to 1 when the gnulib module vsnprintf should be tested. */
-#define GNULIB_TEST_VSNPRINTF 1
-
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
  whether the gnulib module unistr/u16-mbtoucr shall be considered present.
  */
@@ -385,6 +229,10 @@ whether the gnulib module unistr/u8-uctomb shall be considered present. */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 /* #undef HAVE_ARPA_INET_H */
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+whether the module bcrypt shall be considered present. */
+#define HAVE_BCRYPT 1
 
 /* Define to 1 if you have the <bp-sym.h> header file. */
 /* #undef HAVE_BP_SYM_H */
@@ -813,6 +661,9 @@ don't. */
  concept. */
 #define HAVE_MSVC_INVALID_PARAMETER_HANDLER 1
 
+/* Define to 1 if you have the `nettle_cbc_aes128_encrypt' function. */
+#define HAVE_NETTLE_CBC_AES128_ENCRYPT 1
+
  /* Define to 1 if you have the `nettle_cmac_magma_update' function. */
 #define HAVE_NETTLE_CMAC_MAGMA_UPDATE 1
 
@@ -839,6 +690,9 @@ don't. */
 
 /* Define to 1 if you have the `nettle_magma_set_key' function. */
 #define HAVE_NETTLE_MAGMA_SET_KEY 1
+
+/* Define to 1 if you have the `nettle_sha3_128_shake_output' function. */
+#define HAVE_NETTLE_SHA3_128_SHAKE_OUTPUT 1
 
 /* Define to 1 if you have the `nettle_streebog512_update' function. */
 #define HAVE_NETTLE_STREEBOG512_UPDATE 1

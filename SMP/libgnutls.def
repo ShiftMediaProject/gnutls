@@ -285,6 +285,7 @@ gnutls_hash_fast
 gnutls_hash_get_len
 gnutls_hash_init
 gnutls_hash_output
+gnutls_hash_squeeze
 gnutls_heartbeat_allowed
 gnutls_heartbeat_enable
 gnutls_heartbeat_get_timeout
@@ -489,6 +490,7 @@ gnutls_pkcs12_deinit
 gnutls_pkcs12_export2
 gnutls_pkcs12_export
 gnutls_pkcs12_generate_mac2
+gnutls_pkcs12_generate_mac3
 gnutls_pkcs12_generate_mac
 gnutls_pkcs12_get_bag
 gnutls_pkcs12_import

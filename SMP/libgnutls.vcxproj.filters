@@ -615,6 +615,9 @@
     <ClInclude Include="..\lib\nettle\int\rsa-oaep.h">
       <Filter>Header Files\lib\nettle\int</Filter>
     </ClInclude>
+    <ClInclude Include="..\lib\nettle\int\sha3-shake.h">
+      <Filter>Header Files\lib\nettle\int</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lib\x509\pkcs7.c">

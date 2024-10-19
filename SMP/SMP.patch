@@ -111,17 +111,19 @@ index 718740c10..fdd331940 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index e31aad3a0..66fe3789d 100644
+index 6b87610c4..641e67330 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
-@@ -37,7 +37,13 @@
+@@ -37,7 +37,15 @@
  #define GNUTLS_GNUTLS_H
  
  /* Get ssize_t. */
 -#include <sys/types.h>
 +#ifdef _MSC_VER
 +#  include <BaseTsd.h>
++#  ifndef ssize_t
 +typedef SSIZE_T ssize_t;
++#  endif
 +#  include <sys/types.h>
 +#else
 +#  include <sys/types.h>
@@ -129,6 +131,22 @@ index e31aad3a0..66fe3789d 100644
  
  /* Get size_t. */
  #include <stddef.h>
+diff --git a/lib/includes/gnutls/ocsp.h b/lib/includes/gnutls/ocsp.h
+index 9e271476c..80d8ccc8f 100644
+--- a/lib/includes/gnutls/ocsp.h
++++ b/lib/includes/gnutls/ocsp.h
+@@ -224,9 +224,9 @@ int gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_const_t resp, unsigned indx,
+ 				gnutls_datum_t *issuer_name_hash,
+ 				gnutls_datum_t *issuer_key_hash,
+ 				gnutls_datum_t *serial_number,
+-				unsigned int *cert_status, time_t *this_update,
++				gnutls_ocsp_cert_status_t *cert_status, time_t *this_update,
+ 				time_t *next_update, time_t *revocation_time,
+-				unsigned int *revocation_reason);
++				gnutls_x509_crl_reason_t *revocation_reason);
+ int gnutls_ocsp_resp_get_extension(gnutls_ocsp_resp_const_t resp, unsigned indx,
+ 				   gnutls_datum_t *oid, unsigned int *critical,
+ 				   gnutls_datum_t *data);
 diff --git a/lib/system/fastopen.c b/lib/system/fastopen.c
 index 7132a0817..f62907966 100644
 --- a/lib/system/fastopen.c
@@ -172,11 +190,41 @@ index 536b75c10..8ff65b992 100644
  
  /*-
   * _gnutls_mask_to_prefix:
+diff --git a/lib/x509/ocsp.c b/lib/x509/ocsp.c
+index 0120129d5..3a46f2d17 100644
+--- a/lib/x509/ocsp.c
++++ b/lib/x509/ocsp.c
+@@ -1433,9 +1433,9 @@ int gnutls_ocsp_resp_get_single(gnutls_ocsp_resp_const_t resp, unsigned indx,
+ 				gnutls_datum_t *issuer_name_hash,
+ 				gnutls_datum_t *issuer_key_hash,
+ 				gnutls_datum_t *serial_number,
+-				unsigned int *cert_status, time_t *this_update,
++				gnutls_ocsp_cert_status_t *cert_status, time_t *this_update,
+ 				time_t *next_update, time_t *revocation_time,
+-				unsigned int *revocation_reason)
++				gnutls_x509_crl_reason_t *revocation_reason)
+ {
+ 	char name[MAX_NAME_SIZE];
+ 	int ret, result;
+diff --git a/lib/x509/verify-high.c b/lib/x509/verify-high.c
+index aacc24a7d..3562e741f 100644
+--- a/lib/x509/verify-high.c
++++ b/lib/x509/verify-high.c
+@@ -1423,7 +1423,8 @@ int gnutls_x509_trust_list_verify_crt2(
+ 	}
+ 
+ 	/* Allocate extra for retrieved certificates. */
+-	if (!INT_ADD_OK(cert_list_size, DEFAULT_MAX_VERIFY_DEPTH,
++	size_t size = DEFAULT_MAX_VERIFY_DEPTH;
++	if (!INT_ADD_OK(cert_list_size, size,
+ 			&cert_list_max_size))
+ 		return gnutls_assert_val(GNUTLS_E_INVALID_REQUEST);
+ 
 diff --git a/lib/x509/verify-high2.c b/lib/x509/verify-high2.c
-index 9fd73e487..3c494c85a 100644
+index dc975baeb..b6b02a1ac 100644
 --- a/lib/x509/verify-high2.c
 +++ b/lib/x509/verify-high2.c
-@@ -465,7 +465,9 @@ static int load_dir_certs(const char *dirname, gnutls_x509_trust_list_t list,
+@@ -466,7 +466,9 @@ static int load_dir_certs(const char *dirname, gnutls_x509_trust_list_t list,
  			switch (d->d_type) {
  			case DT_REG:
  			case DT_LNK:
@@ -187,7 +235,7 @@ index 9fd73e487..3c494c85a 100644
  			default:
  				continue;
 diff --git a/lib/x509/x509_ext.c b/lib/x509/x509_ext.c
-index ad3af1430..ba373e582 100644
+index ae7216f23..e3701fe14 100644
 --- a/lib/x509/x509_ext.c
 +++ b/lib/x509/x509_ext.c
 @@ -3539,7 +3539,7 @@ static const struct sct_sign_algorithm_st algos[] = {
