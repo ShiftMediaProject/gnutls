@@ -260,8 +260,34 @@
 extern int rpl_fstat(int fd, struct stat *buf);
 #define fstat rpl_fstat
 extern int rpl_stat(const char *restrict name, struct stat *restrict buf);
-#undef _stat64i32
-#define _stat64i32(name, st) rpl_stat(name, st)
+#undef _stat
+#define _stat rpl_stat
+#define stat(name, buf) rpl_stat(name, buf)
+
+// Missing helper function for UWp compat
+#include <winapifamily.h>
+#if defined(WINAPI_FAMILY_PARTITION) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#include <windows.h>
+static __inline HANDLE WINAPI CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+    CREATEFILE2_EXTENDED_PARAMETERS CreateExParams = {0};
+    CreateExParams.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
+    CreateExParams.dwFileAttributes = dwFlagsAndAttributes & 0xFFFF;
+    CreateExParams.dwFileFlags = dwFlagsAndAttributes & 0xFFF00000;
+    CreateExParams.dwSecurityQosFlags = dwFlagsAndAttributes & 0x000F0000;
+    CreateExParams.lpSecurityAttributes = lpSecurityAttributes;
+    CreateExParams.hTemplateFile = hTemplateFile;
+    return CreateFile2(lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, &CreateExParams);
+}
+static __inline HANDLE WINAPI CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+    WCHAR wlpFileName[MAX_PATH];
+    if (MultiByteToWideChar(CP_UTF8, 0, lpFileName, -1, wlpFileName, MAX_PATH) == 0) {
+        return NULL;
+    }
+    return CreateFileW(wlpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+#endif
 
 #endif /* _MSC_VER */
 

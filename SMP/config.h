@@ -1385,6 +1385,8 @@ don't. */
 /* Define to 1 if you have the `scm_gc_malloc_pointerless' function. */
 /* #undef HAVE_SCM_GC_MALLOC_POINTERLESS */
 
+#define HAVE_SDKDDKVER_H 1
+
 /* Define to 1 if you have the <search.h> header file. */
 #define HAVE_SEARCH_H 1
 
