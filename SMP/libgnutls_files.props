@@ -186,24 +186,52 @@
     <ClCompile Include="..\gnulib\lib\c-strncasecmp.c" />
     <ClCompile Include="..\gnulib\lib\cloexec.c" />
     <ClCompile Include="..\gnulib\lib\close.c" />
+    <ClCompile Include="..\gnulib\lib\closedir.c" />
+    <ClCompile Include="..\gnulib\lib\connect.c" />
     <ClCompile Include="..\gnulib\lib\dup2.c" />
     <ClCompile Include="..\gnulib\lib\explicit_bzero.c" />
+    <ClCompile Include="..\gnulib\lib\fclose.c" />
     <ClCompile Include="..\gnulib\lib\fcntl.c" />
+    <ClCompile Include="..\gnulib\lib\fdopen.c" />
     <ClCompile Include="..\gnulib\lib\fd-hook.c" />
+    <ClCompile Include="..\gnulib\lib\fflush.c" />
+    <ClCompile Include="..\gnulib\lib\fprintf.c" />
+    <ClCompile Include="..\gnulib\lib\fpurge.c" />
+    <ClCompile Include="..\gnulib\lib\freading.c" />
+    <ClCompile Include="..\gnulib\lib\fseek.c" />
+    <ClCompile Include="..\gnulib\lib\fseeko.c" />
+    <ClCompile Include="..\gnulib\lib\fseterr.c" />
+    <ClCompile Include="..\gnulib\lib\fstat.c" />
+    <ClCompile Include="..\gnulib\lib\ftell.c" />
+    <ClCompile Include="..\gnulib\lib\ftello.c" />
     <ClCompile Include="..\gnulib\lib\getdelim.c" />
     <ClCompile Include="..\gnulib\lib\getdtablesize.c" />
+    <ClCompile Include="..\gnulib\lib\gettimeofday.c" />
     <ClCompile Include="..\gnulib\lib\getline.c" />
     <ClCompile Include="..\gnulib\lib\gl_linkedhash_list.c" />
     <ClCompile Include="..\gnulib\lib\hash-pjw-bare.c" />
     <ClCompile Include="..\gnulib\lib\hash.c" />
+    <ClCompile Include="..\gnulib\lib\lseek.c" />
+    <ClCompile Include="..\gnulib\lib\malloca.c" />
     <ClCompile Include="..\gnulib\lib\memmem.c" />
     <ClCompile Include="..\gnulib\lib\msvc-inval.c" />
     <ClCompile Include="..\gnulib\lib\open.c" />
+    <ClCompile Include="..\gnulib\lib\opendir.c" />
+    <ClCompile Include="..\gnulib\lib\printf.c" />
     <ClCompile Include="..\gnulib\lib\printf-args.c" />
     <ClCompile Include="..\gnulib\lib\printf-parse.c" />
     <ClCompile Include="..\gnulib\lib\read.c" />
+    <ClCompile Include="..\gnulib\lib\readdir.c" />
     <ClCompile Include="..\gnulib\lib\read-file.c" />
+    <ClCompile Include="..\gnulib\lib\recv.c" />
     <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
+    <ClCompile Include="..\gnulib\lib\send.c" />
+    <ClCompile Include="..\gnulib\lib\setsockopt.c" />
+    <ClCompile Include="..\gnulib\lib\snprintf.c" />
+    <ClCompile Include="..\gnulib\lib\sprintf.c" />
+    <ClCompile Include="..\gnulib\lib\stat.c" />
+    <ClCompile Include="..\gnulib\lib\stat-w32.c" />
+    <ClCompile Include="..\gnulib\lib\stdio-read.c" />
     <ClCompile Include="..\gnulib\lib\stpcpy.c" />
     <ClCompile Include="..\gnulib\lib\strverscmp.c" />
     <ClCompile Include="..\gnulib\lib\windows-mutex.c" />
@@ -277,6 +305,11 @@
     <ClCompile Include="..\gnulib\lib\unistr\u8-uctomb-aux.c" />
     <ClCompile Include="..\gnulib\lib\vasnprintf.c" />
     <ClCompile Include="..\gnulib\lib\vasprintf.c" />
+    <ClCompile Include="..\gnulib\lib\vprintf.c" />
+    <ClCompile Include="..\gnulib\lib\vfprintf.c" />
+    <ClCompile Include="gnulib\lib\wclosedir.c" />
+    <ClCompile Include="gnulib\lib\wopendir.c" />
+    <ClCompile Include="gnulib\lib\wreaddir.c" />
     <ClCompile Include="..\lib\accelerated\accelerated.c" />
     <ClCompile Include="..\lib\accelerated\afalg.c" />
     <ClCompile Include="..\lib\accelerated\cryptodev-gcm.c" />
@@ -509,7 +542,10 @@
     <ClCompile Include="..\lib\x509\x509_write.c" />
     <ClCompile Include="..\gnulib\lib\fopen.c">
       <PreprocessorDefinitions>GNULIB_FOPEN_GNU;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
+    </ClCompile>	
+    <ClCompile Include="..\gnulib\lib\stdio-write.c">
+      <PreprocessorDefinitions>REPLACE_PRINTF_POSIX=1;REPLACE_FPRINTF_POSIX=1;REPLACE_VPRINTF_POSIX=1;REPLACE_VFPRINTF_POSIX=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>	
     <ClCompile Include="..\devel\libtasn1\lib\errors.c">
       <ObjectFileName>$(IntDir)\tasn1_$(filename).obj</ObjectFileName>
     </ClCompile>

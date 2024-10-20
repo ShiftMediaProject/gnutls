@@ -31,6 +31,13 @@
 #include <process.h>
 #include <direct.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <Winsock2.h>
+#if _VC_CRT_MAJOR_VERSION >= 14
+#include <../ucrt/stdio.h>
+#else
+#include <../include/stdio.h>
+#endif
 
 #define mkdir(path, mode) _mkdir(path)
 
@@ -54,14 +61,76 @@ typedef int mode_t;
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 
+extern int rpl_getdtablesize(void);
 #define getdtablesize rpl_getdtablesize
-extern int getdtablesize(void);
+extern int rpl_dup2(int oldfd, int newfd);
 #define dup2 rpl_dup2
-extern int dup2(int oldfd, int newfd);
+extern ssize_t rpl_read(int fd, void *buf, size_t count);
 #define read rpl_read
-extern ssize_t read(int fd, void *buf, size_t count);
+extern ssize_t rpl_write(int fd, const void *buf, size_t count);
 #define write rpl_write
-extern ssize_t write(int fd, const void *buf, size_t count);
+extern off_t rpl_lseek(int fd, off_t offset, int whence);
+#define lseek rpl_lseek
+extern int rpl_close(int fd);
+#define close rpl_close
+
+// Prevent undefined functions from being used
+#define access(...) error
+#define chdir(...) error
+#define chown(...) error
+#define copy_file_range(...) error
+#define dup(...) error
+#define dup3(...) error
+#define euidaccess(...) error
+#define execl(...) error
+#define execle(...) error
+#define execlp(...) error
+#define execv(...) error
+#define execve(...) error
+#define execvp(...) error
+#define execvpe(...) error
+#define faccessat(...) error
+#define fchdir(...) error
+#define fchownat(...) error
+#define fdatasync(...) error
+#define fsync(...) error
+#define ftruncate(...) error
+#define getcwd(...) error
+#define getdomainname(...) error
+#define getentropy(...) error
+#define getgroups(...) error
+#define gethostname(...) error
+#define getlogin(...) error
+#define getlogin_r(...) error
+#define getpagesize(...) error
+#define getpass(...) error
+#define getpid(...) error
+#define getusershell(...) error
+#define setusershell(...) error
+#define endusershell(...) error
+#define group_member(...) error
+#define isatty(...) error
+#define lchown(...) error
+#define link(...) error
+#define linkat(...) error
+#define pipe(...) error
+#define pipe2(...) error
+#define pread(...) error
+#define pwrite(...) error
+#define readlink(...) error
+#define readlinkat(...) error
+#define rmdir(...) error
+#define sethostname(...) error
+#define sleep(...) error
+#define swab(...) error
+#define symlink(...) error
+#define symlinkat(...) error
+#define truncate(...) error
+#define ttyname_r(...) error
+#define unlink(...) error
+#define unlinkat(...) error
+#define usleep(...) error
+#define pread(...) error
 
 #endif /* _MSC_VER */
 

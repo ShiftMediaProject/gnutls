@@ -221,6 +221,14 @@ whether the gnulib module unistr/u8-mbtoucr shall be considered present. */
 whether the gnulib module unistr/u8-uctomb shall be considered present. */
 #define GNULIB_UNISTR_U8_UCTOMB 1
 
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+ whether the gnulib module vfscanf shall be considered present. */
+#define GNULIB_VFSCANF 1
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+ whether the gnulib module vscanf shall be considered present. */
+#define GNULIB_VSCANF 1
+
 /* We allow temporarily usage of deprecated functions - until they are
  removed. */
 #define GNUTLS_INTERNAL_BUILD 1
@@ -1704,6 +1712,7 @@ don't. */
 
 /* Define to 1 if you have the `_fseeki64' function. */
 #define HAVE__FSEEKI64 1
+#define HAVE_DECL__FSEEKI64 1
 
 /* Define to 1 if you have the `_ftelli64' function. */
 #define HAVE__FTELLI64 1
@@ -2213,6 +2222,10 @@ _GL_UNUSED_LABEL should be used with a trailing ;*/
 /* Assume 'int' is 32 bits wide.*/
 # define WORD_BIT 32
 #endif
+
+#define _GL_WINDOWS_64_BIT_OFF_T 1
+
+#define _GL_WINDOWS_STAT_INODES 1
 
 #ifdef _MSC_VER
 #define __builtin_expect(operator, value) operator

@@ -29,6 +29,51 @@
 #else
 
 #include <Winsock2.h>
+#include <ws2tcpip.h>
+#include <sys/types.h>
+#include <io.h>
+#include <unistd.h>
+
+#if !GNULIB_defined_rpl_fd_isset
+inline int rpl_fd_isset(SOCKET fd, fd_set * set)
+{
+  u_int i;
+  if (set == NULL)
+    return 0;
+
+  for (i = 0; i < set->fd_count; i++)
+    if (set->fd_array[i] == fd)
+      return 1;
+
+  return 0;
+}
+# define GNULIB_defined_rpl_fd_isset 1
+#endif
+
+#undef FD_ISSET
+#define FD_ISSET(fd, set) rpl_fd_isset(fd, set)
+
+extern int rpl_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
+#define connect rpl_connect
+extern ssize_t rpl_recv(int fd, void *buf, size_t len, int flags);
+#define recv rpl_recv
+extern ssize_t rpl_send(int fd, const void *buf, size_t len, int flags);
+#define send rpl_send
+extern int rpl_setsockopt(int fd, int level, int optname, const void * optval, socklen_t optlen);
+#define setsockopt rpl_setsockopt
+
+// Prevent undefined functions from being used
+#define socket(...) error
+#define accept(...) error
+#define bind(...) error
+#define getpeername(...) error
+#define getsockname(...) error
+#define getsockopt(...) error
+#define listen(...) error
+#define recvfrom(...) error
+#define sendto(...) error
+#define shutdown(...) error
+#define accept4(...) error
 
 #endif /* _MSC_VER */
 
