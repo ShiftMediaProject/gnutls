@@ -111,10 +111,14 @@ extern int rpl_snprintf(char *str, size_t size, const char *format, ...);
 extern int rpl_sprintf(char *str, const char *format, ...);
 #define sprintf rpl_sprintf
 #endif
-extern ssize_t getdelim(char **lineptr, size_t *n, int delimiter, FILE *fp);
-extern ssize_t getline(char **lineptr, size_t *n, FILE *stream);
-extern int vasprintf(char **resultp, const char *format, va_list args);
-extern char *vasnprintf(char *resultbuf, size_t *lengthp, const char *format, va_list args);
+extern ssize_t rpl_getdelim(char **lineptr, size_t *n, int delimiter, FILE *fp);
+#define getdelim rpl_getdelim
+extern ssize_t rpl_getline(char **lineptr, size_t *n, FILE *stream);
+#define getline rpl_getline
+extern int rpl_vasprintf(char **resultp, const char *format, va_list args);
+#define vasprintf rpl_vasprintf
+extern char *rpl_vasnprintf(char *resultbuf, size_t *lengthp, const char *format, va_list args);
+#define vasnprintf rpl_vasnprintf
 
 // Prevent undefined functions from being used
 #define dprintf(...) error

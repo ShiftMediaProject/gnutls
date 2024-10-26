@@ -50,9 +50,12 @@
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
 
-extern void *memmem(const void *haystack, size_t haystack_len, const void *needle, size_t needle_len);
-extern int strverscmp(const char *s1, const char *s2);
-extern void explicit_bzero(void *s, size_t len);
+extern void *rpl_memmem(const void *haystack, size_t haystack_len, const void *needle, size_t needle_len);
+#define memmem rpl_memmem
+extern int rpl_strverscmp(const char *s1, const char *s2);
+#define strverscmp rpl_strverscmp
+extern void rpl_explicit_bzero(void *s, size_t len);
+#define explicit_bzero rpl_explicit_bzero
 
 #endif /* _MSC_VER */
 
