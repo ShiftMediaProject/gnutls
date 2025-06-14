@@ -111,7 +111,7 @@ index 42d90ee9d..550ca0a14 100644
  	int ret;
  	const char *e;
 diff --git a/lib/includes/gnutls/gnutls.h.in b/lib/includes/gnutls/gnutls.h.in
-index 790406e4d..9532e5746 100644
+index 8b3bb5213..aef6f52f1 100644
 --- a/lib/includes/gnutls/gnutls.h.in
 +++ b/lib/includes/gnutls/gnutls.h.in
 @@ -37,7 +37,15 @@
@@ -161,6 +161,27 @@ index 7132a0817..f62907966 100644
  #include <errno.h>
  #include <sys/stat.h>
  #include <sys/types.h>
+diff --git a/lib/system/keys-win.c b/lib/system/keys-win.c
+index 0dfcc0c62..6cab4d7a2 100644
+--- a/lib/system/keys-win.c
++++ b/lib/system/keys-win.c
+@@ -21,12 +21,15 @@
+ 
+ // Before including any Windows header we need to set _WIN32_WINNT to Vista
+ // (or higher) so that the NCRYPT stuff can be used.
++#include "config.h"
++#if HAVE_SDKDDKVER_H
++# include <sdkddkver.h>
++#endif
+ #if _WIN32_WINNT < 0x600
+ #undef _WIN32_WINNT
+ #define _WIN32_WINNT 0x600
+ #endif
+ 
+-#include "config.h"
+ #include "gnutls_int.h"
+ #include "errors.h"
+ #include <gnutls/gnutls.h>
 diff --git a/lib/x509/hostname-verify.c b/lib/x509/hostname-verify.c
 index 04e17aa23..fd66d24f8 100644
 --- a/lib/x509/hostname-verify.c

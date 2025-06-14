@@ -2146,11 +2146,7 @@ restrict; if so, hopefully it defines __RESTRICT like Sun C does.*/
 /* Define as a marker that can be attached to declarations that might not
 be used.This helps to reduce warnings, such as from
 GCC -Wunused-parameter.*/
-#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)
-# define _GL_UNUSED __attribute__ ((__unused__))
-#else
-# define _GL_UNUSED
-#endif
+#define _GL_UNUSED
 /* The name _UNUSED_PARAMETER_ is an earlier spelling, although the name
  is a misnomer outside of parameter lists.*/
 #define _UNUSED_PARAMETER_ _GL_UNUSED
@@ -2158,67 +2154,46 @@ GCC -Wunused-parameter.*/
  /* gcc supports the "unused" attribute on possibly unused labels, and
 g++ has since version 4.5.Note to support C++ as well as C,
 _GL_UNUSED_LABEL should be used with a trailing ;*/
-#if !defined __cplusplus || __GNUC__ > 4 \
-|| (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
-# define _GL_UNUSED_LABEL _GL_UNUSED
-#else
-# define _GL_UNUSED_LABEL
-#endif
+#define _GL_UNUSED_LABEL
 
 /* The __pure__ attribute was added in gcc 2.96.*/
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96)
-# define _GL_ATTRIBUTE_PURE __attribute__ ((__pure__))
-#else
-# define _GL_ATTRIBUTE_PURE /* empty */
-#endif
+#define _GL_ATTRIBUTE_PURE /* empty */
 
 /* The __const__ attribute was added in gcc 2.95.*/
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-# define _GL_ATTRIBUTE_CONST __attribute__ ((__const__))
-#else
-# define _GL_ATTRIBUTE_CONST /* empty */
-#endif
+#define _GL_ATTRIBUTE_CONST /* empty */
 
 /* The nodiscard attribute was added in gcc 3.4.*/
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
-# define _GL_ATTRIBUTE_NODISCARD __attribute__ ((warn_unused_result))
-#else
-# define _GL_ATTRIBUTE_NODISCARD /* empty */
-#endif
+#define _GL_ATTRIBUTE_NODISCARD /* empty */
 
 /* The nodiscard attribute was added in gcc 3.3.*/
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
-# define _GL_ATTRIBUTE_NONNULL(...) __attribute__ ((nonnull __VA_ARGS__))
-#else
-# define _GL_ATTRIBUTE_NONNULL(...) /* empty */
-#endif
+#define _GL_ATTRIBUTE_NONNULL(...) /* empty */
 
 /* The nodiscard attribute was added in gcc 3.0.*/
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 0)
-# define _GL_ATTRIBUTE_MAYBE_UNUSED __attribute__ ((unused))
-#else
-# define _GL_ATTRIBUTE_MAYBE_UNUSED /* empty */
-#endif
+#define _GL_ATTRIBUTE_MAYBE_UNUSED /* empty */
 
 /* The nodiscard attribute was added in gcc 3.0.*/
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 0)
-# define _GL_ATTRIBUTE_FALLTHROUGH __attribute__ ((fallthrough))
-#else
-# define _GL_ATTRIBUTE_FALLTHROUGH /* empty */
-#endif
+#define _GL_ATTRIBUTE_FALLTHROUGH /* empty */
 
 /* The deprecated attribute was added in gcc 3.1.*/
-#  if __GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 1)
-#   define _GL_ATTRIBUTE_DEPRECATED /* empty */
-#  else
-#   define _GL_ATTRIBUTE_DEPRECATED __attribute__ ((__deprecated__))
-#  endif
+#define _GL_ATTRIBUTE_DEPRECATED
+
+#define _GL_ATTRIBUTE_MALLOC
+#define _GL_ATTRIBUTE_ALLOC_SIZE(args)
+
+# define _GL_ATTRIBUTE_DEALLOC(f, i)
+# define _GL_ATTRIBUTE_DEALLOC_FREE _GL_ATTRIBUTE_DEALLOC (free, 1)
+
+# define _GL_ATTRIBUTE_RETURNS_NONNULL
 
 #ifndef _GL_ATTRIBUTE_FORMAT
 #define _GL_ATTRIBUTE_FORMAT(...)
 #endif
 
+#define _GL_GNUC_PREREQ(x, y) 0
+
 #define _GL_CMP(n1, n2) (((n1) > (n2)) - ((n1) < (n2)))
+
+#define _GL_CONFIG_H_INCLUDED 1
 
 #ifndef WORD_BIT
 /* Assume 'int' is 32 bits wide.*/
@@ -2235,3 +2210,8 @@ _GL_UNUSED_LABEL should be used with a trailing ;*/
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */
+
+#include <stdbool.h>
+
+typedef long long off64_t;
+#define GNULIB_defined_off64_t 1

@@ -15,7 +15,7 @@
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutlsd_winrt";NETTLE_LIBRARY_SONAME="libnettled_winrt";HOGWEED_LIBRARY_SONAME="libhogweedd_winrt";GMP_LIBRARY_SONAME="libgmpd_winrt";ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libhogweedd_winrt.lib;libgmpd_winrt.lib;libnettled_winrt.lib;libzlibd_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -68,7 +68,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutlsd_winrt";NETTLE_LIBRARY_SONAME="libnettled_winrt";HOGWEED_LIBRARY_SONAME="libhogweedd_winrt";GMP_LIBRARY_SONAME="libgmpd_winrt";ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libhogweedd_winrt.lib;libgmpd_winrt.lib;libnettled_winrt.lib;libzlibd_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -121,7 +121,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutlsd_winrt";NETTLE_LIBRARY_SONAME="nettled_winrt";HOGWEED_LIBRARY_SONAME="hogweedd_winrt";GMP_LIBRARY_SONAME="gmpd_winrt";ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
@@ -175,7 +175,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutlsd_winrt";NETTLE_LIBRARY_SONAME="nettled_winrt";HOGWEED_LIBRARY_SONAME="hogweedd_winrt";GMP_LIBRARY_SONAME="gmpd_winrt";ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
@@ -229,7 +229,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls_winrt";NETTLE_LIBRARY_SONAME="libnettle_winrt";HOGWEED_LIBRARY_SONAME="libhogweed_winrt";GMP_LIBRARY_SONAME="libgmp_winrt";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;libzlib_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -282,7 +282,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls_winrt";NETTLE_LIBRARY_SONAME="libnettle_winrt";HOGWEED_LIBRARY_SONAME="libhogweed_winrt";GMP_LIBRARY_SONAME="libgmp_winrt";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libhogweed_winrt.lib;libgmp_winrt.lib;libnettle_winrt.lib;libzlib_winrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -335,7 +335,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutls_winrt";NETTLE_LIBRARY_SONAME="nettle_winrt";HOGWEED_LIBRARY_SONAME="hogweed_winrt";GMP_LIBRARY_SONAME="gmp_winrt";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
@@ -389,7 +389,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls_winrt";NETTLE_LIBRARY_SONAME="libnettle_winrt";HOGWEED_LIBRARY_SONAME="libhogweed_winrt";GMP_LIBRARY_SONAME="libgmp_winrt";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
@@ -443,7 +443,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutls_winrt";NETTLE_LIBRARY_SONAME="nettle_winrt";HOGWEED_LIBRARY_SONAME="hogweed_winrt";GMP_LIBRARY_SONAME="gmp_winrt";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
@@ -497,7 +497,7 @@ del /f /q $(OutDir)\licenses\gnutls.txt
     <ClCompile>
       <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls_winrt";NETTLE_LIBRARY_SONAME="libnettle_winrt";HOGWEED_LIBRARY_SONAME="libhogweed_winrt";GMP_LIBRARY_SONAME="libgmp_winrt";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;5286;4308;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>

@@ -1781,6 +1781,18 @@
     <ClCompile Include="gnulib\lib\wopendir.c">
       <Filter>Source Files\gnulib</Filter>
     </ClCompile>
+    <ClCompile Include="..\gnulib\lib\vszprintf.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\memset_explicit.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\vfzprintf.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\vsnzprintf.c">
+      <Filter>Source Files\gnulib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="libgnutls.def">

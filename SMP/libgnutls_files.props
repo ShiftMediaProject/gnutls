@@ -186,7 +186,6 @@
     <ClCompile Include="..\gnulib\lib\c-strncasecmp.c" />
     <ClCompile Include="..\gnulib\lib\cloexec.c" />
     <ClCompile Include="..\gnulib\lib\close.c" />
-    <ClCompile Include="..\gnulib\lib\closedir.c" />
     <ClCompile Include="..\gnulib\lib\connect.c" />
     <ClCompile Include="..\gnulib\lib\dup2.c" />
     <ClCompile Include="..\gnulib\lib\explicit_bzero.c" />
@@ -212,16 +211,14 @@
     <ClCompile Include="..\gnulib\lib\hash-pjw-bare.c" />
     <ClCompile Include="..\gnulib\lib\hash.c" />
     <ClCompile Include="..\gnulib\lib\lseek.c" />
-    <ClCompile Include="..\gnulib\lib\malloca.c" />
     <ClCompile Include="..\gnulib\lib\memmem.c" />
+    <ClCompile Include="..\gnulib\lib\memset_explicit.c" />
     <ClCompile Include="..\gnulib\lib\msvc-inval.c" />
     <ClCompile Include="..\gnulib\lib\open.c" />
-    <ClCompile Include="..\gnulib\lib\opendir.c" />
     <ClCompile Include="..\gnulib\lib\printf.c" />
     <ClCompile Include="..\gnulib\lib\printf-args.c" />
     <ClCompile Include="..\gnulib\lib\printf-parse.c" />
     <ClCompile Include="..\gnulib\lib\read.c" />
-    <ClCompile Include="..\gnulib\lib\readdir.c" />
     <ClCompile Include="..\gnulib\lib\read-file.c" />
     <ClCompile Include="..\gnulib\lib\recv.c" />
     <ClCompile Include="..\gnulib\lib\secure_getenv.c" />
@@ -307,6 +304,9 @@
     <ClCompile Include="..\gnulib\lib\vasprintf.c" />
     <ClCompile Include="..\gnulib\lib\vprintf.c" />
     <ClCompile Include="..\gnulib\lib\vfprintf.c" />
+    <ClCompile Include="..\gnulib\lib\vfzprintf.c" />
+    <ClCompile Include="..\gnulib\lib\vsnzprintf.c" />
+    <ClCompile Include="..\gnulib\lib\vszprintf.c" />
     <ClCompile Include="gnulib\lib\wclosedir.c" />
     <ClCompile Include="gnulib\lib\wopendir.c" />
     <ClCompile Include="gnulib\lib\wreaddir.c" />
@@ -542,10 +542,22 @@
     <ClCompile Include="..\lib\x509\x509_write.c" />
     <ClCompile Include="..\gnulib\lib\fopen.c">
       <PreprocessorDefinitions>GNULIB_FOPEN_GNU;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>	
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\malloca.c">
+      <PreprocessorDefinitions>static_assert(x)=static_assert(x,"")</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="..\gnulib\lib\stdio-write.c">
       <PreprocessorDefinitions>REPLACE_PRINTF_POSIX=1;REPLACE_FPRINTF_POSIX=1;REPLACE_VPRINTF_POSIX=1;REPLACE_VFPRINTF_POSIX=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>	
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\closedir.c">
+      <ForcedIncludeFiles>dirent-private.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\opendir.c">
+      <ForcedIncludeFiles>dirent-private.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\gnulib\lib\readdir.c">
+      <ForcedIncludeFiles>dirent-private.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\devel\libtasn1\lib\errors.c">
       <ObjectFileName>$(IntDir)\tasn1_$(filename).obj</ObjectFileName>
     </ClCompile>
@@ -560,7 +572,7 @@
     </ClCompile>
     <ClCompile Include="..\lib\extras\randomart.c">
       <ObjectFileName>$(IntDir)\extras_%(Filename).obj</ObjectFileName>
-    </ClCompile>	
+    </ClCompile>
     <ClCompile Include="..\lib\ext\session_ticket.c">
       <ObjectFileName>$(IntDir)\ext_%(Filename).obj</ObjectFileName>
     </ClCompile>
