@@ -188,7 +188,7 @@ static unsigned resp_matches_pcert(gnutls_ocsp_resp_t resp,
 {
 	gnutls_x509_crt_t crt;
 	int ret;
-	unsigned retval;
+	unsigned resp_indx, retval;
 
 	ret = gnutls_x509_crt_init(&crt);
 	if (ret < 0)
@@ -201,7 +201,11 @@ static unsigned resp_matches_pcert(gnutls_ocsp_resp_t resp,
 		goto cleanup;
 	}
 
-	ret = gnutls_ocsp_resp_check_crt(resp, 0, crt);
+	for (resp_indx = 0;; resp_indx++) {
+		ret = gnutls_ocsp_resp_check_crt(resp, resp_indx, crt);
+		if (ret == 0 || ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			break;
+	}
 	if (ret == 0)
 		retval = 1;
 	else
@@ -613,8 +617,8 @@ gnutls_certificate_get_ocsp_expiration(gnutls_certificate_credentials_t sc,
  * explicit OCSP validity check on the peer's certificate. Should be called after
  * any of gnutls_certificate_verify_peers*() are called.
  *
- * This function is always usable on client side, but on server side only
- * under TLS 1.3, which is the first version of TLS that allows cliend-side OCSP
+ * This function is always usable on client side, but on server side only under
+ * TLS 1.3, which is the first version of TLS that allows clients to send OCSP
  * responses.
  *
  * Returns: Non-zero if the response was valid, or a zero if it wasn't sent,

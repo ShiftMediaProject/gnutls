@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(_WIN32) || !defined(HAVE_LIBZ)
+#if defined(_WIN32) || !defined(HAVE_ZLIB)
 
 int main(int argc, char **argv)
 {
@@ -76,8 +76,8 @@ static int client_callback(gnutls_session_t session, unsigned htype,
 			   unsigned post, unsigned incoming,
 			   const gnutls_datum_t *msg)
 {
-	/* change compression method to BROTLI */
-	msg->data[1] = 0x02;
+	/* change uncompressed length */
+	msg->data[4] = ~msg->data[4];
 	return 0;
 }
 
