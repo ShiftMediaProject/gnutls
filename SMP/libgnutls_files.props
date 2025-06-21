@@ -544,7 +544,7 @@
       <PreprocessorDefinitions>GNULIB_FOPEN_GNU;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\gnulib\lib\malloca.c">
-      <PreprocessorDefinitions>static_assert(x)=static_assert(x,"")</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BROKEN_STATIC_ASSERT</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\gnulib\lib\stdio-write.c">
       <PreprocessorDefinitions>REPLACE_PRINTF_POSIX=1;REPLACE_FPRINTF_POSIX=1;REPLACE_VPRINTF_POSIX=1;REPLACE_VFPRINTF_POSIX=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>

@@ -2215,3 +2215,9 @@ _GL_UNUSED_LABEL should be used with a trailing ;*/
 
 typedef long long off64_t;
 #define GNULIB_defined_off64_t 1
+
+#ifdef BROKEN_STATIC_ASSERT
+#define static_assert_helper(x) static_assert(x, "")
+#define static_assert(x) static_assert_helper(x)
+#endif
+
